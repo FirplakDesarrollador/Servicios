@@ -6,10 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   LogOut,
   User,
-  Settings,
-  LayoutDashboard,
-  Loader2,
-  Bell,
   Wrench,
   ClipboardList,
   Search,
@@ -22,12 +18,16 @@ import {
   Warehouse,
   BookOpen,
   BarChart3,
-  LogOut as LogOutIcon
+  LogOut as LogOutIcon,
+  Bell,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [currentTime, setCurrentTime] = useState('');
@@ -47,17 +47,33 @@ export default function Home() {
         router.push('/login');
       } else {
         setUser(session.user);
+        // Fetch additional profile data from Usuarios table
+        const { data: userData, error } = await supabase
+          .from('Usuarios')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!error && userData) {
+          setProfile(userData);
+        }
       }
       setLoading(false);
     };
 
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session) {
         router.push('/login');
       } else {
         setUser(session.user);
+        const { data: userData } = await supabase
+          .from('Usuarios')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        if (userData) setProfile(userData);
       }
     });
 
@@ -79,6 +95,14 @@ export default function Home() {
 
   if (!user) return null;
 
+  const fullName = profile?.nombres && profile?.apellidos
+    ? `${profile.nombres} ${profile.apellidos}`
+    : profile?.display_name || user.email?.split('@')[0];
+
+  const userRole = profile?.rol || 'USUARIO';
+  const userPhoto = profile?.url_foto || null;
+  const defaultPhoto = 'https://lnphhmowklqiomownurw.supabase.co/storage/v1/object/public/publico/fotos/withoutphoto.png';
+
   const menuItems = [
     { title: 'Solicitar servicio', icon: Wrench },
     { title: 'Servicios Abiertos', icon: ClipboardList },
@@ -88,7 +112,7 @@ export default function Home() {
     { title: 'Administración', icon: ShieldCheck },
     { title: 'Historial de servicios', icon: Activity },
     { title: 'Ayuda', icon: HelpCircle },
-    { title: 'Exhibiciones', icon: LayoutDashboard },
+    { title: 'Exhibiciones', icon: BarChart3 }, // Using BarChart3 for Exhibiciones
     { title: 'Base de datos', icon: Database },
     { title: 'Inventario Almacenes', icon: Warehouse },
     { title: 'Agenda Tecnicos', icon: BookOpen },
@@ -101,7 +125,6 @@ export default function Home() {
       <header className="fixed top-0 left-0 w-full bg-brand text-white shadow-md z-50 h-16 flex items-center px-6 justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            {/* Logo placeholder - using text as per prompt logic if image not found */}
             <span className="font-bold text-xl tracking-tight uppercase">FIRPLAK</span>
           </div>
         </div>
@@ -130,21 +153,33 @@ export default function Home() {
         <section className="py-8 border-b border-slate-100 mb-10">
           <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
             <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-slate-50 relative overflow-hidden group">
-              <User className="w-12 h-12 text-slate-400 group-hover:scale-110 transition-transform" />
-              {/* Optional: Add profile image if available */}
+              {userPhoto ? (
+                <img
+                  src={userPhoto}
+                  alt={fullName}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                  onError={(e: any) => { e.target.src = defaultPhoto; }}
+                />
+              ) : (
+                <img
+                  src={defaultPhoto}
+                  alt="Default User"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                />
+              )}
             </div>
             <div>
               <h2 className="text-2xl font-bold text-brand mb-1 leading-tight">¡Bienvenido!</h2>
-              <p className="text-lg font-semibold text-slate-700">{user.email?.split('@')[0]}</p>
-              <p className="text-sm text-slate-500 leading-none mb-1">{user.email}</p>
+              <p className="text-lg font-semibold text-slate-700">{fullName}</p>
+              <p className="text-sm text-slate-500 leading-none mb-2">{user.email}</p>
               <div className="inline-block px-2 py-1 bg-slate-100 rounded text-[10px] font-bold text-brand uppercase tracking-wider">
-                USUARIO
+                {userRole}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Action Grid (Excluding the status cards as per user instruction) */}
+        {/* Action Grid */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
