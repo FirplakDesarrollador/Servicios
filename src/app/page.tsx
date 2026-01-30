@@ -21,8 +21,9 @@ import {
   Warehouse,
   BookOpen,
   BarChart3,
+  CheckCircle2
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -107,169 +108,113 @@ export default function Home() {
   const defaultPhoto = 'https://lnphhmowklqiomownurw.supabase.co/storage/v1/object/public/publico/fotos/withoutphoto.png';
 
   const menuItems = [
-    // Row 1
-    { title: 'Solicitar servicio', icon: Briefcase },
-    { title: 'Servicios Abiertos', icon: ClipboardList },
-    { title: 'Buscar servicio cerrado', icon: Search },
-    { title: 'Aprobaciones', icon: ClipboardCheck },
-    { title: 'Mi agenda', icon: Calendar },
-    { title: 'Administración', icon: ShieldAlert },
-    { title: 'Historial de servicios', icon: History },
-    // Row 2
-    { title: 'Ayuda', icon: HelpCircle },
-    { title: 'Exhibiciones', icon: ChefHat },
-    { title: 'Base de datos', icon: Database },
-    { title: 'Inventario Almacenes', icon: Warehouse },
-    { title: 'Agenda Tecnicos', icon: BookOpen },
-    { title: 'BI', icon: BarChart3 },
+    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-blue-600' },
+    { title: 'Servicios Abiertos', icon: ClipboardList, color: 'bg-emerald-500' },
+    { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-indigo-500' },
+    { title: 'Aprobaciones', icon: ClipboardCheck, color: 'bg-orange-500' },
+    { title: 'Mi agenda', icon: Calendar, color: 'bg-pink-600' },
+    { title: 'Administración', icon: ShieldAlert, color: 'bg-cyan-600' },
+    { title: 'Historial de servicios', icon: History, color: 'bg-indigo-700' },
+    { title: 'Ayuda', icon: HelpCircle, color: 'bg-teal-600' },
+    { title: 'Exhibiciones', icon: ChefHat, color: 'bg-orange-600' },
+    { title: 'Base de datos', icon: Database, color: 'bg-blue-700' },
+    { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-600' },
+    { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-600' },
+    { title: 'BI', icon: BarChart3, color: 'bg-blue-800' },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-brand/10 selection:text-brand">
-      {/* Dark Header matching image but more beautiful */}
-      <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-16 flex items-center px-4 md:px-8 justify-between shadow-2xl shadow-brand/20">
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col">
-            <span className="font-black text-xl tracking-tight leading-none">FIRPLAK</span>
-            <span className="text-[8px] italic opacity-60 font-medium tracking-wider">Inspirando hogares</span>
-          </div>
+    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans">
+      <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 justify-between shadow-lg">
+        <div className="flex flex-col">
+          <span className="font-black text-xl tracking-tight leading-none">FIRPLAK</span>
+          <span className="text-[7px] italic opacity-60 font-medium tracking-widest">Inspirando hogares</span>
         </div>
 
-        <div className="hidden sm:flex flex-col items-center">
-          <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase italic">V 3.6</span>
-          <span className="text-sm font-bold text-white tabular-nums tracking-wide">Hora: {currentTime}</span>
+        <div className="absolute left-1/2 -translate-x-1/2 text-center">
+          <span className="text-xs font-bold text-white tabular-nums tracking-wide">{currentTime}</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white text-white hover:text-brand transition-all group shadow-sm">
-            <BellPlus className="w-5 h-5" />
+          <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-all shadow-sm">
+            <BellPlus className="w-4 h-4" />
           </button>
-          <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white text-white hover:text-brand transition-all group shadow-sm">
-            <Bell className="w-5 h-5" />
+          <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-all shadow-sm">
+            <Bell className="w-4 h-4" />
           </button>
           <button
             onClick={handleSignOut}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-red-500 text-white transition-all group shadow-sm"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-red-500 transition-all shadow-sm"
           >
-            <LogOutIcon className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+            <LogOutIcon className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      <main className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
-        {/* Centered Profile Section */}
-        <section className="mb-14 flex flex-col items-center text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative mb-6"
-          >
-            <div className="w-32 h-32 md:w-36 md:h-36 bg-slate-100/50 rounded-full flex items-center justify-center border-[6px] border-white shadow-2xl overflow-hidden group">
+      <main className="pt-20 pb-10 px-4 max-w-6xl mx-auto flex flex-col items-center">
+        {/* Compact Profile Card */}
+        <motion.section
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-2xl bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white mb-10 flex items-center gap-6 relative overflow-hidden"
+        >
+          {/* Decorative Background Blob */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl" />
+
+          <div className="relative group shrink-0">
+            <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center border-4 border-slate-50 shadow-inner overflow-hidden">
               <img
                 src={userPhoto || defaultPhoto}
                 alt={fullName}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform group-hover:scale-110"
                 onError={(e: any) => { e.target.src = defaultPhoto; }}
               />
             </div>
-            {/* Elegant online indicator */}
-            <div className="absolute bottom-2 right-2 w-7 h-7 bg-emerald-500 rounded-full border-4 border-white shadow-lg animate-pulse" />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <h1 className="text-3xl md:text-4xl font-black text-brand tracking-tight mb-2 uppercase">¡Bienvenido!</h1>
-            <p className="text-xl md:text-2xl font-bold text-slate-700 mb-1">{fullName}</p>
-            <p className="text-sm font-medium text-slate-400 mb-3">{user.email}</p>
-            <div className="inline-block px-4 py-1.5 bg-slate-100 border border-slate-200 rounded-full text-[10px] font-black text-brand uppercase tracking-[0.2em] shadow-sm">
-              {userRole}
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-lg border-2 border-white flex items-center justify-center shadow-md">
+              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
             </div>
-          </motion.div>
-        </section>
-
-        {/* Action Grid matching two-row structure from image */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-6"
-        >
-          {/* First Row: 7 items */}
-          <div className="flex flex-wrap justify-center gap-4">
-            {menuItems.slice(0, 7).map((item, index) => (
-              <motion.button
-                key={item.title}
-                variants={itemVariants}
-                whileHover={{ y: -8, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex flex-col items-center justify-center w-[calc(50%-8px)] sm:w-40 md:w-44 h-40 md:h-44 bg-white border border-slate-100 rounded-[2rem] premium-shadow hover:shadow-2xl hover:shadow-brand/10 transition-all group overflow-hidden"
-              >
-                <div className="mb-4 text-brand group-hover:scale-110 transition-transform duration-300">
-                  <item.icon className="w-10 h-10 md:w-12 md:h-12" strokeWidth={1.5} />
-                </div>
-                <span className="text-[10px] font-black text-slate-600 text-center uppercase tracking-tight leading-tight px-4 group-hover:text-brand transition-colors">
-                  {item.title}
-                </span>
-
-                {/* Subtle highlight effect */}
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </motion.button>
-            ))}
           </div>
 
-          {/* Second Row: 6 items */}
-          <div className="flex flex-wrap justify-center gap-4">
-            {menuItems.slice(7).map((item, index) => (
-              <motion.button
-                key={item.title}
-                variants={itemVariants}
-                whileHover={{ y: -8, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex flex-col items-center justify-center w-[calc(50%-8px)] sm:w-40 md:w-44 h-40 md:h-44 bg-white border border-slate-100 rounded-[2rem] premium-shadow hover:shadow-2xl hover:shadow-brand/10 transition-all group overflow-hidden"
-              >
-                <div className="mb-4 text-brand group-hover:scale-110 transition-transform duration-300">
-                  <item.icon className="w-10 h-10 md:w-12 md:h-12" strokeWidth={1.5} />
-                </div>
-                <span className="text-[10px] font-black text-slate-600 text-center uppercase tracking-tight leading-tight px-4 group-hover:text-brand transition-colors">
-                  {item.title}
-                </span>
-
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </motion.button>
-            ))}
+          <div className="flex-1">
+            <h1 className="text-3xl font-black text-brand tracking-tighter mb-0.5 leading-none">¡Bienvenido!</h1>
+            <p className="text-lg font-bold text-slate-700 leading-tight mb-0.5">{fullName}</p>
+            <p className="text-xs font-medium text-slate-400 mb-2">{user.email}</p>
+            <span className="inline-block px-4 py-0.5 bg-brand text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full shadow-md">
+              {userRole}
+            </span>
           </div>
-        </motion.div>
+        </motion.section>
+
+        {/* Compact Action Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3 w-full">
+          {menuItems.map((item, index) => (
+            <motion.button
+              key={item.title}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.03 }}
+              whileHover={{ y: -5, scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden"
+            >
+              {/* Decorative Corner Circle */}
+              <div className="absolute top-[-20px] right-[-20px] w-16 h-16 bg-slate-50 rounded-full group-hover:bg-brand/5 transition-colors" />
+
+              <div className={`mt-2 mb-3 p-3 rounded-2xl ${item.color} text-white shadow-lg transition-transform group-hover:rotate-6`}>
+                <item.icon className="w-6 h-6" strokeWidth={2.5} />
+              </div>
+
+              <span className="text-[10px] font-extrabold text-slate-600 text-center uppercase tracking-tight leading-tight px-1 group-hover:text-brand transition-colors relative z-10 h-8 flex items-center">
+                {item.title}
+              </span>
+            </motion.button>
+          ))}
+        </div>
       </main>
 
-      {/* Modern Footer */}
-      <footer className="mt-auto py-8 text-center border-t border-slate-100 bg-white">
-        <div className="flex justify-center items-center gap-4 mb-3">
-          <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-brand/20">F</div>
-          <p className="text-xs font-black text-brand tracking-[0.2em] uppercase">FIRPLAK S.A.</p>
-        </div>
-        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.3em]">
-          &copy; 2026 Reservados todos los derechos.
+      <footer className="mt-auto py-4 text-center">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
+          FIRPLAK S.A. &copy; 2026
         </p>
       </footer>
     </div>
