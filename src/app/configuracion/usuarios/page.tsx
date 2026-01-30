@@ -183,6 +183,22 @@ export default function UsuariosPage() {
                                         >
                                             EDITAR ROL
                                         </button>
+                                        <button
+                                            onClick={async () => {
+                                                const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                                                    redirectTo: `${window.location.origin}/login`,
+                                                });
+                                                if (error) {
+                                                    alert('Error: ' + error.message);
+                                                } else {
+                                                    alert('Correo de restablecimiento enviado a ' + user.email);
+                                                }
+                                            }}
+                                            className="px-3 py-1 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[10px] font-black uppercase rounded-full transition-all border border-slate-200 shadow-sm flex items-center gap-1"
+                                        >
+                                            <Key className="w-3 h-3" />
+                                            RESET PASS
+                                        </button>
                                     </div>
                                 </div>
                             </motion.div>
