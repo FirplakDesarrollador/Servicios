@@ -28,7 +28,31 @@ export default function UsuariosPage() {
     const [isSaving, setIsSaving] = useState(false);
     const router = useRouter();
 
-    const ROLES = ['desarrollador', 'admin', 'supervisor', 'tecnico', 'USUARIO'];
+    const ROLES = [
+        'desarrollador',
+        'gerente',
+        'mac',
+        'comercial',
+        'coordinador_servicio',
+        'coordinador_comercial',
+        'tecnico',
+        'director_comercial',
+        'auxiliar_pedidos',
+        'auxiliar_novedades',
+        'visitante',
+        'administrador_canal',
+        'ecommerce',
+        'coordinador_tecnico',
+        'promotor',
+        'asesor_tecnico',
+        'calidad',
+        'promotor_tecnico',
+        'promotor_tecnico_comercial',
+        'promotor_tecnico_exhibiciones',
+        'supervisor_externo',
+        'tecnico_externo',
+        'distribuidores'
+    ];
 
     useEffect(() => {
         fetchUsers();
@@ -196,8 +220,8 @@ export default function UsuariosPage() {
                                             key={role}
                                             onClick={() => setNewRole(role)}
                                             className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${newRole === role
-                                                    ? 'border-brand bg-brand/5 text-brand'
-                                                    : 'border-slate-100 hover:border-slate-200 text-slate-600'
+                                                ? 'border-brand bg-brand/5 text-brand'
+                                                : 'border-slate-100 hover:border-slate-200 text-slate-600'
                                                 }`}
                                         >
                                             <span className="font-extrabold uppercase text-xs tracking-widest">{role}</span>

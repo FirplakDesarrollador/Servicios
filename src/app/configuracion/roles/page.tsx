@@ -20,7 +20,31 @@ export default function RolesPage() {
     const [isInitializing, setIsInitializing] = useState(false);
     const router = useRouter();
 
-    const ROLES = ['desarrollador', 'admin', 'supervisor', 'tecnico', 'USUARIO'];
+    const ROLES = [
+        'desarrollador',
+        'gerente',
+        'mac',
+        'comercial',
+        'coordinador_servicio',
+        'coordinador_comercial',
+        'tecnico',
+        'director_comercial',
+        'auxiliar_pedidos',
+        'auxiliar_novedades',
+        'visitante',
+        'administrador_canal',
+        'ecommerce',
+        'coordinador_tecnico',
+        'promotor',
+        'asesor_tecnico',
+        'calidad',
+        'promotor_tecnico',
+        'promotor_tecnico_comercial',
+        'promotor_tecnico_exhibiciones',
+        'supervisor_externo',
+        'tecnico_externo',
+        'distribuidores'
+    ];
     const MODULOS = [
         'Solicitar servicio',
         'Servicios Abiertos',
