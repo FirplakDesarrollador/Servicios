@@ -21,7 +21,8 @@ import {
   Warehouse,
   BookOpen,
   BarChart3,
-  CheckCircle2
+  CheckCircle2,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -121,6 +122,7 @@ export default function Home() {
     { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-600' },
     { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-600' },
     { title: 'BI', icon: BarChart3, color: 'bg-blue-800' },
+    { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
   return (
