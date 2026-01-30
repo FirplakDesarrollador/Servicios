@@ -30,6 +30,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const router = useRouter();
   const [currentTime, setCurrentTime] = useState('');
 
@@ -56,6 +57,21 @@ export default function Home() {
 
         if (!error && userData) {
           setProfile(userData);
+
+          // Fetch Role Permissions
+          const { data: perms } = await supabase
+            .from('PermisosModulos')
+            .select('nombre_modulo')
+            .eq('rol', userData.rol)
+            .eq('esta_habilitado', true);
+
+          if (perms && perms.length > 0) {
+            setPermissions(perms.map(p => p.nombre_modulo));
+          } else {
+            // Seed default if no permissions found (especially for new table)
+            // Just for developers initially or all modules for safety during transition
+            setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Administración', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
+          }
         }
       }
       setLoading(false);
@@ -125,6 +141,15 @@ export default function Home() {
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
+  // Filter based on role permissions
+  const filteredItems = menuItems.filter(item => {
+    // Config module is ONLY for desarrollador
+    if (item.title === 'Configuración') return profile?.rol === 'desarrollador';
+
+    // Check if module is enabled in permissions
+    return permissions.includes(item.title);
+  });
+
   return (
     <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans">
       <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 justify-between shadow-lg">
@@ -189,7 +214,7 @@ export default function Home() {
 
         {/* Compact Action Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3 w-full">
-          {menuItems.map((item, index) => (
+          {filteredItems.map((item, index) => (
             <motion.button
               key={item.title}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -197,6 +222,11 @@ export default function Home() {
               transition={{ delay: index * 0.03 }}
               whileHover={{ y: -5, scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (item.title === 'Configuración') {
+                  router.push('/configuracion');
+                }
+              }}
               className="group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden"
             >
               {/* Decorative Corner Circle */}
