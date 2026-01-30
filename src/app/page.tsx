@@ -4,26 +4,25 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import {
-  User,
-  Wrench,
+  LogOut as LogOutIcon,
+  Bell,
+  BellPlus,
+  Loader2,
+  Briefcase,
   ClipboardList,
   Search,
   ClipboardCheck,
   Calendar,
-  ShieldCheck,
-  Activity,
+  ShieldAlert,
+  History,
   HelpCircle,
+  ChefHat,
   Database,
   Warehouse,
   BookOpen,
   BarChart3,
-  LogOut as LogOutIcon,
-  Bell,
-  Loader2,
-  ChevronRight,
-  LayoutDashboard
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -108,19 +107,21 @@ export default function Home() {
   const defaultPhoto = 'https://lnphhmowklqiomownurw.supabase.co/storage/v1/object/public/publico/fotos/withoutphoto.png';
 
   const menuItems = [
-    { title: 'Solicitar servicio', icon: Wrench, color: 'bg-emerald-50 text-emerald-600' },
-    { title: 'Servicios Abiertos', icon: ClipboardList, color: 'bg-blue-50 text-blue-600' },
-    { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-slate-50 text-slate-600' },
-    { title: 'Aprobaciones', icon: ClipboardCheck, color: 'bg-amber-50 text-amber-600' },
-    { title: 'Mi agenda', icon: Calendar, color: 'bg-indigo-50 text-indigo-600' },
-    { title: 'Administración', icon: ShieldCheck, color: 'bg-red-50 text-red-600' },
-    { title: 'Historial de servicios', icon: Activity, color: 'bg-rose-50 text-rose-600' },
-    { title: 'Ayuda', icon: HelpCircle, color: 'bg-cyan-50 text-cyan-600' },
-    { title: 'Exhibiciones', icon: LayoutDashboard, color: 'bg-violet-50 text-violet-600' },
-    { title: 'Base de datos', icon: Database, color: 'bg-orange-50 text-orange-600' },
-    { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-teal-50 text-teal-600' },
-    { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-lime-50 text-lime-600' },
-    { title: 'BI', icon: BarChart3, color: 'bg-fuchsia-50 text-fuchsia-600' },
+    // Row 1
+    { title: 'Solicitar servicio', icon: Briefcase },
+    { title: 'Servicios Abiertos', icon: ClipboardList },
+    { title: 'Buscar servicio cerrado', icon: Search },
+    { title: 'Aprobaciones', icon: ClipboardCheck },
+    { title: 'Mi agenda', icon: Calendar },
+    { title: 'Administración', icon: ShieldAlert },
+    { title: 'Historial de servicios', icon: History },
+    // Row 2
+    { title: 'Ayuda', icon: HelpCircle },
+    { title: 'Exhibiciones', icon: ChefHat },
+    { title: 'Base de datos', icon: Database },
+    { title: 'Inventario Almacenes', icon: Warehouse },
+    { title: 'Agenda Tecnicos', icon: BookOpen },
+    { title: 'BI', icon: BarChart3 },
   ];
 
   const containerVariants = {
@@ -143,136 +144,132 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-brand/10 selection:text-brand">
-      {/* Background Ornaments */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand/5 rounded-full blur-[120px]" />
-      </div>
-
-      {/* Header */}
-      <header className="fixed top-0 left-0 w-full glass z-50 h-20 flex items-center px-8 justify-between border-b border-white/20">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
-            <span className="text-white font-black text-xl">F</span>
+      {/* Dark Header matching image but more beautiful */}
+      <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-16 flex items-center px-4 md:px-8 justify-between shadow-2xl shadow-brand/20">
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col">
+            <span className="font-black text-xl tracking-tight leading-none">FIRPLAK</span>
+            <span className="text-[8px] italic opacity-60 font-medium tracking-wider">Inspirando hogares</span>
           </div>
-          <span className="font-black text-2xl tracking-tighter text-brand uppercase">FIRPLAK</span>
         </div>
 
-        <div className="hidden md:flex flex-col items-center">
-          <span className="text-[10px] font-bold text-brand/40 tracking-widest uppercase">Version 3.6</span>
-          <span className="text-base font-bold text-brand tabular-nums">{currentTime}</span>
+        <div className="hidden sm:flex flex-col items-center">
+          <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase italic">V 3.6</span>
+          <span className="text-sm font-bold text-white tabular-nums tracking-wide">Hora: {currentTime}</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="relative w-11 h-11 flex items-center justify-center rounded-2xl hover:bg-white/50 transition-all group">
-            <Bell className="w-6 h-6 text-slate-600 group-hover:text-brand transition-colors" />
-            <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+        <div className="flex items-center gap-2">
+          <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white text-white hover:text-brand transition-all group shadow-sm">
+            <BellPlus className="w-5 h-5" />
           </button>
-          <div className="h-8 w-px bg-slate-200 mx-1"></div>
+          <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white text-white hover:text-brand transition-all group shadow-sm">
+            <Bell className="w-5 h-5" />
+          </button>
           <button
             onClick={handleSignOut}
-            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-brand/5 hover:bg-brand text-brand hover:text-white transition-all group shadow-sm"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-red-500 text-white transition-all group shadow-sm"
           >
             <LogOutIcon className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
           </button>
         </div>
       </header>
 
-      <main className="relative pt-28 pb-20 px-6 max-w-7xl mx-auto z-10">
-        {/* Welcome Block */}
-        <section className="mb-12">
+      <main className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
+        {/* Centered Profile Section */}
+        <section className="mb-14 flex flex-col items-center text-center">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex flex-col md:flex-row items-center md:items-end gap-6 bg-white p-8 rounded-[2rem] premium-shadow border border-white/60 relative overflow-hidden"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative mb-6"
           >
-            {/* Absolute accent */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-bl-[4rem]" />
-
-            <div className="relative">
-              <div className="w-28 h-28 bg-slate-100 rounded-3xl flex items-center justify-center border-4 border-white shadow-xl overflow-hidden group">
-                <img
-                  src={userPhoto || defaultPhoto}
-                  alt={fullName}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  onError={(e: any) => { e.target.src = defaultPhoto; }}
-                />
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-brand rounded-xl border-4 border-white flex items-center justify-center flex-col scale-110">
-                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              </div>
+            <div className="w-32 h-32 md:w-36 md:h-36 bg-slate-100/50 rounded-full flex items-center justify-center border-[6px] border-white shadow-2xl overflow-hidden group">
+              <img
+                src={userPhoto || defaultPhoto}
+                alt={fullName}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                onError={(e: any) => { e.target.src = defaultPhoto; }}
+              />
             </div>
+            {/* Elegant online indicator */}
+            <div className="absolute bottom-2 right-2 w-7 h-7 bg-emerald-500 rounded-full border-4 border-white shadow-lg animate-pulse" />
+          </motion.div>
 
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl font-black text-brand tracking-tight mb-2">
-                ¡Hola, {profile?.nombres || fullName.split(' ')[0]}!
-              </h1>
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                <span className="text-lg font-medium text-slate-500">{user.email}</span>
-                <span className="px-3 py-1 bg-brand text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-sm">
-                  {userRole}
-                </span>
-              </div>
-            </div>
-
-            <div className="hidden lg:block h-20 w-px bg-slate-100 mx-4" />
-
-            <div className="hidden lg:grid grid-cols-2 gap-8 pr-4">
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Empresa</p>
-                <p className="font-bold text-brand">FIRPLAK S.A.</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Estado</p>
-                <p className="font-bold text-emerald-500 flex items-center gap-1 justify-center">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Activo
-                </p>
-              </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <h1 className="text-3xl md:text-4xl font-black text-brand tracking-tight mb-2 uppercase">¡Bienvenido!</h1>
+            <p className="text-xl md:text-2xl font-bold text-slate-700 mb-1">{fullName}</p>
+            <p className="text-sm font-medium text-slate-400 mb-3">{user.email}</p>
+            <div className="inline-block px-4 py-1.5 bg-slate-100 border border-slate-200 rounded-full text-[10px] font-black text-brand uppercase tracking-[0.2em] shadow-sm">
+              {userRole}
             </div>
           </motion.div>
         </section>
 
-        {/* Action Grid */}
+        {/* Action Grid matching two-row structure from image */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-5"
+          className="space-y-6"
         >
-          {menuItems.map((item, index) => (
-            <motion.button
-              key={item.title}
-              variants={itemVariants}
-              whileHover={{
-                y: -8,
-                transition: { duration: 0.2, ease: "easeOut" }
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="group flex flex-col items-center justify-center p-8 bg-white border border-white rounded-[2.5rem] premium-shadow hover:shadow-2xl hover:shadow-brand/10 transition-all aspect-square relative overflow-hidden"
-            >
-              {/* Card Background Decoration */}
-              <div className={`absolute top-0 right-0 w-16 h-16 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-bl-[2rem] ${item.color.split(' ')[0]}`} />
+          {/* First Row: 7 items */}
+          <div className="flex flex-wrap justify-center gap-4">
+            {menuItems.slice(0, 7).map((item, index) => (
+              <motion.button
+                key={item.title}
+                variants={itemVariants}
+                whileHover={{ y: -8, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center justify-center w-[calc(50%-8px)] sm:w-40 md:w-44 h-40 md:h-44 bg-white border border-slate-100 rounded-[2rem] premium-shadow hover:shadow-2xl hover:shadow-brand/10 transition-all group overflow-hidden"
+              >
+                <div className="mb-4 text-brand group-hover:scale-110 transition-transform duration-300">
+                  <item.icon className="w-10 h-10 md:w-12 md:h-12" strokeWidth={1.5} />
+                </div>
+                <span className="text-[10px] font-black text-slate-600 text-center uppercase tracking-tight leading-tight px-4 group-hover:text-brand transition-colors">
+                  {item.title}
+                </span>
 
-              <div className={`mb-5 p-4 rounded-[1.5rem] transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg ${item.color}`}>
-                <item.icon className="w-10 h-10" strokeWidth={2} />
-              </div>
+                {/* Subtle highlight effect */}
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
+            ))}
+          </div>
 
-              <span className="text-xs font-black text-slate-700 text-center uppercase tracking-tight leading-tight px-2 group-hover:text-brand transition-colors">
-                {item.title}
-              </span>
+          {/* Second Row: 6 items */}
+          <div className="flex flex-wrap justify-center gap-4">
+            {menuItems.slice(7).map((item, index) => (
+              <motion.button
+                key={item.title}
+                variants={itemVariants}
+                whileHover={{ y: -8, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center justify-center w-[calc(50%-8px)] sm:w-40 md:w-44 h-40 md:h-44 bg-white border border-slate-100 rounded-[2rem] premium-shadow hover:shadow-2xl hover:shadow-brand/10 transition-all group overflow-hidden"
+              >
+                <div className="mb-4 text-brand group-hover:scale-110 transition-transform duration-300">
+                  <item.icon className="w-10 h-10 md:w-12 md:h-12" strokeWidth={1.5} />
+                </div>
+                <span className="text-[10px] font-black text-slate-600 text-center uppercase tracking-tight leading-tight px-4 group-hover:text-brand transition-colors">
+                  {item.title}
+                </span>
 
-              <div className="absolute bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                <ChevronRight className="w-4 h-4 text-brand" />
-              </div>
-            </motion.button>
-          ))}
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
       </main>
 
-      {/* Footer Footer */}
-      <footer className="fixed bottom-0 left-0 w-full glass h-10 flex items-center justify-center px-8 border-t border-white/20 z-50">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-          &copy; 2026 Firplak. Todos los derechos reservados.
+      {/* Modern Footer */}
+      <footer className="mt-auto py-8 text-center border-t border-slate-100 bg-white">
+        <div className="flex justify-center items-center gap-4 mb-3">
+          <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-brand/20">F</div>
+          <p className="text-xs font-black text-brand tracking-[0.2em] uppercase">FIRPLAK S.A.</p>
+        </div>
+        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.3em]">
+          &copy; 2026 Reservados todos los derechos.
         </p>
       </footer>
     </div>
