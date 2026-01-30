@@ -166,7 +166,7 @@ export default function RolesPage() {
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Sincronizando Matriz...</p>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-white overflow-hidden overflow-x-auto">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-white overflow-x-auto custom-scrollbar">
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100">
