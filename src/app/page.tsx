@@ -3,13 +3,42 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Settings, LayoutDashboard, Loader2 } from 'lucide-react';
+import {
+  LogOut,
+  User,
+  Settings,
+  LayoutDashboard,
+  Loader2,
+  Bell,
+  Wrench,
+  ClipboardList,
+  Search,
+  ClipboardCheck,
+  Calendar,
+  ShieldCheck,
+  Activity,
+  HelpCircle,
+  Database,
+  Warehouse,
+  BookOpen,
+  BarChart3,
+  LogOut as LogOutIcon
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -42,84 +71,100 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-brand animate-spin" />
       </div>
     );
   }
 
   if (!user) return null;
 
+  const menuItems = [
+    { title: 'Solicitar servicio', icon: Wrench },
+    { title: 'Servicios Abiertos', icon: ClipboardList },
+    { title: 'Buscar servicio cerrado', icon: Search },
+    { title: 'Aprobaciones', icon: ClipboardCheck },
+    { title: 'Mi agenda', icon: Calendar },
+    { title: 'Administración', icon: ShieldCheck },
+    { title: 'Historial de servicios', icon: Activity },
+    { title: 'Ayuda', icon: HelpCircle },
+    { title: 'Exhibiciones', icon: LayoutDashboard },
+    { title: 'Base de datos', icon: Database },
+    { title: 'Inventario Almacenes', icon: Warehouse },
+    { title: 'Agenda Tecnicos', icon: BookOpen },
+    { title: 'BI', icon: BarChart3 },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-200">
-      {/* Sidebar - Simple version */}
-      <nav className="fixed top-0 left-0 w-full bg-slate-900/50 backdrop-blur-md border-b border-white/5 z-50 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <LayoutDashboard className="text-white w-5 h-5" />
+    <div className="min-h-screen bg-white text-slate-800 font-sans">
+      {/* Header matching Flutter layout */}
+      <header className="fixed top-0 left-0 w-full bg-brand text-white shadow-md z-50 h-16 flex items-center px-6 justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {/* Logo placeholder - using text as per prompt logic if image not found */}
+            <span className="font-bold text-xl tracking-tight uppercase">FIRPLAK</span>
           </div>
-          <span className="font-bold text-xl text-white tracking-tight">Supabase App</span>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-white">{user.email}</p>
-              <p className="text-xs text-slate-400">Usuario activo</p>
-            </div>
-            <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center border border-white/10">
-              <User className="text-slate-400 w-6 h-6" />
-            </div>
-          </div>
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] italic opacity-80">V 3.6</span>
+          <span className="text-sm font-medium">Hora: {currentTime}</span>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button className="p-2 hover:bg-white/10 rounded-lg transition-colors relative">
+            <Bell className="w-6 h-6 text-slate-300" />
+            <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-brand"></div>
+          </button>
           <button
             onClick={handleSignOut}
-            className="p-2 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-colors text-slate-400"
-            title="Cerrar Sesión"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
-            <LogOut className="w-6 h-6" />
+            <LogOutIcon className="w-5 h-5 text-slate-300" />
           </button>
         </div>
-      </nav>
+      </header>
 
-      <main className="pt-24 px-6 max-w-7xl mx-auto">
+      <main className="pt-20 pb-10 px-6 max-w-5xl mx-auto">
+        {/* User Profile Section */}
+        <section className="py-8 border-b border-slate-100 mb-10">
+          <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-slate-50 relative overflow-hidden group">
+              <User className="w-12 h-12 text-slate-400 group-hover:scale-110 transition-transform" />
+              {/* Optional: Add profile image if available */}
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-brand mb-1 leading-tight">¡Bienvenido!</h2>
+              <p className="text-lg font-semibold text-slate-700">{user.email?.split('@')[0]}</p>
+              <p className="text-sm text-slate-500 leading-none mb-1">{user.email}</p>
+              <div className="inline-block px-2 py-1 bg-slate-100 rounded text-[10px] font-bold text-brand uppercase tracking-wider">
+                USUARIO
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Action Grid (Excluding the status cards as per user instruction) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
         >
-          {/* Welcome Card */}
-          <div className="md:col-span-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
-            <div className="relative z-10">
-              <h2 className="text-4xl font-bold text-white mb-2">¡Hola, {user.email?.split('@')[0]}!</h2>
-              <p className="text-blue-100 text-lg">Bienvenido de nuevo a tu panel de control.</p>
-            </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full translate-x-1/2 -translate-y-1/2 blur-3xl" />
-          </div>
-
-          {/* Quick Stats */}
-          <div className="bg-slate-900/50 border border-white/5 p-6 rounded-2xl hover:border-blue-500/50 transition-all group">
-            <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-all">
-              <Settings className="text-blue-400 w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-1">Configuración</h3>
-            <p className="text-slate-400 text-sm">Gestiona la configuración de tu cuenta y preferencias.</p>
-          </div>
-
-          <div className="bg-slate-900/50 border border-white/5 p-6 rounded-2xl hover:border-purple-500/50 transition-all group">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-all">
-              <User className="text-purple-400 w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-1">Perfil</h3>
-            <p className="text-slate-400 text-sm">Actualiza tu información personal y foto de perfil.</p>
-          </div>
-
-          <div className="bg-slate-900/50 border border-white/5 p-6 rounded-2xl hover:border-green-500/50 transition-all group">
-            <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-all">
-              <LayoutDashboard className="text-green-400 w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-1">Actividad</h3>
-            <p className="text-slate-400 text-sm">Revisa tu historial reciente y logs del sistema.</p>
-          </div>
+          {menuItems.map((item, index) => (
+            <motion.button
+              key={item.title}
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex flex-col items-center justify-center p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-brand/30 transition-all aspect-square group"
+            >
+              <div className="mb-4 text-brand group-hover:scale-110 transition-transform">
+                <item.icon className="w-10 h-10" strokeWidth={1.5} />
+              </div>
+              <span className="text-[11px] font-medium text-slate-600 text-center uppercase tracking-tight leading-tight">
+                {item.title}
+              </span>
+            </motion.button>
+          ))}
         </motion.div>
       </main>
     </div>

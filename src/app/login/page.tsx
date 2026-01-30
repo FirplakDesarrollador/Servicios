@@ -36,53 +36,53 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0f172a] p-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-white p-4 relative overflow-hidden font-sans">
             {/* Background decoration */}
-            <div className="absolute top-0 left-0 w-full h-full">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px]" />
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand/5 rounded-full blur-[120px]" />
             </div>
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl relative z-10"
+                className="w-full max-w-md bg-white border border-slate-200 p-8 rounded-2xl shadow-xl relative z-10"
             >
                 <div className="flex flex-col items-center mb-8">
-                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-600/20">
+                    <div className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-brand/20">
                         <LogIn className="text-white w-8 h-8" />
                     </div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Bienvenido</h1>
-                    <p className="text-slate-400 mt-2">Ingresa tus credenciales para continuar</p>
+                    <h1 className="text-3xl font-bold text-brand tracking-tight">Bienvenido</h1>
+                    <p className="text-slate-500 mt-2">Ingresa tus credenciales para continuar</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Correo Electrónico</label>
+                        <label className="text-sm font-medium text-brand ml-1">Correo Electrónico</label>
                         <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                             <input
                                 type="email"
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-900/50 border border-slate-700 text-white pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                                className="w-full bg-slate-50 border border-slate-200 text-brand pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-brand focus:border-transparent outline-none transition-all placeholder:text-slate-400"
                                 placeholder="tu@email.com"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Contraseña</label>
+                        <label className="text-sm font-medium text-brand ml-1">Contraseña</label>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                             <input
                                 type="password"
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-900/50 border border-slate-700 text-white pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                                className="w-full bg-slate-50 border border-slate-200 text-brand pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-brand focus:border-transparent outline-none transition-all placeholder:text-slate-400"
                                 placeholder="••••••••"
                             />
                         </div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
                         <motion.div
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-3 text-sm"
+                            className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl flex items-center gap-3 text-sm"
                         >
                             <AlertCircle className="w-5 h-5 shrink-0" />
                             <span>{error}</span>
@@ -102,7 +102,7 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                        className="w-full bg-brand hover:bg-brand-light disabled:bg-brand/50 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand/20"
                     >
                         {loading ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -112,8 +112,8 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                <div className="mt-8 text-center text-slate-500 text-sm">
-                    ¿No tienes una cuenta? <span className="text-blue-400 hover:text-blue-300 cursor-pointer font-medium">Contáctanos</span>
+                <div className="mt-8 text-center text-slate-400 text-sm">
+                    ¿No tienes una cuenta? <span className="text-brand hover:underline cursor-pointer font-medium">Contáctanos</span>
                 </div>
             </motion.div>
         </div>
