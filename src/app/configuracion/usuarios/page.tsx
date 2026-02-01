@@ -15,7 +15,8 @@ import {
     Loader2,
     Check,
     X,
-    UserPlus
+    UserPlus,
+    RefreshCw
 } from 'lucide-react';
 
 export default function UsuariosPage() {
@@ -26,6 +27,7 @@ export default function UsuariosPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newRole, setNewRole] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     const ROLES = [
@@ -60,15 +62,25 @@ export default function UsuariosPage() {
 
     const fetchUsers = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('Usuarios')
-            .select('*')
-            .order('nombres', { ascending: true });
+        setError(null);
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('Usuarios')
+                .select('*')
+                .order('nombres', { ascending: true });
 
-        if (!error && data) {
-            setUsers(data);
+            if (fetchError) {
+                console.error('Error fetching users:', fetchError);
+                setError(fetchError.message);
+            } else if (data) {
+                setUsers(data);
+            }
+        } catch (err: any) {
+            console.error('Unexpected error in fetchUsers:', err);
+            setError(err.message || 'Ocurrió un error inesperado al cargar los usuarios.');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleUpdateRole = async (userId: string, currentRole: string) => {
@@ -141,6 +153,26 @@ export default function UsuariosPage() {
                     <div className="flex flex-col items-center justify-center py-20">
                         <Loader2 className="w-12 h-12 text-brand animate-spin mb-4" />
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Cargando Usuarios...</p>
+                    </div>
+                ) : error ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-red-100 p-10 shadow-xl shadow-red-50">
+                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                            <X className="w-8 h-8 text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 mb-2">Error al cargar usuarios</h3>
+                        <p className="text-slate-500 text-sm mb-6 text-center max-w-md">{error}</p>
+                        <button
+                            onClick={fetchUsers}
+                            className="px-6 py-3 bg-brand text-white font-black uppercase text-xs tracking-widest rounded-2xl hover:bg-brand/90 transition-all shadow-lg flex items-center gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            Reintentar
+                        </button>
+                    </div>
+                ) : users.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 p-10">
+                        <Users className="w-16 h-16 text-slate-200 mb-4" />
+                        <h3 className="text-lg font-black text-slate-400">No hay usuarios registrados</h3>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -224,46 +256,46 @@ export default function UsuariosPage() {
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
                         >
-                            <div className="bg-brand p-8 text-white">
-                                <h3 className="text-2xl font-black tracking-tighter mb-1">Cambiar Rol</h3>
-                                <p className="text-white/60 text-sm font-medium">Actualizando permisos de {selectedUser?.nombres}</p>
+                            <div className="bg-brand p-5 text-white">
+                                <h3 className="text-xl font-black tracking-tighter mb-0.5">Cambiar Rol</h3>
+                                <p className="text-white/60 text-[11px] font-medium">Actualizando permisos de {selectedUser?.nombres}</p>
                             </div>
 
-                            <div className="p-8">
-                                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="p-5">
+                                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-3 custom-scrollbar">
                                     {ROLES.map((role) => (
                                         <button
                                             key={role}
                                             onClick={() => setNewRole(role)}
-                                            className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${newRole === role
+                                            className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between group ${newRole === role
                                                 ? 'border-brand bg-brand/5 text-brand'
                                                 : 'border-slate-100 hover:border-slate-200 text-slate-600'
                                                 }`}
                                         >
-                                            <span className="font-extrabold uppercase text-xs tracking-widest">{role}</span>
+                                            <span className="font-extrabold uppercase text-[10px] tracking-wider">{role}</span>
                                             {newRole === role ? (
-                                                <Check className="w-5 h-5" />
+                                                <Check className="w-4 h-4" />
                                             ) : (
-                                                <div className="w-5 h-5 border-2 border-slate-200 rounded-full group-hover:border-slate-300" />
+                                                <div className="w-4 h-4 border-2 border-slate-200 rounded-full group-hover:border-slate-300" />
                                             )}
                                         </button>
                                     ))}
                                 </div>
 
-                                <div className="flex gap-3 mt-8">
+                                <div className="flex gap-2 mt-6">
                                     <button
                                         onClick={() => setIsModalOpen(false)}
-                                        className="flex-1 py-4 bg-slate-100 text-slate-600 font-black uppercase text-xs tracking-widest rounded-2xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                                        className="flex-1 py-3 bg-slate-100 text-slate-600 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <X className="w-4 h-4" />
+                                        <X className="w-3 h-3" />
                                         Cancelar
                                     </button>
                                     <button
                                         onClick={saveRoleUpdate}
                                         disabled={isSaving}
-                                        className="flex-1 py-4 bg-brand text-white font-black uppercase text-xs tracking-widest rounded-2xl hover:bg-brand/90 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                                        className="flex-1 py-3 bg-brand text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-brand/90 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
-                                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                        {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                                         Guardar
                                     </button>
                                 </div>

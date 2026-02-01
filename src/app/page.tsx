@@ -225,6 +225,10 @@ export default function Home() {
               onClick={() => {
                 if (item.title === 'Configuración') {
                   router.push('/configuracion');
+                } else if (item.title === 'Solicitar servicio') {
+                  router.push('/solicitar-servicio');
+                } else if (item.title === 'Servicios Abiertos') {
+                  router.push('/servicios-abiertos');
                 }
               }}
               className="group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden"
