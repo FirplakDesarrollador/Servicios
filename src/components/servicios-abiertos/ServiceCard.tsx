@@ -59,14 +59,14 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
 
     const getStatusColor = (status: string) => {
         switch (status?.toLowerCase()) {
-            case 'agendado': return 'bg-blue-500 text-white border-blue-600';
-            case 'sin agendar': return 'bg-slate-400 text-white border-slate-500';
-            case 'terminado': return 'bg-emerald-500 text-white border-emerald-600';
-            case 'con pendientes': return 'bg-amber-500 text-white border-amber-600';
-            case 'cancelado': return 'bg-rose-500 text-white border-rose-600';
-            case 'preagendado': return 'bg-indigo-500 text-white border-indigo-600';
-            case 'en progreso': return 'bg-green-700 text-white border-green-800';
-            default: return 'bg-slate-500 text-white border-slate-600';
+            case 'agendado': return '#53B2EA';
+            case 'sin agendar': return '#94A3B8';
+            case 'terminado': return '#10B981';
+            case 'con pendientes': return '#F59E0B';
+            case 'cancelado': return '#EF4444';
+            case 'preagendado': return '#3C26F3';
+            case 'en progreso': return '#5B693B';
+            default: return '#94A3B8';
         }
     };
 
@@ -75,136 +75,144 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
         navigator.clipboard.writeText(text);
     };
 
-    // Logical fields based on constructor canal
     const isConstructor = canalDeVenta === 'canal_constructor';
     const displayCiudad = (consumidorCiudad && !isConstructor) ? consumidorCiudad : ubicacionCiudad;
     const displayDepto = (consumidorDepto && !isConstructor) ? consumidorDepto : ubicacionDepto;
     const displayDireccion = (consumidorDireccion && !isConstructor) ? consumidorDireccion : ubicacionDireccion;
 
+    const statusColor = getStatusColor(estadoAgendamiento);
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col gap-6"
+            className="bg-white rounded-lg p-3 shadow-sm border border-[#D3D3D3] hover:border-brand/30 transition-all flex flex-col gap-3 group/card overflow-hidden"
         >
-            {/* Header: Status and Consecutivo */}
-            <div className="flex justify-between items-start">
+            {/* Top Row: Lock, Consecutivo, Fecha, MAC, Actions */}
+            <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-lg ${service.estado ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                        {service.estado ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    <div className="flex items-center">
+                        {service.estado ? (
+                            <Unlock className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : (
+                            <Lock className="w-3.5 h-3.5 text-rose-500" />
+                        )}
                     </div>
 
                     <button
                         onClick={() => copyToClipboard(consecutivo)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 transition-transform active:scale-95 ${getStatusColor(estadoAgendamiento)}`}
+                        style={{ backgroundColor: statusColor }}
+                        className="px-3 py-1.5 rounded-md text-[13px] font-medium text-white flex items-center gap-2 active:scale-95 transition-all shadow-sm"
                     >
                         {consecutivo || 'SC-0000'}
-                        <Copy className="w-3 h-3 opacity-60" />
                     </button>
+
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: statusColor }} />
+                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: statusColor }}>
+                                {estadoAgendamiento}
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-0.5">Solicitud</span>
+                            <span className="text-[11px] font-medium text-slate-500 italic leading-none">
+                                {createdAt ? new Date(createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Solicitud</span>
-                    <span className="text-xs font-bold text-brand italic">
-                        {createdAt ? new Date(createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-                    </span>
+                <div className="flex items-center gap-6">
+                    <div className="hidden lg:flex items-center gap-2">
+                        <span className="text-[12px] text-slate-600">
+                            {asesorMacNombre || 'sin asignar'}
+                        </span>
+                        {(service.estado === true) && (currentUserRole === 'desarrollador' || currentUserRole === 'mac') && (
+                            <Headset
+                                className={`w-5 h-5 cursor-pointer transition-colors ${asesorMacNombre ? 'text-emerald-500' : 'text-slate-300'}`}
+                            />
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        {onDelete && (currentUserRole === 'desarrollador' || service.creado_por_email === 'mayerly.marin@firplak.com' || service.creado_por_email === 'isabel.jaramillo@firplak.com') && (
+                            <Trash2
+                                onClick={() => onDelete(service)}
+                                className="w-5 h-5 text-rose-400 cursor-pointer hover:text-rose-600 transition-colors"
+                            />
+                        )}
+                        <Eye
+                            onClick={() => onClick(service)}
+                            className="w-5 h-5 text-brand cursor-pointer hover:text-brand-light transition-colors"
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* Asesor MAC Section */}
-            <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-400">
-                        <Headset className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase leading-none mb-0.5">Asesor MAC</span>
-                        <span className="text-xs font-bold text-slate-700 capitalize">
-                            {asesorMacNombre || 'Sin asignar'}
+            {/* Bottom Grid: All the details in multiple rows/columns for density */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-y-3 gap-x-4 border-t border-slate-50 pt-3">
+                <DetailItem label="Tipo de servicio" value={tipoDeServicio} />
+                <DetailItem label="Asesor comercial" value={asesorNombre} />
+
+                <div className="flex flex-col">
+                    <span className="text-[12px] font-medium text-slate-800 leading-none mb-1">{canalDeVenta || 'Canal'}</span>
+                    <span className="text-[11px] font-light text-slate-400 truncate">{ubicacionNombre || '---'}</span>
+                </div>
+
+                <DetailItem
+                    label={canalDeVenta === 'canal_constructor' ? 'Contacto Obra' : 'Contacto Canal'}
+                    value={getVal('ubicacion_contacto', 'ubicacionContacto')}
+                />
+
+                <DetailItem
+                    label={canalDeVenta === 'canal_constructor' ? 'Departamento obra' : (consumidorDepto ? 'Departamento cliente final' : 'Departamento canal')}
+                    value={displayDepto}
+                />
+
+                <DetailItem
+                    label={canalDeVenta === 'canal_constructor' ? 'Ciudad obra' : (consumidorCiudad ? 'Ciudad cliente final' : 'Ciudad canal')}
+                    value={displayCiudad}
+                />
+
+                <DetailItem
+                    label={canalDeVenta === 'canal_constructor' ? 'Direccion obra' : (consumidorDireccion ? 'Direccion cliente final' : 'Direccion canal')}
+                    value={displayDireccion}
+                />
+
+                <DetailItem label="Cédula cliente final" value={getVal('consumidor_cedula', 'consumidorCedula')} />
+                <DetailItem label="Cliente final" value={consumidorContacto} />
+                <DetailItem label="Telefono cliente final" value={consumidorTelefono} />
+
+                <DetailItem label="Tecnico asignado" value={tecnicoNombre} />
+                <DetailItem label="Cédula técnico" value={getVal('tecnico_cedula', 'tecnicoCedula')} />
+
+                <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-medium text-slate-800 leading-none mb-1">Estado</span>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
+                        <span className="text-[11px] font-light text-slate-400 truncate">
+                            {estadoAgendamiento}
                         </span>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-2 text-slate-300">
-                    <Eye
-                        onClick={() => onClick(service)}
-                        className="w-5 h-5 cursor-pointer hover:text-brand transition-colors p-0.5"
-                    />
-                    {onDelete && (currentUserRole === 'desarrollador' || currentUserRole === 'mac') && (
-                        <Trash2
-                            onClick={() => onDelete(service)}
-                            className="w-5 h-5 cursor-pointer hover:text-rose-500 transition-colors p-0.5"
-                        />
-                    )}
-                </div>
-            </div>
-
-            {/* Details Grid (Wrap equivalent) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-4">
-                {/* Column 1: Service Info */}
-                <div className="space-y-4">
-                    <DetailItem label="Tipo de servicio" value={tipoDeServicio} icon={Settings} />
-                    <DetailItem label="Canal de venta" value={canalDeVenta} icon={Briefcase} />
-                    <DetailItem label="Asesor Comercial" value={asesorNombre} icon={User} />
-                </div>
-
-                {/* Column 2: Location */}
-                <div className="space-y-4">
-                    <DetailItem label="Ubicación" value={ubicacionNombre} icon={MapPin} />
-                    <DetailItem label="Ciudad / Depto" value={`${displayCiudad || 'N/A'}, ${displayDepto || 'N/A'}`} icon={Map} />
-                    <DetailItem label="Dirección" value={displayDireccion} icon={MapPin} />
-                </div>
-
-                {/* Column 3: Contact & Tech */}
-                <div className="space-y-4">
-                    <DetailItem label="Cliente Final" value={consumidorContacto} icon={User} />
-                    <DetailItem label="Teléfono" value={consumidorTelefono} icon={Phone} />
-                    <DetailItem label="Técnico" value={tecnicoNombre} icon={Settings} />
-                </div>
-            </div>
-
-            {/* Footer: Order and Scheduled Date */}
-            <div className="pt-4 border-t border-dashed border-slate-100 flex items-center justify-between">
-                <div className="flex gap-4">
-                    {numeroDePedido && (
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-slate-300 uppercase">Pedido</span>
-                            <span className="text-xs font-bold text-slate-500">#{numeroDePedido}</span>
-                        </div>
-                    )}
-                    {service.visitaFechaHoraInicio && (
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-slate-300 uppercase">Programado</span>
-                            <span className="text-xs font-bold text-emerald-600">
-                                {new Date(service.visitaFechaHoraInicio).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                        </div>
-                    )}
-                </div>
-                <button
-                    onClick={() => onClick(service)}
-                    className="flex items-center gap-1 text-brand font-black text-xs uppercase hover:gap-2 transition-all p-2"
-                >
-                    Detalles
-                    <ChevronRight className="w-4 h-4" />
-                </button>
+                <DetailItem
+                    label="Fecha programada"
+                    value={service.visitaFechaHoraInicio ? new Date(service.visitaFechaHoraInicio).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Null'}
+                />
+                <DetailItem label="Numero de pedido" value={numeroDePedido} />
             </div>
         </motion.div>
     );
 }
 
-function DetailItem({ label, value, icon: Icon }: { label: string, value: string | null | undefined, icon: any }) {
+function DetailItem({ label, value, className = "" }: { label: string, value: string | null | undefined, className?: string }) {
     return (
-        <div className="flex items-start gap-3 group">
-            <div className="shrink-0 w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
-                <Icon className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter leading-none mb-1">{label}</span>
-                <span className="text-[11px] font-bold text-slate-600 truncate opacity-80 group-hover:opacity-100 transition-opacity">
-                    {value || '---'}
-                </span>
-            </div>
+        <div className={`flex flex-col min-w-0 ${className}`}>
+            <span className="text-[11px] font-medium text-slate-800 leading-none mb-1">{label}</span>
+            <span className="text-[11px] font-light text-slate-400 truncate">
+                {value || 'Null'}
+            </span>
         </div>
     );
 }

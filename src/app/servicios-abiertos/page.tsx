@@ -58,18 +58,10 @@ export default function ServiciosAbiertosPage() {
             // Fetch Services
             console.log('Fetching services from Servicios table...');
 
-            // Query Servicios table directly
-            // Using column names for foreign key disambiguation
+            // Query query_servicios view as it contains all joined data
             const { data: servicesData, error: servicesError } = await supabase
-                .from('Servicios')
-                .select(`
-                    *,
-                    comercial:Usuarios!comercial_id(display_name),
-                    consumidor:Consumidores!consumidor_id(contacto),
-                    ubicacion:Ubicaciones!ubicacion_id(nombre),
-                    coordinador:Usuarios!coordinador_id(display_name),
-                    asesor_mac:Usuarios!asesor_mac_id(display_name)
-                `)
+                .from('query_servicios')
+                .select('*')
                 .eq('estado', true)
                 .order('created_at', { ascending: false });
 
@@ -82,19 +74,23 @@ export default function ServiciosAbiertosPage() {
                 // console.log('Raw services data:', servicesData); // Debug log removed
                 // console.log('First record sample:', servicesData[0]); // Debug log removed
 
-                // Map to flat structure for UI
+                // Map view fields for UI compatibility
                 const mappedServices = servicesData.map((s: any) => ({
                     ...s,
-                    // Map joined data to flat properties
-                    ubicacion_nombre: s.ubicacion?.nombre,
-                    ubicacion_ciudad: s.ubicacion?.ciudad,
-                    consumidor_nombre: s.consumidor?.nombres || s.consumidor?.contacto,
-                    asesor_nombre: s.comercial?.display_name,
-                    coordinador_nombre: s.coordinador?.display_name,
-                    mac_nombre: s.asesor_mac?.display_name,
-
-                    // Fallback visual status if not computed in DB
-                    estado_agendamiento: s.estado_agendamiento || 'Sin agendar'
+                    ubicacionNombre: s.ubicacion_nombre || s.ubicacionNombre,
+                    ubicacionCiudad: s.ubicacion_ciudad || s.ubicacionCiudad,
+                    consumidorNombre: s.consumidor_nombre || s.consumidorNombre,
+                    asesorNombre: s.asesor_nombre || s.asesorNombre,
+                    coordinadorNombre: s.coordinador_nombre || s.coordinadorNombre,
+                    macNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
+                    asesorMacNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
+                    asesorMacId: s.asesor_mac_id || s.asesorMacId,
+                    tecnicoNombre: s.tecnico_nombre || s.tecnicoNombre,
+                    tipoDeServicio: s.tipo_de_servicio || s.tipoDeServicio,
+                    numeroDePedido: s.numero_de_pedido || s.numeroDePedido,
+                    estadoAgendamiento: s.estado_visita || s.estadoVisita || 'Sin agendar',
+                    // Add formatted scheduled date for easier display
+                    fechaProgramada: s.visita_fecha_hora_inicio ? new Date(s.visita_fecha_hora_inicio).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Null'
                 }));
 
                 setServices(mappedServices);
@@ -139,15 +135,15 @@ export default function ServiciosAbiertosPage() {
             const lowerSearch = searchTerm.toLowerCase();
             result = result.filter(s =>
                 (s.consecutivo?.toLowerCase().includes(lowerSearch)) ||
-                (s.asesor_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.numero_de_pedido?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion_ciudad?.toLowerCase().includes(lowerSearch)) ||
-                (s.tipo_de_servicio?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidor_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.tecnico_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.mac_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.coordinador_nombre?.toLowerCase().includes(lowerSearch))
+                (s.numeroDePedido?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacionNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidorNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.asesorNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.tecnicoNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.macNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.coordinadorNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacionCiudad?.toLowerCase().includes(lowerSearch)) ||
+                (s.tipoDeServicio?.toLowerCase().includes(lowerSearch))
             );
         }
 
@@ -156,20 +152,38 @@ export default function ServiciosAbiertosPage() {
         }
 
         if (filterStatus) {
-            result = result.filter(s => (s.estado_agendamiento || s.estadoAgendamiento) === filterStatus);
+            result = result.filter(s =>
+                (s.estadoAgendamiento || '').toLowerCase().trim() === filterStatus.toLowerCase().trim()
+            );
         }
 
         if (filterTechnician) {
-            result = result.filter(s => (s.tecnico_nombre || s.tecnicoNombre) === filterTechnician);
+            result = result.filter(s =>
+                (s.tecnicoNombre || '').toLowerCase().trim() === filterTechnician.toLowerCase().trim()
+            );
         }
 
         if (filterMacAdvisor) {
-            result = result.filter(s => s.asesor_id === parseInt(filterMacAdvisor));
+            result = result.filter(s =>
+                (s.asesor_mac_id || s.asesorMacId)?.toString() === filterMacAdvisor.toString()
+            );
         }
 
         if (showUnassignedOnly) {
-            // Simplified logic for unassigned
-            result = result.filter(s => !s.tecnico_id);
+            // Filter by warranty/broken service types without MAC advisor assigned
+            const warrantyTypes = [
+                'garantia_sin_pedido',
+                'garantia_con_repuesto_kit',
+                'garantia_con_pedido_de_reposicion',
+                'quebrados_logistica',
+                'error_en_pedido_referencia'
+            ];
+            result = result.filter(s => {
+                const serviceType = (s.tipoDeServicio || '').toLowerCase().trim();
+                const hasType = warrantyTypes.includes(serviceType);
+                const noMacAdvisor = !s.asesorMacNombre || s.asesorMacNombre.trim() === '';
+                return hasType && noMacAdvisor;
+            });
         }
 
         setFilteredServices(result);
@@ -369,7 +383,7 @@ export default function ServiciosAbiertosPage() {
                                 <span className="text-xs font-black uppercase">Limpiar</span>
                             </button>
                             <div className="flex-1 bg-slate-50 rounded-2xl p-1 flex items-center justify-between px-3 h-[44px]">
-                                <span className="text-[10px] font-black text-slate-400 uppercase">Sin asignar</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase">Garantías sin asignar</span>
                                 <button
                                     onClick={() => setShowUnassignedOnly(!showUnassignedOnly)}
                                     className={`w-10 h-5 rounded-full transition-all relative ${showUnassignedOnly ? 'bg-brand' : 'bg-slate-200'}`}
@@ -381,11 +395,21 @@ export default function ServiciosAbiertosPage() {
                     </div>
                 </div>
 
-                {/* Results Summary */}
-                <div className="flex items-center justify-between mb-6 px-2">
+                {/* Results Summary & Legend */}
+                <div className="flex flex-col md:flex-row items-center justify-between mb-6 px-2 gap-4">
                     <p className="text-sm text-slate-500 font-bold">
                         Mostrando <span className="text-brand">{filteredServices.length}</span> de {services.length} servicios
                     </p>
+
+                    <div className="flex flex-wrap items-center gap-4 bg-white/50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                        <StatusLegendItem color="#53B2EA" label="Agendado" />
+                        <StatusLegendItem color="#94A3B8" label="Sin agendar" />
+                        <StatusLegendItem color="#10B981" label="Terminado" />
+                        <StatusLegendItem color="#F59E0B" label="Con pendientes" />
+                        <StatusLegendItem color="#EF4444" label="Cancelado" />
+                        <StatusLegendItem color="#3C26F3" label="Preagendado" />
+                        <StatusLegendItem color="#5B693B" label="En progreso" />
+                    </div>
                 </div>
 
                 {/* Services Grid */}
@@ -408,7 +432,7 @@ export default function ServiciosAbiertosPage() {
                         </button>
                     </motion.div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 gap-2">
                         <AnimatePresence mode='popLayout'>
                             {filteredServices.map(service => (
                                 <ServiceCard
@@ -423,6 +447,15 @@ export default function ServiciosAbiertosPage() {
                     </div>
                 )}
             </main>
+        </div>
+    );
+}
+
+function StatusLegendItem({ color, label }: { color: string, label: string }) {
+    return (
+        <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: color }} />
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">{label}</span>
         </div>
     );
 }

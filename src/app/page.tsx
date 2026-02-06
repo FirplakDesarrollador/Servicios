@@ -13,7 +13,6 @@ import {
   Search,
   ClipboardCheck,
   Calendar,
-  ShieldAlert,
   History,
   HelpCircle,
   ChefHat,
@@ -70,7 +69,7 @@ export default function Home() {
           } else {
             // Seed default if no permissions found (especially for new table)
             // Just for developers initially or all modules for safety during transition
-            setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Administración', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
+            setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
           }
         }
       }
@@ -130,7 +129,6 @@ export default function Home() {
     { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-indigo-500' },
     { title: 'Aprobaciones', icon: ClipboardCheck, color: 'bg-orange-500' },
     { title: 'Mi agenda', icon: Calendar, color: 'bg-pink-600' },
-    { title: 'Administración', icon: ShieldAlert, color: 'bg-cyan-600' },
     { title: 'Historial de servicios', icon: History, color: 'bg-indigo-700' },
     { title: 'Ayuda', icon: HelpCircle, color: 'bg-teal-600' },
     { title: 'Exhibiciones', icon: ChefHat, color: 'bg-orange-600' },
@@ -229,6 +227,18 @@ export default function Home() {
                   router.push('/solicitar-servicio');
                 } else if (item.title === 'Servicios Abiertos') {
                   router.push('/servicios-abiertos');
+                } else if (item.title === 'Buscar servicio cerrado') {
+                  router.push('/servicios-cerrados');
+                } else if (item.title === 'Aprobaciones') {
+                  router.push('/aprobaciones');
+                } else if (item.title === 'Mi agenda') {
+                  router.push('/mi-agenda');
+                } else if (item.title === 'Historial de servicios') {
+                  router.push('/historial-servicios');
+                } else if (item.title === 'Ayuda') {
+                  router.push('/ayuda');
+                } else if (item.title === 'Exhibiciones') {
+                  router.push('/exhibiciones');
                 }
               }}
               className="group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden"
@@ -246,13 +256,13 @@ export default function Home() {
             </motion.button>
           ))}
         </div>
-      </main>
+      </main >
 
       <footer className="mt-auto py-4 text-center">
         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
           FIRPLAK S.A. &copy; 2026
         </p>
       </footer>
-    </div>
+    </div >
   );
 }

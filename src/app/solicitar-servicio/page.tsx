@@ -37,6 +37,7 @@ export default function SolicitarServicioPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [nextConsecutivo, setNextConsecutivo] = useState<number>(1);
+    const [randomSuffix, setRandomSuffix] = useState<string>('');
 
     // Form States
     const [consecutivo, setConsecutivo] = useState('');
@@ -61,6 +62,10 @@ export default function SolicitarServicioPage() {
     const [showBuscadorRepuestos, setShowBuscadorRepuestos] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const tipoServicioRef = useRef<HTMLSelectElement>(null);
+    const canalVentaRef = useRef<HTMLSelectElement>(null);
+    const clienteRef = useRef<HTMLDivElement>(null);
+    const repuestosRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const init = async () => {
@@ -90,6 +95,10 @@ export default function SolicitarServicioPage() {
                 setNextConsecutivo(consecutivoData.nuevoConsecutivo);
             }
 
+            // Generate 5-digit random suffix
+            const random = Math.floor(10000 + Math.random() * 90000).toString();
+            setRandomSuffix(random);
+
             setLoading(false);
         };
 
@@ -108,14 +117,14 @@ export default function SolicitarServicioPage() {
         const tipoShort = tipoServicio.substring(0, 4);
         const tipoFormatted = tipoShort.charAt(0).toUpperCase() + tipoShort.slice(1).toLowerCase();
 
-        let newConsecutivo = `${nom}${ape}${tipoFormatted}${nextConsecutivo}`;
+        let newConsecutivo = `${nom}${ape}${tipoFormatted}${randomSuffix}`;
 
         if (tipoServicio === 'reparacion_y_mantenimiento_(facturado)' || facturado) {
             newConsecutivo = `F${newConsecutivo}`;
         }
 
         setConsecutivo(newConsecutivo);
-    }, [tipoServicio, currentUser, nextConsecutivo, facturado]);
+    }, [tipoServicio, currentUser, randomSuffix, facturado]);
 
     const handleClear = () => {
         setNumeroPedido('');
@@ -180,15 +189,24 @@ export default function SolicitarServicioPage() {
     };
 
     const handleSave = async () => {
-        if (!tipoServicio || !canalVenta) {
-            alert('Por favor complete los campos obligatorios (Tipo de servicio y Canal de venta)');
+        if (!tipoServicio) {
+            alert('Por favor complete el campo obligatorio: Tipo de servicio');
+            tipoServicioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            tipoServicioRef.current?.focus();
+            return;
+        }
+
+        if (!canalVenta) {
+            alert('Por favor complete el campo obligatorio: Canal de venta');
+            canalVentaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            canalVentaRef.current?.focus();
             return;
         }
 
         const isEcommerce = canalVenta === 'canal_propio_ecommerce';
         const ubicacionValid = isEcommerce
             ? true
-            : (clienteSeleccionado && clienteSeleccionado.direccion && clienteSeleccionado.contacto);
+            : (clienteSeleccionado && clienteSeleccionado.direccion && (clienteSeleccionado.contacto || clienteSeleccionado.nombre_contacto));
 
         const ticketNeedsConsumer = (tipo: string) => false; // Simplified for now as boolean logic is handled below
 
@@ -228,6 +246,7 @@ export default function SolicitarServicioPage() {
         // Relaxed validation: check basic existence if not e-commerce
         if (!isEcommerce && !ubicacionValid) {
             alert('Faltan datos del Distribuidor/Cliente (Dirección o Contacto)');
+            clienteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
 
@@ -235,6 +254,7 @@ export default function SolicitarServicioPage() {
         const needsRepuestos = tipoServicio.toLowerCase().includes('kit') || tipoServicio.toLowerCase().includes('repuesto');
         if (needsRepuestos && repuestosSeleccionados.length === 0) {
             alert('El servicio seleccionado requiere repuestos/kits, pero no ha seleccionado ninguno.');
+            repuestosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
 
@@ -391,6 +411,7 @@ export default function SolicitarServicioPage() {
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-brand ml-1">Tipo de servicio *</label>
                                 <select
+                                    ref={tipoServicioRef}
                                     value={tipoServicio}
                                     onChange={(e) => setTipoServicio(e.target.value)}
                                     className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm font-medium appearance-none"
@@ -417,6 +438,7 @@ export default function SolicitarServicioPage() {
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-brand ml-1">Canal de venta *</label>
                                 <select
+                                    ref={canalVentaRef}
                                     value={canalVenta}
                                     onChange={(e) => setCanalVenta(e.target.value)}
                                     className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm font-medium"
@@ -465,7 +487,7 @@ export default function SolicitarServicioPage() {
                     </div>
 
                     {/* Cliente Selection */}
-                    <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
+                    <div ref={clienteRef} className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
                                 <User className="w-4 h-4" />
@@ -493,12 +515,16 @@ export default function SolicitarServicioPage() {
 
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs">
+                                <span className="text-slate-400 font-medium uppercase">Dirección</span>
+                                <span className="font-bold">{clienteSeleccionado?.direccion || '---'}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
                                 <span className="text-slate-400 font-medium uppercase">Teléfono</span>
                                 <span className="font-bold">{clienteSeleccionado?.telefono || '---'}</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-400 font-medium uppercase">Contacto</span>
-                                <span className="font-bold">{clienteSeleccionado?.contacto || '---'}</span>
+                                <span className="font-bold">{clienteSeleccionado?.nombre_contacto || clienteSeleccionado?.contacto || '---'}</span>
                             </div>
                         </div>
                     </div>
@@ -535,6 +561,10 @@ export default function SolicitarServicioPage() {
                                 <div className="flex justify-between text-xs">
                                     <span className="text-slate-400 font-medium uppercase">Teléfono</span>
                                     <span className="font-bold">{clienteFinalSeleccionado?.telefono || '---'}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-400 font-medium uppercase">Contacto</span>
+                                    <span className="font-bold">{clienteFinalSeleccionado?.contacto || clienteFinalSeleccionado?.nombre_contacto || '---'}</span>
                                 </div>
                             </div>
                         </div>
@@ -588,7 +618,7 @@ export default function SolicitarServicioPage() {
                     </div>
 
                     {/* Repuestos Section */}
-                    <div className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
+                    <div ref={repuestosRef} className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
                                 <Settings className="w-4 h-4" />
