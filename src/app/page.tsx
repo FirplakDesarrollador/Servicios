@@ -57,18 +57,23 @@ export default function Home() {
         if (!error && userData) {
           setProfile(userData);
 
-          // Fetch Role Permissions
-          const { data: perms } = await supabase
-            .from('PermisosModulos')
-            .select('nombre_modulo')
-            .eq('rol', userData.rol)
-            .eq('esta_habilitado', true);
+          // Fetch Role Permissions (with fallback if table doesn't exist)
+          try {
+            const { data: perms, error: permsError } = await supabase
+              .from('PermisosModulos')
+              .select('nombre_modulo')
+              .eq('rol', userData.rol)
+              .eq('esta_habilitado', true);
 
-          if (perms && perms.length > 0) {
-            setPermissions(perms.map(p => p.nombre_modulo));
-          } else {
-            // Seed default if no permissions found (especially for new table)
-            // Just for developers initially or all modules for safety during transition
+            if (!permsError && perms && perms.length > 0) {
+              setPermissions(perms.map(p => p.nombre_modulo));
+            } else {
+              // Default permissions if table doesn't exist or no permissions found
+              setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
+            }
+          } catch (err) {
+            // Fallback to all permissions if PermisosModulos table doesn't exist
+            console.warn('PermisosModulos table not found, using default permissions:', err);
             setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
           }
         }

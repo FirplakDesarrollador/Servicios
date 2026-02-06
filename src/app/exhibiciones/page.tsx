@@ -137,7 +137,7 @@ export default function ExhibicionesPage() {
         }
 
         loadData()
-    }, [router, estadoActivo])
+    }, [estadoActivo])
 
     // Filter salas
     const filteredSalas = useMemo(() => {
