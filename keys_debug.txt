@@ -1,0 +1,21 @@
+{
+  "preciosError": null,
+  "preciosKeys": [
+    "Zona",
+    "Departamento",
+    "Ciudad",
+    "Tarifa",
+    "id"
+  ],
+  "medidasError": null,
+  "medidasKeys": [
+    "id",
+    "descripcion",
+    "medida",
+    "cantidad_personas",
+    "precio"
+  ],
+  "descKeys": [
+    "descripcion"
+  ]
+}

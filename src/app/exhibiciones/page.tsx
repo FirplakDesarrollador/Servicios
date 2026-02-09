@@ -1,6 +1,10 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+// Disable caching for this page to prevent loading state issues
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, RefreshCw, Eraser } from 'lucide-react'
@@ -14,6 +18,7 @@ interface Usuario {
 
 export default function ExhibicionesPage() {
     const router = useRouter()
+    const isMountedRef = useRef(true)
 
     const [loading, setLoading] = useState(true)
     const [salas, setSalas] = useState<QueryUbicacionesRow[]>([])
@@ -30,11 +35,28 @@ export default function ExhibicionesPage() {
     const [asesorId, setAsesorId] = useState<number | null>(null)
     const [mantenimiento, setMantenimiento] = useState<string>('')
 
-    // Load user data and salas
+    // Clear browser cache on mount to prevent stale loading states
     useEffect(() => {
+        if (typeof window !== 'undefined' && 'caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => {
+                    if (name.includes('next')) {
+                        caches.delete(name)
+                    }
+                })
+            }).catch(err => console.log('Cache clear error:', err))
+        }
+    }, [])
+
+    // Load user data and salas (only on mount)
+    useEffect(() => {
+        isMountedRef.current = true
+
         async function loadData() {
+            if (!isMountedRef.current) return
+
             console.log('[Exhibiciones] Starting data load...')
-            setLoading(true)
+            if (isMountedRef.current) setLoading(true)
 
             try {
                 // Get session
@@ -46,6 +68,8 @@ export default function ExhibicionesPage() {
                     router.push('/login')
                     return
                 }
+
+                if (!isMountedRef.current) return
 
                 // Get user profile
                 console.log('[Exhibiciones] Fetching profile for uid:', session.user.id)
@@ -64,28 +88,29 @@ export default function ExhibicionesPage() {
                         hint: profileError.hint,
                         code: profileError.code
                     })
-                    setLoading(false)
+                    if (isMountedRef.current) setLoading(false)
                     return
                 }
 
                 if (!profile) {
                     console.error('[Exhibiciones] No profile found for user')
-                    setLoading(false)
+                    if (isMountedRef.current) setLoading(false)
                     return
                 }
+
+                if (!isMountedRef.current) return
 
                 console.log('[Exhibiciones] Profile loaded successfully:', { id: profile.id, rol: profile.rol })
                 setUserId(profile.id)
                 setUserRole(profile.rol)
                 setUserColaboradores(profile.id_colaboradores || [])
 
-                // Load salas
-                console.log('[Exhibiciones] Loading salas with filters:', { activo: estadoActivo, userId: profile.id, rol: profile.rol })
+                // Load ALL salas (we'll filter by estadoActivo in the UI)
+                console.log('[Exhibiciones] Loading all salas for userId:', profile.id, 'rol:', profile.rol)
 
                 let query = supabase
                     .from('query_ubicaciones')
                     .select('*')
-                    .eq('activo', estadoActivo)
 
                 // Role-based filtering
                 const rolesLimitados = ['comercial', 'promotor', 'asesor_tecnico']
@@ -104,9 +129,11 @@ export default function ExhibicionesPage() {
                         hint: salasError.hint,
                         code: salasError.code
                     })
-                    setLoading(false)
+                    if (isMountedRef.current) setLoading(false)
                     return
                 }
+
+                if (!isMountedRef.current) return
 
                 console.log('[Exhibiciones] Salas loaded:', salasData?.length || 0)
                 if (salasData && salasData.length > 0) {
@@ -123,25 +150,38 @@ export default function ExhibicionesPage() {
                         .in('rol', ['comercial', 'mac', 'coordinador_comercial', 'director_comercial', 'ecommerce'])
                         .order('display_name', { ascending: true })
 
-                    if (asesoresData) {
+                    if (asesoresData && isMountedRef.current) {
                         setAsesores(asesoresData)
                     }
                 }
 
             } catch (error) {
                 console.error('[Exhibiciones] Unexpected error:', error)
+                if (isMountedRef.current) setLoading(false)
             } finally {
-                console.log('[Exhibiciones] Setting loading to false')
-                setLoading(false)
+                if (isMountedRef.current) {
+                    console.log('[Exhibiciones] Setting loading to false')
+                    setLoading(false)
+                }
             }
         }
 
         loadData()
-    }, [estadoActivo])
 
-    // Filter salas
+        // Cleanup function
+        return () => {
+            isMountedRef.current = false
+        }
+    }, []) // Only run on mount, not when estadoActivo changes
+
+    // Filter salas (now includes estadoActivo filter)
     const filteredSalas = useMemo(() => {
         return salas.filter(sala => {
+            // Filter by estadoActivo
+            if (sala.activo !== estadoActivo) {
+                return false
+            }
+
             // Búsqueda avanzada
             if (busqueda) {
                 const searchLower = busqueda.toLowerCase()
@@ -185,7 +225,7 @@ export default function ExhibicionesPage() {
 
             return true
         })
-    }, [salas, busqueda, asesorId, mantenimiento])
+    }, [salas, estadoActivo, busqueda, asesorId, mantenimiento])
 
     const handleClearFilters = () => {
         setEstadoActivo(true)

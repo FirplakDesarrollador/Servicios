@@ -21,7 +21,8 @@ import {
   BookOpen,
   BarChart3,
   CheckCircle2,
-  Settings
+  Settings,
+  Link
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -32,6 +33,7 @@ export default function Home() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const router = useRouter();
   const [currentTime, setCurrentTime] = useState('');
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -103,6 +105,17 @@ export default function Home() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
+  };
+
+  const copyFormLink = async () => {
+    const formUrl = `${window.location.origin}/formulario-cliente`;
+    try {
+      await navigator.clipboard.writeText(formUrl);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err) {
+      console.error('Error copying to clipboard:', err);
+    }
   };
 
   if (loading) {
@@ -215,6 +228,24 @@ export default function Home() {
           </div>
         </motion.section>
 
+        {/* Share Form Button */}
+        <motion.button
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={copyFormLink}
+          className="w-full max-w-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all mb-10 flex items-center justify-center gap-3 group"
+        >
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+            <Link className="w-5 h-5" />
+          </div>
+          <div className="text-left">
+            <div className="font-bold text-lg">Compartir Formulario de Cliente</div>
+            <div className="text-xs text-white/80">Copiar enlace para enviar a clientes</div>
+          </div>
+        </motion.button>
+
         {/* Compact Action Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3 w-full">
           {filteredItems.map((item, index) => (
@@ -262,6 +293,21 @@ export default function Home() {
           ))}
         </div>
       </main >
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 right-8 bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 z-50"
+          >
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="font-semibold">¡Enlace copiado al portapapeles!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <footer className="mt-auto py-4 text-center">
         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">

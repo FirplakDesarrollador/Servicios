@@ -159,33 +159,35 @@ export default function SolicitarServicioPage() {
     };
 
     const uploadFiles = async (files: File[]) => {
-        const uploadedUrls: string[] = [];
-
-        for (const file of files) {
+        const uploadPromises = files.map(async (file) => {
             try {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${crypto.randomUUID()}.${fileExt}`;
                 // Use the generated consecutive for the folder structure
                 // Fallback to 'temp' if for some reason consecutivo is missing (shouldn't happen on save)
                 const folderPath = consecutivo || 'temp';
-                const filePath = `${folderPath}/documentos/${fileName}`;
+                // User requested folder name be the consecutive, containing all docs
+                const filePath = `${folderPath}/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
-                    .from('servicios') // Correct bucket name
+                    .from('solicitudesclientes')
                     .upload(filePath, file);
 
                 if (uploadError) throw uploadError;
 
                 const { data: { publicUrl } } = supabase.storage
-                    .from('servicios')
+                    .from('solicitudesclientes')
                     .getPublicUrl(filePath);
 
-                uploadedUrls.push(publicUrl);
+                return publicUrl;
             } catch (error) {
                 console.error('Error uploading file:', error);
+                return null;
             }
-        }
-        return uploadedUrls;
+        });
+
+        const results = await Promise.all(uploadPromises);
+        return results.filter((url): url is string => url !== null);
     };
 
     const handleSave = async () => {
@@ -670,7 +672,7 @@ export default function SolicitarServicioPage() {
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             className="hidden"
-                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                            accept="image/*,.pdf"
                         />
 
                         <div
@@ -681,7 +683,7 @@ export default function SolicitarServicioPage() {
                                 <Upload className="w-6 h-6 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                             </div>
                             <p className="text-slate-400 group-hover:text-slate-600 font-bold text-sm transition-colors">Presione para cargar archivos...</p>
-                            <p className="text-xs text-slate-300 font-medium">Imágenes, PDF, Documentos</p>
+                            <p className="text-xs text-slate-300 font-medium">Imágenes, PDF</p>
                         </div>
 
                         {/* File Preview List */}

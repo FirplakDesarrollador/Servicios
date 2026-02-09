@@ -1,0 +1,7 @@
+Checking Supabase data...
+precioszonas count: 205
+Sample precios: [{"Zona":"Zona1","Departamento":"Santander","Ciudad":"Florida Blanca","Tarifa":"Sin recargo","id":206},{"Zona":"Zona1","Departamento":"Santander","Ciudad":"Giron","Tarifa":"Sin recargo","id":207},{"Zona":"Zona1","Departamento":"Santander","Ciudad":"Pie de Cuesta ","Tarifa":"Sin recargo","id":208}]
+zonas_medidas count: 70
+Sample medidas: [{"id":136,"descripcion":"Hidromasajes","medida":"150x70 cm","cantidad_personas":2,"precio":239900},{"id":137,"descripcion":"Hidromasajes","medida":"152x75 cm","cantidad_personas":2,"precio":239900},{"id":138,"descripcion":"Hidromasajes","medida":"152x80 cm","cantidad_personas":2,"precio":239900}]
+vw_zonas_medidas_descripciones count: 5
+Sample grupos: [{"descripcion":"Baños"},{"descripcion":"Cocinas"},{"descripcion":"Hidromasajes"}]

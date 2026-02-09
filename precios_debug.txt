@@ -1,0 +1,8 @@
+
+Error: null
+Count: null (Head only)
+        
+Rows Error: null
+Rows Length: 5
+First Row: {"Zona":"Zona1","Departamento":"Santander","Ciudad":"Florida Blanca","Tarifa":"Sin recargo","id":206}
+        
