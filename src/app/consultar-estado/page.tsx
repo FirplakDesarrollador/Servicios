@@ -1,23 +1,42 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import {
+    Search,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    User,
+    PhoneCall,
+    ArrowLeft,
+    X,
+    Loader2,
+    AlertCircle,
+    ChevronRight,
+    MapPin
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface EstadoServicio {
     consecutivo: string;
     tipo_de_servicio: string;
     estado: string;
+    sub_estado?: string | null;
+    motivo?: string | null;
     fecha_hora_inicio: string | null;
     fecha_hora_fin: string | null;
+    hora_fin_reagendada?: string | null;
     tecnico_nombre: string | null;
     reagendado: boolean | null;
     visita_id: number;
     fecha_solicitud: string;
 }
 
-export default function ConsultarEstadoPage() {
+type StatusKey = 'validando' | 'programado' | 'finalizado';
+
+function ConsultarEstadoContent() {
     const searchParams = useSearchParams();
     const consecutivoParam = searchParams.get('consecutivo');
 
@@ -26,7 +45,8 @@ export default function ConsultarEstadoPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [vistaActual, setVistaActual] = useState<'buscador' | 'estados'>('buscador');
-    const [moduloActivo, setModuloActivo] = useState<'validando' | 'programado' | 'finalizado'>('validando');
+    const [moduloActivo, setModuloActivo] = useState<StatusKey>('validando');
+    const [maxStepAlcanzado, setMaxStepAlcanzado] = useState(0); // 0: Validando, 1: Programado, 2: Finalizado
 
     useEffect(() => {
         if (consecutivoParam) {
@@ -57,6 +77,39 @@ export default function ConsultarEstadoPage() {
                 setEstados([]);
             } else {
                 setEstados(data);
+
+                // Mapeo preciso de estados
+                let maxIndex = 0; // 0: Validando, 1: Programado, 2: Finalizado
+
+                data.forEach((record: any) => {
+                    const status = (record.estado || '').toLowerCase();
+
+                    // Solo marcamos como finalizado si hay una palabra clave terminal CLARA
+                    if (
+                        status === 'terminado' ||
+                        status === 'finalizado' ||
+                        status === 'cerrado' ||
+                        status.includes('servicio terminado') ||
+                        status.includes('visita finalizada')
+                    ) {
+                        maxIndex = Math.max(maxIndex, 2);
+                    }
+                    // Programado si tiene agendamiento, técnico o está en proceso
+                    else if (
+                        status.includes('agendado') ||
+                        status.includes('re-agendado') ||
+                        status.includes('programado') ||
+                        status.includes('fecha de agendamiento') ||
+                        status.includes('en camino') ||
+                        status.includes('en proceso')
+                    ) {
+                        maxIndex = Math.max(maxIndex, 1);
+                    }
+                });
+
+                const stepKeys: StatusKey[] = ['validando', 'programado', 'finalizado'];
+                setMaxStepAlcanzado(maxIndex);
+                setModuloActivo(stepKeys[maxIndex]);
                 setVistaActual('estados');
             }
         } catch (err) {
@@ -73,11 +126,11 @@ export default function ConsultarEstadoPage() {
     };
 
     const formatearFecha = (fecha: string | null) => {
-        if (!fecha) return '';
+        if (!fecha) return 'Pendiente';
         const date = new Date(fecha);
         return date.toLocaleDateString('es-CO', {
             day: '2-digit',
-            month: '2-digit',
+            month: 'long',
             year: 'numeric'
         });
     };
@@ -92,317 +145,380 @@ export default function ConsultarEstadoPage() {
         });
     };
 
-    const estadosValidando = estados.filter(e =>
-        e.estado?.toLowerCase().includes('agendado') ||
-        e.estado?.toLowerCase().includes('preagendado')
-    );
-    const estadosProgramado = estados.filter(e =>
-        e.estado?.toLowerCase().includes('cancelado') ||
-        e.reagendado === true
-    );
-    const estadosFinalizado = estados.filter(e =>
-        e.estado?.toLowerCase().includes('terminado') ||
-        e.estado?.toLowerCase().includes('finalizado')
-    );
+    const resetView = () => {
+        setVistaActual('buscador');
+        setConsecutivo('');
+        setEstados([]);
+        setError(null);
+    };
 
     if (vistaActual === 'buscador') {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-                    <div className="space-y-6">
-                        {/* Logo */}
-                        <div className="flex justify-center">
-                            <div className="relative w-64 h-24">
-                                <Image
-                                    src="/logo-firplak.png"
-                                    alt="Firplak Logo"
-                                    fill
-                                    className="object-contain"
-                                />
-                            </div>
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+                >
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white relative">
+                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                            <Search size={120} />
                         </div>
-
-                        {/* Título */}
-                        <div className="text-center space-y-2">
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                Consulta el estado de su solicitud
-                            </h1>
-                            <p className="text-gray-600">
-                                Ingrese su número de solicitud para conocer el estado actual
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="mb-6 bg-white/20 p-4 rounded-2xl backdrop-blur-md">
+                                <h1 className="text-3xl font-black tracking-tighter">FIRPLAK</h1>
+                            </div>
+                            <h2 className="text-2xl font-bold mb-2">Estado de Solicitud</h2>
+                            <p className="text-blue-100 text-center text-sm opacity-90">
+                                Realiza el seguimiento en tiempo real de tu servicio técnico.
                             </p>
                         </div>
+                    </div>
 
-                        {/* Formulario */}
+                    <div className="p-8 space-y-6">
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label htmlFor="consecutivo" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Número de solicitud
+                            <div className="space-y-2">
+                                <label htmlFor="consecutivo" className="text-sm font-semibold text-slate-700 ml-1">
+                                    Número de Ticket
                                 </label>
-                                <input
-                                    id="consecutivo"
-                                    type="text"
-                                    value={consecutivo}
-                                    onChange={(e) => setConsecutivo(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Ej: 12345"
-                                    disabled={loading}
-                                />
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                        <Search size={18} />
+                                    </div>
+                                    <input
+                                        id="consecutivo"
+                                        type="text"
+                                        value={consecutivo}
+                                        onChange={(e) => setConsecutivo(e.target.value)}
+                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-lg font-medium"
+                                        placeholder="Ej: FR-12345"
+                                        disabled={loading}
+                                    />
+                                </div>
                             </div>
 
                             {error && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm"
+                                >
+                                    <AlertCircle size={18} />
                                     {error}
-                                </div>
+                                </motion.div>
                             )}
 
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold py-4 px-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
                             >
-                                {loading ? 'Consultando...' : 'Consultar'}
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={20} />
+                                        <span>Buscando...</span>
+                                    </>
+                                ) : (
+                                    <span>Consultar Estado</span>
+                                )}
                             </button>
                         </form>
+
+                        <div className="pt-4 border-t border-slate-100">
+                            <p className="text-xs text-center text-slate-400">
+                                ¿No tienes tu número de ticket? Revisa el correo de confirmación de tu solicitud.
+                            </p>
+                        </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
         );
     }
 
+    const currentEstado = estados[estados.length - 1];
+
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-                    {/* Header con botón cerrar */}
-                    <div className="flex justify-end">
-                        <button
-                            onClick={() => {
-                                setVistaActual('buscador');
-                                setConsecutivo('');
-                                setEstados([]);
-                            }}
-                            className="text-gray-500 hover:text-gray-700"
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    {/* Logo */}
-                    <div className="flex justify-center">
-                        <div className="relative w-48 h-16">
-                            <Image
-                                src="/logo-firplak.png"
-                                alt="Firplak Logo"
-                                fill
-                                className="object-contain"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Título */}
-                    <div className="text-center space-y-2">
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Consulta el estado de su solicitud
-                        </h1>
-                        <p className="text-gray-600">
-                            Ingrese su número de solicitud para conocer el estado actual
-                        </p>
-                    </div>
-
-                    {/* Número de solicitud */}
-                    <div>
-                        <input
-                            type="text"
-                            value={consecutivo}
-                            readOnly
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-center font-medium"
-                        />
-                    </div>
-
-                    {/* Timeline de estados */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-                        {moduloActivo === 'validando' && (
-                            <div className="space-y-4">
-                                {estadosValidando.map((estado, index) => (
-                                    <div key={index}>
-                                        {estado.estado === 'Solicitud ingresada' && (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 bg-green-500 rounded-full flex items-center justify-center">
-                                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-900">{estado.estado}</h3>
-                                                </div>
-                                                <p className="ml-12 text-gray-600">
-                                                    La solicitud está siendo validada con las áreas encargadas, pronto recibirás una actualización.
-                                                </p>
-                                            </div>
-                                        )}
-                                        {estado.estado === 'Fecha de agendamiento' && (
-                                            <div className="ml-12 space-y-2 mt-4">
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span>Fecha de Inicio: {formatearFecha(estado.fecha_hora_inicio)} a las {formatearHora(estado.fecha_hora_inicio)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span>Fecha de finalización: {formatearFecha(estado.fecha_hora_fin)} a las {formatearHora(estado.fecha_hora_fin)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                    </svg>
-                                                    <span>Técnico agendado: {estado.tecnico_nombre}</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {moduloActivo === 'programado' && (
-                            <div className="space-y-4">
-                                {estadosProgramado.map((estado, index) => (
-                                    <div key={index}>
-                                        {estado.estado === 'Cancelado' && (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 bg-red-500 rounded-full flex items-center justify-center">
-                                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-900">Cancelado</h3>
-                                                </div>
-                                                <p className="ml-12 text-gray-600">El servicio fue cancelado.</p>
-                                            </div>
-                                        )}
-                                        {estado.estado === 'Re-agendado' && (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center">
-                                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-900">Re-agendado</h3>
-                                                </div>
-                                                <p className="ml-12 text-gray-600">
-                                                    Su servicio ha sido Re-agendado. Por favor, permanezca atento a las indicaciones del técnico y a cualquier comunicación adicional.
-                                                </p>
-                                                <div className="ml-12 space-y-2 mt-2">
-                                                    <div className="flex items-center gap-2 text-gray-700">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span>Nueva Fecha de Inicio: {formatearFecha(estado.fecha_hora_inicio)} a las {formatearHora(estado.fecha_hora_inicio)}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-gray-700">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span>Nueva Fecha Fin: {formatearFecha(estado.fecha_hora_fin)} a las {formatearHora(estado.fecha_hora_fin)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {moduloActivo === 'finalizado' && (
-                            <div className="space-y-4">
-                                {estadosFinalizado.map((estado, index) => (
-                                    <div key={index} className="text-center space-y-3">
-                                        <div className="flex justify-center">
-                                            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center">
-                                                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 className="font-bold text-gray-900 text-lg">Finalizado</h3>
-                                        <p className="text-gray-600">El servicio ha sido completado exitosamente.</p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Botón contactar soporte */}
-                    <button className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-blue-600 font-medium py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        Contactar soporte
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="max-w-4xl mx-auto"
+            >
+                {/* Header Navigation */}
+                <div className="flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm">
+                    <button
+                        onClick={resetView}
+                        className="flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
+                    >
+                        <ArrowLeft size={20} />
+                        <span>Volver a buscar</span>
                     </button>
-
-                    {/* Indicador de estados */}
-                    <div className="space-y-4">
-                        <h3 className="text-center font-medium text-gray-900">Estado de la solicitud</h3>
-                        <div className="flex items-center justify-center gap-2">
-                            {/* Validando */}
-                            <button
-                                onClick={() => setModuloActivo('validando')}
-                                className="flex flex-col items-center gap-2"
-                            >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${moduloActivo === 'validando' ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </div>
-                                <span className={`text-xs font-medium ${moduloActivo === 'validando' ? 'text-blue-600' : 'text-gray-500'}`}>
-                                    Validando
-                                </span>
-                            </button>
-
-                            <div className="flex-1 h-0.5 bg-blue-600 max-w-[80px]"></div>
-
-                            {/* Programado */}
-                            <button
-                                onClick={() => setModuloActivo('programado')}
-                                className="flex flex-col items-center gap-2"
-                            >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${moduloActivo === 'programado' ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <span className={`text-xs font-medium ${moduloActivo === 'programado' ? 'text-blue-600' : 'text-gray-500'}`}>
-                                    Programado
-                                </span>
-                            </button>
-
-                            <div className="flex-1 h-0.5 bg-green-500 max-w-[80px]"></div>
-
-                            {/* Finalizado */}
-                            <button
-                                onClick={() => setModuloActivo('finalizado')}
-                                className="flex flex-col items-center gap-2"
-                            >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${moduloActivo === 'finalizado' ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <span className={`text-xs font-medium ${moduloActivo === 'finalizado' ? 'text-green-600' : 'text-gray-500'}`}>
-                                    Finalizado
-                                </span>
-                            </button>
-                        </div>
+                    <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-bold border border-blue-100">
+                        Ticket: {consecutivo}
                     </div>
                 </div>
-            </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column: Progress & Timeline */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <section className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+                            <div className="p-8 border-b border-slate-50">
+                                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                        <Clock size={20} />
+                                    </div>
+                                    Línea de tiempo del servicio
+                                </h2>
+
+                                <div className="relative">
+                                    {/* Progress line background */}
+                                    <div className="absolute top-5 left-8 right-8 h-1 bg-slate-100 rounded-full hidden sm:block"></div>
+
+                                    {/* Active segments line */}
+                                    <div className="absolute top-5 left-8 right-8 h-1 rounded-full hidden sm:block">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-1000"
+                                            style={{
+                                                width: maxStepAlcanzado === 0 ? '0%' :
+                                                    maxStepAlcanzado === 1 ? '50%' : '100%'
+                                            }}
+                                        ></div>
+                                    </div>
+
+                                    <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-8 sm:gap-4 px-2">
+                                        {[
+                                            { id: 'validando', icon: <Search size={22} />, label: 'Validando' },
+                                            { id: 'programado', icon: <Calendar size={22} />, label: 'Programado' },
+                                            { id: 'finalizado', icon: <CheckCircle2 size={22} />, label: 'Finalizado' }
+                                        ].map((step, idx) => {
+                                            const isActive = moduloActivo === step.id;
+                                            const isPast = (moduloActivo === 'programado' && step.id === 'validando') ||
+                                                (moduloActivo === 'finalizado' && (step.id === 'validando' || step.id === 'programado'));
+
+                                            // El usuario solo puede seleccionar estados que ya se han alcanzado
+                                            const canSelect = idx <= maxStepAlcanzado;
+
+                                            return (
+                                                <button
+                                                    key={step.id}
+                                                    onClick={() => canSelect && setModuloActivo(step.id as StatusKey)}
+                                                    disabled={!canSelect}
+                                                    className={`
+                                                        group flex sm:flex-col items-center gap-4 sm:gap-3 outline-none transition-all
+                                                        ${!canSelect ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+                                                    `}
+                                                >
+                                                    <div className={`
+                                                        w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 z-10
+                                                        ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-200 scale-110' :
+                                                            isPast ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}
+                                                    `}>
+                                                        {isPast ? <CheckCircle2 size={22} /> : step.icon}
+                                                    </div>
+                                                    <div className="flex flex-col sm:items-center">
+                                                        <span className={`text-sm font-bold ${isActive ? 'text-blue-600' : isPast ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                            {step.label}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Paso {idx + 1}</span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-8 bg-slate-50/50 min-h-[300px]">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={moduloActivo}
+                                        initial={{ opacity: 0, x: 10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -10 }}
+                                        className="space-y-6"
+                                    >
+                                        {moduloActivo === 'validando' && (
+                                            <div className="space-y-6">
+                                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4">
+                                                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                        <Clock size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-slate-800">Solicitud Recibida</h3>
+                                                        <p className="text-slate-500 text-sm mt-1 leading-relaxed">
+                                                            Hemos registrado tu solicitud exitosamente. Actualmente nuestro equipo de soporte está validando la información para asignarte el técnico más adecuado.
+                                                        </p>
+                                                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg w-fit">
+                                                            REGISTRO: {formatearFecha(currentEstado.fecha_solicitud)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-blue-600/5 p-4 rounded-xl border border-blue-100">
+                                                    <p className="text-sm text-blue-700 italic">
+                                                        "Te enviaremos una notificación en cuanto el servicio sea programado."
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {moduloActivo === 'programado' && (
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                                                                <Calendar size={20} />
+                                                            </div>
+                                                            <h4 className="font-bold text-slate-800">Cita Programada</h4>
+                                                        </div>
+                                                        <div className="space-y-3">
+                                                            <div className="flex justify-between text-sm py-2 border-b border-slate-50">
+                                                                <span className="text-slate-500">Fecha</span>
+                                                                <span className="font-bold text-slate-800">{formatearFecha(currentEstado.fecha_hora_inicio)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-sm py-2">
+                                                                <span className="text-slate-500">Horario estimado</span>
+                                                                <span className="font-bold text-slate-800">{formatearHora(currentEstado.fecha_hora_inicio)} - {formatearHora(currentEstado.fecha_hora_fin)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
+                                                                <User size={20} />
+                                                            </div>
+                                                            <h4 className="font-bold text-slate-800">Técnico Asignado</h4>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Profesional</p>
+                                                            <p className="text-lg font-bold text-slate-800">{currentEstado.tecnico_nombre || 'Asignando...'}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex gap-4 items-start">
+                                                    <div className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-200">
+                                                        <PhoneCall size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-emerald-800">Próximos pasos</h4>
+                                                        <p className="text-emerald-700 text-sm mt-1 leading-relaxed">
+                                                            El técnico se comunicará contigo minutos antes de llegar a la dirección registrada. Por favor asegúrate de estar disponible en el número de teléfono proporcionado.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {moduloActivo === 'finalizado' && (
+                                            <div className="flex flex-col items-center justify-center text-center p-8 space-y-6">
+                                                <div className="relative">
+                                                    <div className="absolute inset-0 bg-emerald-500 blur-3xl opacity-20 animate-pulse"></div>
+                                                    <div className="w-24 h-24 bg-emerald-500 text-white rounded-3xl flex items-center justify-center shadow-2xl relative z-10">
+                                                        <CheckCircle2 size={48} />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <h3 className="text-2xl font-black text-slate-800">Servicio Completado</h3>
+                                                    <p className="text-slate-500 max-w-sm mx-auto">
+                                                        Tu solicitud ha sido finalizada con éxito el {formatearFecha(currentEstado.fecha_hora_fin)}.
+                                                    </p>
+                                                </div>
+
+                                                {currentEstado.motivo && (
+                                                    <div className="w-full bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative">
+                                                        <div className="absolute -top-3 left-6 px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-full">
+                                                            Comentario del técnico
+                                                        </div>
+                                                        <p className="text-slate-600 italic text-sm leading-relaxed">
+                                                            "{currentEstado.motivo}"
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-white px-4 py-2 rounded-xl border border-slate-100">
+                                                    <span>Estado final:</span>
+                                                    <span className="text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-md">{currentEstado.estado}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* Right Column: Sidebar info */}
+                    <div className="space-y-6">
+                        <section className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <AlertCircle size={18} className="text-blue-600" />
+                                Detalle de Solicitud
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="p-3 bg-slate-50 rounded-xl relative overflow-hidden">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Tipo de Servicio</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-bold text-slate-700">{currentEstado.tipo_de_servicio}</p>
+                                        <ChevronRight size={14} className="text-slate-300" />
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded-xl">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Consecutivo</p>
+                                    <p className="text-sm font-black text-blue-600 tracking-widest">{currentEstado.consecutivo}</p>
+                                </div>
+                                <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                                    <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-1">Estado Actual</p>
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-sm font-bold text-blue-700">{currentEstado.estado}</p>
+                                        {currentEstado.sub_estado && (
+                                            <p className="text-[11px] font-medium text-blue-500/80 bg-white/50 px-2 py-0.5 rounded-full w-fit">
+                                                {currentEstado.sub_estado}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="bg-gradient-to-br from-indigo-900 via-blue-900 to-blue-800 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <PhoneCall size={100} />
+                            </div>
+                            <div className="relative z-10 flex flex-col items-center text-center">
+                                <h3 className="text-xl font-bold mb-4">¿Necesitas Ayuda?</h3>
+                                <p className="text-blue-100 text-sm mb-8 leading-relaxed opacity-80">
+                                    Si tienes dudas sobre tu servicio o deseas realizar un cambio, nuestro equipo está listo para ayudarte.
+                                </p>
+                                <a
+                                    href="https://wa.me/573000000000" // Cambiar por número real
+                                    target="_blank"
+                                    className="w-full bg-white text-blue-900 hover:bg-blue-50 active:scale-[0.98] font-black py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-900/50"
+                                >
+                                    <PhoneCall size={20} />
+                                    CHAT SOPORTE
+                                </a>
+                                <p className="mt-6 text-[10px] font-bold text-blue-300 uppercase tracking-[2px]">
+                                    Disponible: Lunes a Viernes
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </motion.div>
         </div>
+    );
+}
+
+export default function ConsultarEstadoPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <Loader2 className="animate-spin text-blue-600" size={48} />
+            </div>
+        }>
+            <ConsultarEstadoContent />
+        </Suspense>
     );
 }
