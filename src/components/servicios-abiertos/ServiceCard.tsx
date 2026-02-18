@@ -21,7 +21,8 @@ import {
     CreditCard,
     Map,
     Briefcase,
-    Headset
+    Headset,
+    Share2
 } from 'lucide-react';
 
 interface ServiceCardProps {
@@ -73,6 +74,13 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
     const copyToClipboard = (text: string) => {
         if (!text) return;
         navigator.clipboard.writeText(text);
+    };
+
+    const copyPublicLink = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const publicUrl = `${window.location.origin}/consultar-estado?consecutivo=${consecutivo}`;
+        navigator.clipboard.writeText(publicUrl);
+        alert('¡Link copiado! Compártelo con el cliente para que consulte el estado de su servicio.');
     };
 
     const isConstructor = canalDeVenta === 'canal_constructor';
@@ -136,6 +144,10 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <Share2
+                            onClick={copyPublicLink}
+                            className="w-5 h-5 text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
+                        />
                         {onDelete && (currentUserRole === 'desarrollador' || service.creado_por_email === 'mayerly.marin@firplak.com' || service.creado_por_email === 'isabel.jaramillo@firplak.com') && (
                             <Trash2
                                 onClick={() => onDelete(service)}
