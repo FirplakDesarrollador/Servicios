@@ -859,7 +859,7 @@ export default function FormularioClientePage() {
                         ) : (
                             <>
                                 <CheckCircle2 className="w-6 h-6" />
-                                <span className="text-lg">Enviar Solicitud</span>
+                                <span className="text-lg">Continuar con proceso de pago</span>
                             </>
                         )}
                     </motion.button>
