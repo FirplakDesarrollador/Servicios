@@ -1,408 +1,411 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 
 interface EstadoServicio {
-    consecutivo: string;
-    tipo_de_servicio: string;
-    estado: string;
-    fecha_hora_inicio: string | null;
-    fecha_hora_fin: string | null;
-    tecnico_nombre: string | null;
-    reagendado: boolean | null;
-    visita_id: number;
-    fecha_solicitud: string;
+  consecutivo: string;
+  tipo_de_servicio: string;
+  estado: string;
+  sub_estado: string;
+  fecha_hora_inicio: string | null;
+  fecha_hora_fin: string | null;
+  tecnico_nombre: string | null;
+  motivo: string | null;
+  numero_estado: number;
+  orden_grupo: number;
+  orden_evento: number;
+  evento_ts: string | null;
+  origen_tipo: string | null;
+  origen_id: string | null;
+  row_id: string;
 }
 
-export default function ConsultarEstadoPage() {
-    const searchParams = useSearchParams();
-    const consecutivoParam = searchParams.get('consecutivo');
+type EstadoPaso = 'agendado' | 'proceso' | 'finalizado';
 
-    const [consecutivo, setConsecutivo] = useState(consecutivoParam || '');
-    const [estados, setEstados] = useState<EstadoServicio[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [vistaActual, setVistaActual] = useState<'buscador' | 'estados'>('buscador');
-    const [moduloActivo, setModuloActivo] = useState<'validando' | 'programado' | 'finalizado'>('validando');
+// ✅ Reglas: Bolita 1 incluye solo estos estados
+const ESTADOS_PASO1 = new Set(['solicitud ingresada', 'fecha de agendamiento']);
 
-    useEffect(() => {
-        if (consecutivoParam) {
-            buscarEstados(consecutivoParam);
-        }
-    }, [consecutivoParam]);
+const normalizar = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
 
-    const buscarEstados = async (cons: string) => {
-        if (!cons.trim()) {
-            setError('Por favor ingrese un número de solicitud');
-            return;
-        }
+export default function EstadosServicioPage() {
+  const [consecutivo, setConsecutivo] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rows, setRows] = useState<EstadoServicio[]>([]);
+  const [vista, setVista] = useState<'buscador' | 'resultado'>('buscador');
 
-        setLoading(true);
-        setError(null);
+  const limpiar = () => {
+    setConsecutivo('');
+    setRows([]);
+    setError(null);
+    setVista('buscador');
+  };
 
-        try {
-            const { data, error: queryError } = await supabase
-                .from('query_servicios_info_cliente')
-                .select('*')
-                .eq('consecutivo', cons)
-                .order('fecha_hora_inicio', { ascending: true });
+  const formatearFechaHora = (fecha: string | null) => {
+    if (!fecha) return '—';
+    const d = new Date(fecha);
+    return d.toLocaleString('es-CO', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
-            if (queryError) throw queryError;
+  // ✅ Paso actual según TUS REGLAS:
+  // - Si existe "Finalizado" => finalizado
+  // - Si existe cualquier estado distinto a (Solicitud ingresada, Fecha de agendamiento) => proceso
+  // - Si no => agendado
+  const getPasoActual = (): EstadoPaso => {
+    if (!rows.length) return 'agendado';
 
-            if (!data || data.length === 0) {
-                setError('No se encontró ninguna solicitud con ese número');
-                setEstados([]);
-            } else {
-                setEstados(data);
-                setVistaActual('estados');
-            }
-        } catch (err) {
-            console.error('Error al buscar estados:', err);
-            setError('Error al consultar el estado. Por favor intente nuevamente.');
-        } finally {
-            setLoading(false);
-        }
+    const estados = rows.map((r) => normalizar(r.estado));
+    if (estados.includes('finalizado')) return 'finalizado';
+
+    const hayProceso = estados.some((e) => e && !ESTADOS_PASO1.has(e) && e !== 'finalizado');
+    if (hayProceso) return 'proceso';
+
+    return 'agendado';
+  };
+
+  // ✅ Stepper (bolitas) MISMO ESTILO que tenías, pero con lógica nueva
+  const StepperEstados = () => {
+    const actual = getPasoActual();
+
+    const pasos: { key: EstadoPaso; label: string }[] = [
+      { key: 'agendado', label: 'Agendado' },
+      { key: 'proceso', label: 'En proceso' },
+      { key: 'finalizado', label: 'Finalizado' },
+    ];
+
+    const orden: Record<EstadoPaso, number> = {
+      agendado: 0,
+      proceso: 1,
+      finalizado: 2,
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        buscarEstados(consecutivo);
+    const idxActual = orden[actual];
+
+    const statusDePaso = (idx: number) => {
+      if (idx < idxActual) return 'done';
+      if (idx === idxActual) return 'current';
+      return 'todo';
     };
-
-    const formatearFecha = (fecha: string | null) => {
-        if (!fecha) return '';
-        const date = new Date(fecha);
-        return date.toLocaleDateString('es-CO', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    };
-
-    const formatearHora = (fecha: string | null) => {
-        if (!fecha) return '';
-        const date = new Date(fecha);
-        return date.toLocaleTimeString('es-CO', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    };
-
-    const estadosValidando = estados.filter(e =>
-        e.estado?.toLowerCase().includes('agendado') ||
-        e.estado?.toLowerCase().includes('preagendado')
-    );
-    const estadosProgramado = estados.filter(e =>
-        e.estado?.toLowerCase().includes('cancelado') ||
-        e.reagendado === true
-    );
-    const estadosFinalizado = estados.filter(e =>
-        e.estado?.toLowerCase().includes('terminado') ||
-        e.estado?.toLowerCase().includes('finalizado')
-    );
-
-    if (vistaActual === 'buscador') {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-                    <div className="space-y-6">
-                        {/* Logo */}
-                        <div className="flex justify-center">
-                            <div className="relative w-64 h-24">
-                                <Image
-                                    src="/logo-firplak.png"
-                                    alt="Firplak Logo"
-                                    fill
-                                    className="object-contain"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Título */}
-                        <div className="text-center space-y-2">
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                Consulta el estado de su solicitud
-                            </h1>
-                            <p className="text-gray-600">
-                                Ingrese su número de solicitud para conocer el estado actual
-                            </p>
-                        </div>
-
-                        {/* Formulario */}
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label htmlFor="consecutivo" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Número de solicitud
-                                </label>
-                                <input
-                                    id="consecutivo"
-                                    type="text"
-                                    value={consecutivo}
-                                    onChange={(e) => setConsecutivo(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Ej: 12345"
-                                    disabled={loading}
-                                />
-                            </div>
-
-                            {error && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                                    {error}
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? 'Consultando...' : 'Consultar'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-                    {/* Header con botón cerrar */}
-                    <div className="flex justify-end">
-                        <button
-                            onClick={() => {
-                                setVistaActual('buscador');
-                                setConsecutivo('');
-                                setEstados([]);
-                            }}
-                            className="text-gray-500 hover:text-gray-700"
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+      <div className="pt-6">
+        <h3 className="text-center text-sm font-semibold text-slate-800">Estado del pedido</h3>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-between">
+            {pasos.map((p, i) => {
+              const s = statusDePaso(i);
+              const isDone = s === 'done';
+              const isCurrent = s === 'current';
+
+              return (
+                <div key={p.key} className="flex flex-1 items-center">
+                  {/* Línea izquierda (conector) */}
+                  {i !== 0 && (
+                    <div
+                      className={`h-1 flex-1 rounded-full ${idxActual >= i ? 'bg-[#1f3a4a]' : 'bg-slate-200'
+                        }`}
+                    />
+                  )}
+
+                  {/* Bolita */}
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={[
+                        'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all',
+                        isDone
+                          ? 'border-[#1f3a4a] bg-[#1f3a4a] text-white'
+                          : isCurrent
+                            ? 'border-[#1f3a4a] bg-white text-[#1f3a4a] shadow-md scale-110'
+                            : 'border-slate-300 bg-white text-slate-400',
+                      ].join(' ')}
+                      aria-label={p.label}
+                    >
+                      {isDone ? (
+                        <span className="text-lg leading-none">✓</span>
+                      ) : (
+                        <span className="text-sm font-bold">{i + 1}</span>
+                      )}
                     </div>
 
-                    {/* Logo */}
-                    <div className="flex justify-center">
-                        <div className="relative w-48 h-16">
-                            <Image
-                                src="/logo-firplak.png"
-                                alt="Firplak Logo"
-                                fill
-                                className="object-contain"
-                            />
-                        </div>
-                    </div>
+                    <span
+                      className={[
+                        'mt-2 text-[11px] font-semibold',
+                        isDone || isCurrent ? 'text-[#1f3a4a]' : 'text-slate-400',
+                      ].join(' ')}
+                    >
+                      {p.label}
+                    </span>
+                  </div>
 
-                    {/* Título */}
-                    <div className="text-center space-y-2">
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Consulta el estado de su solicitud
-                        </h1>
-                        <p className="text-gray-600">
-                            Ingrese su número de solicitud para conocer el estado actual
-                        </p>
-                    </div>
-
-                    {/* Número de solicitud */}
-                    <div>
-                        <input
-                            type="text"
-                            value={consecutivo}
-                            readOnly
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-center font-medium"
-                        />
-                    </div>
-
-                    {/* Timeline de estados */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-                        {moduloActivo === 'validando' && (
-                            <div className="space-y-4">
-                                {estadosValidando.map((estado, index) => (
-                                    <div key={index}>
-                                        {estado.estado === 'Solicitud ingresada' && (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 bg-green-500 rounded-full flex items-center justify-center">
-                                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-900">{estado.estado}</h3>
-                                                </div>
-                                                <p className="ml-12 text-gray-600">
-                                                    La solicitud está siendo validada con las áreas encargadas, pronto recibirás una actualización.
-                                                </p>
-                                            </div>
-                                        )}
-                                        {estado.estado === 'Fecha de agendamiento' && (
-                                            <div className="ml-12 space-y-2 mt-4">
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span>Fecha de Inicio: {formatearFecha(estado.fecha_hora_inicio)} a las {formatearHora(estado.fecha_hora_inicio)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span>Fecha de finalización: {formatearFecha(estado.fecha_hora_fin)} a las {formatearHora(estado.fecha_hora_fin)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                    </svg>
-                                                    <span>Técnico agendado: {estado.tecnico_nombre}</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {moduloActivo === 'programado' && (
-                            <div className="space-y-4">
-                                {estadosProgramado.map((estado, index) => (
-                                    <div key={index}>
-                                        {estado.estado === 'Cancelado' && (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 bg-red-500 rounded-full flex items-center justify-center">
-                                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-900">Cancelado</h3>
-                                                </div>
-                                                <p className="ml-12 text-gray-600">El servicio fue cancelado.</p>
-                                            </div>
-                                        )}
-                                        {estado.estado === 'Re-agendado' && (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center">
-                                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-900">Re-agendado</h3>
-                                                </div>
-                                                <p className="ml-12 text-gray-600">
-                                                    Su servicio ha sido Re-agendado. Por favor, permanezca atento a las indicaciones del técnico y a cualquier comunicación adicional.
-                                                </p>
-                                                <div className="ml-12 space-y-2 mt-2">
-                                                    <div className="flex items-center gap-2 text-gray-700">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span>Nueva Fecha de Inicio: {formatearFecha(estado.fecha_hora_inicio)} a las {formatearHora(estado.fecha_hora_inicio)}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-gray-700">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span>Nueva Fecha Fin: {formatearFecha(estado.fecha_hora_fin)} a las {formatearHora(estado.fecha_hora_fin)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {moduloActivo === 'finalizado' && (
-                            <div className="space-y-4">
-                                {estadosFinalizado.map((estado, index) => (
-                                    <div key={index} className="text-center space-y-3">
-                                        <div className="flex justify-center">
-                                            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center">
-                                                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 className="font-bold text-gray-900 text-lg">Finalizado</h3>
-                                        <p className="text-gray-600">El servicio ha sido completado exitosamente.</p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Botón contactar soporte */}
-                    <button className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-blue-600 font-medium py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        Contactar soporte
-                    </button>
-
-                    {/* Indicador de estados */}
-                    <div className="space-y-4">
-                        <h3 className="text-center font-medium text-gray-900">Estado de la solicitud</h3>
-                        <div className="flex items-center justify-center gap-2">
-                            {/* Validando */}
-                            <button
-                                onClick={() => setModuloActivo('validando')}
-                                className="flex flex-col items-center gap-2"
-                            >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${moduloActivo === 'validando' ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </div>
-                                <span className={`text-xs font-medium ${moduloActivo === 'validando' ? 'text-blue-600' : 'text-gray-500'}`}>
-                                    Validando
-                                </span>
-                            </button>
-
-                            <div className="flex-1 h-0.5 bg-blue-600 max-w-[80px]"></div>
-
-                            {/* Programado */}
-                            <button
-                                onClick={() => setModuloActivo('programado')}
-                                className="flex flex-col items-center gap-2"
-                            >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${moduloActivo === 'programado' ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <span className={`text-xs font-medium ${moduloActivo === 'programado' ? 'text-blue-600' : 'text-gray-500'}`}>
-                                    Programado
-                                </span>
-                            </button>
-
-                            <div className="flex-1 h-0.5 bg-green-500 max-w-[80px]"></div>
-
-                            {/* Finalizado */}
-                            <button
-                                onClick={() => setModuloActivo('finalizado')}
-                                className="flex flex-col items-center gap-2"
-                            >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${moduloActivo === 'finalizado' ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <span className={`text-xs font-medium ${moduloActivo === 'finalizado' ? 'text-green-600' : 'text-gray-500'}`}>
-                                    Finalizado
-                                </span>
-                            </button>
-                        </div>
-                    </div>
+                  {/* Línea derecha (relleno visual) */}
+                  {i !== pasos.length - 1 && <div className="h-1 flex-1 rounded-full bg-transparent" />}
                 </div>
-            </div>
+              );
+            })}
+          </div>
+
+          <p className="mt-3 text-center text-xs text-slate-500">
+            * Bolita 1 = <b>Solicitud ingresada</b> + <b>Fecha de agendamiento</b>. <br />
+            * Bolita 2 = cualquier otro estado (ej: Cancelado, Re-agendado, etc.). <br />
+            * Bolita 3 = <b>Finalizado</b>.
+          </p>
         </div>
+      </div>
     );
+  };
+
+  const consultar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cons = consecutivo.trim();
+
+    if (!cons) {
+      setError('Por favor ingrese un número de solicitud');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setRows([]);
+
+    try {
+      // ✅ RPC (debes tener creada: get_estados_servicio_public)
+      const { data, error: qErr } = await supabase.rpc('get_estados_servicio_public', {
+        p_consecutivo: cons,
+      });
+
+      if (qErr) throw qErr;
+
+      if (!data || data.length === 0) {
+        setError('Consecutivo no encontrado');
+        setVista('buscador');
+        return;
+      }
+
+      // Orden defensivo
+      const ordered = [...(data as EstadoServicio[])].sort((a, b) => {
+        const g = (a.orden_grupo ?? 0) - (b.orden_grupo ?? 0);
+        if (g !== 0) return g;
+
+        const ta = a.evento_ts ? new Date(a.evento_ts).getTime() : 0;
+        const tb = b.evento_ts ? new Date(b.evento_ts).getTime() : 0;
+        if (ta !== tb) return ta - tb;
+
+        return (a.orden_evento ?? 0) - (b.orden_evento ?? 0);
+      });
+
+      setRows(ordered);
+      setVista('resultado');
+    } catch (err) {
+      console.error('Error consultando:', err);
+      setError('Error consultando en Supabase. Intente nuevamente.');
+      setVista('buscador');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Top bar */}
+      <header className="sticky top-0 z-10 bg-[#1f3a4a] text-white shadow">
+        <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
+          <button
+            type="button"
+            className="mr-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 hover:bg-white/15 active:scale-[0.98]"
+            aria-label="Volver"
+            onClick={() => (vista === 'resultado' ? limpiar() : history.back())}
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+
+          <h1 className="w-full text-center text-base font-semibold tracking-wide">Estados de Servicio</h1>
+
+          <div className="ml-3 h-9 w-9" />
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        <section className="lg:mx-auto lg:w-2/3">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.10)]">
+            {/* Card header */}
+            <div className="relative bg-gradient-to-r from-slate-900 to-[#1f3a4a] px-6 py-8">
+              <div className="pointer-events-none absolute inset-0 opacity-20">
+                <div className="absolute -left-24 -top-24 h-64 w-64 rounded-full bg-white blur-3xl" />
+                <div className="absolute -right-24 -bottom-24 h-64 w-64 rounded-full bg-white blur-3xl" />
+              </div>
+
+              <div className="relative text-center">
+                <div className="mx-auto mb-3 inline-flex items-center justify-center rounded-xl bg-white/95 px-8 py-4 shadow">
+                  <div className="text-4xl font-black tracking-[0.25em] text-slate-800">FIRPLAK</div>
+                </div>
+                <p className="text-xs font-medium tracking-[0.35em] text-white/80">inspirando hogares</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-8 sm:px-10">
+              {vista === 'buscador' && (
+                <>
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                      Consulta el estado de su solicitud
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Ingrese su número de solicitud para conocer el estado actual.
+                    </p>
+                  </div>
+
+                  <form onSubmit={consultar} className="mt-8 space-y-4">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700">Número de solicitud</label>
+
+                      <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 focus-within:border-[#1f3a4a] focus-within:ring-4 focus-within:ring-[#1f3a4a]/10">
+                        <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                        </svg>
+
+                        <input
+                          value={consecutivo}
+                          onChange={(e) => setConsecutivo(e.target.value)}
+                          type="text"
+                          placeholder="Ej: 123456"
+                          className="w-full bg-transparent text-center text-base font-semibold tracking-wider text-slate-900 outline-none placeholder:text-slate-400 sm:text-lg"
+                          disabled={loading}
+                        />
+
+                        {consecutivo.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setConsecutivo('')}
+                            className="rounded-lg p-2 text-slate-500 hover:bg-slate-200/60 hover:text-slate-700"
+                            aria-label="Limpiar"
+                            disabled={loading}
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+
+                      {error && (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                          {error}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || !consecutivo.trim()}
+                      className="group relative w-full overflow-hidden rounded-xl bg-[#1f3a4a] px-6 py-4 text-sm font-semibold text-white shadow-md transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-base"
+                    >
+                      <span className="relative z-10 inline-flex items-center justify-center gap-2">
+                        {loading ? (
+                          <>
+                            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                            </svg>
+                            Consultando...
+                          </>
+                        ) : (
+                          <>
+                            Consultar
+                            <svg viewBox="0 0 24 24" className="h-5 w-5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </>
+                        )}
+                      </span>
+                      <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {vista === 'resultado' && (
+                <div className="space-y-5">
+                  <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+                    <div>
+                      <p className="text-sm text-slate-500">Solicitud</p>
+                      <p className="text-2xl font-black tracking-widest text-[#1f3a4a]">{rows[0]?.consecutivo}</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Tipo de servicio: <b>{rows[0]?.tipo_de_servicio ?? '—'}</b>
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={limpiar}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Nueva consulta
+                    </button>
+                  </div>
+
+                  {/* Tabla resultados */}
+                  <div className="overflow-hidden rounded-xl border border-slate-200">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-700">
+                          <tr>
+                            <th className="px-4 py-3 font-semibold">#</th>
+                            <th className="px-4 py-3 font-semibold">Sub-estado</th>
+                            <th className="px-4 py-3 font-semibold">Estado</th>
+                            <th className="px-4 py-3 font-semibold">Inicio</th>
+                            <th className="px-4 py-3 font-semibold">Fin</th>
+                            <th className="px-4 py-3 font-semibold">Técnico</th>
+                            <th className="px-4 py-3 font-semibold">Motivo</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {rows.map((r) => (
+                            <tr key={r.row_id} className="hover:bg-slate-50/60">
+                              <td className="px-4 py-3 font-semibold text-slate-700">{r.numero_estado}</td>
+                              <td className="px-4 py-3">
+                                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                  {r.sub_estado ?? '—'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-slate-800">{r.estado ?? '—'}</td>
+                              <td className="px-4 py-3 text-slate-600">{formatearFechaHora(r.fecha_hora_inicio)}</td>
+                              <td className="px-4 py-3 text-slate-600">{formatearFechaHora(r.fecha_hora_fin)}</td>
+                              <td className="px-4 py-3 text-slate-700">{r.tecnico_nombre ?? '—'}</td>
+                              <td className="px-4 py-3 text-slate-600">{r.motivo ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* ✅ Bolitas (Agendado / En proceso / Finalizado) */}
+                  <StepperEstados />
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-center">
+              <p className="text-xs text-slate-500">
+                <span className="font-semibold text-slate-700">Firplak</span> · Inspirando hogares
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 }

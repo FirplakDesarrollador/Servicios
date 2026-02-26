@@ -59,6 +59,10 @@ export default function FormularioClientePage() {
     // Consecutivo
     const [consecutivo, setConsecutivo] = useState<string>('');
 
+    // Pre-calculated file URLs
+    const [rutUrl, setRutUrl] = useState<string | null>(null);
+    const [facturaUrl, setFacturaUrl] = useState<string | null>(null);
+
     useEffect(() => {
         loadInitialData();
         generateConsecutivo();
@@ -265,43 +269,19 @@ export default function FormularioClientePage() {
             }
 
             // Upload files
-            let rutUrl = null;
-            let facturaUrl = null;
+            let uploadedRutUrl = null;
+            let uploadedFacturaUrl = null;
 
             if (rutFile) {
-                rutUrl = await handleFileUpload(rutFile, 'rut');
+                uploadedRutUrl = await handleFileUpload(rutFile, 'rut');
+                setRutUrl(uploadedRutUrl);
             }
 
             if (facturaFile) {
-                facturaUrl = await handleFileUpload(facturaFile, 'factura');
-                if (!facturaUrl) throw new Error('Error al subir la factura');
+                uploadedFacturaUrl = await handleFileUpload(facturaFile, 'factura');
+                if (!uploadedFacturaUrl) throw new Error('Error al subir la factura');
+                setFacturaUrl(uploadedFacturaUrl);
             }
-
-            // Save to database
-            const { error: dbError } = await supabase
-                .from('solicitudes_clientes')
-                .insert({
-                    consecutivo,
-                    tipo_persona: formData.tipoPersona,
-                    numeroid: parseInt(formData.numeroId), // Table expects bigint
-                    nombre_razon_social: formData.razonSocial,
-                    persona_contacto: formData.personaContacto,
-                    correo_electronico: formData.correo_electronico,
-                    telefono: parseInt(formData.telefono), // Table expects bigint
-                    ciudad: formData.ciudad,
-                    direccion: formData.direccion,
-                    punto_referencia: formData.puntoReferencia,
-                    tipodeservicio: formData.tipoServicio,
-                    grupo_producto: formData.grupo,
-                    medidas: formData.medida,
-                    observaciones: formData.observaciones,
-                    rut_url: rutUrl,
-                    factura_url: facturaUrl,
-                    recibio_producto: formData.confirmaRecepcion,
-                    valor_pagar: formData.valorPagar,
-                });
-
-            if (dbError) throw dbError;
 
             // Open Payment Modal instead of direct success
             setSubmitting(false);
@@ -313,23 +293,41 @@ export default function FormularioClientePage() {
         }
     };
 
-    const handlePaymentSuccess = async (url: string) => {
+    const handlePaymentSuccess = async (soportePagoUrl: string) => {
         try {
-            // Update the record with the payment proof URL
-            const { error } = await supabase
+            // Save everything to database now that we have the payment proof
+            const { error: dbError } = await supabase
                 .from('solicitudes_clientes')
-                .update({ soporte_pago_url: url })
-                .eq('consecutivo', consecutivo);
+                .insert({
+                    consecutivo,
+                    tipo_persona: formData.tipoPersona,
+                    numeroid: parseInt(formData.numeroId),
+                    nombre_razon_social: formData.razonSocial,
+                    persona_contacto: formData.personaContacto,
+                    correo_electronico: formData.correo_electronico,
+                    telefono: parseInt(formData.telefono),
+                    ciudad: formData.ciudad,
+                    direccion: formData.direccion,
+                    punto_referencia: formData.puntoReferencia,
+                    tipodeservicio: formData.tipoServicio,
+                    grupo_producto: formData.grupo,
+                    medidas: formData.medida,
+                    observaciones: formData.observaciones,
+                    rut_url: rutUrl,
+                    factura_url: facturaUrl,
+                    soporte_pago_url: soportePagoUrl,
+                    recibio_producto: formData.confirmaRecepcion,
+                    valor_pagar: formData.valorPagar,
+                });
 
-            if (error) throw error;
+            if (dbError) throw dbError;
 
             setShowPaymentModal(false);
             setSuccess(true);
         } catch (err: any) {
-            console.error('Error updating payment proof:', err);
-            setError('Error al guardar el soporte de pago, pero su solicitud fue creada.');
+            console.error('Error saving solicitud:', err);
+            setError('Error al guardar la solicitud. Por favor contacte a soporte.');
             setShowPaymentModal(false);
-            setSuccess(true); // Still show success as the main request was created
         }
     };
 

@@ -12,13 +12,20 @@ SELECT
     u.display_name AS tecnico_nombre,
     v.reagendado,
     v.id AS visita_id,
-    s.created_at AS fecha_solicitud
+    s.created_at AS fecha_solicitud,
+    -- Información del cliente desde solicitudes_clientes
+    sc.razon_social AS nombre_cliente,
+    sc.telefono AS telefono_cliente,
+    sc.direccion AS direccion_cliente,
+    sc.correo AS email_cliente
 FROM 
     "Servicios" s
 LEFT JOIN 
     "Visitas" v ON s.id = v.servicio_id
 LEFT JOIN 
     "Usuarios" u ON v.tecnico_id = u.id
+LEFT JOIN
+    solicitudes_clientes sc ON s.consecutivo = sc.consecutivo
 WHERE 
     s.estado = true  -- Solo servicios activos
 ORDER BY 
