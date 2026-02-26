@@ -63,15 +63,17 @@ export default function FormularioClientePage() {
     const [rutUrl, setRutUrl] = useState<string | null>(null);
     const [facturaUrl, setFacturaUrl] = useState<string | null>(null);
 
+    // Random suffix for consecutivo (consistent during session)
+    const [randomSuffix] = useState(() => Math.floor(10000 + Math.random() * 90000).toString());
+
     useEffect(() => {
         loadInitialData();
-        generateConsecutivo();
     }, []);
 
-    const generateConsecutivo = () => {
-        const random = Math.floor(10000 + Math.random() * 90000);
-        setConsecutivo(`Fpagina${random}`);
-    };
+    useEffect(() => {
+        const typePrefix = formData.tipoServicio === 'Instalación' ? 'Inst' : 'Visi';
+        setConsecutivo(`Fpagina${typePrefix}${randomSuffix}`);
+    }, [formData.tipoServicio, randomSuffix]);
 
     const loadInitialData = async () => {
         setLoading(true);
