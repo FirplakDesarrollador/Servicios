@@ -183,7 +183,7 @@ export default function AprobacionesPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
             </div>
         )
     }
@@ -191,7 +191,7 @@ export default function AprobacionesPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-brand to-brand-dark text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
                     <button
                         onClick={() => router.push('/')}
@@ -213,7 +213,7 @@ export default function AprobacionesPage() {
                     <div className="flex flex-wrap gap-4">
                         {/* Approval Type */}
                         <div className="flex-1 min-w-[200px]">
-                            <label className="block text-sm font-medium text-[#254153] mb-2">
+                            <label className="block text-sm font-medium text-brand mb-2">
                                 Aprobación
                             </label>
                             <select
@@ -229,7 +229,7 @@ export default function AprobacionesPage() {
 
                         {/* Search */}
                         <div className="flex-1 min-w-[220px]">
-                            <label className="block text-sm font-medium text-[#254153] mb-2">
+                            <label className="block text-sm font-medium text-brand mb-2">
                                 Buscar por consecutivo:
                             </label>
                             <div className="relative">
@@ -247,7 +247,7 @@ export default function AprobacionesPage() {
                         {/* Service Status - Only for MAC */}
                         {currentUser?.rol === 'mac' && (
                             <div className="flex-1 min-w-[200px]">
-                                <label className="block text-sm font-medium text-[#254153] mb-2">
+                                <label className="block text-sm font-medium text-brand mb-2">
                                     Estado
                                 </label>
                                 <select
@@ -265,7 +265,7 @@ export default function AprobacionesPage() {
                         {/* MAC User Selector - Only for MAC or Developer */}
                         {isMacOrDev && (
                             <div className="flex-1 min-w-[200px]">
-                                <label className="block text-sm font-medium text-[#254153] mb-2">
+                                <label className="block text-sm font-medium text-brand mb-2">
                                     Asesor MAC
                                 </label>
                                 <select
@@ -287,7 +287,7 @@ export default function AprobacionesPage() {
                         {currentUser?.rol === 'mac' && (
                             <>
                                 <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-sm font-medium text-[#254153] mb-2">
+                                    <label className="block text-sm font-medium text-brand mb-2">
                                         Desde
                                     </label>
                                     <div className="relative">
@@ -302,7 +302,7 @@ export default function AprobacionesPage() {
                                 </div>
 
                                 <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-sm font-medium text-[#254153] mb-2">
+                                    <label className="block text-sm font-medium text-brand mb-2">
                                         Hasta
                                     </label>
                                     <div className="relative">
@@ -343,7 +343,7 @@ export default function AprobacionesPage() {
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
                                         className={`flex-1 px-6 py-4 font-medium transition-all relative ${activeTab === tab
-                                            ? 'text-[#254153] bg-slate-50'
+                                            ? 'text-brand bg-slate-50'
                                             : 'text-slate-600 hover:bg-slate-50'
                                             }`}
                                     >
@@ -351,7 +351,7 @@ export default function AprobacionesPage() {
                                         {activeTab === tab && (
                                             <motion.div
                                                 layoutId="activeTab"
-                                                className="absolute bottom-0 left-0 right-0 h-1 bg-[#254153]"
+                                                className="absolute bottom-0 left-0 right-0 h-1 bg-brand"
                                             />
                                         )}
                                     </button>
@@ -364,7 +364,7 @@ export default function AprobacionesPage() {
                     <div className="p-6">
                         <div className="mb-4">
                             <p className="text-sm">
-                                <span className="font-bold text-[#254153]">Servicios encontrados: </span>
+                                <span className="font-bold text-brand">Servicios encontrados: </span>
                                 <span className="text-emerald-600 font-semibold">
                                     {filterServices(activeTab).length}
                                 </span>

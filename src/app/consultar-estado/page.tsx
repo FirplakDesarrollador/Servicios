@@ -160,16 +160,16 @@ function ConsultarEstadoContent() {
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
                 >
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white relative">
+                    <div className="bg-gradient-to-br from-[#254153] to-[#3a5d73] p-8 text-white relative">
                         <div className="absolute top-0 right-0 p-8 opacity-10">
                             <Search size={120} />
                         </div>
                         <div className="relative z-10 flex flex-col items-center">
-                            <div className="mb-6 bg-white/20 p-4 rounded-2xl backdrop-blur-md">
-                                <h1 className="text-3xl font-black tracking-tighter">FIRPLAK</h1>
+                            <div className="mb-6 bg-white/10 p-4 rounded-2xl backdrop-blur-md">
+                                <img src="/logo-firplak.png" alt="FIRPLAK" className="h-12 w-auto brightness-0 invert" style={{ filter: 'brightness(0) invert(1)' }} />
                             </div>
                             <h2 className="text-2xl font-bold mb-2">Estado de Solicitud</h2>
-                            <p className="text-blue-100 text-center text-sm opacity-90">
+                            <p className="text-slate-100 text-center text-sm opacity-90">
                                 Realiza el seguimiento en tiempo real de tu servicio técnico.
                             </p>
                         </div>
@@ -190,7 +190,7 @@ function ConsultarEstadoContent() {
                                         type="text"
                                         value={consecutivo}
                                         onChange={(e) => setConsecutivo(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-lg font-medium"
+                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand/10 focus:border-brand transition-all outline-none text-lg font-medium"
                                         placeholder="Ej: FR-12345"
                                         disabled={loading}
                                     />
@@ -211,7 +211,7 @@ function ConsultarEstadoContent() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold py-4 px-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
+                                className="w-full bg-brand hover:opacity-90 active:scale-[0.98] text-white font-bold py-4 px-4 rounded-2xl shadow-lg shadow-brand/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
                             >
                                 {loading ? (
                                     <>
@@ -248,12 +248,12 @@ function ConsultarEstadoContent() {
                 <div className="flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm">
                     <button
                         onClick={resetView}
-                        className="flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
+                        className="flex items-center gap-2 text-slate-600 hover:text-brand font-medium transition-colors"
                     >
                         <ArrowLeft size={20} />
                         <span>Volver a buscar</span>
                     </button>
-                    <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-bold border border-blue-100">
+                    <div className="bg-brand/5 text-brand px-4 py-2 rounded-full text-sm font-bold border border-brand/10">
                         Ticket: {consecutivo}
                     </div>
                 </div>
@@ -264,7 +264,7 @@ function ConsultarEstadoContent() {
                         <section className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
                             <div className="p-8 border-b border-slate-50">
                                 <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                    <div className="p-2 bg-brand/10 text-brand rounded-lg">
                                         <Clock size={20} />
                                     </div>
                                     Línea de tiempo del servicio
@@ -277,7 +277,7 @@ function ConsultarEstadoContent() {
                                     {/* Active segments line */}
                                     <div className="absolute top-5 left-8 right-8 h-1 rounded-full hidden sm:block">
                                         <div
-                                            className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-1000"
+                                            className="h-full bg-gradient-to-r from-brand to-emerald-500 transition-all duration-1000"
                                             style={{
                                                 width: maxStepAlcanzado === 0 ? '0%' :
                                                     maxStepAlcanzado === 1 ? '50%' : '100%'
@@ -310,13 +310,13 @@ function ConsultarEstadoContent() {
                                                 >
                                                     <div className={`
                                                         w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 z-10
-                                                        ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-200 scale-110' :
+                                                        ${isActive ? 'bg-brand text-white shadow-xl shadow-brand/20 scale-110' :
                                                             isPast ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}
                                                     `}>
                                                         {isPast ? <CheckCircle2 size={22} /> : step.icon}
                                                     </div>
                                                     <div className="flex flex-col sm:items-center">
-                                                        <span className={`text-sm font-bold ${isActive ? 'text-blue-600' : isPast ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                        <span className={`text-sm font-bold ${isActive ? 'text-brand' : isPast ? 'text-emerald-600' : 'text-slate-400'}`}>
                                                             {step.label}
                                                         </span>
                                                         <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Paso {idx + 1}</span>
@@ -340,7 +340,7 @@ function ConsultarEstadoContent() {
                                         {moduloActivo === 'validando' && (
                                             <div className="space-y-6">
                                                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4">
-                                                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                    <div className="w-12 h-12 bg-brand/10 text-brand rounded-xl flex items-center justify-center flex-shrink-0">
                                                         <Clock size={24} />
                                                     </div>
                                                     <div>
@@ -353,8 +353,8 @@ function ConsultarEstadoContent() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="bg-blue-600/5 p-4 rounded-xl border border-blue-100">
-                                                    <p className="text-sm text-blue-700 italic">
+                                                <div className="bg-brand/5 p-4 rounded-xl border border-brand/10">
+                                                    <p className="text-sm text-brand italic opacity-80">
                                                         "Te enviaremos una notificación en cuanto el servicio sea programado."
                                                     </p>
                                                 </div>
@@ -453,7 +453,7 @@ function ConsultarEstadoContent() {
                     <div className="space-y-6">
                         <section className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100">
                             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <AlertCircle size={18} className="text-blue-600" />
+                                <AlertCircle size={18} className="text-brand" />
                                 Detalle de Solicitud
                             </h3>
                             <div className="space-y-4">
@@ -466,14 +466,14 @@ function ConsultarEstadoContent() {
                                 </div>
                                 <div className="p-3 bg-slate-50 rounded-xl">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Consecutivo</p>
-                                    <p className="text-sm font-black text-blue-600 tracking-widest">{currentEstado.consecutivo}</p>
+                                    <p className="text-sm font-black text-brand tracking-widest">{currentEstado.consecutivo}</p>
                                 </div>
-                                <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
-                                    <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-1">Estado Actual</p>
+                                <div className="p-3 bg-brand/5 rounded-xl border border-brand/10">
+                                    <p className="text-[10px] text-brand/60 font-bold uppercase tracking-wider mb-1">Estado Actual</p>
                                     <div className="flex flex-col gap-1">
-                                        <p className="text-sm font-bold text-blue-700">{currentEstado.estado}</p>
+                                        <p className="text-sm font-bold text-brand">{currentEstado.estado}</p>
                                         {currentEstado.sub_estado && (
-                                            <p className="text-[11px] font-medium text-blue-500/80 bg-white/50 px-2 py-0.5 rounded-full w-fit">
+                                            <p className="text-[11px] font-medium text-brand/80 bg-white/50 px-2 py-0.5 rounded-full w-fit">
                                                 {currentEstado.sub_estado}
                                             </p>
                                         )}
@@ -482,24 +482,24 @@ function ConsultarEstadoContent() {
                             </div>
                         </section>
 
-                        <section className="bg-gradient-to-br from-indigo-900 via-blue-900 to-blue-800 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+                        <section className="bg-gradient-to-br from-[#1a2e3b] via-[#254153] to-[#3a5d73] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-10">
                                 <PhoneCall size={100} />
                             </div>
                             <div className="relative z-10 flex flex-col items-center text-center">
                                 <h3 className="text-xl font-bold mb-4">¿Necesitas Ayuda?</h3>
-                                <p className="text-blue-100 text-sm mb-8 leading-relaxed opacity-80">
+                                <p className="text-blue-50 text-sm mb-8 leading-relaxed opacity-80">
                                     Si tienes dudas sobre tu servicio o deseas realizar un cambio, nuestro equipo está listo para ayudarte.
                                 </p>
                                 <a
                                     href="https://wa.me/573000000000" // Cambiar por número real
                                     target="_blank"
-                                    className="w-full bg-white text-blue-900 hover:bg-blue-50 active:scale-[0.98] font-black py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-900/50"
+                                    className="w-full bg-white text-brand hover:bg-slate-50 active:scale-[0.98] font-black py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl shadow-brand/40"
                                 >
                                     <PhoneCall size={20} />
                                     CHAT SOPORTE
                                 </a>
-                                <p className="mt-6 text-[10px] font-bold text-blue-300 uppercase tracking-[2px]">
+                                <p className="mt-6 text-[10px] font-bold text-blue-200/60 uppercase tracking-[2px]">
                                     Disponible: Lunes a Viernes
                                 </p>
                             </div>
@@ -515,7 +515,7 @@ export default function ConsultarEstadoPage() {
     return (
         <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <Loader2 className="animate-spin text-blue-600" size={48} />
+                <Loader2 className="animate-spin text-brand" size={48} />
             </div>
         }>
             <ConsultarEstadoContent />

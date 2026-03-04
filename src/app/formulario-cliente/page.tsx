@@ -400,7 +400,7 @@ export default function FormularioClientePage() {
                         className="bg-white p-6 rounded-2xl shadow-lg border-2 border-slate-200"
                     >
                         <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-100">
-                            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
+                            <div className="w-12 h-12 bg-brand rounded-xl flex items-center justify-center shadow-md">
                                 <User className="w-6 h-6 text-white" />
                             </div>
                             <h2 className="text-xl font-bold text-slate-900">Información Personal</h2>
@@ -514,7 +514,7 @@ export default function FormularioClientePage() {
 
                         {/* RUT Upload (solo para Jurídica) */}
                         {formData.tipoPersona === 'Persona Jurídica' && (
-                            <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-xl">
+                            <div className="p-4 bg-brand/5 border-2 border-brand/20 rounded-xl">
                                 <div className="flex items-center gap-2 mb-2">
                                     <FileText className="w-5 h-5 text-brand" />
                                     <label className="text-sm font-bold text-slate-800">
@@ -525,9 +525,9 @@ export default function FormularioClientePage() {
 
                                 <label className="block">
                                     <div className="relative cursor-pointer">
-                                        <div className="flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-blue-400 rounded-xl hover:bg-blue-100 hover:border-blue-500 transition-all shadow-sm hover:shadow-md">
-                                            <FileText className="w-5 h-5 text-blue-600" />
-                                            <span className="font-bold text-blue-700 text-sm">
+                                        <div className="flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-brand/30 rounded-xl hover:bg-brand/10 hover:border-brand/50 transition-all shadow-sm hover:shadow-md">
+                                            <FileText className="w-5 h-5 text-brand" />
+                                            <span className="font-bold text-brand text-sm">
                                                 {rutFile ? 'Cambiar archivo' : 'Haz clic aquí para seleccionar archivo'}
                                             </span>
                                         </div>
@@ -672,7 +672,7 @@ export default function FormularioClientePage() {
 
                         {/* Hidromasajes - Cantidad de Personas (ANTES de medidas) */}
                         {formData.grupo === 'Hidromasajes' && (
-                            <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                            <div className="mb-6 p-4 bg-brand/5 border-2 border-brand/20 rounded-xl">
                                 <label className="block text-base font-bold text-slate-800 mb-3">
                                     ¿Cuántas personas es el hidromasaje? *
                                 </label>
