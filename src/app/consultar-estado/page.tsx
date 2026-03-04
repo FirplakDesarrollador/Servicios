@@ -492,7 +492,7 @@ function ConsultarEstadoContent() {
                                     Si tienes dudas sobre tu servicio o deseas realizar un cambio, nuestro equipo está listo para ayudarte.
                                 </p>
                                 <a
-                                    href="https://wa.me/573000000000" // Cambiar por número real
+                                    href="https://wa.me/573173704618" // Cambiar por número real
                                     target="_blank"
                                     className="w-full bg-white text-brand hover:bg-slate-50 active:scale-[0.98] font-black py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl shadow-brand/40"
                                 >
