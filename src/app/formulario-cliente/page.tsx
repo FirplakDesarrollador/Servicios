@@ -196,8 +196,8 @@ export default function FormularioClientePage() {
             const tarifaRaw = ciudadPrecio ? (ciudadPrecio.Tarifa || ciudadPrecio.tarifa) : 0;
             let tarifaCiudad = tarifaRaw ? (parseFloat(tarifaRaw) || 0) : 0;
 
-            // Rule: Double surcharge for Tubs and Whirlpools
-            if (formData.grupo === 'Hidromasajes' || formData.grupo === 'Tinas') {
+            // Rule: Double surcharge for Tubs and Whirlpools (Only for Installation)
+            if (formData.tipoServicio === 'Instalación' && (formData.grupo === 'Hidromasajes' || formData.grupo === 'Tinas')) {
                 tarifaCiudad = tarifaCiudad * 2;
             }
 
