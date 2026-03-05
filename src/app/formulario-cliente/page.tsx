@@ -59,15 +59,21 @@ export default function FormularioClientePage() {
     // Consecutivo
     const [consecutivo, setConsecutivo] = useState<string>('');
 
+    // Pre-calculated file URLs
+    const [rutUrl, setRutUrl] = useState<string | null>(null);
+    const [facturaUrl, setFacturaUrl] = useState<string | null>(null);
+
+    // Random suffix for consecutivo (consistent during session)
+    const [randomSuffix] = useState(() => Math.floor(10000 + Math.random() * 90000).toString());
+
     useEffect(() => {
         loadInitialData();
-        generateConsecutivo();
     }, []);
 
-    const generateConsecutivo = () => {
-        const random = Math.floor(10000 + Math.random() * 90000);
-        setConsecutivo(`Fpagina${random}`);
-    };
+    useEffect(() => {
+        const typePrefix = formData.tipoServicio === 'Instalación' ? 'Inst' : 'Visi';
+        setConsecutivo(`Fpagina${typePrefix}${randomSuffix}`);
+    }, [formData.tipoServicio, randomSuffix]);
 
     const loadInitialData = async () => {
         setLoading(true);
@@ -190,8 +196,8 @@ export default function FormularioClientePage() {
             const tarifaRaw = ciudadPrecio ? (ciudadPrecio.Tarifa || ciudadPrecio.tarifa) : 0;
             let tarifaCiudad = tarifaRaw ? (parseFloat(tarifaRaw) || 0) : 0;
 
-            // Rule: Double surcharge for Tubs and Whirlpools
-            if (formData.grupo === 'Hidromasajes' || formData.grupo === 'Tinas') {
+            // Rule: Double surcharge for Tubs and Whirlpools (Only for Installation)
+            if (formData.tipoServicio === 'Instalación' && (formData.grupo === 'Hidromasajes' || formData.grupo === 'Tinas')) {
                 tarifaCiudad = tarifaCiudad * 2;
             }
 
@@ -265,43 +271,19 @@ export default function FormularioClientePage() {
             }
 
             // Upload files
-            let rutUrl = null;
-            let facturaUrl = null;
+            let uploadedRutUrl = null;
+            let uploadedFacturaUrl = null;
 
             if (rutFile) {
-                rutUrl = await handleFileUpload(rutFile, 'rut');
+                uploadedRutUrl = await handleFileUpload(rutFile, 'rut');
+                setRutUrl(uploadedRutUrl);
             }
 
             if (facturaFile) {
-                facturaUrl = await handleFileUpload(facturaFile, 'factura');
-                if (!facturaUrl) throw new Error('Error al subir la factura');
+                uploadedFacturaUrl = await handleFileUpload(facturaFile, 'factura');
+                if (!uploadedFacturaUrl) throw new Error('Error al subir la factura');
+                setFacturaUrl(uploadedFacturaUrl);
             }
-
-            // Save to database
-            const { error: dbError } = await supabase
-                .from('solicitudes_clientes')
-                .insert({
-                    consecutivo,
-                    tipo_persona: formData.tipoPersona,
-                    numeroid: parseInt(formData.numeroId), // Table expects bigint
-                    nombre_razon_social: formData.razonSocial,
-                    persona_contacto: formData.personaContacto,
-                    correo_electronico: formData.correo_electronico,
-                    telefono: parseInt(formData.telefono), // Table expects bigint
-                    ciudad: formData.ciudad,
-                    direccion: formData.direccion,
-                    punto_referencia: formData.puntoReferencia,
-                    tipodeservicio: formData.tipoServicio,
-                    grupo_producto: formData.grupo,
-                    medidas: formData.medida,
-                    observaciones: formData.observaciones,
-                    rut_url: rutUrl,
-                    factura_url: facturaUrl,
-                    recibio_producto: formData.confirmaRecepcion,
-                    valor_pagar: formData.valorPagar,
-                });
-
-            if (dbError) throw dbError;
 
             // Open Payment Modal instead of direct success
             setSubmitting(false);
@@ -313,23 +295,41 @@ export default function FormularioClientePage() {
         }
     };
 
-    const handlePaymentSuccess = async (url: string) => {
+    const handlePaymentSuccess = async (soportePagoUrl: string) => {
         try {
-            // Update the record with the payment proof URL
-            const { error } = await supabase
+            // Save everything to database now that we have the payment proof
+            const { error: dbError } = await supabase
                 .from('solicitudes_clientes')
-                .update({ soporte_pago_url: url })
-                .eq('consecutivo', consecutivo);
+                .insert({
+                    consecutivo,
+                    tipo_persona: formData.tipoPersona,
+                    numeroid: parseInt(formData.numeroId),
+                    nombre_razon_social: formData.razonSocial,
+                    persona_contacto: formData.personaContacto,
+                    correo_electronico: formData.correo_electronico,
+                    telefono: parseInt(formData.telefono),
+                    ciudad: formData.ciudad,
+                    direccion: formData.direccion,
+                    punto_referencia: formData.puntoReferencia,
+                    tipodeservicio: formData.tipoServicio,
+                    grupo_producto: formData.grupo,
+                    medidas: formData.medida,
+                    observaciones: formData.observaciones,
+                    rut_url: rutUrl,
+                    factura_url: facturaUrl,
+                    soporte_pago_url: soportePagoUrl,
+                    recibio_producto: formData.confirmaRecepcion,
+                    valor_pagar: formData.valorPagar,
+                });
 
-            if (error) throw error;
+            if (dbError) throw dbError;
 
             setShowPaymentModal(false);
             setSuccess(true);
         } catch (err: any) {
-            console.error('Error updating payment proof:', err);
-            setError('Error al guardar el soporte de pago, pero su solicitud fue creada.');
+            console.error('Error saving solicitud:', err);
+            setError('Error al guardar la solicitud. Por favor contacte a soporte.');
             setShowPaymentModal(false);
-            setSuccess(true); // Still show success as the main request was created
         }
     };
 
@@ -400,7 +400,7 @@ export default function FormularioClientePage() {
                         className="bg-white p-6 rounded-2xl shadow-lg border-2 border-slate-200"
                     >
                         <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-100">
-                            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
+                            <div className="w-12 h-12 bg-brand rounded-xl flex items-center justify-center shadow-md">
                                 <User className="w-6 h-6 text-white" />
                             </div>
                             <h2 className="text-xl font-bold text-slate-900">Información Personal</h2>
@@ -514,7 +514,7 @@ export default function FormularioClientePage() {
 
                         {/* RUT Upload (solo para Jurídica) */}
                         {formData.tipoPersona === 'Persona Jurídica' && (
-                            <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-xl">
+                            <div className="p-4 bg-brand/5 border-2 border-brand/20 rounded-xl">
                                 <div className="flex items-center gap-2 mb-2">
                                     <FileText className="w-5 h-5 text-brand" />
                                     <label className="text-sm font-bold text-slate-800">
@@ -525,9 +525,9 @@ export default function FormularioClientePage() {
 
                                 <label className="block">
                                     <div className="relative cursor-pointer">
-                                        <div className="flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-blue-400 rounded-xl hover:bg-blue-100 hover:border-blue-500 transition-all shadow-sm hover:shadow-md">
-                                            <FileText className="w-5 h-5 text-blue-600" />
-                                            <span className="font-bold text-blue-700 text-sm">
+                                        <div className="flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-brand/30 rounded-xl hover:bg-brand/10 hover:border-brand/50 transition-all shadow-sm hover:shadow-md">
+                                            <FileText className="w-5 h-5 text-brand" />
+                                            <span className="font-bold text-brand text-sm">
                                                 {rutFile ? 'Cambiar archivo' : 'Haz clic aquí para seleccionar archivo'}
                                             </span>
                                         </div>
@@ -672,7 +672,7 @@ export default function FormularioClientePage() {
 
                         {/* Hidromasajes - Cantidad de Personas (ANTES de medidas) */}
                         {formData.grupo === 'Hidromasajes' && (
-                            <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                            <div className="mb-6 p-4 bg-brand/5 border-2 border-brand/20 rounded-xl">
                                 <label className="block text-base font-bold text-slate-800 mb-3">
                                     ¿Cuántas personas es el hidromasaje? *
                                 </label>
@@ -861,7 +861,7 @@ export default function FormularioClientePage() {
                         ) : (
                             <>
                                 <CheckCircle2 className="w-6 h-6" />
-                                <span className="text-lg">Enviar Solicitud</span>
+                                <span className="text-lg">Continuar con proceso de pago</span>
                             </>
                         )}
                     </motion.button>

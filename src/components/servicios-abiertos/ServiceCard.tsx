@@ -146,7 +146,7 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
                     <div className="flex items-center gap-4">
                         <Share2
                             onClick={copyPublicLink}
-                            className="w-5 h-5 text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
+                            className="w-5 h-5 text-brand cursor-pointer hover:text-brand-light transition-colors"
                         />
                         {onDelete && (currentUserRole === 'desarrollador' || service.creado_por_email === 'mayerly.marin@firplak.com' || service.creado_por_email === 'isabel.jaramillo@firplak.com') && (
                             <Trash2

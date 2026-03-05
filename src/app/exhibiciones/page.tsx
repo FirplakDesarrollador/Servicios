@@ -241,9 +241,9 @@ export default function ExhibicionesPage() {
     const rolesConFiltroAsesor = ['desarrollador', 'mac', 'coordinador_comercial', 'director_comercial', 'gerente']
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand/5 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-brand to-brand-dark text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -271,13 +271,13 @@ export default function ExhibicionesPage() {
                     <div className="flex flex-wrap gap-4 items-end">
                         {/* Estado */}
                         <div className="flex-shrink-0">
-                            <label className="block text-xs font-medium text-[#254153] mb-1">
+                            <label className="block text-xs font-medium text-brand mb-1">
                                 Estado del cliente
                             </label>
                             <select
                                 value={estadoActivo ? 'true' : 'false'}
                                 onChange={(e) => setEstadoActivo(e.target.value === 'true')}
-                                className="w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#254153] focus:border-[#254153]"
+                                className="w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
                             >
                                 <option value="true">Activo</option>
                                 <option value="false">Inactivo</option>
@@ -341,7 +341,7 @@ export default function ExhibicionesPage() {
                         {/* Clear button */}
                         <button
                             onClick={handleClearFilters}
-                            className="p-2 text-[#254153] hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-brand hover:bg-brand/5 rounded-lg transition-colors"
                             title="Limpiar filtros"
                         >
                             <Eraser className="w-8 h-8" />
@@ -365,7 +365,7 @@ export default function ExhibicionesPage() {
                 {/* Loading */}
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153]"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
                     </div>
                 ) : (
                     /* Salas list */

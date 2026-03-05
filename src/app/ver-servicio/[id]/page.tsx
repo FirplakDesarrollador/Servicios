@@ -101,7 +101,7 @@ export default function VerServicioPage() {
     return (
         <div className="min-h-screen bg-[#F8FAFC]">
             {/* Header */}
-            <header className="bg-[#455A64] text-white shadow-md px-4 py-3">
+            <header className="bg-brand text-white shadow-md px-4 py-3">
                 <div className="max-w-7xl mx-auto flex items-center gap-3">
                     <button
                         onClick={() => router.back()}
@@ -163,7 +163,7 @@ function InformacionTab({ service }: { service: any }) {
                     <span className="text-sm font-medium">Servicio abierto</span>
                 </div>
                 {isFacturado && (
-                    <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg">
+                    <div className="flex items-center gap-2 bg-brand/10 text-brand px-3 py-1.5 rounded-lg">
                         <CheckCircle className="w-4 h-4" />
                         <span className="text-sm font-medium">Es un servicio facturado</span>
                     </div>
