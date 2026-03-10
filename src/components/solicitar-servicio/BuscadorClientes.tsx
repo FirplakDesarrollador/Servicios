@@ -29,7 +29,7 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                 // Search in query_ubicaciones view as requested
                 // Criteria: cliente_nombre, nit, cliente_nit, direccion
                 const { data, error } = await supabase
-                    .from('query_ubicaciones')
+                    .from('query_ubicaciones_fast')
                     .select('*')
                     .or(`cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
                     .limit(20);

@@ -42,7 +42,7 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
                     response = await filteredQuery.limit(20);
                 } else {
                     response = await supabase
-                        .from('query_ubicaciones')
+                        .from('query_ubicaciones_fast')
                         .select('*')
                         .or(`cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
                         .limit(20);

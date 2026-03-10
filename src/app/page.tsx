@@ -274,6 +274,14 @@ export default function Home() {
                   router.push('/ayuda');
                 } else if (item.title === 'Exhibiciones') {
                   router.push('/exhibiciones');
+                } else if (item.title === 'Base de datos') {
+                  router.push('/base-de-datos');
+                } else if (item.title === 'Inventario Almacenes') {
+                  router.push('/inventario');
+                } else if (item.title === 'Agenda Tecnicos') {
+                  router.push('/agenda-tecnicos');
+                } else if (item.title === 'BI') {
+                  router.push('/bi');
                 }
               }}
               className="group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden"
