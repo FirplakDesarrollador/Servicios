@@ -257,7 +257,11 @@ export default function ServiciosCerradosPage() {
                                         exit={{ opacity: 0, y: -20 }}
                                         transition={{ delay: index * 0.05 }}
                                     >
-                                        <ServiceCard service={service} onClick={() => { }} />
+                                        <ServiceCard 
+                                            service={service} 
+                                            currentUserRole={profile?.rol}
+                                            onClick={(s) => router.push(`/ver-servicio/${s.id}`)} 
+                                        />
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
