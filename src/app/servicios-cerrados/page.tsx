@@ -144,8 +144,7 @@ export default function ServiciosCerradosPage() {
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={{ backgroundColor: '#254153' }}
-                className="sticky top-0 z-50 shadow-xl border-b border-slate-200"
+                className="bg-brand sticky top-0 z-50 shadow-xl border-b border-slate-200"
             >
                 <div className="max-w-7xl mx-auto px-6 py-5">
                     <div className="flex items-center gap-4">
@@ -178,7 +177,7 @@ export default function ServiciosCerradosPage() {
                 >
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl" style={{ backgroundColor: '#254153' }}>
+                            <div className="p-2 rounded-xl bg-brand">
                                 <Search className="w-5 h-5 text-white" />
                             </div>
                             <label className="text-sm font-bold text-slate-700 uppercase tracking-wide">
@@ -201,8 +200,7 @@ export default function ServiciosCerradosPage() {
                                 <button
                                     onClick={handleSearch}
                                     disabled={searching || !searchTerm.trim()}
-                                    style={{ backgroundColor: searching || !searchTerm.trim() ? '#94a3b8' : '#254153' }}
-                                    className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-white font-bold transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                                    className={`flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-white font-bold transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 ${searching || !searchTerm.trim() ? 'bg-slate-400' : 'bg-brand'}`}
                                 >
                                     {searching ? (
                                         <>
@@ -238,12 +236,12 @@ export default function ServiciosCerradosPage() {
                         {/* Results Counter */}
                         <div className="bg-slate-50 rounded-xl px-5 py-3.5 mb-5 border border-slate-200 shadow-sm">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg" style={{ backgroundColor: '#254153' }}>
+                                <div className="p-2 rounded-lg bg-brand">
                                     <ClipboardList className="w-4 h-4 text-white" />
                                 </div>
                                 <p className="text-sm">
                                     <span className="font-bold text-slate-700">Servicios cerrados encontrados: </span>
-                                    <span className="font-black text-lg" style={{ color: '#254153' }}>{services.length}</span>
+                                    <span className="font-black text-lg text-brand">{services.length}</span>
                                 </p>
                             </div>
                         </div>
@@ -259,7 +257,11 @@ export default function ServiciosCerradosPage() {
                                         exit={{ opacity: 0, y: -20 }}
                                         transition={{ delay: index * 0.05 }}
                                     >
-                                        <ServiceCard service={service} onClick={() => { }} />
+                                        <ServiceCard 
+                                            service={service} 
+                                            currentUserRole={profile?.rol}
+                                            onClick={(s) => router.push(`/ver-servicio/${s.id}`)} 
+                                        />
                                     </motion.div>
                                 ))}
                             </AnimatePresence>

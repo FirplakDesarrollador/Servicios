@@ -532,45 +532,43 @@ export default function SolicitarServicioPage() {
                     </div>
 
                     {/* Cliente Final Selection */}
-                    {(canalVenta === 'canal_propio_ecommerce' || canalVenta === 'canal_propio_firplakhome' || facturado) && (
-                        <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
-                                    <User className="w-4 h-4 text-emerald-500" />
-                                    Cliente Final
-                                </h3>
+                    <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
+                                <User className="w-4 h-4 text-emerald-500" />
+                                Cliente Final
+                            </h3>
+                        </div>
+
+                        <button
+                            onClick={() => setShowBuscadorClienteFinal(true)}
+                            className={`w-full p-4 border-2 rounded-2xl transition-all font-black text-sm flex items-center justify-center gap-2 ${clienteFinalSeleccionado
+                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
+                                : 'border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-400'
+                                }`}
+                        >
+                            {clienteFinalSeleccionado ? (clienteFinalSeleccionado._search_type === 'ubicacion' ? (clienteFinalSeleccionado.nombre || clienteFinalSeleccionado.cliente_nombre) : clienteFinalSeleccionado.contacto) : 'Presione para buscar cliente final...'}
+                        </button>
+
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-400 font-medium uppercase">Ciudad</span>
+                                <span className="font-bold">{clienteFinalSeleccionado?.ciudad || '---'}</span>
                             </div>
-
-                            <button
-                                onClick={() => setShowBuscadorClienteFinal(true)}
-                                className={`w-full p-4 border-2 rounded-2xl transition-all font-black text-sm flex items-center justify-center gap-2 ${clienteFinalSeleccionado
-                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
-                                    : 'border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-400'
-                                    }`}
-                            >
-                                {clienteFinalSeleccionado ? (clienteFinalSeleccionado._search_type === 'ubicacion' ? (clienteFinalSeleccionado.nombre || clienteFinalSeleccionado.cliente_nombre) : clienteFinalSeleccionado.contacto) : 'Presione para buscar cliente final...'}
-                            </button>
-
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-slate-400 font-medium uppercase">Ciudad</span>
-                                    <span className="font-bold">{clienteFinalSeleccionado?.ciudad || '---'}</span>
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-slate-400 font-medium uppercase">Dirección</span>
-                                    <span className="font-bold">{clienteFinalSeleccionado?.direccion || '---'}</span>
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-slate-400 font-medium uppercase">Teléfono</span>
-                                    <span className="font-bold">{clienteFinalSeleccionado?.telefono || '---'}</span>
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-slate-400 font-medium uppercase">Contacto</span>
-                                    <span className="font-bold">{clienteFinalSeleccionado?.contacto || clienteFinalSeleccionado?.nombre_contacto || '---'}</span>
-                                </div>
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-400 font-medium uppercase">Dirección</span>
+                                <span className="font-bold">{clienteFinalSeleccionado?.direccion || '---'}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-400 font-medium uppercase">Teléfono</span>
+                                <span className="font-bold">{clienteFinalSeleccionado?.telefono || '---'}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-400 font-medium uppercase">Contacto</span>
+                                <span className="font-bold">{clienteFinalSeleccionado?.contacto || clienteFinalSeleccionado?.nombre_contacto || '---'}</span>
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     {/* Productos Section */}
                     <div className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">

@@ -142,7 +142,7 @@ export default function Home() {
   const defaultPhoto = 'https://lnphhmowklqiomownurw.supabase.co/storage/v1/object/public/publico/fotos/withoutphoto.png';
 
   const menuItems = [
-    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-blue-600' },
+    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-brand' },
     { title: 'Servicios Abiertos', icon: ClipboardList, color: 'bg-emerald-500' },
     { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-indigo-500' },
     { title: 'Aprobaciones', icon: ClipboardCheck, color: 'bg-orange-500' },
@@ -150,10 +150,10 @@ export default function Home() {
     { title: 'Historial de servicios', icon: History, color: 'bg-indigo-700' },
     { title: 'Ayuda', icon: HelpCircle, color: 'bg-teal-600' },
     { title: 'Exhibiciones', icon: ChefHat, color: 'bg-orange-600' },
-    { title: 'Base de datos', icon: Database, color: 'bg-blue-700' },
+    { title: 'Base de datos', icon: Database, color: 'bg-brand' },
     { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-600' },
     { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-600' },
-    { title: 'BI', icon: BarChart3, color: 'bg-blue-800' },
+    { title: 'BI', icon: BarChart3, color: 'bg-brand' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
@@ -169,9 +169,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans">
       <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 justify-between shadow-lg">
-        <div className="flex flex-col">
-          <span className="font-black text-xl tracking-tight leading-none">FIRPLAK</span>
-          <span className="text-[7px] italic opacity-60 font-medium tracking-widest">Inspirando hogares</span>
+        <div className="flex items-center">
+          <img src="/logo-firplak.png" alt="FIRPLAK" className="h-8 w-auto invert brightness-0 underline-offset-4" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
@@ -275,6 +274,14 @@ export default function Home() {
                   router.push('/ayuda');
                 } else if (item.title === 'Exhibiciones') {
                   router.push('/exhibiciones');
+                } else if (item.title === 'Base de datos') {
+                  router.push('/base-de-datos');
+                } else if (item.title === 'Inventario Almacenes') {
+                  router.push('/inventario');
+                } else if (item.title === 'Agenda Tecnicos') {
+                  router.push('/agenda-tecnicos');
+                } else if (item.title === 'BI') {
+                  router.push('/bi');
                 }
               }}
               className="group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden"

@@ -58,14 +58,14 @@ export default function LoginPage() {
                     >
                         <LogIn className="text-white w-10 h-10" strokeWidth={2.5} />
                     </motion.div>
-                    <motion.h1
+                    <motion.div
                         initial={{ y: -10, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-5xl font-black text-brand tracking-tighter uppercase mb-2"
+                        className="mb-4"
                     >
-                        FIRPLAK
-                    </motion.h1>
+                        <img src="/logo-firplak.png" alt="FIRPLAK" className="h-16 w-auto" />
+                    </motion.div>
                     <p className="text-slate-400 font-bold tracking-widest uppercase text-[10px]">Portal de Servicios</p>
                 </div>
 

@@ -20,7 +20,7 @@ export default function ConfigurationPage() {
             description: 'Administrar roles, perfiles y contraseñas de los usuarios del sistema.',
             icon: Users,
             path: '/configuracion/usuarios',
-            color: 'bg-blue-500'
+            color: 'bg-brand'
         },
         {
             title: 'Gestión de Roles y Permisos',
