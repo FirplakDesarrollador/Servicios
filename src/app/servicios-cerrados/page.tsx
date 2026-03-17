@@ -69,7 +69,7 @@ export default function ServiciosCerradosPage() {
                 .from('query_servicios')
                 .select('*')
                 .eq('estado', false) // Only closed services
-                .or(`consecutivo.ilike.%${lowerSearch}%,numero_de_pedido.ilike.%${lowerSearch}%,cliente_nombre.ilike.%${lowerSearch}%,consumidor_contacto.ilike.%${lowerSearch}%,consumidor_cedula.ilike.%${lowerSearch}%,ubicacion_nit.ilike.%${lowerSearch}%`)
+                .or(`consecutivo.ilike.%${lowerSearch}%,numero_de_pedido.ilike.%${lowerSearch}%,cliente_nombre.ilike.%${lowerSearch}%,consumidor_contacto.ilike.%${lowerSearch}%,consumidor_cedula.ilike.%${lowerSearch}%,ubicacion_nit.ilike.%${lowerSearch}%,ubicacion_telefono.ilike.%${lowerSearch}%,consumidor_telefono.ilike.%${lowerSearch}%,consecutivo_sap.ilike.%${lowerSearch}%`)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
@@ -192,7 +192,7 @@ export default function ServiciosCerradosPage() {
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     onKeyPress={handleKeyPress}
-                                    placeholder="Ingresa consecutivo, cliente, cédula, NIT o cliente final..."
+                                    placeholder="Ingresa consecutivo, cliente, cédula, NIT, teléfono o número de cliente..."
                                     className="w-full px-5 py-3.5 rounded-xl border-2 border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 outline-none transition-all text-sm font-bold text-slate-900 placeholder:text-slate-400"
                                 />
                             </div>
@@ -285,7 +285,7 @@ export default function ServiciosCerradosPage() {
                                 Busca servicios cerrados
                             </h3>
                             <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed text-sm">
-                                Ingresa un <span className="font-bold" style={{ color: '#254153' }}>consecutivo</span>, <span className="font-bold text-slate-600">nombre de cliente</span>, <span className="font-bold text-slate-600">cédula</span>, <span className="font-bold text-slate-600">NIT</span> o <span className="font-bold text-slate-600">cliente final</span> para comenzar
+                                Ingresa un <span className="font-bold text-slate-600">consecutivo</span>, <span className="font-bold text-slate-600">nombre de cliente</span>, <span className="font-bold text-slate-600">cédula</span>, <span className="font-bold text-slate-600">NIT</span> o <span className="font-bold text-slate-600">teléfono de cliente</span> para comenzar
                             </p>
                         </div>
                     </motion.div>

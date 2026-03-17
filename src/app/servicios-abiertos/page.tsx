@@ -142,15 +142,19 @@ export default function ServiciosAbiertosPage() {
             const lowerSearch = searchTerm.toLowerCase();
             result = result.filter(s =>
                 (s.consecutivo?.toLowerCase().includes(lowerSearch)) ||
-                (s.numeroDePedido?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacionNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidorNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.asesorNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.tecnicoNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.numero_de_pedido?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.asesor_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.tecnico_nombre?.toLowerCase().includes(lowerSearch)) ||
                 (s.macNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.coordinadorNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacionCiudad?.toLowerCase().includes(lowerSearch)) ||
-                (s.tipoDeServicio?.toLowerCase().includes(lowerSearch))
+                (s.coordinador_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_ciudad?.toLowerCase().includes(lowerSearch)) ||
+                (s.tipo_de_servicio?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_nit?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor_cedula?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_telefono?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor_telefono?.toLowerCase().includes(lowerSearch))
             );
         }
 

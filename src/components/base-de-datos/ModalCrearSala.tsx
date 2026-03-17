@@ -149,8 +149,19 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
         }
 
         try {
-            // Get current user for modified_by
+            // Get current user UUID
             const { data: { user } } = await supabase.auth.getUser();
+            
+            // Get the BIGINT ID from Usuarios table for this UUID
+            let usuarioId = null;
+            if (user) {
+                const { data: userData } = await supabase
+                    .from('Usuarios')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .single();
+                if (userData) usuarioId = userData.id;
+            }
 
             const { error: insertError } = await supabase
                 .from('Ubicaciones')
@@ -172,7 +183,7 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
                     permite_exhibir: false,
                     created_at: new Date().toISOString(),
                     modified_at: new Date().toISOString(),
-                    modified_by: user?.id,
+                    modified_by: usuarioId,
                     fotos: []
                 }]);
 

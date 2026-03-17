@@ -27,6 +27,7 @@ import {
     UserCheck,
     Lock,
     Unlock,
+    Download,
 } from 'lucide-react';
 import { InfoField, InfoSection } from '@/components/InfoField';
 import ProductsModal from '@/components/ProductsModal';
@@ -47,6 +48,7 @@ export default function VerServicioPage() {
     // Modal states
     const [showProductsModal, setShowProductsModal] = useState(false);
     const [showCommentModal, setShowCommentModal] = useState(false);
+    const [loadingInvoice, setLoadingInvoice] = useState(false);
     const [refreshComments, setRefreshComments] = useState(0);
 
     const fetchService = useCallback(async () => {
@@ -188,6 +190,36 @@ export default function VerServicioPage() {
                             <InformacionTab
                                 service={service}
                                 onShowProducts={() => setShowProductsModal(true)}
+                                loadingInvoice={loadingInvoice}
+                                onDownloadInvoice={async (invoiceId) => {
+                                    try {
+                                        setLoadingInvoice(true);
+                                        // TODO: Configurar URL real del webhook de n8n
+                                        const response = await fetch('https://n8n.tu-dominio.com/webhook/descargar-factura', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ invoiceId, sharepoint_base: 'https://firplaksa.sharepoint.com/:f:/s/ITPowerApps' })
+                                        });
+                                        
+                                        if (response.ok) {
+                                            const blob = await response.blob();
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = `Factura_${invoiceId}.pdf`;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            a.remove();
+                                        } else {
+                                            alert('No se pudo encontrar la factura en SharePoint. Verifique que el nombre de la carpeta coincida con el número de pedido.');
+                                        }
+                                    } catch (error) {
+                                        console.error('Error downloading invoice:', error);
+                                        alert('Error al conectar con el servicio de SharePoint');
+                                    } finally {
+                                        setLoadingInvoice(false);
+                                    }
+                                }}
                             />
                         )}
                         {activeTab === 'observaciones' && (
@@ -222,7 +254,17 @@ export default function VerServicioPage() {
     );
 }
 
-function InformacionTab({ service, onShowProducts }: { service: any, onShowProducts: () => void }) {
+function InformacionTab({ 
+    service, 
+    onShowProducts,
+    loadingInvoice,
+    onDownloadInvoice
+}: { 
+    service: any, 
+    onShowProducts: () => void,
+    loadingInvoice: boolean,
+    onDownloadInvoice: (id: string) => void
+}) {
     const isFacturado = service.facturado || false;
     const isAbierto = service.estado !== false; // Assuming state can be boolean as per flutter code
 
@@ -279,7 +321,29 @@ function InformacionTab({ service, onShowProducts }: { service: any, onShowProdu
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <InfoField label="Tipo de servicio" value={service.tipo_de_servicio} icon={Shield} editable />
-                    <InfoField label="# de pedido o factura" value={service.numero_de_pedido} icon={Zap} editable />
+                    <InfoField 
+                        label="# de pedido o factura" 
+                        value={service.numero_de_pedido} 
+                        icon={Zap} 
+                        editable 
+                        rightElement={
+                            service.numero_de_pedido && (
+                                <button 
+                                    onClick={() => onDownloadInvoice(service.numero_de_pedido)}
+                                    disabled={loadingInvoice}
+                                    className="p-1 px-3 bg-brand/10 hover:bg-brand/20 text-brand rounded-lg transition-all flex items-center gap-2 group border border-brand/20 shadow-sm"
+                                    title="Descargar PDF desde SharePoint"
+                                >
+                                    {loadingInvoice ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <Download className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                    )}
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Factura</span>
+                                </button>
+                            )
+                        }
+                    />
                     <InfoField label="Coordinador de servicio" value={service.coordinador_nombre} icon={UserCheck} />
                     <InfoField label="Zona" value={service.zona || 'Suroccidente'} icon={MapPin} />
                 </div>

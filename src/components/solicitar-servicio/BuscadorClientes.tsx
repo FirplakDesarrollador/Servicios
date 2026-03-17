@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, X, Loader2, MapPin, Phone, User as UserIcon, Building2, CreditCard } from 'lucide-react';
+import { Search, X, Loader2, MapPin, Phone, User as UserIcon, Building2, CreditCard, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface BuscadorClientesProps {
@@ -26,16 +26,34 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
 
             setLoading(true);
             try {
-                // Search in query_ubicaciones view as requested
-                // Criteria: cliente_nombre, nit, cliente_nit, direccion
-                const { data, error } = await supabase
-                    .from('query_ubicaciones_fast')
-                    .select('*')
-                    .or(`cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
-                    .limit(20);
+                // Search in both views to consolidate "Payer/Client" and "Location"
+                const [ubicacionesRes, consumidoresRes] = await Promise.all([
+                    supabase
+                        .from('query_ubicaciones_fast')
+                        .select('*')
+                        .or(`nombre.ilike.%${searchTerm}%,cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
+                        .limit(20),
+                    supabase
+                        .from('query_consumidores')
+                        .select('*')
+                        .or(`contacto.ilike.%${searchTerm}%,cedula.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
+                        .limit(20)
+                ]);
 
-                if (error) throw error;
-                setResults(data || []);
+                if (ubicacionesRes.error) throw ubicacionesRes.error;
+                if (consumidoresRes.error) throw consumidoresRes.error;
+
+                // Normalize results
+                const normUbicaciones = (ubicacionesRes.data || []).map(u => ({ ...u, _type: 'ubicacion' }));
+                const normConsumidores = (consumidoresRes.data || []).map(c => ({
+                    ...c,
+                    _type: 'consumidor',
+                    cliente_nombre: c.contacto, // Map for UI consistency
+                    nit: c.cedula,
+                    nombre_contacto: c.contacto
+                }));
+
+                setResults([...normUbicaciones, ...normConsumidores]);
                 setSearchError(null);
             } catch (err: any) {
                 console.error('Error searching clients:', err);
@@ -112,15 +130,32 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                                     onClick={() => onSelect(item)}
                                     className="flex flex-col p-4 bg-slate-50 hover:bg-brand/5 border border-slate-100 rounded-2xl transition-all text-left group"
                                 >
-                                    <span className="font-black text-brand uppercase tracking-tight mb-2 group-hover:translate-x-1 transition-transform">
-                                        {item.nombre || item.cliente_nombre}
-                                    </span>
+                                    <div className="flex flex-col mb-2">
+                                        <span className="font-black text-brand uppercase tracking-tight group-hover:translate-x-1 transition-transform">
+                                            {item.cliente_nombre}
+                                        </span>
+                                        {item.nombre && item.nombre !== item.cliente_nombre && (
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                {item.nombre}
+                                            </span>
+                                        )}
+                                        {item._type === 'consumidor' && (
+                                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1">
+                                                (Cliente Final)
+                                            </span>
+                                        )}
+                                    </div>
 
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        {item._type === 'consumidor' && (
+                                            <div className="flex items-center gap-1.5 text-[10px] text-blue-600 font-bold uppercase col-span-2 mb-1">
+                                                Persona Natural / Cliente Directo
+                                            </div>
+                                        )}
                                         {(item.nit || item.cliente_nit) && (
                                             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase">
                                                 <CreditCard className="w-3 h-3 text-slate-400" />
-                                                NIT: {item.nit || item.cliente_nit}
+                                                {item._type === 'consumidor' ? 'Cédula' : 'NIT'}: {item.nit || item.cliente_nit}
                                             </div>
                                         )}
                                         {item.nombre_contacto && (
@@ -147,6 +182,12 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                                                 {item.direccion}
                                             </div>
                                         )}
+                                        {item.asesor_comercial_nombre && (
+                                            <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase col-span-2 mt-1 py-1 border-t border-slate-100">
+                                                <UserCheck className="w-3 h-3 text-emerald-500" />
+                                                Asesor: {item.asesor_comercial_nombre}
+                                            </div>
+                                        )}
                                     </div>
                                 </button>
                             ))
@@ -156,7 +197,7 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                             </div>
                         ) : (
                             <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-50 px-10 leading-relaxed">
-                                Ingrese al menos 3 caracteres para buscar {canalVenta === 'canal_constructor' ? 'obras' : 'distribuidores'}
+                                Ingrese al menos 3 caracteres para buscar {canalVenta === 'canal_constructor' ? 'obras' : 'clientes o distribuidores'}
                             </div>
                         )}
                     </div>

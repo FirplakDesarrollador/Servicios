@@ -10,6 +10,7 @@ interface InfoFieldProps {
     editable?: boolean;
     fullWidth?: boolean;
     className?: string;
+    rightElement?: React.ReactNode;
 }
 
 export function InfoField({
@@ -18,7 +19,8 @@ export function InfoField({
     icon: Icon,
     editable = false,
     fullWidth = false,
-    className = ""
+    className = "",
+    rightElement
 }: InfoFieldProps) {
     return (
         <div className={`flex flex-col gap-1.5 ${fullWidth ? 'col-span-full' : ''} ${className}`}>
@@ -27,17 +29,22 @@ export function InfoField({
             </label>
             <div
                 className={`
-                    min-h-[42px] px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                    min-h-[42px] px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-between
                     ${editable
                         ? 'bg-white border border-slate-200 text-slate-700 shadow-sm hover:border-brand/30 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/5'
                         : 'bg-slate-50/50 text-slate-600 border border-transparent'
                     }
                 `}
             >
-                <div className="flex items-center gap-2.5">
-                    {Icon && <Icon className="w-4 h-4 text-brand/60" />}
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    {Icon && <Icon className="w-4 h-4 text-brand/60 shrink-0" />}
                     <span className="truncate">{value || 'N/A'}</span>
                 </div>
+                {rightElement && (
+                    <div className="ml-2 shrink-0">
+                        {rightElement}
+                    </div>
+                )}
             </div>
         </div>
     );
