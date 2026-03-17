@@ -59,25 +59,8 @@ export default function Home() {
         if (!error && userData) {
           setProfile(userData);
 
-          // Fetch Role Permissions (with fallback if table doesn't exist)
-          try {
-            const { data: perms, error: permsError } = await supabase
-              .from('PermisosModulos')
-              .select('nombre_modulo')
-              .eq('rol', userData.rol)
-              .eq('esta_habilitado', true);
-
-            if (!permsError && perms && perms.length > 0) {
-              setPermissions(perms.map(p => p.nombre_modulo));
-            } else {
-              // Default permissions if table doesn't exist or no permissions found
-              setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
-            }
-          } catch (err) {
-            // Fallback to all permissions if PermisosModulos table doesn't exist
-            console.warn('PermisosModulos table not found, using default permissions:', err);
-            setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
-          }
+          // Grant all permissions to all users
+          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
         }
       }
       setLoading(false);
@@ -157,14 +140,9 @@ export default function Home() {
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
-  // Filter based on role permissions
-  const filteredItems = menuItems.filter(item => {
-    // Config module is ONLY for desarrollador
-    if (item.title === 'Configuración') return profile?.rol === 'desarrollador';
+  // No filtering: everyone can do everything
+  const filteredItems = menuItems;
 
-    // Check if module is enabled in permissions
-    return permissions.includes(item.title);
-  });
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans">

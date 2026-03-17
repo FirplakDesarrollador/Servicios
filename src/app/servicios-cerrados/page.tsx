@@ -69,7 +69,7 @@ export default function ServiciosCerradosPage() {
                 .from('query_servicios')
                 .select('*')
                 .eq('estado', false) // Only closed services
-                .or(`consecutivo.ilike.%${lowerSearch}%,numero_de_pedido.ilike.%${lowerSearch}%`)
+                .or(`consecutivo.ilike.%${lowerSearch}%,numero_de_pedido.ilike.%${lowerSearch}%,cliente_nombre.ilike.%${lowerSearch}%,consumidor_contacto.ilike.%${lowerSearch}%,consumidor_cedula.ilike.%${lowerSearch}%,ubicacion_nit.ilike.%${lowerSearch}%`)
                 .order('created_at', { ascending: false })
                 .limit(50);
 

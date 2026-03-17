@@ -108,17 +108,11 @@ export default function ExhibicionesPage() {
                 // Load ALL salas (we'll filter by estadoActivo in the UI)
                 console.log('[Exhibiciones] Loading all salas for userId:', profile.id, 'rol:', profile.rol)
 
+                // No role-based filtering: show all salas to everyone
                 let query = supabase
                     .from('query_ubicaciones')
                     .select('*')
 
-                // Role-based filtering
-                const rolesLimitados = ['comercial', 'promotor', 'asesor_tecnico']
-                if (rolesLimitados.includes(profile.rol)) {
-                    const asesorIds = [profile.id, ...(profile.id_colaboradores || [])]
-                    console.log('[Exhibiciones] Applying role-based filter for asesor_id:', asesorIds)
-                    query = query.in('asesor_id', asesorIds)
-                }
 
                 const { data: salasData, error: salasError } = await query
 
@@ -141,19 +135,17 @@ export default function ExhibicionesPage() {
                 }
                 setSalas(salasData || [])
 
-                // Load asesores if needed
-                const rolesConFiltroAsesor = ['desarrollador', 'mac', 'coordinador_comercial', 'director_comercial', 'gerente']
-                if (rolesConFiltroAsesor.includes(profile.rol)) {
-                    const { data: asesoresData } = await supabase
-                        .from('Usuarios')
-                        .select('id, display_name')
-                        .in('rol', ['comercial', 'mac', 'coordinador_comercial', 'director_comercial', 'ecommerce'])
-                        .order('display_name', { ascending: true })
+                // Always load all advisors for everyone
+                const { data: asesoresData } = await supabase
+                    .from('Usuarios')
+                    .select('id, display_name')
+                    .in('rol', ['comercial', 'mac', 'coordinador_comercial', 'director_comercial', 'ecommerce'])
+                    .order('display_name', { ascending: true })
 
-                    if (asesoresData && isMountedRef.current) {
-                        setAsesores(asesoresData)
-                    }
+                if (asesoresData && isMountedRef.current) {
+                    setAsesores(asesoresData)
                 }
+
 
             } catch (error) {
                 console.error('[Exhibiciones] Unexpected error:', error)
@@ -238,7 +230,8 @@ export default function ExhibicionesPage() {
         window.location.reload()
     }
 
-    const rolesConFiltroAsesor = ['desarrollador', 'mac', 'coordinador_comercial', 'director_comercial', 'gerente']
+    const rolesConFiltroAsesor = ['everyone'] // Dummy value
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand/5 to-slate-100">
@@ -298,8 +291,9 @@ export default function ExhibicionesPage() {
                             />
                         </div>
 
-                        {/* Filtro por asesor */}
-                        {rolesConFiltroAsesor.includes(userRole) && (
+                        {/* Filtro por asesor - Now for everyone */}
+                        {true && (
+
                             <div className="flex-shrink-0">
                                 <label className="block text-xs font-medium text-[#254153] mb-1">
                                     Filtrar por asesor

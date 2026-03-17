@@ -164,10 +164,9 @@ export default function AprobacionesPage() {
                 }
             }
 
-            // Director comercial only sees open services
-            if (currentUser?.rol === 'director_comercial' && !service.estado) {
-                return false
-            }
+            // Everyone sees everything
+            return true
+
 
             return true
         })
@@ -178,7 +177,8 @@ export default function AprobacionesPage() {
         setDateTo('')
     }
 
-    const isMacOrDev = currentUser?.rol === 'mac' || currentUser?.correo === 'analista2.desarrollo@firplak.com'
+    const isMacOrDev = true // Everyone can see all asesores now
+
 
     if (loading) {
         return (
@@ -244,93 +244,88 @@ export default function AprobacionesPage() {
                             </div>
                         </div>
 
-                        {/* Service Status - Only for MAC */}
-                        {currentUser?.rol === 'mac' && (
+                        {/* Service Status - Active for everyone */}
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-sm font-medium text-brand mb-2">
+                                Estado
+                            </label>
+                            <select
+                                value={serviceStatus}
+                                onChange={(e) => setServiceStatus(e.target.value as ServiceStatus)}
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                            >
+                                <option value="Abiertos">Abiertos</option>
+                                <option value="Cerrados">Cerrados</option>
+                                <option value="Todos">Todos</option>
+                            </select>
+                        </div>
+
+                        {/* MAC User Selector - Active for everyone */}
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-sm font-medium text-brand mb-2">
+                                Asesor MAC
+                            </label>
+                            <select
+                                value={selectedMac || ''}
+                                onChange={(e) => setSelectedMac(e.target.value ? Number(e.target.value) : null)}
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                            >
+                                <option value="">Seleccione</option>
+                                {macUsers.map(user => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.display_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Date Filters - Active for everyone */}
+                        <div className="flex flex-wrap gap-4">
                             <div className="flex-1 min-w-[200px]">
                                 <label className="block text-sm font-medium text-brand mb-2">
-                                    Estado
+                                    Desde
                                 </label>
-                                <select
-                                    value={serviceStatus}
-                                    onChange={(e) => setServiceStatus(e.target.value as ServiceStatus)}
-                                    className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
-                                >
-                                    <option value="Abiertos">Abiertos</option>
-                                    <option value="Cerrados">Cerrados</option>
-                                    <option value="Todos">Todos</option>
-                                </select>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="date"
+                                        value={dateFrom}
+                                        onChange={(e) => setDateFrom(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                    />
+                                </div>
                             </div>
-                        )}
 
-                        {/* MAC User Selector - Only for MAC or Developer */}
-                        {isMacOrDev && (
                             <div className="flex-1 min-w-[200px]">
                                 <label className="block text-sm font-medium text-brand mb-2">
-                                    Asesor MAC
+                                    Hasta
                                 </label>
-                                <select
-                                    value={selectedMac || ''}
-                                    onChange={(e) => setSelectedMac(e.target.value ? Number(e.target.value) : null)}
-                                    className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
-                                >
-                                    <option value="">Seleccione</option>
-                                    {macUsers.map(user => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.display_name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="date"
+                                        value={dateTo}
+                                        onChange={(e) => setDateTo(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                    />
+                                </div>
                             </div>
-                        )}
 
-                        {/* Date Filters - Only for MAC */}
-                        {currentUser?.rol === 'mac' && (
-                            <>
-                                <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-sm font-medium text-brand mb-2">
-                                        Desde
-                                    </label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="date"
-                                            value={dateFrom}
-                                            onChange={(e) => setDateFrom(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
-                                        />
-                                    </div>
+                            {(dateFrom || dateTo) && (
+                                <div className="flex items-end">
+                                    <button
+                                        onClick={clearDates}
+                                        className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                                    >
+                                        <X className="w-5 h-5" />
+                                        Limpiar fechas
+                                    </button>
                                 </div>
-
-                                <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-sm font-medium text-brand mb-2">
-                                        Hasta
-                                    </label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="date"
-                                            value={dateTo}
-                                            onChange={(e) => setDateTo(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
-                                        />
-                                    </div>
-                                </div>
-
-                                {(dateFrom || dateTo) && (
-                                    <div className="flex items-end">
-                                        <button
-                                            onClick={clearDates}
-                                            className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
-                                        >
-                                            <X className="w-5 h-5" />
-                                            Limpiar fechas
-                                        </button>
-                                    </div>
-                                )}
-                            </>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </motion.div>
+
 
                 {/* Tabs */}
                 <div className="bg-white rounded-xl shadow-md overflow-hidden">

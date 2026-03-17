@@ -162,22 +162,6 @@ export default function BaseDatosPage() {
 
             setUserRole(profile.rol);
 
-            // Check permissions
-            if (profile.rol !== 'desarrollador') {
-                const { data: perms } = await supabase
-                    .from('permisosmodulos')
-                    .select('nombre_modulo')
-                    .eq('rol', profile.rol)
-                    .eq('nombre_modulo', 'Base de datos')
-                    .eq('esta_habilitado', true)
-                    .maybeSingle();
-
-                if (!perms) {
-                    router.push('/');
-                    return;
-                }
-            }
-
             await fetchData('Ciudades');
             setLoading(false);
         }
