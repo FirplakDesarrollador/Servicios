@@ -38,7 +38,7 @@ export function InfoField({
             >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
                     {Icon && <Icon className="w-4 h-4 text-brand/60 shrink-0" />}
-                    <span className="truncate">{value || 'N/A'}</span>
+                    <span className="break-words line-clamp-2" title={value?.toString()}>{value || 'N/A'}</span>
                 </div>
                 {rightElement && (
                     <div className="ml-2 shrink-0">
@@ -50,7 +50,17 @@ export function InfoField({
     );
 }
 
-export function InfoSection({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
+export function InfoSection({ 
+    title, 
+    children, 
+    className = "",
+    rightElement
+}: { 
+    title?: string; 
+    children: React.ReactNode; 
+    className?: string;
+    rightElement?: React.ReactNode;
+}) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -58,10 +68,13 @@ export function InfoSection({ title, children, className = "" }: { title?: strin
             className={`bg-white rounded-3xl border border-slate-100 p-6 premium-shadow ${className}`}
         >
             {title && (
-                <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <div className="w-1.5 h-6 bg-brand rounded-full" />
-                    {title}
-                </h3>
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-brand rounded-full" />
+                        {title}
+                    </h3>
+                    {rightElement}
+                </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {children}

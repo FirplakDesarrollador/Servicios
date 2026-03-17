@@ -28,10 +28,15 @@ import {
     Lock,
     Unlock,
     Download,
+    Pencil,
+    XCircle,
+    CheckCircle2,
 } from 'lucide-react';
 import { InfoField, InfoSection } from '@/components/InfoField';
 import ProductsModal from '@/components/ProductsModal';
 import CommentModal from '@/components/CommentModal';
+import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
+import ModalEditCondebe from '@/components/ModalEditCondebe';
 
 type TabType = 'informacion' | 'observaciones' | 'agendamiento' | 'aprobaciones' | 'servicios_relacionados' | 'solicitud_repuesto';
 
@@ -48,6 +53,8 @@ export default function VerServicioPage() {
     // Modal states
     const [showProductsModal, setShowProductsModal] = useState(false);
     const [showCommentModal, setShowCommentModal] = useState(false);
+    const [showEditConsumerModal, setShowEditConsumerModal] = useState(false);
+    const [showEditCondebeModal, setShowEditCondebeModal] = useState(false);
     const [loadingInvoice, setLoadingInvoice] = useState(false);
     const [refreshComments, setRefreshComments] = useState(0);
 
@@ -132,7 +139,7 @@ export default function VerServicioPage() {
         <div className="min-h-screen bg-[#F8FAFC]">
             {/* Header */}
             <header className="bg-brand text-white shadow-xl px-4 py-4 md:py-6">
-                <div className="max-w-7xl mx-auto flex items-center gap-4">
+                <div className="max-w-[1600px] mx-auto flex items-center gap-4">
                     <button
                         onClick={() => router.back()}
                         className="p-2.5 hover:bg-white/10 active:bg-white/20 rounded-xl transition-all"
@@ -150,7 +157,7 @@ export default function VerServicioPage() {
 
             {/* Navigation Tabs */}
             <nav className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm overflow-hidden">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-[1600px] mx-auto">
                     <div className="flex overflow-x-auto scrollbar-hide px-4">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
@@ -177,7 +184,7 @@ export default function VerServicioPage() {
             </nav>
 
             {/* Main Content Area */}
-            <main className="max-w-7xl mx-auto p-4 md:p-8">
+            <main className="max-w-[1600px] mx-auto p-4 md:p-8">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}
@@ -190,6 +197,8 @@ export default function VerServicioPage() {
                             <InformacionTab
                                 service={service}
                                 onShowProducts={() => setShowProductsModal(true)}
+                                onEditConsumer={() => setShowEditConsumerModal(true)}
+                                onEditCondebe={() => setShowEditCondebeModal(true)}
                                 loadingInvoice={loadingInvoice}
                                 onDownloadInvoice={async (invoiceId) => {
                                     try {
@@ -230,7 +239,13 @@ export default function VerServicioPage() {
                             />
                         )}
                         {activeTab === 'agendamiento' && <AgendamientoTab service={service} />}
-                        {activeTab === 'aprobaciones' && <AprobacionesTab service={service} />}
+                        {activeTab === 'aprobaciones' && (
+                            <AprobacionesTab 
+                                service={service} 
+                                currentUser={currentUser} 
+                                onRefresh={fetchService}
+                            />
+                        )}
                         {activeTab === 'servicios_relacionados' && <ServiciosRelacionadosTab service={service} />}
                         {activeTab === 'solicitud_repuesto' && <SolicitudRepuestoTab service={service} />}
                     </motion.div>
@@ -250,6 +265,27 @@ export default function VerServicioPage() {
                 currentUser={currentUser}
                 onSuccess={() => setRefreshComments(prev => prev + 1)}
             />
+            <ModalCrearClienteFinal
+                isOpen={showEditConsumerModal}
+                onClose={() => setShowEditConsumerModal(false)}
+                onSuccess={() => {
+                    fetchService(); // Actualizar datos después de editar
+                }}
+                initialData={service}
+            />
+            <ModalEditCondebe
+                isOpen={showEditCondebeModal}
+                onClose={() => setShowEditCondebeModal(false)}
+                onSuccess={() => {
+                    fetchService(); // Actualizar datos después de editar
+                }}
+                serviceId={service.id}
+                initialData={{
+                    consecutivo: service.consecutivo,
+                    tipo_de_servicio: service.tipo_de_servicio,
+                    facturado: service.facturado
+                }}
+            />
         </div>
     );
 }
@@ -257,11 +293,15 @@ export default function VerServicioPage() {
 function InformacionTab({ 
     service, 
     onShowProducts,
+    onEditConsumer,
+    onEditCondebe,
     loadingInvoice,
     onDownloadInvoice
 }: { 
     service: any, 
     onShowProducts: () => void,
+    onEditConsumer: () => void,
+    onEditCondebe: () => void,
     loadingInvoice: boolean,
     onDownloadInvoice: (id: string) => void
 }) {
@@ -307,7 +347,20 @@ function InformacionTab({
             {/* General Information */}
             <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <InfoField label="Consecutivo" value={service.consecutivo} icon={FileText} />
+                    <InfoField 
+                        label="Consecutivo" 
+                        value={service.consecutivo} 
+                        icon={FileText} 
+                        rightElement={
+                            <button
+                                onClick={onEditCondebe}
+                                className="p-1 hover:bg-brand/10 text-brand rounded-lg transition-all"
+                                title="Editar consecutivo"
+                            >
+                                <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                        }
+                    />
                     <InfoField
                         label="Fecha de creación"
                         value={service.created_at ? new Date(service.created_at).toLocaleDateString('es-ES', {
@@ -364,7 +417,19 @@ function InformacionTab({
 
             {/* Consumer Data Section */}
             {service.consumidor_contacto && (
-                <InfoSection title="Datos del cliente final" className="premium-shadow bg-brand/[0.01]">
+                <InfoSection 
+                    title="Datos del cliente final" 
+                    className="premium-shadow bg-brand/[0.01]"
+                    rightElement={
+                        <button
+                            onClick={onEditConsumer}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-brand/10 text-brand rounded-2xl transition-all font-bold text-sm"
+                        >
+                            <Pencil className="w-4 h-4" />
+                            Editar
+                        </button>
+                    }
+                >
                     <InfoField label="Nombre" value={service.consumidor_contacto} icon={User} />
                     <InfoField label="Cédula" value={service.consumidor_cedula} />
                     <InfoField label="Teléfono" value={service.consumidor_telefono} icon={Phone} />
@@ -521,14 +586,242 @@ function AgendamientoTab({ service }: { service: any }) {
     );
 }
 
-function AprobacionesTab({ service }: { service: any }) {
-    return (
-        <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center premium-shadow">
-            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-emerald-500" />
+function AprobacionesTab({ service, currentUser, onRefresh }: { service: any, currentUser: any, onRefresh: () => void }) {
+    const [documento, setDocumento] = useState('');
+    const [observacion, setObservacion] = useState('');
+    const [ordenVenta, setOrdenVenta] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const logistica = service.aprobacion_logistica || {};
+    const director = service.aprobacion_director || {};
+
+    const canApproveLogistica = (currentUser?.rol === 'desarrollador' || currentUser?.rol === 'auxiliar_novedades') && logistica.estado === 'Pendiente';
+    const canApproveDirector = (currentUser?.rol === 'desarrollador' || currentUser?.rol === 'director_comercial') && director.estado === 'Pendiente';
+
+    const getDocumentLabel = () => {
+        if (service.decision_cliente === 'Quiere Nota Credito y Dinero') return '# de Nota crédito';
+        if (service.decision_cliente === 'Acepta Reposicion') return '# de Documento de devolución';
+        return 'No aplica';
+    };
+
+    const handleLogisticaAction = async (estado: 'Aprobado' | 'Rechazado') => {
+        if (estado === 'Aprobado' && !documento && getDocumentLabel() !== 'No aplica') {
+            alert('Por favor ingrese el número de documento');
+            return;
+        }
+        if (estado === 'Rechazado' && !observacion) {
+            alert('Por favor ingrese una observación');
+            return;
+        }
+
+        if (!window.confirm(`¿Está seguro que desea ${estado.toLowerCase()} esta solicitud?`)) return;
+
+        setIsUpdating(true);
+        try {
+            const updateData: any = {
+                estado,
+                fecha: new Date().toISOString(),
+                usuario: currentUser?.display_name || currentUser?.nombre || 'Usuario',
+            };
+
+            if (estado === 'Aprobado') updateData.documento = documento;
+            else updateData.observacion = observacion;
+
+            const { error } = await supabase
+                .from('Servicios')
+                .update({ aprobacion_logistica: updateData })
+                .eq('id', service.id);
+
+            if (error) throw error;
+            
+            alert(`Acción realizada con éxito: ${estado}`);
+            onRefresh();
+        } catch (error) {
+            console.error('Error updating logistica approval:', error);
+            alert('Error al procesar la aprobación');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleDirectorAction = async (estado: 'Aprobado' | 'Rechazado') => {
+        if (!window.confirm(`¿Está seguro que desea ${estado.toLowerCase()} esta solicitud?`)) return;
+
+        setIsUpdating(true);
+        try {
+            const updateData = {
+                estado,
+                fecha: new Date().toISOString(),
+                usuario: currentUser?.display_name || currentUser?.nombre || 'Usuario',
+            };
+
+            const { error } = await supabase
+                .from('Servicios')
+                .update({ aprobacion_director: updateData })
+                .eq('id', service.id);
+
+            if (error) throw error;
+            
+            alert(`Acción realizada con éxito: ${estado}`);
+            onRefresh();
+        } catch (error) {
+            console.error('Error updating director approval:', error);
+            alert('Error al procesar la aprobación');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const StatusCard = ({ title, data, canApprove, onApprove, onReject }: any) => {
+        const isAprobado = data.estado === 'Aprobado';
+        const isRechazado = data.estado === 'Rechazado';
+        const isPendiente = data.estado === 'Pendiente';
+
+        return (
+            <div className="space-y-3">
+                <h3 className="text-sm font-medium text-slate-500">{title}</h3>
+
+                {isPendiente && canApprove ? (
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4 shadow-sm">
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={onReject}
+                                disabled={isUpdating}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-transparent border-rose-200 rounded-lg text-sm font-semibold transition-all shadow-sm"
+                            >
+                                <XCircle className="w-4 h-4" />
+                                Rechazar
+                            </button>
+                            <button
+                                onClick={onApprove}
+                                disabled={isUpdating}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-lg text-sm font-semibold transition-all shadow-sm"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Aprobar
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-sm min-h-[100px] flex flex-col justify-center">
+                        <div className="flex items-center gap-2">
+                            {isAprobado ? (
+                                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                            ) : isRechazado ? (
+                                <XCircle className="w-5 h-5 text-rose-500" />
+                            ) : isPendiente ? (
+                                <Clock className="w-5 h-5 text-amber-500" />
+                            ) : (
+                                <span className="font-bold text-slate-400 text-lg">≠</span>
+                            )}
+                            <span className={`font-medium ${
+                                isAprobado ? 'text-emerald-500' : 
+                                isRechazado ? 'text-rose-500' : 
+                                isPendiente ? 'text-amber-500' : 
+                                'text-slate-500'
+                            }`}>
+                                {data.estado || 'No aplica'}
+                            </span>
+                        </div>
+                        
+                        {(isAprobado || isRechazado) && (
+                            <div className="space-y-1">
+                                {data.usuario && (
+                                    <div className="text-xs">
+                                        <span className="font-bold text-slate-700">Por: </span>
+                                        <span className="text-slate-500">{data.usuario}</span>
+                                    </div>
+                                )}
+                                {data.fecha && (
+                                    <div className="text-xs">
+                                        <span className="font-bold text-slate-700">Fecha: </span>
+                                        <span className="text-slate-500">
+                                            {new Date(data.fecha).toLocaleString('es-ES', {
+                                                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                            })}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Aprobaciones</h3>
-            <p className="text-slate-500 font-medium">No hay aprobaciones pendientes para este servicio.</p>
+        );
+    };
+
+    return (
+        <div className="flex flex-wrap items-start justify-start gap-8 px-4" style={{ maxWidth: '1200px' }}>
+            {/* PRIMERA COLUMNA */}
+            <div className="w-[300px] flex flex-col gap-6">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-500 block">
+                        {getDocumentLabel()}
+                    </label>
+                    <input
+                        type="text"
+                        value={documento}
+                        onChange={(e) => setDocumento(e.target.value)}
+                        placeholder="Ingrese el número..."
+                        readOnly={!canApproveLogistica}
+                        className={`w-full border p-2.5 rounded-lg text-sm bg-slate-50 text-slate-700 transition-all ${
+                            canApproveLogistica ? 'border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white' : 'border-slate-200 cursor-not-allowed opacity-80'
+                        }`}
+                    />
+                </div>
+                
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-500 block">
+                        Observación
+                    </label>
+                    <input
+                        type="text"
+                        value={observacion}
+                        onChange={(e) => setObservacion(e.target.value)}
+                        placeholder="Observaciones..."
+                        readOnly={!canApproveLogistica}
+                        className={`w-full border p-2.5 rounded-lg text-sm bg-slate-50 text-slate-700 transition-all ${
+                            canApproveLogistica ? 'border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white' : 'border-slate-200 cursor-not-allowed opacity-80'
+                        }`}
+                    />
+                </div>
+
+                <StatusCard 
+                    title="Logistica" 
+                    data={logistica}
+                    canApprove={canApproveLogistica}
+                    onApprove={() => handleLogisticaAction('Aprobado')}
+                    onReject={() => handleLogisticaAction('Rechazado')}
+                />
+            </div>
+
+            {/* SEGUNDA COLUMNA */}
+            <div className="w-[300px] flex flex-col pt-3">
+                <StatusCard 
+                    title="Director comercial" 
+                    data={director}
+                    canApprove={canApproveDirector}
+                    onApprove={() => handleDirectorAction('Aprobado')}
+                    onReject={() => handleDirectorAction('Rechazado')}
+                />
+            </div>
+
+            {/* TERCERA COLUMNA */}
+            <div className="w-[300px] flex flex-col gap-2 pt-3">
+                <label className="text-sm font-medium text-slate-500 block">
+                    # de OV (Digitación - Ventas internas)
+                </label>
+                <div className="relative">
+                    <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] text-slate-400 font-medium">Orden de venta...</span>
+                    <input
+                        type="text"
+                        value={ordenVenta}
+                        onChange={(e) => setOrdenVenta(e.target.value)}
+                        placeholder="null"
+                        className="w-full border border-slate-300 p-2.5 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-slate-700"
+                    />
+                </div>
+            </div>
         </div>
     );
 }

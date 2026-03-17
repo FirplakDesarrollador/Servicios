@@ -322,7 +322,7 @@ export default function SolicitarServicioPage() {
                     producto_id: p.id,
                     cantidad: p.cantidad || 1
                 }));
-                await supabase.from('ProductosServicios').insert(productosToInsert);
+                await supabase.from('productos_servicios').insert(productosToInsert);
             }
 
             // 6. Insert Repuestos
@@ -332,7 +332,7 @@ export default function SolicitarServicioPage() {
                     repuesto_id: r.id,
                     cantidad: r.cantidad || 1
                 }));
-                await supabase.from('RepuestosServicios').insert(repuestosToInsert);
+                await supabase.from('Repuestos_Servicios').insert(repuestosToInsert);
             }
 
             alert('Servicio creado correctamente');

@@ -23,9 +23,10 @@ interface ModalCrearClienteFinalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    initialData?: any;
 }
 
-export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: ModalCrearClienteFinalProps) {
+export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, initialData }: ModalCrearClienteFinalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +35,7 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
 
     // Form states
     const [formData, setFormData] = useState({
+        id: undefined,
         cedula: '',
         contacto: '',
         ciudad_id: '',
@@ -51,8 +53,32 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
     useEffect(() => {
         if (isOpen) {
             fetchCiudades();
+            if (initialData) {
+                setFormData({
+                    id: initialData.consumidor_id || initialData.id,
+                    cedula: initialData.consumidor_cedula || initialData.cedula || '',
+                    contacto: initialData.consumidor_contacto || initialData.contacto || '',
+                    ciudad_id: (initialData.consumidor_ciudad_id || initialData.ciudad_id || '').toString(),
+                    direccion: initialData.consumidor_direccion || initialData.direccion || '',
+                    descripcion_direccion: initialData.consumidor_descripcion_direccion || initialData.descripcion_direccion || '',
+                    telefono: initialData.consumidor_telefono || initialData.telefono || '',
+                    correo_electronico: initialData.consumidor_correo_electronico || initialData.correo_electronico || '',
+                });
+            } else {
+                setFormData({
+                    id: undefined,
+                    cedula: '',
+                    contacto: '',
+                    ciudad_id: '',
+                    direccion: '',
+                    descripcion_direccion: '',
+                    telefono: '',
+                    correo_electronico: '',
+                });
+                setGeoInfo({ departamento: '' });
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, initialData]);
 
     const fetchCiudades = async () => {
         try {
@@ -61,6 +87,15 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                 .select('*')
                 .order('ciudad');
             setCiudades(data || []);
+            
+            // If editing, find the department for the initial city
+            if (initialData) {
+                const cityId = initialData.consumidor_ciudad_id || initialData.ciudad_id;
+                const city = (data || []).find(c => c.id.toString() === cityId?.toString());
+                if (city) {
+                    setGeoInfo({ departamento: city.departamento || '' });
+                }
+            }
         } catch (err) {
             console.error('Error fetching cities:', err);
         }
@@ -98,37 +133,37 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
         }
 
         try {
-            const { error: insertError } = await supabase
-                .from('Consumidores')
-                .insert([{
-                    cedula: formData.cedula,
-                    contacto: formData.contacto.toUpperCase(),
-                    telefono: formData.telefono,
-                    direccion: formData.direccion.toUpperCase(),
-                    descripcion_direccion: formData.descripcion_direccion.toUpperCase(),
-                    ciudad_id: parseInt(formData.ciudad_id),
-                    correo_electronico: formData.correo_electronico.toLowerCase(),
-                    created_at: new Date().toISOString()
-                }]);
+            const payload = {
+                cedula: formData.cedula,
+                contacto: formData.contacto.toUpperCase(),
+                telefono: formData.telefono,
+                direccion: formData.direccion.toUpperCase(),
+                descripcion_direccion: formData.descripcion_direccion.toUpperCase(),
+                ciudad_id: parseInt(formData.ciudad_id),
+                correo_electronico: formData.correo_electronico.toLowerCase(),
+            };
 
-            if (insertError) throw insertError;
+            if (formData.id) {
+                // Update
+                const { error: updateError } = await supabase
+                    .from('Consumidores')
+                    .update(payload)
+                    .eq('id', formData.id);
+                if (updateError) throw updateError;
+            } else {
+                // Insert
+                const { error: insertError } = await supabase
+                    .from('Consumidores')
+                    .insert([{ ...payload, created_at: new Date().toISOString() }]);
+                if (insertError) throw insertError;
+            }
 
             onSuccess();
             onClose();
-            // Reset form
-            setFormData({
-                cedula: '',
-                contacto: '',
-                ciudad_id: '',
-                direccion: '',
-                descripcion_direccion: '',
-                telefono: '',
-                correo_electronico: '',
-            });
-            setGeoInfo({ departamento: '' });
+            // Reset form will be handled by useEffect when re-opening
         } catch (err: any) {
-            console.error('Error creating consumer:', err);
-            setError(err.message || 'Error al crear el cliente final');
+            console.error('Error saving consumer:', err);
+            setError(err.message || 'Error al guardar el cliente final');
         } finally {
             setLoading(false);
         }
@@ -153,15 +188,15 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                         className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 flex flex-col max-h-[90vh]"
                     >
                         {/* Header */}
-                        <div className="bg-rose-500 p-8 text-white relative flex-shrink-0">
+                        <div className="bg-sky-500 p-8 text-white relative flex-shrink-0">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
                                         <UserPlus className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black uppercase tracking-tighter">Crear Cliente Final</h2>
-                                        <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Consumidor Directo</p>
+                                        <h2 className="text-2xl font-black uppercase tracking-tighter">{formData.id ? 'Editar Cliente Final' : 'Crear Cliente Final'}</h2>
+                                        <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">{formData.id ? 'Actualizar información' : 'Consumidor Directo'}</p>
                                     </div>
                                 </div>
                                 <button 
@@ -179,7 +214,7 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <motion.div 
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-sm font-bold"
+                                    className="p-4 bg-sky-50 border border-sky-100 rounded-2xl flex items-center gap-3 text-sky-600 text-sm font-bold"
                                 >
                                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                     {error}
@@ -191,13 +226,13 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Cédula / Identificación *</label>
                                     <div className="relative group">
-                                        <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
+                                        <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                         <input 
                                             type="text"
                                             value={formData.cedula}
                                             onChange={(e) => setFormData(prev => ({ ...prev, cedula: e.target.value }))}
                                             required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-rose-300 focus:bg-white transition-all"
+                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
                                             placeholder="Ej: 10203040"
                                         />
                                     </div>
@@ -207,13 +242,13 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre Completo *</label>
                                     <div className="relative group">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                         <input 
                                             type="text"
                                             value={formData.contacto}
                                             onChange={(e) => setFormData(prev => ({ ...prev, contacto: e.target.value }))}
                                             required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-rose-300 focus:bg-white transition-all"
+                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
                                             placeholder="Nombre del cliente"
                                         />
                                     </div>
@@ -223,12 +258,12 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Ciudad *</label>
                                     <div className="relative group">
-                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors z-10" />
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors z-10" />
                                         <select 
                                             value={formData.ciudad_id}
                                             onChange={handleCityChange}
                                             required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-rose-300 focus:bg-white transition-all appearance-none"
+                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all appearance-none"
                                         >
                                             <option value="">Seleccione ciudad...</option>
                                             {ciudades.map(c => (
@@ -250,12 +285,12 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Dirección de Residencia</label>
                                     <div className="relative group">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
+                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                         <input 
                                             type="text"
                                             value={formData.direccion}
                                             onChange={(e) => setFormData(prev => ({ ...prev, direccion: e.target.value }))}
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-rose-300 focus:bg-white transition-all"
+                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
                                             placeholder="Calle, Carrera, Barrio..."
                                         />
                                     </div>
@@ -265,12 +300,12 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Punto de Referencia</label>
                                     <div className="relative group">
-                                        <Compass className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
+                                        <Compass className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                         <input 
                                             type="text"
                                             value={formData.descripcion_direccion}
                                             onChange={(e) => setFormData(prev => ({ ...prev, descripcion_direccion: e.target.value }))}
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-rose-300 focus:bg-white transition-all"
+                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
                                             placeholder="Ej: Frente al parque principal"
                                         />
                                     </div>
@@ -280,13 +315,13 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Teléfono / WhatsApp *</label>
                                     <div className="relative group">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                         <input 
                                             type="tel"
                                             value={formData.telefono}
                                             onChange={(e) => setFormData(prev => ({ ...prev, telefono: e.target.value }))}
                                             required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-rose-300 focus:bg-white transition-all"
+                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
                                             placeholder="3001234567"
                                         />
                                     </div>
@@ -299,18 +334,18 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                         <button 
                                             type="button" 
                                             onClick={handleNoEmail}
-                                            className="text-[9px] font-black text-rose-500 uppercase hover:underline"
+                                            className="text-[9px] font-black text-sky-500 uppercase hover:underline"
                                         >
                                             No tiene correo
                                         </button>
                                     </div>
                                     <div className="relative group">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                         <input 
                                             type="email"
                                             value={formData.correo_electronico}
                                             onChange={(e) => setFormData(prev => ({ ...prev, correo_electronico: e.target.value }))}
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-rose-300 focus:bg-white transition-all"
+                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
                                             placeholder="cliente@ejemplo.com"
                                         />
                                     </div>
@@ -329,14 +364,14 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess }: M
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="flex-[2] h-14 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-rose-200 hover:shadow-rose-400 transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
+                                    className="flex-[2] h-14 bg-sky-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-sky-200 hover:shadow-sky-400 transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
                                 >
                                     {loading ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
                                         <>
                                             <CheckCircle2 className="w-5 h-5" />
-                                            Crear Cliente Final
+                                            {formData.id ? 'Actualizar Cliente Final' : 'Crear Cliente Final'}
                                         </>
                                     )}
                                 </button>

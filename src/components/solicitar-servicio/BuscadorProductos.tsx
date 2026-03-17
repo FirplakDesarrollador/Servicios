@@ -142,7 +142,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                                                 <div key={item.id} className="bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-2">
                                                     <div className="flex-1 flex flex-col min-w-0">
                                                         <span className="text-sm text-slate-800">{item.sku}</span>
-                                                        <span className="text-xs text-slate-400 font-light truncate">{item.nombre}</span>
+                                                        <span className="text-xs text-slate-400 font-light line-clamp-2 leading-tight">{item.nombre}</span>
                                                     </div>
                                                     <button
                                                         onClick={() => !isAlreadySelected && onAdd(item)}
@@ -180,7 +180,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                                             <div key={`sel-${idx}`} className="bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-2">
                                                 <div className="flex-1 flex flex-col min-w-0">
                                                     <span className="text-sm text-slate-800">{item.sku}</span>
-                                                    <span className="text-xs text-slate-400 font-light truncate">{item.nombre}</span>
+                                                    <span className="text-xs text-slate-400 font-light line-clamp-2 leading-tight">{item.nombre}</span>
                                                 </div>
                                                 <button
                                                     onClick={() => onRemove(idx)}
