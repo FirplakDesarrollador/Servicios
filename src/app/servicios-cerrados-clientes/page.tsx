@@ -382,7 +382,7 @@ function ClientServiceCardHistorial({ service }: { service: any }) {
                 </div>
 
                 <div className="hidden lg:flex flex-col border-l border-slate-50 w-12 items-center justify-center p-4 bg-slate-50/10">
-                    <Check circle className="w-6 h-6 text-emerald-100" />
+                    <CheckCircle2 className="w-6 h-6 text-emerald-100" />
                 </div>
             </div>
         </motion.div>
