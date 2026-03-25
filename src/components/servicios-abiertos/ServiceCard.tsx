@@ -136,7 +136,7 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
                         <span className="text-[12px] text-slate-600">
                             {asesorMacNombre || 'sin asignar'}
                         </span>
-                        {(service.estado === true) && (currentUserRole === 'desarrollador' || currentUserRole === 'mac') && (
+                        {(service.estado === true) && (
                             <Headset
                                 className={`w-5 h-5 cursor-pointer transition-colors ${asesorMacNombre ? 'text-emerald-500' : 'text-slate-300'}`}
                             />
@@ -146,9 +146,9 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
                     <div className="flex items-center gap-4">
                         <Share2
                             onClick={copyPublicLink}
-                            className="w-5 h-5 text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
+                            className="w-5 h-5 text-brand cursor-pointer hover:text-brand-light transition-colors"
                         />
-                        {onDelete && (currentUserRole === 'desarrollador' || service.creado_por_email === 'mayerly.marin@firplak.com' || service.creado_por_email === 'isabel.jaramillo@firplak.com') && (
+                        {onDelete && (
                             <Trash2
                                 onClick={() => onDelete(service)}
                                 className="w-5 h-5 text-rose-400 cursor-pointer hover:text-rose-600 transition-colors"

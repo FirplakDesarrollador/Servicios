@@ -34,8 +34,10 @@ export default function Home() {
   const router = useRouter();
   const [currentTime, setCurrentTime] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [portalType, setPortalType] = useState<string | null>(null);
 
   useEffect(() => {
+    setPortalType(localStorage.getItem('portalType'));
     const timer = setInterval(() => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -59,25 +61,8 @@ export default function Home() {
         if (!error && userData) {
           setProfile(userData);
 
-          // Fetch Role Permissions (with fallback if table doesn't exist)
-          try {
-            const { data: perms, error: permsError } = await supabase
-              .from('PermisosModulos')
-              .select('nombre_modulo')
-              .eq('rol', userData.rol)
-              .eq('esta_habilitado', true);
-
-            if (!permsError && perms && perms.length > 0) {
-              setPermissions(perms.map(p => p.nombre_modulo));
-            } else {
-              // Default permissions if table doesn't exist or no permissions found
-              setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
-            }
-          } catch (err) {
-            // Fallback to all permissions if PermisosModulos table doesn't exist
-            console.warn('PermisosModulos table not found, using default permissions:', err);
-            setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
-          }
+          // Grant all permissions to all users
+          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
         }
       }
       setLoading(false);
@@ -104,6 +89,7 @@ export default function Home() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem('portalType');
     router.push('/login');
   };
 
@@ -142,7 +128,7 @@ export default function Home() {
   const defaultPhoto = 'https://lnphhmowklqiomownurw.supabase.co/storage/v1/object/public/publico/fotos/withoutphoto.png';
 
   const menuItems = [
-    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-blue-600' },
+    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-brand' },
     { title: 'Servicios Abiertos', icon: ClipboardList, color: 'bg-emerald-500' },
     { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-indigo-500' },
     { title: 'Aprobaciones', icon: ClipboardCheck, color: 'bg-orange-500' },
@@ -150,28 +136,24 @@ export default function Home() {
     { title: 'Historial de servicios', icon: History, color: 'bg-indigo-700' },
     { title: 'Ayuda', icon: HelpCircle, color: 'bg-teal-600' },
     { title: 'Exhibiciones', icon: ChefHat, color: 'bg-orange-600' },
-    { title: 'Base de datos', icon: Database, color: 'bg-blue-700' },
+    { title: 'Base de datos', icon: Database, color: 'bg-brand' },
     { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-600' },
     { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-600' },
-    { title: 'BI', icon: BarChart3, color: 'bg-blue-800' },
+    { title: 'BI', icon: BarChart3, color: 'bg-brand' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
-  // Filter based on role permissions
-  const filteredItems = menuItems.filter(item => {
-    // Config module is ONLY for desarrollador
-    if (item.title === 'Configuración') return profile?.rol === 'desarrollador';
+  // Filter items for clients
+  const filteredItems = portalType === 'cliente'
+    ? menuItems.filter(item => ['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado'].includes(item.title))
+    : menuItems;
 
-    // Check if module is enabled in permissions
-    return permissions.includes(item.title);
-  });
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans">
       <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 justify-between shadow-lg">
-        <div className="flex flex-col">
-          <span className="font-black text-xl tracking-tight leading-none">FIRPLAK</span>
-          <span className="text-[7px] italic opacity-60 font-medium tracking-widest">Inspirando hogares</span>
+        <div className="flex items-center">
+          <img src="/logo-firplak.png" alt="FIRPLAK" className="h-8 w-auto invert brightness-0 underline-offset-4" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
@@ -219,7 +201,9 @@ export default function Home() {
           </div>
 
           <div className="flex-1">
-            <h1 className="text-3xl font-black text-brand tracking-tighter mb-0.5 leading-none">¡Bienvenido!</h1>
+            <h1 className="text-3xl font-black text-brand tracking-tighter mb-0.5 leading-none">
+              {portalType === 'cliente' ? '¡Bienvenido Cliente Firplak!' : '¡Bienvenido!'}
+            </h1>
             <p className="text-lg font-bold text-slate-700 leading-tight mb-0.5">{fullName}</p>
             <p className="text-xs font-medium text-slate-400 mb-2">{user.email}</p>
             <span className="inline-block px-4 py-0.5 bg-brand text-white text-[9px] font-black uppercase tracking-[0.15em] rounded-full shadow-md">
@@ -228,26 +212,28 @@ export default function Home() {
           </div>
         </motion.section>
 
-        {/* Share Form Button */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={copyFormLink}
-          className="w-full max-w-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all mb-10 flex items-center justify-center gap-3 group"
-        >
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
-            <Link className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <div className="font-bold text-lg">Compartir Formulario de Cliente</div>
-            <div className="text-xs text-white/80">Copiar enlace para enviar a clientes</div>
-          </div>
-        </motion.button>
+        {/* Share Form Button - Hidden for clients */}
+        {portalType !== 'cliente' && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={copyFormLink}
+            className="w-full max-w-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all mb-10 flex items-center justify-center gap-3 group"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+              <Link className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <div className="font-bold text-lg">Compartir Formulario de Cliente</div>
+              <div className="text-xs text-white/80">Copiar enlace para enviar a clientes</div>
+            </div>
+          </motion.button>
+        )}
 
         {/* Compact Action Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3 w-full">
+        <div className={`grid gap-6 w-full justify-center ${portalType === 'cliente' ? 'grid-cols-1 sm:grid-cols-3 max-w-2xl' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7'}`}>
           {filteredItems.map((item, index) => (
             <motion.button
               key={item.title}
@@ -260,11 +246,11 @@ export default function Home() {
                 if (item.title === 'Configuración') {
                   router.push('/configuracion');
                 } else if (item.title === 'Solicitar servicio') {
-                  router.push('/solicitar-servicio');
+                  router.push(portalType === 'cliente' ? '/solicitud-pedido-cliente' : '/solicitar-servicio');
                 } else if (item.title === 'Servicios Abiertos') {
-                  router.push('/servicios-abiertos');
+                  router.push(portalType === 'cliente' ? '/servicios-abiertos-clientes' : '/servicios-abiertos');
                 } else if (item.title === 'Buscar servicio cerrado') {
-                  router.push('/servicios-cerrados');
+                  router.push(portalType === 'cliente' ? '/servicios-cerrados-clientes' : '/servicios-cerrados');
                 } else if (item.title === 'Aprobaciones') {
                   router.push('/aprobaciones');
                 } else if (item.title === 'Mi agenda') {
@@ -275,9 +261,17 @@ export default function Home() {
                   router.push('/ayuda');
                 } else if (item.title === 'Exhibiciones') {
                   router.push('/exhibiciones');
+                } else if (item.title === 'Base de datos') {
+                  router.push('/base-de-datos');
+                } else if (item.title === 'Inventario Almacenes') {
+                  router.push('/inventario');
+                } else if (item.title === 'Agenda Tecnicos') {
+                  router.push('/agenda-tecnicos');
+                } else if (item.title === 'BI') {
+                  router.push('/bi');
                 }
               }}
-              className="group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden"
+              className={`group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden ${portalType === 'cliente' ? 'max-w-[200px] w-full mx-auto' : ''}`}
             >
               {/* Decorative Corner Circle */}
               <div className="absolute top-[-20px] right-[-20px] w-16 h-16 bg-slate-50 rounded-full group-hover:bg-brand/5 transition-colors" />
@@ -285,10 +279,11 @@ export default function Home() {
               <div className={`mt-2 mb-3 p-3 rounded-2xl ${item.color} text-white shadow-lg transition-transform group-hover:rotate-6`}>
                 <item.icon className="w-6 h-6" strokeWidth={2.5} />
               </div>
-
-              <span className="text-[10px] font-extrabold text-slate-600 text-center uppercase tracking-tight leading-tight px-1 group-hover:text-brand transition-colors relative z-10 h-8 flex items-center">
-                {item.title}
-              </span>
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest text-center group-hover:text-brand transition-colors">
+                  {portalType === 'cliente' && item.title === 'Buscar servicio cerrado' ? 'Servicios Cerrados' : item.title}
+                </span>
+              </div>
             </motion.button>
           ))}
         </div>

@@ -18,7 +18,10 @@ import {
     AlertCircle,
     User,
     Settings,
-    Headphones
+    Headphones,
+    ChevronLeft,
+    ChevronRight,
+    Users
 } from 'lucide-react';
 import ServiceCard from '@/components/servicios-abiertos/ServiceCard';
 
@@ -38,6 +41,10 @@ export default function ServiciosAbiertosPage() {
     const [filterTechnician, setFilterTechnician] = useState('');
     const [filterMacAdvisor, setFilterMacAdvisor] = useState('');
     const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+
+    // Pagination States
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 50;
 
     useEffect(() => {
         const init = async () => {
@@ -135,15 +142,19 @@ export default function ServiciosAbiertosPage() {
             const lowerSearch = searchTerm.toLowerCase();
             result = result.filter(s =>
                 (s.consecutivo?.toLowerCase().includes(lowerSearch)) ||
-                (s.numeroDePedido?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacionNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidorNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.asesorNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.tecnicoNombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.numero_de_pedido?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.asesor_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.tecnico_nombre?.toLowerCase().includes(lowerSearch)) ||
                 (s.macNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.coordinadorNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacionCiudad?.toLowerCase().includes(lowerSearch)) ||
-                (s.tipoDeServicio?.toLowerCase().includes(lowerSearch))
+                (s.coordinador_nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_ciudad?.toLowerCase().includes(lowerSearch)) ||
+                (s.tipo_de_servicio?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_nit?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor_cedula?.toLowerCase().includes(lowerSearch)) ||
+                (s.ubicacion_telefono?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor_telefono?.toLowerCase().includes(lowerSearch))
             );
         }
 
@@ -187,6 +198,7 @@ export default function ServiciosAbiertosPage() {
         }
 
         setFilteredServices(result);
+        setCurrentPage(1); // Reset to first page on filter change
     }, [searchTerm, filterDate, filterStatus, filterTechnician, filterMacAdvisor, showUnassignedOnly, services]);
 
     const handleClearFilters = () => {
@@ -196,6 +208,7 @@ export default function ServiciosAbiertosPage() {
         setFilterTechnician('');
         setFilterMacAdvisor('');
         setShowUnassignedOnly(false);
+        setCurrentPage(1);
     };
 
     const handleDeleteService = async (service: any) => {
@@ -279,10 +292,18 @@ export default function ServiciosAbiertosPage() {
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => router.push('/solicitudes-clientes')}
+                            className="bg-gradient-to-r from-brand to-brand/80 text-white px-5 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-brand/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/40 transition-all flex items-center gap-2.5 group border border-white/10 overflow-hidden relative"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+                            <Users className="w-4 h-4 transition-transform group-hover:scale-110" />
+                            <span>Solicitudes Clientes</span>
+                        </button>
                         <button
                             onClick={handleExportCSV}
-                            className="bg-white/10 hover:bg-white/20 p-2.5 rounded-2xl transition-all flex items-center gap-2 text-xs font-black uppercase"
+                            className="bg-white/10 hover:bg-white/20 p-2.5 rounded-2xl transition-all flex items-center gap-2 text-xs font-black uppercase border border-white/5"
                         >
                             <FileDown className="w-4 h-4" />
                             <span className="hidden md:inline">Exportar CSV</span>
@@ -382,7 +403,7 @@ export default function ServiciosAbiertosPage() {
                                 <Eraser className="w-4 h-4 group-hover:rotate-12 transition-transform" />
                                 <span className="text-xs font-black uppercase">Limpiar</span>
                             </button>
-                            <div className="flex-1 bg-slate-50 rounded-2xl p-1 flex items-center justify-between px-3 h-[44px]">
+                            <div className="flex-[1.5] bg-slate-50 rounded-2xl p-1 flex items-center justify-between px-3 h-[44px]">
                                 <span className="text-[10px] font-black text-slate-400 uppercase">Garantías sin asignar</span>
                                 <button
                                     onClick={() => setShowUnassignedOnly(!showUnassignedOnly)}
@@ -432,18 +453,45 @@ export default function ServiciosAbiertosPage() {
                         </button>
                     </motion.div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-2">
-                        <AnimatePresence mode='popLayout'>
-                            {filteredServices.map(service => (
-                                <ServiceCard
-                                    key={service.id || service.consecutivo}
-                                    service={service}
-                                    currentUserRole={profile?.rol}
-                                    onDelete={handleDeleteService}
-                                    onClick={(s) => router.push(`/ver-servicio/${s.id}`)}
-                                />
-                            ))}
-                        </AnimatePresence>
+                    <div className="flex flex-col gap-6">
+                        <div className="grid grid-cols-1 gap-2">
+                            <AnimatePresence mode='popLayout'>
+                                {filteredServices
+                                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                    .map(service => (
+                                        <ServiceCard
+                                            key={service.id || service.consecutivo}
+                                            service={service}
+                                            currentUserRole={profile?.rol}
+                                            onDelete={handleDeleteService}
+                                            onClick={(s) => router.push(`/ver-servicio/${s.id}`)}
+                                        />
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                        
+                        {/* Pagination Controls */}
+                        {filteredServices.length > itemsPerPage && (
+                            <div className="flex items-center justify-center gap-4 py-4">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                                >
+                                    Anterior
+                                </button>
+                                <span className="text-sm font-medium text-slate-500">
+                                    Página {currentPage} de {Math.ceil(filteredServices.length / itemsPerPage)}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredServices.length / itemsPerPage), p + 1))}
+                                    disabled={currentPage >= Math.ceil(filteredServices.length / itemsPerPage)}
+                                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </main>
