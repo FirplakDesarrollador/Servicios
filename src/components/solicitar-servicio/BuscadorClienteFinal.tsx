@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, X, Loader2, MapPin, Phone, User as UserIcon, Building2, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ModalCrearClienteFinal from '../base-de-datos/ModalCrearClienteFinal';
+
 
 interface BuscadorClienteFinalProps {
     onSelect: (cliente: any) => void;
@@ -18,6 +20,8 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+
 
 
     useEffect(() => {
@@ -198,13 +202,26 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                             ¿No encuentras el cliente?
                         </p>
-                        <button className="text-xs font-black text-emerald-600 uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
+                        <button 
+                            onClick={() => setShowCreateModal(true)}
+                            className="text-xs font-black text-emerald-600 uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+                        >
                             Crear Nuevo Cliente
                         </button>
                     </div>
                 </div>
             </motion.div>
+
+            <ModalCrearClienteFinal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={() => {
+                    setShowCreateModal(false);
+                }}
+
+            />
         </motion.div>
+
     );
 }
 
