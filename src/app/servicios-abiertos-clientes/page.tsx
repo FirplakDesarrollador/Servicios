@@ -25,7 +25,8 @@ import {
     Info,
     ChevronRight,
     MapPin,
-    Hash
+    Hash,
+    Box
 } from 'lucide-react';
 
 export default function ServiciosAbiertosClientesPage() {
@@ -69,7 +70,7 @@ export default function ServiciosAbiertosClientesPage() {
                 .from('Servicios_Distribuidor')
                 .select(`
                     *,
-                    ubicacion:ubicacion_id(nombre, nit, ciudad, direccion, telefono),
+                    ubicacion:ubicacion_id(id, nombre, nit, direccion, telefono, ciudad:ciudad_id(ciudad)),
                     consumidor:consumidor_id(*)
                 `)
                 .eq('comercial_id', userData.id)
@@ -80,7 +81,11 @@ export default function ServiciosAbiertosClientesPage() {
                 console.error('Error fetching services:', servicesError);
             }
 
+            console.log('User Profile ID:', userData.id);
+            console.log('Fetched Services:', servicesData);
+
             if (servicesData) {
+
 
                 setServices(servicesData);
                 setFilteredServices(servicesData);
@@ -102,9 +107,9 @@ export default function ServiciosAbiertosClientesPage() {
                 (s.consecutivo?.toLowerCase().includes(lowerSearch)) ||
                 (s.numero_orden_compra?.toLowerCase().includes(lowerSearch)) ||
                 (s.ubicacion?.nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidor?.nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor?.contacto?.toLowerCase().includes(lowerSearch)) ||
                 (s.tipo_de_servicio?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion?.ciudad?.toLowerCase().includes(lowerSearch))
+                (s.ubicacion?.ciudad?.ciudad?.toLowerCase().includes(lowerSearch))
             );
         }
 
@@ -293,42 +298,45 @@ function ClientServiceCard({ service }: { service: any }) {
         >
             <div className="flex flex-col lg:flex-row">
                 {/* Status Column */}
-                <div className="lg:w-16 bg-brand flex lg:flex-col items-center justify-center p-4 lg:py-6 gap-3">
-                     <Clock className="w-6 h-6 text-white/40" />
-                     <div className="lg:[writing-mode:vertical-lr] text-[10px] font-black text-white uppercase tracking-[0.3em] lg:rotate-180">
+                <div className="lg:w-12 bg-gradient-to-b from-brand to-brand-dark flex lg:flex-col items-center justify-center p-3 lg:py-6 gap-3 relative overflow-hidden group/sidebar">
+                     {/* Decorative sidebar elements */}
+                     <div className="absolute top-0 left-0 w-full h-1/2 bg-white/5 skew-y-12 -translate-y-full group-hover/sidebar:translate-y-0 transition-transform duration-700" />
+                     <Clock className="w-5 h-5 text-white/50 relative z-10" />
+                     <div className="lg:[writing-mode:vertical-lr] text-[9px] font-black text-white/90 uppercase tracking-[0.25em] lg:rotate-180 relative z-10">
                         PENDIENTE
                      </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-6 lg:p-8">
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-8">
+                <div className="flex-1 p-4 lg:p-5">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-3 mb-6">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="text-2xl font-black text-slate-800 tracking-tighter">
+                            <div className="flex items-center gap-3 mb-1.5">
+                                <span className="text-xl font-black text-slate-800 tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
                                     {service.consecutivo}
                                 </span>
-                                <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                <span className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                                     EN REVISIÓN
                                 </span>
                             </div>
-                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                                <div className="flex items-center gap-2 text-slate-400 font-bold text-xs">
-                                    <CalendarIcon className="w-3.5 h-3.5" />
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px]">
+                                    <CalendarIcon className="w-3 h-3" />
                                     {new Date(service.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                                 </div>
-                                <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase italic">
-                                    <MapPin className="w-3.5 h-3.5" />
-                                    {service.ubicacion?.ciudad}
+                                <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase italic">
+                                    <MapPin className="w-3 h-3" />
+                                    {service.ubicacion?.ciudad?.ciudad || '---'}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2">
-                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Orden de Compra</span>
-                             <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                                <Hash className="w-3.5 h-3.5 text-brand" />
-                                <span className="text-sm font-black text-slate-700">{service.numero_orden_compra || 'SIN NÚMERO'}</span>
+                        <div className="flex flex-col items-end gap-1.5">
+                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">Orden de Compra</span>
+                             <div className="flex items-center gap-2 bg-slate-50/50 backdrop-blur-sm px-3.5 py-1.5 rounded-xl border border-slate-100/80 shadow-inner group-hover:border-brand/20 transition-colors">
+                                <Hash className="w-3.5 h-3.5 text-brand/40 group-hover:text-brand transition-colors" />
+                                <span className="text-xs font-black text-slate-700 tracking-tight">{service.numero_orden_compra || 'SIN NÚMERO'}</span>
                              </div>
                         </div>
                     </div>
@@ -340,21 +348,24 @@ function ClientServiceCard({ service }: { service: any }) {
                                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-3">Información del Pedido</h4>
                                 <div className="space-y-4">
                                      <div className="flex flex-col">
-                                        <span className="text-[8px] font-black text-brand uppercase mb-1">Tipo de Servicio</span>
-                                        <span className="text-sm font-bold text-slate-700 uppercase">{service.tipo_de_servicio?.replace(/_/g, ' ')}</span>
+                                        <span className="text-[7px] font-black text-brand uppercase mb-0.5">Tipo de Servicio</span>
+                                        <span className="text-xs font-bold text-slate-700 uppercase">{service.tipo_de_servicio?.replace(/_/g, ' ')}</span>
                                      </div>
                                      <div className="flex flex-col">
-                                        <span className="text-[8px] font-black text-brand uppercase mb-1">Sucursal Seleccionada</span>
-                                        <span className="text-sm font-bold text-slate-700 italic">{service.ubicacion?.nombre}</span>
-                                        <span className="text-[11px] text-slate-400 font-medium">{service.ubicacion?.direccion}</span>
+                                        <span className="text-[7px] font-black text-brand uppercase mb-0.5">Sucursal Seleccionada</span>
+                                        <span className="text-xs font-bold text-slate-700 italic leading-tight">{service.ubicacion?.nombre}</span>
+                                        <span className="text-[10px] text-slate-400 font-medium leading-tight">{service.ubicacion?.direccion}</span>
                                      </div>
-                                     <div className="flex flex-col">
-                                        <span className="text-[8px] font-black text-brand uppercase mb-1">Cliente Final (Consumidor)</span>
-                                        <span className="text-sm font-bold text-emerald-700 uppercase">
+                                     <div className="flex flex-col group/item p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                                        <span className="text-[7px] font-black text-brand/60 uppercase mb-0.5 tracking-wider">Cliente Final</span>
+                                        <span className="text-xs font-black text-slate-800 uppercase leading-tight decoration-emerald-500/30 group-hover:underline underline-offset-4">
                                             {service.consumidor?.contacto || service.consumidor?.nombre || 'Particular / No registrado'}
                                         </span>
                                         {service.consumidor?.cedula && (
-                                            <span className="text-[10px] text-slate-400 font-bold">CC/NIT: {service.consumidor?.cedula}</span>
+                                            <div className="flex items-center gap-1.5 mt-1">
+                                                <div className="w-1 h-3 bg-emerald-500/20 rounded-full" />
+                                                <span className="text-[9px] text-slate-400 font-bold">NIT: {service.consumidor?.cedula}</span>
+                                            </div>
                                         )}
                                      </div>
 
@@ -364,38 +375,43 @@ function ClientServiceCard({ service }: { service: any }) {
 
                         {/* Products Column */}
                         <div className="md:col-span-2">
-                             <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                                    <Package className="w-3.5 h-3.5" />
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                    <Package className="w-3 h-3" />
                                     Productos Solicitados
                                 </h4>
-                                <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[10px] font-black">
+                                <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md text-[9px] font-black">
                                     {products.length} ITEM(S)
                                 </span>
                              </div>
 
-                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
                                 {products.map((p: any, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group/item hover:bg-white hover:shadow-md transition-all">
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-black text-slate-700 leading-tight mb-0.5">{p.grupo}</span>
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{p.medida}</span>
+                                    <div key={idx} className="flex items-center justify-between bg-slate-50/40 p-2.5 rounded-xl border border-slate-100/50 group/item hover:bg-white hover:shadow-lg hover:shadow-brand/5 hover:border-brand/10 transition-all duration-300">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-100 shadow-sm group-hover/item:border-brand/20 transition-colors">
+                                                <Box className="w-4 h-4 text-brand/30 group-hover/item:text-brand transition-colors" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-black text-slate-700 leading-tight mb-0.5 group-hover/item:text-brand transition-colors">{p.grupo}</span>
+                                                <span className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">{p.medida}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-[7px] font-black text-slate-300 uppercase">CANT</span>
-                                            <span className="text-xs font-black text-brand">x{p.cantidad}</span>
+                                        <div className="flex flex-col items-end bg-white px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
+                                            <span className="text-[6px] font-black text-slate-300 uppercase leading-none mb-0.5">CANT</span>
+                                            <span className="text-[11px] font-black text-slate-700 leading-none group-hover/item:text-brand transition-colors">x{p.cantidad}</span>
                                         </div>
                                     </div>
                                 ))}
                              </div>
 
-                             {service.observaciones && (
-                                <div className="mt-4 p-4 bg-orange-50/30 rounded-2xl border border-orange-100/50">
-                                     <p className="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                        <Info className="w-3 h-3" />
+                              {service.observaciones && (
+                                <div className="mt-3 p-3 bg-orange-50/30 rounded-xl border border-orange-100/50">
+                                     <p className="text-[7px] font-black text-orange-400 uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                                        <Info className="w-2.5 h-2.5" />
                                         Observaciones Internas
                                      </p>
-                                     <p className="text-[11px] text-slate-600 leading-relaxed italic">{service.observaciones}</p>
+                                     <p className="text-[10px] text-slate-600 leading-relaxed italic">{service.observaciones}</p>
                                 </div>
                              )}
                         </div>

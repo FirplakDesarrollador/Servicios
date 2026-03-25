@@ -26,7 +26,8 @@ import {
     ChevronRight,
     MapPin,
     Hash,
-    Check
+    Check,
+    Box
 } from 'lucide-react';
 
 export default function ServiciosCerradosClientesPage() {
@@ -58,7 +59,7 @@ export default function ServiciosCerradosClientesPage() {
                 .select('*')
                 .eq('user_id', session.user.id)
                 .single();
-            
+
             if (!userData) {
                 router.push('/login');
                 return;
@@ -70,7 +71,7 @@ export default function ServiciosCerradosClientesPage() {
                 .from('Servicios_Distribuidor')
                 .select(`
                     *,
-                    ubicacion:ubicacion_id(nombre, nit, ciudad, direccion, telefono),
+                    ubicacion:ubicacion_id(id, nombre, nit, direccion, telefono, ciudad:ciudad_id(ciudad)),
                     consumidor:consumidor_id(*)
                 `)
                 .eq('comercial_id', userData.id)
@@ -102,9 +103,9 @@ export default function ServiciosCerradosClientesPage() {
                 (s.consecutivo?.toLowerCase().includes(lowerSearch)) ||
                 (s.numero_orden_compra?.toLowerCase().includes(lowerSearch)) ||
                 (s.ubicacion?.nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidor?.nombre?.toLowerCase().includes(lowerSearch)) ||
+                (s.consumidor?.contacto?.toLowerCase().includes(lowerSearch)) ||
                 (s.tipo_de_servicio?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion?.ciudad?.toLowerCase().includes(lowerSearch))
+                (s.ubicacion?.ciudad?.ciudad?.toLowerCase().includes(lowerSearch))
             );
         }
 
@@ -166,19 +167,19 @@ export default function ServiciosCerradosClientesPage() {
                 {/* User Info Bar */}
                 <div className="mb-6 flex items-center justify-between bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm opacity-80">
                     <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
+                        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
                             <User className="w-4 h-4 text-slate-300" />
-                         </div>
-                         <div className="flex flex-col">
+                        </div>
+                        <div className="flex flex-col">
                             <span className="text-[9px] font-black text-slate-300 uppercase leading-none mb-1">Distribuidor</span>
                             <span className="text-xs font-black text-slate-500 uppercase tracking-tight">{profile?.display_name || profile?.nombres}</span>
-                         </div>
+                        </div>
                     </div>
                     <div className="flex items-center gap-4">
-                         <div className="text-right">
+                        <div className="text-right">
                             <span className="text-[9px] font-black text-slate-300 uppercase leading-none mb-1">Total Cerrados</span>
                             <div className="text-lg font-black text-slate-400 leading-none">{services.length}</div>
-                         </div>
+                        </div>
                     </div>
                 </div>
 
@@ -231,11 +232,11 @@ export default function ServiciosCerradosClientesPage() {
                 <div className="flex flex-col gap-6">
                     {filteredServices.length === 0 ? (
                         <div className="bg-white rounded-[2rem] p-16 text-center border border-dashed border-slate-200">
-                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <History className="w-8 h-8 text-slate-300" />
-                             </div>
-                             <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">No hay historial para mostrar</h3>
-                             <p className="text-slate-300 text-xs font-bold mt-2">Aún no tienes servicios cerrados en tu historial</p>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">No hay historial para mostrar</h3>
+                            <p className="text-slate-300 text-xs font-bold mt-2">Aún no tienes servicios cerrados en tu historial</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-6">
@@ -280,9 +281,9 @@ export default function ServiciosCerradosClientesPage() {
 
 function ClientServiceCardHistorial({ service }: { service: any }) {
     const products = service.productos || [];
-    
+
     return (
-        <motion.div 
+        <motion.div
             layout
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -290,59 +291,72 @@ function ClientServiceCardHistorial({ service }: { service: any }) {
         >
             <div className="flex flex-col lg:flex-row">
                 {/* Status Column */}
-                <div className="lg:w-16 bg-slate-400 flex lg:flex-col items-center justify-center p-4 lg:py-6 gap-3 group-hover:bg-emerald-500 transition-colors">
-                     <CheckCircle2 className="w-6 h-6 text-white/40 group-hover:text-white" />
-                     <div className="lg:[writing-mode:vertical-lr] text-[10px] font-black text-white uppercase tracking-[0.3em] lg:rotate-180">
+                <div className="lg:w-12 bg-gradient-to-b from-slate-500 to-slate-400 flex lg:flex-col items-center justify-center p-3 lg:py-6 gap-3 group-hover:from-emerald-500 group-hover:to-emerald-400 transition-all duration-500 relative overflow-hidden">
+                     <div className="absolute inset-0 bg-white/5 skew-y-12 -translate-y-full group-hover:translate-y-0 transition-transform duration-1000" />
+                     <CheckCircle2 className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors relative z-10" />
+                     <div className="lg:[writing-mode:vertical-lr] text-[9px] font-black text-white/80 uppercase tracking-[0.25em] lg:rotate-180 relative z-10">
                         FINALIZADO
                      </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-6 lg:p-8">
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-8">
+                <div className="flex-1 p-4 lg:p-5">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-3 mb-6">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="text-2xl font-black text-slate-700 tracking-tighter">
+                            <div className="flex items-center gap-3 mb-1.5">
+                                <span className="text-xl font-black text-slate-700 tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 group-hover:from-emerald-900 group-hover:to-emerald-600 transition-all">
                                     {service.consecutivo}
                                 </span>
-                                <span className="bg-slate-100 text-slate-400 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                                <span className="bg-slate-100/80 text-slate-400 border border-slate-200 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest group-hover:bg-emerald-500/10 group-hover:text-emerald-600 group-hover:border-emerald-500/20 transition-all duration-300">
                                     COMPLETADO
                                 </span>
                             </div>
-                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                                <div className="flex items-center gap-2 text-slate-300 font-bold text-xs group-hover:text-emerald-300 transition-colors">
-                                    <Clock className="w-3.5 h-3.5" />
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                <div className="flex items-center gap-1.5 text-slate-300 font-bold text-[10px] group-hover:text-emerald-300 transition-colors">
+                                    <Clock className="w-3 h-3" />
                                     Finalizado el {new Date(service.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                                 </div>
-                                <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase italic">
-                                    <MapPin className="w-3.5 h-3.5" />
-                                    {service.ubicacion?.ciudad}
+                                <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase italic">
+                                    <MapPin className="w-3 h-3" />
+                                    {service.ubicacion?.ciudad?.ciudad || '---'}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2">
-                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Orden de Compra</span>
-                             <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                                <Hash className="w-3.5 h-3.5 text-slate-300" />
-                                <span className="text-sm font-black text-slate-600">{service.numero_orden_compra || '---'}</span>
+                        <div className="flex flex-col items-end gap-1.5">
+                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-40">Orden de Compra</span>
+                             <div className="flex items-center gap-2 bg-slate-50/50 backdrop-blur-sm px-3.5 py-1.5 rounded-xl border border-slate-100 shadow-inner group-hover:border-emerald-500/20 transition-all">
+                                <Hash className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-500/50 transition-colors" />
+                                <span className="text-xs font-black text-slate-600 tracking-tight">{service.numero_orden_compra || '---'}</span>
                              </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Info Column */}
                         <div className="space-y-6">
                             <div>
                                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-3">Resumen Servicio</h4>
                                 <div className="space-y-4">
-                                     <div className="flex flex-col">
-                                        <span className="text-[8px] font-black text-slate-400 uppercase mb-1">Tipo de Servicio</span>
-                                        <span className="text-sm font-bold text-slate-600 uppercase">{service.tipo_de_servicio?.replace(/_/g, ' ')}</span>
-                                     </div>
-                                     <div className="flex flex-col">
-                                        <span className="text-[8px] font-black text-slate-400 uppercase mb-1">Cliente Solicitante</span>
-                                        <span className="text-sm font-bold text-slate-600 italic">{service.ubicacion?.nombre}</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-[7px] font-black text-slate-400 uppercase mb-0.5">Tipo de Servicio</span>
+                                        <span className="text-xs font-bold text-slate-600 uppercase">{service.tipo_de_servicio?.replace(/_/g, ' ')}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[7px] font-black text-slate-400 uppercase mb-0.5">Cliente Solicitante</span>
+                                        <span className="text-xs font-bold text-slate-600 italic leading-tight">{service.ubicacion?.nombre}</span>
+                                    </div>
+                                     <div className="flex flex-col group/client p-2 rounded-xl hover:bg-emerald-50/30 transition-colors">
+                                        <span className="text-[7px] font-black text-emerald-600/60 uppercase mb-0.5 tracking-wider">Cliente Final</span>
+                                        <span className="text-xs font-black text-slate-700 uppercase leading-tight group-hover/client:text-emerald-800 transition-colors">
+                                            {service.consumidor?.contacto || service.consumidor?.nombre || 'Particular / No registrado'}
+                                        </span>
+                                        {service.consumidor?.cedula && (
+                                            <div className="flex items-center gap-1.5 mt-1">
+                                                <div className="w-1 h-3 bg-emerald-500/20 rounded-full" />
+                                                <span className="text-[9px] text-slate-400 font-bold">NIT: {service.consumidor?.cedula}</span>
+                                            </div>
+                                        )}
                                      </div>
                                 </div>
                             </div>
@@ -350,33 +364,37 @@ function ClientServiceCardHistorial({ service }: { service: any }) {
 
                         {/* Products Column */}
                         <div className="md:col-span-2">
-                             <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                                    <Package className="w-3.5 h-3.5" />
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                    <Package className="w-3 h-3" />
                                     Productos Entregados
                                 </h4>
-                             </div>
-
-                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
-                                {products.map((p: any, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between bg-slate-50/50 p-3 rounded-2xl border border-slate-100 border-dashed">
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-bold text-slate-600 leading-tight mb-0.5">{p.grupo}</span>
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{p.medida}</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                                 {products.map((p: any, idx: number) => (
+                                    <div key={idx} className="flex items-center justify-between bg-slate-50/40 p-2.5 rounded-xl border border-slate-100/80 border-dashed group/item hover:bg-white hover:border-solid hover:border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover/item:border-emerald-100 transition-colors">
+                                                <Box className="w-4 h-4 text-slate-300 group-hover/item:text-emerald-500/40 transition-colors" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-bold text-slate-600 leading-tight mb-0.5 group-hover/item:text-emerald-900 transition-colors">{p.grupo}</span>
+                                                <span className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">{p.medida}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-50">
-                                            <Check className="w-3 h-3 text-emerald-500" />
-                                            <span className="text-xs font-black text-slate-500">{p.cantidad}</span>
+                                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-50 shadow-sm group-hover/item:border-emerald-100 transition-all">
+                                            <Check className="w-2.5 h-2.5 text-emerald-500" />
+                                            <span className="text-[11px] font-black text-slate-500 group-hover/item:text-emerald-600">{p.cantidad}</span>
                                         </div>
                                     </div>
                                 ))}
                              </div>
 
-                             {service.observaciones && (
-                                <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                     <p className="text-[11px] text-slate-500 leading-relaxed italic line-clamp-2">{service.observaciones}</p>
+                            {service.observaciones && (
+                                <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <p className="text-[10px] text-slate-500 leading-relaxed italic line-clamp-2">{service.observaciones}</p>
                                 </div>
-                             )}
+                            )}
                         </div>
                     </div>
                 </div>
