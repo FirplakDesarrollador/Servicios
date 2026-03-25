@@ -238,6 +238,13 @@ export default function SolicitarServicioPage() {
         setAdjuntos(prev => prev.filter((_, i) => i !== index));
     };
 
+    const sanitizePath = (path: string) => {
+        return path
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "") // Remove accents/diacritics
+            .replace(/[^a-zA-Z0-9]/g, "_"); // Replace non-alphanumeric with underscore
+    };
+
     const uploadFiles = async (files: File[]) => {
         const uploadPromises = files.map(async (file) => {
             try {
@@ -245,7 +252,7 @@ export default function SolicitarServicioPage() {
                 const fileName = `${crypto.randomUUID()}.${fileExt}`;
                 // Use the generated consecutive for the folder structure
                 // Fallback to 'temp' if for some reason consecutivo is missing (shouldn't happen on save)
-                const folderPath = consecutivo || 'temp';
+                const folderPath = consecutivo ? sanitizePath(consecutivo) : 'temp';
                 // User requested folder name be the consecutive, containing all docs
                 const filePath = `${folderPath}/${fileName}`;
 
@@ -269,6 +276,7 @@ export default function SolicitarServicioPage() {
         const results = await Promise.all(uploadPromises);
         return results.filter((url): url is string => url !== null);
     };
+
 
     const handleSave = async () => {
         if (!tipoServicio) {

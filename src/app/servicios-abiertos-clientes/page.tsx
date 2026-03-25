@@ -81,6 +81,7 @@ export default function ServiciosAbiertosClientesPage() {
             }
 
             if (servicesData) {
+
                 setServices(servicesData);
                 setFilteredServices(servicesData);
             }
@@ -156,6 +157,8 @@ export default function ServiciosAbiertosClientesPage() {
                                 Servicios Abiertos
                             </h1>
                             <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1">Portal Distribuidor</span>
+
+
                         </div>
                     </div>
                 </div>
@@ -345,6 +348,16 @@ function ClientServiceCard({ service }: { service: any }) {
                                         <span className="text-sm font-bold text-slate-700 italic">{service.ubicacion?.nombre}</span>
                                         <span className="text-[11px] text-slate-400 font-medium">{service.ubicacion?.direccion}</span>
                                      </div>
+                                     <div className="flex flex-col">
+                                        <span className="text-[8px] font-black text-brand uppercase mb-1">Cliente Final (Consumidor)</span>
+                                        <span className="text-sm font-bold text-emerald-700 uppercase">
+                                            {service.consumidor?.contacto || service.consumidor?.nombre || 'Particular / No registrado'}
+                                        </span>
+                                        {service.consumidor?.cedula && (
+                                            <span className="text-[10px] text-slate-400 font-bold">CC/NIT: {service.consumidor?.cedula}</span>
+                                        )}
+                                     </div>
+
                                 </div>
                             </div>
                         </div>
