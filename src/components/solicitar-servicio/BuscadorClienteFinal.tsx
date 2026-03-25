@@ -10,16 +10,15 @@ interface BuscadorClienteFinalProps {
     onClose: () => void;
 }
 
-type SearchType = 'consumidor' | 'ubicacion';
 type SearchCriteria = 'cedula' | 'nombre';
 
 export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClienteFinalProps) {
-    const [searchType, setSearchType] = useState<SearchType>('consumidor');
     const [criteria, setCriteria] = useState<SearchCriteria>('nombre');
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+
 
     useEffect(() => {
         const search = async () => {
@@ -34,19 +33,12 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
 
             try {
                 let response;
-                if (searchType === 'consumidor') {
-                    const query = supabase.from('query_consumidores').select('*');
-                    const filteredQuery = criteria === 'cedula'
-                        ? query.ilike('cedula', `%${searchTerm}%`)
-                        : query.ilike('contacto', `%${searchTerm}%`);
-                    response = await filteredQuery.limit(20);
-                } else {
-                    response = await supabase
-                        .from('query_ubicaciones_fast')
-                        .select('*')
-                        .or(`cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
-                        .limit(20);
-                }
+                const query = supabase.from('query_consumidores').select('*');
+                const filteredQuery = criteria === 'cedula'
+                    ? query.ilike('cedula', `%${searchTerm}%`)
+                    : query.ilike('contacto', `%${searchTerm}%`);
+                response = await filteredQuery.limit(20);
+
 
                 if (response.error) throw response.error;
                 setResults(response.data || []);
@@ -61,7 +53,8 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
 
         const timer = setTimeout(search, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, searchType, criteria]);
+    }, [searchTerm, criteria]);
+
 
     return (
         <motion.div
@@ -86,54 +79,39 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
                 </div>
 
                 <div className="p-6 flex flex-col gap-4 flex-1 overflow-hidden">
-                    {/* Tabs / Search Type */}
-                    <div className="flex bg-slate-100 p-1 rounded-2xl">
+                    {/* Search Field */}
+
+
+                    {/* Criteria Selection (Only for Consumidor) */}
+                    <div className="flex gap-4 px-2">
                         <button
-                            onClick={() => { setSearchType('consumidor'); setResults([]); }}
-                            className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${searchType === 'consumidor' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            onClick={() => setCriteria('cedula')}
+                            className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${criteria === 'cedula' ? 'text-emerald-600' : 'text-slate-400'}`}
                         >
-                            <UserIcon className="w-4 h-4" />
-                            Consumidor
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${criteria === 'cedula' ? 'border-emerald-600' : 'border-slate-300'}`}>
+                                {criteria === 'cedula' && <div className="w-2 h-2 bg-emerald-600 rounded-full" />}
+                            </div>
+                            Cédula
                         </button>
                         <button
-                            onClick={() => { setSearchType('ubicacion'); setResults([]); }}
-                            className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${searchType === 'ubicacion' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            onClick={() => setCriteria('nombre')}
+                            className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${criteria === 'nombre' ? 'text-emerald-600' : 'text-slate-400'}`}
                         >
-                            <Building2 className="w-4 h-4" />
-                            Salón / Obra
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${criteria === 'nombre' ? 'border-emerald-600' : 'border-slate-300'}`}>
+                                {criteria === 'nombre' && <div className="w-2 h-2 bg-emerald-600 rounded-full" />}
+                            </div>
+                            Nombre
                         </button>
                     </div>
 
-                    {/* Criteria Selection (Only for Consumidor) */}
-                    {searchType === 'consumidor' && (
-                        <div className="flex gap-4 px-2">
-                            <button
-                                onClick={() => setCriteria('cedula')}
-                                className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${criteria === 'cedula' ? 'text-emerald-600' : 'text-slate-400'}`}
-                            >
-                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${criteria === 'cedula' ? 'border-emerald-600' : 'border-slate-300'}`}>
-                                    {criteria === 'cedula' && <div className="w-2 h-2 bg-emerald-600 rounded-full" />}
-                                </div>
-                                Cédula
-                            </button>
-                            <button
-                                onClick={() => setCriteria('nombre')}
-                                className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${criteria === 'nombre' ? 'text-emerald-600' : 'text-slate-400'}`}
-                            >
-                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${criteria === 'nombre' ? 'border-emerald-600' : 'border-slate-300'}`}>
-                                    {criteria === 'nombre' && <div className="w-2 h-2 bg-emerald-600 rounded-full" />}
-                                </div>
-                                Nombre
-                            </button>
-                        </div>
-                    )}
 
                     {/* Search Field */}
                     <div className="relative">
                         <input
                             autoFocus
                             type="text"
-                            placeholder={searchType === 'consumidor' ? `Buscar por ${criteria}...` : 'Buscar por nombre, NIT o dirección...'}
+                            placeholder={`Buscar por ${criteria}...`}
+
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
@@ -165,12 +143,14 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
                             results.map((item) => (
                                 <button
                                     key={item.id}
-                                    onClick={() => onSelect({ ...item, _search_type: searchType })}
+                                    onClick={() => onSelect({ ...item, _search_type: 'consumidor' })}
+
                                     className="flex flex-col p-4 bg-slate-50 hover:bg-emerald-50 border border-slate-100 rounded-2xl transition-all text-left group"
                                 >
                                     <span className="font-black text-emerald-700 uppercase tracking-tight mb-2 group-hover:translate-x-1 transition-transform">
-                                        {searchType === 'consumidor' ? item.contacto : (item.nombre || item.cliente_nombre)}
+                                        {item.contacto}
                                     </span>
+
 
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                         {(item.cedula || item.nit || item.cliente_nit) && (
@@ -191,12 +171,7 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
                                                 {item.ciudad}
                                             </div>
                                         )}
-                                        {(item.nombre_contacto && searchType === 'ubicacion') && (
-                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase">
-                                                <UserIcon className="w-3 h-3 text-slate-400" />
-                                                {item.nombre_contacto}
-                                            </div>
-                                        )}
+
                                         {item.direccion && (
                                             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase col-span-2">
                                                 <MapPin className="w-3 h-3 text-slate-400 opacity-50" />
@@ -212,8 +187,9 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
                             </div>
                         ) : (
                             <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-50 px-10 leading-relaxed">
-                                Ingrese al menos 3 caracteres para iniciar la búsqueda en {searchType === 'consumidor' ? 'Consumidores' : 'Salas / Obras'}
+                                Ingrese al menos 3 caracteres para iniciar la búsqueda en Consumidores
                             </div>
+
                         )}
                     </div>
 
