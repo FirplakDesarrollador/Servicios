@@ -24,24 +24,30 @@ export function InfoField({
 }: InfoFieldProps) {
     return (
         <div className={`flex flex-col gap-1.5 ${fullWidth ? 'col-span-full' : ''} ${className}`}>
-            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider ml-1">
+            <span className="text-xs font-semibold text-slate-500 ml-0.5">
                 {label}
-            </label>
+            </span>
             <div
                 className={`
-                    min-h-[42px] px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-between
+                    min-h-[40px] px-3 py-2 rounded-md text-sm border transition-all duration-200 flex items-start justify-between
                     ${editable
-                        ? 'bg-white border border-slate-200 text-slate-700 shadow-sm hover:border-brand/30 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/5'
-                        : 'bg-slate-50/50 text-slate-600 border border-transparent'
+                        ? 'bg-white border-slate-300 text-slate-900 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/20'
+                        : 'bg-slate-50 border-slate-200 text-slate-600'
                     }
                 `}
             >
-                <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    {Icon && <Icon className="w-4 h-4 text-brand/60 shrink-0" />}
-                    <span className="break-words line-clamp-2" title={value?.toString()}>{value || 'N/A'}</span>
+                <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                    {Icon && (
+                        <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex flex-col min-w-0">
+                        <span className="break-words font-medium" title={value?.toString()}>
+                            {value || '---'}
+                        </span>
+                    </div>
                 </div>
                 {rightElement && (
-                    <div className="ml-2 shrink-0">
+                    <div className="ml-2 shrink-0 self-center">
                         {rightElement}
                     </div>
                 )}
@@ -62,23 +68,20 @@ export function InfoSection({
     rightElement?: React.ReactNode;
 }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`bg-white rounded-3xl border border-slate-100 p-6 premium-shadow ${className}`}
+        <div
+            className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden ${className}`}
         >
             {title && (
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <div className="w-1.5 h-6 bg-brand rounded-full" />
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                         {title}
                     </h3>
                     {rightElement}
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {children}
             </div>
-        </motion.div>
+        </div>
     );
 }

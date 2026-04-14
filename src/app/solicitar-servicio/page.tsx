@@ -165,18 +165,27 @@ export default function SolicitarServicioPage() {
                 const fileName = `${crypto.randomUUID()}.${fileExt}`;
                 // Use the generated consecutive for the folder structure
                 // Fallback to 'temp' if for some reason consecutivo is missing (shouldn't happen on save)
-                const folderPath = consecutivo || 'temp';
+                const sanitizePath = (path: string) => {
+                    return path
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .replace(/ñ/g, "n")
+                        .replace(/Ñ/g, "N")
+                        .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
+                };
+
+                const folderPath = sanitizePath(consecutivo || 'temp');
                 // User requested folder name be the consecutive, containing all docs
-                const filePath = `${folderPath}/${fileName}`;
+                const filePath = `${folderPath}/documentos/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
-                    .from('solicitudesclientes')
+                    .from('servicios')
                     .upload(filePath, file);
 
                 if (uploadError) throw uploadError;
 
                 const { data: { publicUrl } } = supabase.storage
-                    .from('solicitudesclientes')
+                    .from('servicios')
                     .getPublicUrl(filePath);
 
                 return publicUrl;
@@ -266,11 +275,38 @@ export default function SolicitarServicioPage() {
             // 1. Upload Files
             const uploadedUrls = await uploadFiles(adjuntos);
 
-            // 2. Prepare Approval Logic
+            // 2. Prepare Approval Logic & Coordinator Assignment
             const aprobacionDirector = determineApproval(tipoServicio, facturado, 'director');
             const aprobacionLogistica = determineApproval(tipoServicio, facturado, 'logistica');
             const aprobacionMac = determineApproval(tipoServicio, facturado, 'mac');
             const aplicaTecnico = determineAplicaTecnico(tipoServicio);
+
+            // Determine Coordinator based on Zone (as requested)
+            let finalCoordinadorId = null;
+            const itemForZone = clienteFinalSeleccionado || clienteSeleccionado;
+            let zoneId = itemForZone?.zona_id;
+
+            // Fallback for Ecommerce if no client zone
+            if (!zoneId && isEcommerce) {
+                zoneId = 985; // Antioquia/Firplak B2C
+            }
+
+            if (zoneId) {
+                const { data: zonaData } = await supabase
+                    .from('Zonas')
+                    .select('coordinador_id')
+                    .eq('id', zoneId)
+                    .single();
+                
+                if (zonaData) {
+                    finalCoordinadorId = zonaData.coordinador_id;
+                }
+            }
+
+            // Last resort fallback to the ID present in the view if lookup failed
+            if (!finalCoordinadorId) {
+                finalCoordinadorId = itemForZone?.coordinador_id || itemForZone?.coordinadorId;
+            }
 
             // 3. Insert Servicio
             const { data: servicioData, error: servicioError } = await supabase
@@ -282,9 +318,7 @@ export default function SolicitarServicioPage() {
                     consumidor_id: clienteFinalSeleccionado?.id || null,
                     estado: true,
                     ubicacion_id: isEcommerce ? 2126 : clienteSeleccionado?.id,
-                    coordinador_id: clienteFinalSeleccionado?.id
-                        ? clienteFinalSeleccionado.coordinadorId
-                        : clienteSeleccionado?.coordinadorId,
+                    coordinador_id: finalCoordinadorId,
                     tipo_de_servicio: tipoServicio,
                     canal_de_venta: canalVenta,
                     facturado: facturado,

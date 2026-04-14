@@ -9,11 +9,12 @@ interface CommentModalProps {
     isOpen: boolean;
     onClose: () => void;
     servicioId: number;
+    consecutivo?: string;
     currentUser: any;
     onSuccess: () => void;
 }
 
-export default function CommentModal({ isOpen, onClose, servicioId, currentUser, onSuccess }: CommentModalProps) {
+export default function CommentModal({ isOpen, onClose, servicioId, consecutivo, currentUser, onSuccess }: CommentModalProps) {
     const [content, setContent] = useState('');
     const [files, setFiles] = useState<File[]>([]);
     const [uploading, setUploading] = useState(false);
@@ -33,16 +34,32 @@ export default function CommentModal({ isOpen, onClose, servicioId, currentUser,
         const uploadPromises = files.map(async (file) => {
             const fileExt = file.name.split('.').pop();
             const fileName = `${crypto.randomUUID()}.${fileExt}`;
-            const filePath = `comentarios/${servicioId}/${fileName}`;
+            // Use consecutivo if available for folder organization
+            const sanitizePath = (path: string) => {
+                return path
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .replace(/ñ/g, "n")
+                    .replace(/Ñ/g, "N")
+                    .replace(/[^a-zA-Z0-9\/\-_.]/g, "_"); // Replace other special characters with underscore
+            };
+
+            const folderPath = sanitizePath(consecutivo || servicioId.toString());
+            const filePath = `${folderPath}/documentos/${fileName}`;
+
+            console.log(`Uploading to bucket 'servicios', path: ${filePath}`);
 
             const { error: uploadError } = await supabase.storage
-                .from('solicitudesclientes')
+                .from('servicios')
                 .upload(filePath, file);
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                console.error('Upload Error Details:', uploadError);
+                throw uploadError;
+            }
 
             const { data: { publicUrl } } = supabase.storage
-                .from('solicitudesclientes')
+                .from('servicios')
                 .getPublicUrl(filePath);
 
             return publicUrl;
@@ -63,18 +80,22 @@ export default function CommentModal({ isOpen, onClose, servicioId, currentUser,
                 contenido: content || 'Archivo adjunto',
                 documentos: urls,
                 usuario_id: currentUser?.id,
-                tipo: 'seguimiento'
+                tipo: 'observacion_general'
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error('Database Insert Error:', error);
+                throw error;
+            }
 
             setContent('');
             setFiles([]);
             onSuccess();
             onClose();
         } catch (error: any) {
-            console.error('Error adding comment:', error);
-            alert(`Error al añadir observación: ${error.message}`);
+            console.error('Detailed Error adding comment:', error);
+            const errorMsg = error.message || error.error_description || JSON.stringify(error);
+            alert(`Error al añadir observación: ${errorMsg}`);
         } finally {
             setUploading(false);
         }

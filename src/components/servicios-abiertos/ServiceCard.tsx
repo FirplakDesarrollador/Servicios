@@ -58,161 +58,137 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
     const consumidorDepto = getVal('consumidor_departamento', 'consumidorDepartamento');
     const consumidorDireccion = getVal('consumidor_direccion', 'consumidorDireccion');
 
-    const getStatusColor = (status: string) => {
-        switch (status?.toLowerCase()) {
-            case 'agendado': return '#53B2EA';
-            case 'sin agendar': return '#94A3B8';
-            case 'terminado': return '#10B981';
-            case 'con pendientes': return '#F59E0B';
-            case 'cancelado': return '#EF4444';
-            case 'preagendado': return '#3C26F3';
-            case 'en progreso': return '#5B693B';
-            default: return '#94A3B8';
-        }
+    const statusColors: any = {
+        'agendado': 'bg-blue-50 text-blue-700 border-blue-100',
+        'sin agendar': 'bg-slate-50 text-slate-700 border-slate-200',
+        'terminado': 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        'con pendientes': 'bg-amber-50 text-amber-700 border-amber-100',
+        'cancelado': 'bg-rose-50 text-rose-700 border-rose-100',
+        'preagendado': 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        'en progreso': 'bg-teal-50 text-teal-700 border-teal-100',
     };
 
-    const copyToClipboard = (text: string) => {
-        if (!text) return;
-        navigator.clipboard.writeText(text);
-    };
-
-    const copyPublicLink = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const publicUrl = `${window.location.origin}/consultar-estado?consecutivo=${consecutivo}`;
-        navigator.clipboard.writeText(publicUrl);
-        alert('¡Link copiado! Compártelo con el cliente para que consulte el estado de su servicio.');
-    };
-
-    const isConstructor = canalDeVenta === 'canal_constructor';
-    const displayCiudad = (consumidorCiudad && !isConstructor) ? consumidorCiudad : ubicacionCiudad;
-    const displayDepto = (consumidorDepto && !isConstructor) ? consumidorDepto : ubicacionDepto;
-    const displayDireccion = (consumidorDireccion && !isConstructor) ? consumidorDireccion : ubicacionDireccion;
-
-    const statusColor = getStatusColor(estadoAgendamiento);
+    const currentStatusStyle = statusColors[estadoAgendamiento?.toLowerCase()] || statusColors['sin agendar'];
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg p-3 shadow-sm border border-[#D3D3D3] hover:border-brand/30 transition-all flex flex-col gap-3 group/card overflow-hidden"
+            className="bg-white rounded-lg p-5 border border-slate-200 shadow-sm hover:border-slate-300 transition-all flex flex-col gap-4"
         >
-            {/* Top Row: Lock, Consecutivo, Fecha, MAC, Actions */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center">
-                        {service.estado ? (
-                            <Unlock className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : (
-                            <Lock className="w-3.5 h-3.5 text-rose-500" />
-                        )}
+            {/* Top Row: Meta & Actions */}
+            <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+                <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2 mb-1">
+                            {service.estado ? (
+                                <Unlock className="w-3.5 h-3.5 text-emerald-500" />
+                            ) : (
+                                <Lock className="w-3.5 h-3.5 text-rose-500" />
+                            )}
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Servicio</span>
+                        </div>
+                        <button
+                            onClick={() => copyToClipboard(consecutivo)}
+                            className="text-sm font-bold text-slate-900 flex items-center gap-2 hover:text-blue-600 transition-colors"
+                        >
+                            {consecutivo || 'SC-0000'}
+                            <Copy className="w-3 h-3 opacity-0 group-hover/card:opacity-100" />
+                        </button>
                     </div>
 
-                    <button
-                        onClick={() => copyToClipboard(consecutivo)}
-                        style={{ backgroundColor: statusColor }}
-                        className="px-3 py-1.5 rounded-md text-[13px] font-medium text-white flex items-center gap-2 active:scale-95 transition-all shadow-sm"
-                    >
-                        {consecutivo || 'SC-0000'}
-                    </button>
+                    <div className="h-8 w-px bg-slate-100 mx-1" />
 
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: statusColor }} />
-                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: statusColor }}>
-                                {estadoAgendamiento}
-                            </span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-0.5">Solicitud</span>
-                            <span className="text-[11px] font-medium text-slate-500 italic leading-none">
-                                {createdAt ? new Date(createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-                            </span>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fecha</span>
+                        <span className="text-xs font-semibold text-slate-600">
+                            {createdAt ? new Date(createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : 'N/A'}
+                        </span>
+                    </div>
+
+                    <div className="flex flex-col ml-4">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Estado</span>
+                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${currentStatusStyle}`}>
+                            {estadoAgendamiento || 'Sin estado'}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="hidden lg:flex items-center gap-2">
-                        <span className="text-[12px] text-slate-600">
-                            {asesorMacNombre || 'sin asignar'}
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-md border border-slate-100">
+                        <span className="text-[11px] font-medium text-slate-500">
+                            {asesorMacNombre || 'Sin MAC'}
                         </span>
                         {(service.estado === true) && (
-                            <Headset
-                                className={`w-5 h-5 cursor-pointer transition-colors ${asesorMacNombre ? 'text-emerald-500' : 'text-slate-300'}`}
-                            />
+                            <Headset className={`w-3.5 h-3.5 ${asesorMacNombre ? 'text-blue-500' : 'text-slate-300'}`} />
                         )}
                     </div>
-
-                    <div className="flex items-center gap-4">
-                        <Share2
-                            onClick={copyPublicLink}
-                            className="w-5 h-5 text-brand cursor-pointer hover:text-brand-light transition-colors"
-                        />
+                    <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
+                        <button onClick={copyPublicLink} className="p-2 hover:bg-slate-50 rounded-md transition-colors text-slate-400 hover:text-blue-500" title="Copiar Link Cliente">
+                            <Share2 className="w-4 h-4" />
+                        </button>
                         {onDelete && (
-                            <Trash2
-                                onClick={() => onDelete(service)}
-                                className="w-5 h-5 text-rose-400 cursor-pointer hover:text-rose-600 transition-colors"
-                            />
+                            <button onClick={() => onDelete(service)} className="p-2 hover:bg-rose-50 rounded-md transition-colors text-slate-400 hover:text-rose-500">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
                         )}
-                        <Eye
-                            onClick={() => onClick(service)}
-                            className="w-5 h-5 text-brand cursor-pointer hover:text-brand-light transition-colors"
-                        />
+                        <button onClick={() => onClick(service)} className="p-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors">
+                            <Eye className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Bottom Grid: All the details in multiple rows/columns for density */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-y-3 gap-x-4 border-t border-slate-50 pt-3">
-                <DetailItem label="Tipo de servicio" value={tipoDeServicio} />
-                <DetailItem label="Asesor comercial" value={asesorNombre} />
-
-                <div className="flex flex-col">
-                    <span className="text-[12px] font-medium text-slate-800 leading-none mb-1">{canalDeVenta || 'Canal'}</span>
-                    <span className="text-[11px] font-light text-slate-400 truncate">{ubicacionNombre || '---'}</span>
-                </div>
-
-                <DetailItem
-                    label={canalDeVenta === 'canal_constructor' ? 'Contacto Obra' : 'Contacto Canal'}
-                    value={getVal('ubicacion_contacto', 'ubicacionContacto')}
-                />
-
-                <DetailItem
-                    label={canalDeVenta === 'canal_constructor' ? 'Departamento obra' : (consumidorDepto ? 'Departamento cliente final' : 'Departamento canal')}
-                    value={displayDepto}
-                />
-
-                <DetailItem
-                    label={canalDeVenta === 'canal_constructor' ? 'Ciudad obra' : (consumidorCiudad ? 'Ciudad cliente final' : 'Ciudad canal')}
-                    value={displayCiudad}
-                />
-
-                <DetailItem
-                    label={canalDeVenta === 'canal_constructor' ? 'Direccion obra' : (consumidorDireccion ? 'Direccion cliente final' : 'Direccion canal')}
-                    value={displayDireccion}
-                />
-
-                <DetailItem label="Cédula cliente final" value={getVal('consumidor_cedula', 'consumidorCedula')} />
-                <DetailItem label="Cliente final" value={consumidorContacto} />
-                <DetailItem label="Telefono cliente final" value={consumidorTelefono} />
-
-                <DetailItem label="Tecnico asignado" value={tecnicoNombre} />
-                <DetailItem label="Cédula técnico" value={getVal('tecnico_cedula', 'tecnicoCedula')} />
-
-                <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-medium text-slate-800 leading-none mb-1">Estado</span>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
-                        <span className="text-[11px] font-light text-slate-400 truncate">
-                            {estadoAgendamiento}
-                        </span>
+            {/* Content Mid: Principal Subject */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-1">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Canal / Distribuidor</span>
+                    <span className="text-sm font-semibold text-slate-800 line-clamp-1">{ubicacionNombre || '---'}</span>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <MapPin className="w-3 h-3" />
+                        {displayCiudad || '---'}
                     </div>
                 </div>
-                <DetailItem
-                    label="Fecha programada"
-                    value={service.visitaFechaHoraInicio ? new Date(service.visitaFechaHoraInicio).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Null'}
-                />
-                <DetailItem label="Numero de pedido" value={numeroDePedido} />
+
+                <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cliente Final</span>
+                    <span className="text-sm font-semibold text-slate-800 line-clamp-1">{consumidorContacto || '---'}</span>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Phone className="w-3 h-3" />
+                        {consumidorTelefono || '---'}
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tipo de Servicio</span>
+                    <span className="text-sm font-semibold text-slate-800">{tipoDeServicio || '---'}</span>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 uppercase font-bold tracking-tighter">
+                        <Zap className="w-3 h-3 text-amber-500" />
+                        Pedido: {numeroDePedido || '---'}
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Row: Additional Meta */}
+            <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-[10px] font-medium text-slate-500">Asesor: {asesorNombre}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Settings className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-[10px] font-medium text-slate-500">Técnico: {tecnicoNombre || 'Pendiente'}</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 text-slate-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-medium italic">
+                        {service.visitaFechaHoraInicio 
+                            ? new Date(service.visitaFechaHoraInicio).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) 
+                            : 'Cita pendiente'}
+                    </span>
+                </div>
             </div>
         </motion.div>
     );
@@ -221,10 +197,11 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
 function DetailItem({ label, value, className = "" }: { label: string, value: string | null | undefined, className?: string }) {
     return (
         <div className={`flex flex-col min-w-0 ${className}`}>
-            <span className="text-[11px] font-medium text-slate-800 leading-none mb-1">{label}</span>
-            <span className="text-[11px] font-light text-slate-400 truncate">
-                {value || 'Null'}
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{label}</span>
+            <span className="text-xs font-semibold text-slate-700 truncate">
+                {value || '---'}
             </span>
         </div>
     );
 }
+

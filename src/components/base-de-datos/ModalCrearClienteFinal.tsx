@@ -24,9 +24,10 @@ interface ModalCrearClienteFinalProps {
     onClose: () => void;
     onSuccess: () => void;
     initialData?: any;
+    serviceId?: string | number;
 }
 
-export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, initialData }: ModalCrearClienteFinalProps) {
+export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, initialData, serviceId }: ModalCrearClienteFinalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +63,7 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
                     direccion: initialData.consumidor_direccion || initialData.direccion || '',
                     descripcion_direccion: initialData.consumidor_descripcion_direccion || initialData.descripcion_direccion || '',
                     telefono: initialData.consumidor_telefono || initialData.telefono || '',
-                    correo_electronico: initialData.consumidor_correo_electronico || initialData.correo_electronico || '',
+                    correo_electronico: initialData.consumidor_correo || initialData.consumidor_correo_electronico || initialData.correo_electronico || '',
                 });
             } else {
                 setFormData({
@@ -88,10 +89,24 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
                 .order('ciudad');
             setCiudades(data || []);
             
-            // If editing, find the department for the initial city
+            // If editing, find the city ID and department
             if (initialData) {
                 const cityId = initialData.consumidor_ciudad_id || initialData.ciudad_id;
-                const city = (data || []).find(c => c.id.toString() === cityId?.toString());
+                const cityName = initialData.consumidor_ciudad || initialData.ciudad;
+                
+                let city = (data || []).find(c => c.id.toString() === cityId?.toString());
+                
+                // Fallback: try finding by name if ID lookup failed
+                if (!city && cityName) {
+                    const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const targetName = normalize(cityName);
+                    city = (data || []).find(c => c.ciudad && normalize(c.ciudad) === targetName);
+                    
+                    if (city) {
+                        setFormData(prev => ({ ...prev, ciudad_id: city.id.toString() }));
+                    }
+                }
+
                 if (city) {
                     setGeoInfo({ departamento: city.departamento || '' });
                 }
@@ -144,12 +159,23 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
             };
 
             if (formData.id) {
-                // Update
+                // Update Consumer
                 const { error: updateError } = await supabase
                     .from('Consumidores')
                     .update(payload)
                     .eq('id', formData.id);
                 if (updateError) throw updateError;
+
+                // SPECIAL REQUEST: If serviceId is provided, update the service's coordinator based on the new city's zone
+                if (serviceId) {
+                    const selectedCity = ciudades.find(c => c.id.toString() === formData.ciudad_id);
+                    if (selectedCity && selectedCity.coordinador_id) {
+                        await supabase
+                            .from('Servicios')
+                            .update({ coordinador_id: selectedCity.coordinador_id })
+                            .eq('id', serviceId);
+                    }
+                }
             } else {
                 // Insert
                 const { error: insertError } = await supabase
