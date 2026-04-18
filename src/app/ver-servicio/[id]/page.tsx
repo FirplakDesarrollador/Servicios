@@ -64,7 +64,7 @@ type TabType = 'informacion' | 'observaciones' | 'agendamiento' | 'aprobaciones'
 export default function VerServicioPage() {
     const router = useRouter();
     const params = useParams();
-    const id = params.id;
+    const id = params.id as string;
 
     const [loading, setLoading] = useState(true);
     const [service, setService] = useState<any>(null);
