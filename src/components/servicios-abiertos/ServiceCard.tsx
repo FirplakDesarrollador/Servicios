@@ -22,7 +22,8 @@ import {
     Map,
     Briefcase,
     Headset,
-    Share2
+    Share2,
+    Zap
 } from 'lucide-react';
 
 interface ServiceCardProps {
@@ -57,6 +58,17 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
     const consumidorCiudad = getVal('consumidor_ciudad', 'consumidorCiudad');
     const consumidorDepto = getVal('consumidor_departamento', 'consumidorDepartamento');
     const consumidorDireccion = getVal('consumidor_direccion', 'consumidorDireccion');
+
+    const displayCiudad = consumidorCiudad || ubicacionCiudad;
+
+    const copyToClipboard = (text: string) => {
+        if (text) navigator.clipboard.writeText(text).catch(() => {});
+    };
+
+    const copyPublicLink = () => {
+        const link = `${window.location.origin}/seguimiento/${service.id}`;
+        navigator.clipboard.writeText(link).catch(() => {});
+    };
 
     const statusColors: any = {
         'agendado': 'bg-blue-50 text-blue-700 border-blue-100',
