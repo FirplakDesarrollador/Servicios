@@ -22,7 +22,8 @@ import {
   BarChart3,
   CheckCircle2,
   Settings,
-  Link
+  Link,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -62,7 +63,7 @@ export default function Home() {
           setProfile(userData);
 
           // Grant all permissions to all users
-          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
+          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Indicador quejas', 'Configuración']);
         }
       }
       setLoading(false);
@@ -140,6 +141,7 @@ export default function Home() {
     { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-600' },
     { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-600' },
     { title: 'BI', icon: BarChart3, color: 'bg-brand' },
+    { title: 'Indicador quejas', icon: AlertTriangle, color: 'bg-rose-500' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
@@ -269,6 +271,8 @@ export default function Home() {
                   router.push('/agenda-tecnicos');
                 } else if (item.title === 'BI') {
                   router.push('/bi');
+                } else if (item.title === 'Indicador quejas') {
+                  router.push('/indicador-quejas');
                 }
               }}
               className={`group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden ${portalType === 'cliente' ? 'max-w-[200px] w-full mx-auto' : ''}`}

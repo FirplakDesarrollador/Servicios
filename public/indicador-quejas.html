@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BI Dashboard MAC - SAP Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --app-bg: #F1F5F9; --app-card: #FFFFFF; --app-accent: #0ea5e9; }
+        body { background: var(--app-bg); color: #1e293b; font-family: 'Inter', sans-serif; }
+        .glass { background: #FFFFFF; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); border-radius: 1.5rem; }
+        .chart-box { min-height: 280px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .filter-active { border: 1px solid var(--app-accent); background: rgba(14,165,233,0.05); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-72 glass !rounded-none p-8 hidden lg:block border-r border-slate-200 z-40 shadow-xl">
+        <div class="mb-10 flex items-center gap-3">
+            <h1 class="text-xl font-black italic tracking-tighter text-slate-800">BI <span class="text-sky-500">POWER</span></h1>
+        </div>
+
+        <div class="space-y-8">
+            <section>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Tipo de Reporte (Serie)</p>
+                <select id="fTipo" onchange="apply()" class="w-full bg-white border border-sky-500/30 rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 focus:ring-sky-500 text-sky-600 font-extrabold shadow-sm transition-all"><option value="">Todos los Tipos</option></select>
+            </section>
+
+            <section>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Rango de Fecha</p>
+                <div class="space-y-3">
+                    <input type="date" id="dateStart" onchange="apply()" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none focus:ring-1 focus:ring-sky-500 text-slate-700">
+                    <input type="date" id="dateEnd" onchange="apply()" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none focus:ring-1 focus:ring-sky-500 text-slate-700">
+                </div>
+            </section>
+
+            <section>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Filtros Activos</p>
+                <div id="active-filters" class="space-y-2">
+                    <div class="text-[10px] text-slate-400 italic">Haz clic en los gráficos para filtrar</div>
+                </div>
+                <button onclick="clearAllFilters()" class="mt-4 text-[10px] text-sky-600 font-bold uppercase hover:underline decoration-2">Limpiar Filtros</button>
+            </section>
+
+            <section>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Segmentación Manual</p>
+                <div class="space-y-3">
+                    <select id="fCity" onchange="apply()" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none text-slate-700 focus:ring-1 focus:ring-sky-500"><option value="">Todas las Ciudades</option></select>
+                    <select id="fChan" onchange="apply()" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none text-slate-700 focus:ring-1 focus:ring-sky-500"><option value="">Todos los Canales</option></select>
+                </div>
+            </section>
+
+            <button onclick="apply()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-xl transition-all shadow-md text-[10px] uppercase tracking-widest">
+                Actualizar Datos
+            </button>
+        </div>
+    </aside>
+
+    <main class="lg:ml-72 p-10">
+        <!-- Header -->
+        <header class="mb-12 flex justify-between items-end">
+            <div>
+                <h2 class="text-4xl font-extrabold tracking-tighter uppercase italic leading-tight text-slate-800">Informe de <span class="text-sky-500">Quejas MAC</span></h2>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="date-label" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sincronizado con SAP Cloud</span>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="exportCSV()" class="glass px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-[0.15em] hover:bg-slate-50 transition-all flex items-center gap-2 text-slate-700">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Exportar
+                </button>
+                <div id="summary-pill" class="glass px-5 py-3 rounded-2xl text-right">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase mb-1">Impacto Seleccionado</p>
+                    <h3 id="v-cost" class="text-xl font-black text-emerald-600">$0</h3>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="glass kpi-card border-none border-l-4 border-sky-500 animate-slide-up py-5 px-6" style="animation-delay: 0.1s; border-left: 4px solid #0ea5e9;">
+                <p class="text-[10px] font-bold text-sky-600 uppercase tracking-widest mb-1">Total Quejas</p>
+                <h3 id="v-quejas" class="text-4xl font-black text-slate-800">0</h3>
+            </div>
+            <div class="glass kpi-card py-5 px-6">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Unid Novedad</p>
+                <h3 id="v-units" class="text-4xl font-black text-slate-800">0</h3>
+            </div>
+            <div class="glass kpi-card border border-emerald-500/20 py-5 px-6 bg-emerald-50/50">
+                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Variación Periodo</p>
+                <h3 id="v-growth" class="text-4xl font-black text-emerald-700">0%</h3>
+            </div>
+        </div>
+
+        <!-- Interactive Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+            <div id="box-trend" class="lg:col-span-2 glass p-6 chart-box">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-sky-600 mb-6">Tendencia Cronológica</h3>
+                <div class="h-[350px]"><canvas id="cTrend"></canvas></div>
+            </div>
+            <div id="box-problem" class="glass p-6 chart-box">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-6">Tipo de Problema</h3>
+                <div class="h-[350px]"><canvas id="cProblem"></canvas></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+            <div id="box-family" class="glass p-6 chart-box">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-6">Quejas por Depto.</h3>
+                <div class="flex items-center h-[300px]">
+                    <div class="w-[60%] h-full">
+                        <canvas id="cFamily"></canvas>
+                    </div>
+                    <div id="family-legend" class="w-[40%] pl-6 space-y-2 overflow-y-auto max-h-full custom-scrollbar"></div>
+                </div>
+            </div>
+            <div id="box-agent" class="glass p-6 chart-box">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-6">Subgrupos Afectados</h3>
+                <div class="h-[300px]"><canvas id="cAgent"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Location & Zone Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+            <div id="box-zone" class="glass p-6 chart-box">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-sky-600 mb-6">Quejas por Zona</h3>
+                <div class="h-[300px]"><canvas id="cZone"></canvas></div>
+            </div>
+            <div class="glass overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-white z-10 rounded-t-3xl">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500">Distribución por Ciudad</h3>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+                    <table class="w-full text-left text-[11px] font-medium border-collapse relative">
+                        <thead class="sticky top-0 bg-slate-50/95 backdrop-blur-md text-slate-500 border-b border-slate-200 uppercase tracking-tighter shadow-sm z-20">
+                            <tr>
+                                <th class="p-4">Ciudad</th>
+                                <th class="p-4 text-center">Quejas</th>
+                                <th class="p-4 text-center">Unid Novedad</th>
+                                <th class="p-4 text-right">Inversión</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tBody" class="divide-y divide-slate-100 bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script shadow>
+        const { createClient } = supabase;
+        const client = createClient('https://lnphhmowklqiomownurw.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxucGhobW93a2xxaW9tb3dudXJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTIwMzQwMjUsImV4cCI6MjAwNzYxMDAyNX0.FHCOWrVp-K-7qrM3CtYmYaqiOqwzsX_Au7pLm-MN3eQ');
+
+        let raw = [], filtered = [], charts = {}, zoneMap = {};
+        
+        const DateUtils = {
+            parse: (s) => { if(!s) return null; const [d,m,y] = s.split('/'); return new Date(y, m-1, d); },
+            format: (d, f) => {
+                const m = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                return f === 'MM-YYYY' ? `${m[d.getMonth()]} ${d.getFullYear().toString().slice(-2)}` : d.toLocaleDateString();
+            }
+        };
+
+        const parseDate = (v) => DateUtils.parse(v);
+        const parseNum = (v) => { if(!v) return 0; if(typeof v === 'number') return v; return parseFloat(v.toString().replace(/\./g, '').replace(',', '.')) || 0; };
+
+        // GLOBAL FILTERS STATE
+        let globalFilters = { tipo: "Queja", city: "", zone: "", channel: "", monthKey: "", problem: "", agent: "", family: "", resp: "" };
+
+        async function init() {
+            const { data: zones } = await client.from('Zonas').select('*');
+            if(zones) zones.forEach(z => { zoneMap[String(z['Ciudad']).toUpperCase().trim()] = z['Zona']; });
+
+            const { data, error } = await client.from('Informe_queja_SAP').select('*');
+            if(error) return;
+
+            raw = data.map(i => {
+                const d = parseDate(i['Fecha']);
+                const city = String(i['Ciudad'] || i['Pais'] || 'DESCONOCIDO').toUpperCase().trim();
+                return {
+                    ...i,
+                    _d: d,
+                    _monthKey: d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : null,
+                    _monthLabel: d ? DateUtils.format(d, 'MM-YYYY') : '',
+                    _qty: parseNum(i['Cantidad']),
+                    _cost: parseNum(i['Valor Servicio']),
+                    _city: city,
+                    _zone: zoneMap[city] || 'SIN ZONA',
+                    _prob: String(i['Tipo de Problema'] || '').trim(),
+                    _agent: String(i['Tratado por'] || '').trim(),
+                    _chan: String(i['Canal de venta'] || '').trim(),
+                    _family: String(i['Grupo Art'] || '').trim(),
+                    _serie: String(i['Serie'] || '').trim(),
+                    _respRaw: String(i['Resp Problema'] || 'SIN ASIGNAR').toUpperCase().trim().replace(/[ÁÉÍÓÚ]/g, (m) => ({'Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'}[m]))
+                };
+            }).map(x => {
+                const m = {
+                    'TRANSPORTADORA': 'LOGISTICA', 'LOGISTICA': 'LOGISTICA', 'DIGITACION': 'LOGISTICA', 'ABASTECIMIENTO': 'LOGISTICA', 'DESPACHOS': 'LOGISTICA',
+                    'ASESOR': 'COMERCIAL', 'MAC': 'COMERCIAL', 'VENTAS - COMERCIAL': 'COMERCIAL', 'VENTAS-COMERCIAL': 'COMERCIAL',
+                    'ATENCION': 'NO APLICA', 'FALSA QUEJA': 'NO APLICA', 'CLIENTE': 'NO APLICA'
+                };
+                x._resp = m[x._respRaw] || x._respRaw;
+                return x;
+            }).filter(x => x._d);
+
+            document.getElementById('dateStart').value = '2025-11-15';
+            document.getElementById('dateEnd').value = '2026-04-14';
+
+            const fill = (id, p) => {
+                const opts = [...new Set(raw.map(x=>x[p]))].sort();
+                const sel = document.getElementById(id);
+                opts.forEach(v => { const o = document.createElement('option'); o.value=v; o.innerText=v; sel.appendChild(o); });
+            };
+            fill('fCity', '_city'); fill('fChan', '_chan');
+            fill('fTipo', '_serie');
+
+            document.getElementById('fTipo').value = "Queja";
+            apply();
+        }
+
+        function clearAllFilters() {
+            globalFilters = { tipo: "Queja", city: "", channel: "", monthKey: "", problem: "", agent: "", family: "", resp: "" };
+            document.getElementById('fTipo').value = "Queja";
+            document.getElementById('fCity').value = "";
+            document.getElementById('fChan').value = "";
+            apply();
+        }
+
+        function apply() {
+            const s = new Date(document.getElementById('dateStart').value), e = new Date(document.getElementById('dateEnd').value);
+            e.setHours(23,59,59);
+            
+            globalFilters.city = document.getElementById('fCity').value;
+            globalFilters.channel = document.getElementById('fChan').value;
+            globalFilters.tipo = document.getElementById('fTipo').value;
+
+            filtered = raw.filter(x => {
+                const matchDate = x._d >= s && x._d <= e;
+                const matchTipo = !globalFilters.tipo || x._serie === globalFilters.tipo;
+                const matchCity = !globalFilters.city || x._city === globalFilters.city;
+                const matchChan = !globalFilters.channel || x._chan === globalFilters.channel;
+                const matchMonth = !globalFilters.monthKey || x._monthKey === globalFilters.monthKey;
+                const matchProb = !globalFilters.problem || x._prob === globalFilters.problem;
+                const matchAgent = !globalFilters.agent || x._agent === globalFilters.agent;
+                const matchFamily = !globalFilters.family || (x._family.includes('-') ? x._family.split('-')[1].trim() : x._family) === globalFilters.family;
+                const matchResp = !globalFilters.resp || x._resp === globalFilters.resp;
+                const matchZone = !globalFilters.zone || x._zone === globalFilters.zone;
+                return matchDate && matchTipo && matchCity && matchChan && matchMonth && matchProb && matchAgent && matchFamily && matchResp && matchZone;
+            });
+
+            document.getElementById('v-quejas').innerText = filtered.length;
+            document.getElementById('v-units').innerText = Math.round(filtered.reduce((a,b)=>a+b._qty, 0));
+            document.getElementById('v-cost').innerText = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(filtered.reduce((a,b)=>a+b._cost, 0));
+            
+            updateActiveFilterBadges();
+            renderCharts();
+            renderTable();
+        }
+
+        function updateActiveFilterBadges() {
+            const cont = document.getElementById('active-filters');
+            cont.innerHTML = '';
+            let active = false;
+            for(let k in globalFilters) {
+                if(globalFilters[k]) {
+                    if (k === 'tipo') continue;
+                    active = true;
+                    let label = globalFilters[k];
+                    if(k === 'monthKey') {
+                        const [y, m] = label.split('-');
+                        label = DateUtils.format(new Date(y, m-1, 1), 'MM-YYYY');
+                    }
+                    const b = document.createElement('div');
+                    b.className = "flex items-center justify-between bg-sky-50 text-sky-600 px-3 py-2 rounded-lg text-[10px] uppercase font-bold border border-sky-500/20";
+                    b.innerHTML = `<span>${k.replace('Key','')}: ${label}</span> <button onclick="globalFilters['${k}']=''; apply();" class="ml-2 hover:text-sky-800">✕</button>`;
+                    cont.appendChild(b);
+                }
+            }
+            if(!active) cont.innerHTML = '<div class="text-[10px] text-slate-400 italic">Haz clic en los gráficos para filtrar</div>';
+        }
+
+        function renderCharts() {
+            renderTrend();
+            renderProblem();
+            renderFamily();
+            renderAgent();
+            renderZone();
+        }
+
+        const textColor = '#475569'; // slate-600
+        const datalabelsColor = '#1e293b'; // slate-800
+        const bgColor = '#0ea5e9';
+
+        function renderTrend() {
+            if(charts.t) charts.t.destroy();
+            const start = new Date(document.getElementById('dateStart').value), end = new Date(document.getElementById('dateEnd').value);
+            const timeframe = [];
+            let current = new Date(start.getFullYear(), start.getMonth(), 1);
+            while(current <= end) {
+                const k = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                timeframe.push({ key: k, label: DateUtils.format(current, 'MM-YYYY') });
+                current.setMonth(current.getMonth() + 1);
+            }
+            const m = {}; filtered.forEach(x => { m[x._monthKey] = (m[x._monthKey]||0)+1; });
+            charts.t = new Chart(document.getElementById('cTrend'), {
+                type: 'line',
+                data: {
+                    labels: timeframe.map(t => t.label),
+                    datasets: [{ label: 'Quejas', data: timeframe.map(t=>m[t.key]||0), borderColor: '#0ea5e9', borderWidth: 4, tension: 0.4, fill: true, backgroundColor: 'rgba(14,165,233,0.1)', pointRadius: 5, pointBackgroundColor: '#fff' }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    layout: { padding: { top: 30, left: 10, right: 10, bottom: 0 } },
+                    onClick: (e, elem) => { if(elem[0]) { globalFilters.monthKey = timeframe[elem[0].index].key; apply(); } },
+                    plugins: { legend:{display:false}, datalabels: { color: datalabelsColor, font:{weight:'bold', size:10}, align:'top', anchor:'end', offset:5 } },
+                    scales: { x:{ticks:{color:textColor, font:{size:10}}}, y:{display:false} }
+                }
+            });
+        }
+
+        function renderProblem() {
+            if(charts.p) charts.p.destroy();
+            const q = {}, u = {}; filtered.forEach(x => { q[x._prob] = (q[x._prob]||0)+1; u[x._prob] = (u[x._prob]||0)+x._qty; });
+            const top = Object.entries(q).sort((a,b)=>b[1]-a[1]).slice(0, 10);
+            const totalQ = filtered.length, totalU = filtered.reduce((a,b)=>a+b._qty, 0);
+
+            charts.p = new Chart(document.getElementById('cProblem'), {
+                type: 'bar',
+                data: {
+                    labels: top.map(x=>x[0]),
+                    datasets: [
+                        { label: 'Quejas', data: top.map(x=>x[1]), backgroundColor: '#0ea5e9', borderRadius: 6,
+                            datalabels: { color: datalabelsColor, align: 'end', anchor: 'end', offset: 8, font: { weight: '700', size: 9 }, formatter: (v) => v > 0 ? `${Math.round(v)} (${((v/totalQ)*100).toFixed(1)}%)` : '' }
+                        },
+                        { label: 'Unid Novedad', data: top.map(x=>u[x[0]]), backgroundColor: '#94a3b8', borderRadius: 6,
+                            datalabels: { color: textColor, align: 'end', anchor: 'end', offset: 8, font: { weight: '700', size: 9 }, formatter: (v) => { const p = totalU > 0 ? ((v/totalU)*100).toFixed(1) : 0; return v > 0 ? `${Math.round(v)} (${p}%)` : ''; } }
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    barPercentage: 0.9, categoryPercentage: 0.9,
+                    layout: { padding: { left: 0, right: 80, top: 0, bottom: 0 } },
+                    onClick: (e, elem) => { if(elem[0]) { globalFilters.problem = top[elem[0].index][0]; apply(); } },
+                    scales: { x: { display: false, border: {display:false} }, y: { afterFit: (s) => { s.width = 130; }, ticks: { color: textColor, font: { size: 9, weight: 'bold' }, padding: 5, autoSkip: false }, grid: {display:false}, border: {display:false} } },
+                    plugins: { legend: { position: 'top', align: 'end', labels: { color: textColor, font: { size: 8 }, boxWidth: 8, padding: 5 } }, datalabels: { display: true } }
+                }
+            });
+        }
+
+        function renderFamily() {
+            if(charts.f) charts.f.destroy();
+            const m = {}; filtered.forEach(x => { m[x._resp] = (m[x._resp]||0)+1; });
+            const total = filtered.length;
+            const keys = Object.keys(m).sort((a,b)=>m[b]-m[a]);
+            const colors = ['#0EA5E9','#6366F1','#8B5CF6','#EC4899','#F43F5E','#F97316','#EAB308','#22C55E','#14B8A6','#06B6D4'];
+
+            charts.f = new Chart(document.getElementById('cFamily'), {
+                type: 'pie',
+                data: { 
+                    labels: keys, 
+                    datasets: [{ 
+                        data: keys.map(k=>m[k]), 
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 15
+                    }] 
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    layout: { padding: { left: 40, right: 10, top: 10, bottom: 10 } },
+                    onClick: (e, elem) => { if(elem[0]) { globalFilters.resp = keys[elem[0].index]; apply(); } },
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: {
+                            backgroundColor: 'rgba(255,255,255,0.95)',
+                            titleColor: '#1e293b',
+                            bodyColor: '#475569',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                label: (ctx) => ` Cantidad: ${ctx.raw} (${((ctx.raw/total)*100).toFixed(1)}%)`
+                            }
+                        },
+                        datalabels: { 
+                            display: true,
+                            color: datalabelsColor,
+                            formatter: (v) => ((v/total)*100).toFixed(1) + '%',
+                            font: { weight: 'bold', size: 9 },
+                            anchor: 'end',
+                            align: 'end',
+                            offset: 5
+                        } 
+                    }
+                }
+            });
+
+            // CUSTOM HTML LEGEND
+            const leg = document.getElementById('family-legend');
+            leg.innerHTML = keys.map((k, i) => `
+                <div onclick="globalFilters.resp='${k}'; apply();" class="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1 rounded-lg transition-colors group">
+                    <span class="w-2 h-2 rounded-full ring-2 ring-slate-100" style="background:${colors[i%colors.length]}"></span>
+                    <span class="text-[10px] font-bold text-slate-500 group-hover:text-sky-600 uppercase tracking-tighter">${k}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderAgent() {
+            if(charts.a) charts.a.destroy();
+            const q = {}, u = {}; 
+            filtered.forEach(x => { 
+                const clean = x._family.includes('-') ? x._family.split('-')[1].trim() : x._family;
+                q[clean] = (q[clean]||0)+1; 
+                u[clean] = (u[clean]||0)+x._qty; 
+            });
+            const top = Object.entries(q).sort((a,b)=>b[1]-a[1]).slice(0, 10);
+            const totalQ = filtered.length, totalU = filtered.reduce((a,b)=>a+b._qty, 0);
+
+            charts.a = new Chart(document.getElementById('cAgent'), {
+                type: 'bar',
+                data: {
+                    labels: top.map(x=>x[0]),
+                    datasets: [
+                        { label: 'Quejas', data: top.map(x=>x[1]), backgroundColor: '#0ea5e9', borderRadius: 4,
+                            datalabels: { color: datalabelsColor, align: 'end', anchor: 'end', offset: 4, font: { weight: '700', size: 8 }, formatter: (v) => v > 0 ? `${Math.round(v)} (${((v/totalQ)*100).toFixed(1)}%)` : '' }
+                        },
+                        { label: 'Unid Novedad', data: top.map(x=>u[x[0]]), backgroundColor: '#94a3b8', borderRadius: 4,
+                            datalabels: { color: textColor, align: 'end', anchor: 'end', offset: 4, font: { weight: '700', size: 8 }, formatter: (v) => { const p = totalU > 0 ? ((v/totalU)*100).toFixed(1) : 0; return v > 0 ? `${Math.round(v)} (${p}%)` : ''; } }
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    barPercentage: 0.9, categoryPercentage: 0.8,
+                    layout: { padding: { left: 0, right: 60, top: 0, bottom: 0 } },
+                    onClick: (e, elem) => { if(elem[0]) { globalFilters.family = top[elem[0].index][0]; apply(); } },
+                    scales: { 
+                        x: { display: false, border: {display:false} }, 
+                        y: { 
+                            afterFit: (s) => { s.width = 120; }, 
+                            ticks: { color: textColor, font: { size: 10, weight: 'bold' }, padding: 5, autoSkip: false }, 
+                            grid: {display:false}, border: {display:false} 
+                        } 
+                    },
+                    plugins: { 
+                        legend: { position: 'top', align: 'end', labels: { color: textColor, font: { size: 8 }, boxWidth: 8, padding: 5 } }, 
+                        datalabels: { display: true } 
+                    }
+                }
+            });
+        }
+
+        function renderZone() {
+            if(charts.z) charts.z.destroy();
+            const m = {}; filtered.forEach(x => { m[x._zone] = (m[x._zone]||0)+1; });
+            const total = filtered.length;
+            const keys = Object.keys(m).sort((a,b)=>m[b]-m[a]);
+            const colors = ['#0EA5E9','#6366F1','#8B5CF6','#EC4899','#F43F5E','#F97316','#EAB308','#22C55E','#14B8A6','#06B6D4'];
+
+            charts.z = new Chart(document.getElementById('cZone'), {
+                type: 'pie',
+                data: { labels: keys, datasets: [{ data: keys.map(k=>m[k]), backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 15 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    layout: { padding: 30 },
+                    onClick: (e, elem) => { if(elem[0]) { globalFilters.zone = keys[elem[0].index]; apply(); } },
+                    plugins: { 
+                        legend: { position: 'right', labels: {color: textColor, font:{size:8}, boxWidth:8} },
+                        tooltip: { backgroundColor: 'rgba(255,255,255,0.95)', titleColor: '#1e293b', bodyColor: '#475569', borderColor: '#e2e8f0', borderWidth: 1, padding: 10, callbacks: { label: (ctx) => ` Quejas: ${ctx.raw} (${((ctx.raw/total)*100).toFixed(1)}%)` } },
+                        datalabels: { display: true, color: datalabelsColor, formatter: (v) => ((v/total)*100).toFixed(1) + '%', font: { weight: 'bold', size: 9 }, anchor: 'end', align: 'end', offset: 5 }
+                    }
+                }
+            });
+        }
+
+        function renderTable() {
+            const m = {}; filtered.forEach(x => { if(!m[x._city]) m[x._city] = { q:0, u:0, c:0 }; m[x._city].q++; m[x._city].u += x._qty; m[x._city].c += x._cost; });
+            const sorted = Object.entries(m).sort((a,b)=>b[1].q - a[1].q);
+            document.getElementById('tBody').innerHTML = sorted.map(s => `
+                <tr onclick="globalFilters.city='${s[0]}'; apply();" class="hover:bg-slate-50 transition-colors cursor-pointer">
+                    <td class="p-4 text-slate-700 font-bold uppercase">${s[0] || '(En blanco)'}</td>
+                    <td class="p-4 text-center text-sky-600 font-bold">${s[1].q}</td>
+                    <td class="p-4 text-center text-slate-500 font-bold">${Math.round(s[1].u)}</td>
+                    <td class="p-4 text-right text-emerald-600 font-bold text-[9px]">${new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(s[1].c)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function exportCSV() {
+            if(!filtered.length) return;
+            const headers = Object.keys(filtered[0]).filter(k => k[0] !== '_');
+            const rows = filtered.map(r => headers.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(','));
+            const csv = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `Reporte_MAC_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        Chart.register(ChartDataLabels);
+        window.onload = init;
+    </script>
+</body>
+</html>
