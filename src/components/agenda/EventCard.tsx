@@ -1,8 +1,7 @@
 'use client'
 
 import { Clock, Calendar, Repeat, User } from 'lucide-react'
-import { Visita } from '@/lib/dateUtils'
-import { formatTime } from '@/lib/dateUtils'
+import { Visita, formatTime } from '@/lib/dateUtils'
 
 interface Props {
     visita: Visita
@@ -79,10 +78,10 @@ export default function EventCard({ visita, onClick }: Props) {
                 <div className="mt-3 pt-3 border-t border-current/20">
                     <p className="text-xs font-medium mb-1">Se repite:</p>
                     <div className="flex flex-wrap gap-1">
-                        {visita.dia_recurrente.map((dia, index) => {
+                        {visita.dia_recurrente.map((dia, i) => {
                             const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
                             return (
-                                <span key={index} className="px-2 py-0.5 bg-white/50 rounded text-xs font-semibold">
+                                <span key={i} className="px-2 py-0.5 bg-white/50 rounded text-xs font-semibold">
                                     {dias[parseInt(dia)]}
                                 </span>
                             )

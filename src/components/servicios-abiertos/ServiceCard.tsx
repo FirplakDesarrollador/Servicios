@@ -5,7 +5,6 @@ import {
     Calendar,
     User,
     MapPin,
-    ChevronRight,
     Tag,
     Clock,
     CheckCircle2,
@@ -22,8 +21,8 @@ import {
     Map,
     Briefcase,
     Headset,
+    Zap,
     Share2,
-    Zap
 } from 'lucide-react';
 
 interface ServiceCardProps {
@@ -39,38 +38,23 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
     const getVal = (snake: string, camel: string) => service[snake] || service[camel];
 
     const estadoAgendamiento = getVal('estado_agendamiento', 'estadoAgendamiento');
-    const tipoDeServicio = getVal('tipo_de_servicio', 'tipoDeServicio');
-    const consecutivo = getVal('consecutivo', 'consecutivo');
-    const createdAt = getVal('created_at', 'createdAt');
-    const asesorMacNombre = getVal('asesor_mac_nombre', 'asesorMacNombre');
-    const numeroDePedido = getVal('numero_de_pedido', 'numeroDePedido');
-    const canalDeVenta = getVal('canal_de_venta', 'canalDeVenta');
-    const asesorNombre = getVal('asesor_nombre', 'asesorNombre');
-    const tecnicoNombre = getVal('tecnico_nombre', 'tecnicoNombre');
+    const tipoDeServicio     = getVal('tipo_de_servicio', 'tipoDeServicio');
+    const consecutivo        = getVal('consecutivo', 'consecutivo');
+    const createdAt          = getVal('created_at', 'createdAt');
+    const asesorMacNombre    = getVal('asesor_mac_nombre', 'asesorMacNombre');
+    const numeroDePedido     = getVal('numero_de_pedido', 'numeroDePedido');
+    const asesorNombre       = getVal('asesor_nombre', 'asesorNombre');
+    const tecnicoNombre      = getVal('tecnico_nombre', 'tecnicoNombre');
 
-    const ubicacionNombre = getVal('ubicacion_nombre', 'ubicacionNombre');
-    const ubicacionCiudad = getVal('ubicacion_ciudad', 'ubicacionCiudad');
-    const ubicacionDepto = getVal('ubicacion_departamento', 'ubicacionDepartamento');
-    const ubicacionDireccion = getVal('ubicacion_direccion', 'ubicacionDireccion');
+    const ubicacionNombre  = getVal('ubicacion_nombre', 'ubicacionNombre');
+    const ubicacionCiudad  = getVal('ubicacion_ciudad', 'ubicacionCiudad');
 
     const consumidorContacto = getVal('consumidor_contacto', 'consumidorContacto');
     const consumidorTelefono = getVal('consumidor_telefono', 'consumidorTelefono');
-    const consumidorCiudad = getVal('consumidor_ciudad', 'consumidorCiudad');
-    const consumidorDepto = getVal('consumidor_departamento', 'consumidorDepartamento');
-    const consumidorDireccion = getVal('consumidor_direccion', 'consumidorDireccion');
 
-    const displayCiudad = consumidorCiudad || ubicacionCiudad;
+    const displayCiudad = getVal('consumidor_ciudad', 'consumidorCiudad') || ubicacionCiudad;
 
-    const copyToClipboard = (text: string) => {
-        if (text) navigator.clipboard.writeText(text).catch(() => {});
-    };
-
-    const copyPublicLink = () => {
-        const link = `${window.location.origin}/seguimiento/${service.id}`;
-        navigator.clipboard.writeText(link).catch(() => {});
-    };
-
-    const statusColors: any = {
+    const statusColors: Record<string, string> = {
         'agendado': 'bg-blue-50 text-blue-700 border-blue-100',
         'sin agendar': 'bg-slate-50 text-slate-700 border-slate-200',
         'terminado': 'bg-emerald-50 text-emerald-700 border-emerald-100',
@@ -81,6 +65,15 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
     };
 
     const currentStatusStyle = statusColors[estadoAgendamiento?.toLowerCase()] || statusColors['sin agendar'];
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).catch(() => {});
+    };
+
+    const copyPublicLink = () => {
+        const url = `${window.location.origin}/consultar-estado/${consecutivo}`;
+        copyToClipboard(url);
+    };
 
     return (
         <motion.div
@@ -131,7 +124,7 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
                         <span className="text-[11px] font-medium text-slate-500">
                             {asesorMacNombre || 'Sin MAC'}
                         </span>
-                        {(service.estado === true) && (
+                        {service.estado === true && (
                             <Headset className={`w-3.5 h-3.5 ${asesorMacNombre ? 'text-blue-500' : 'text-slate-300'}`} />
                         )}
                     </div>
@@ -196,8 +189,8 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
                 <div className="flex items-center gap-2 text-slate-400">
                     <Calendar className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-medium italic">
-                        {service.visitaFechaHoraInicio 
-                            ? new Date(service.visitaFechaHoraInicio).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) 
+                        {service.visita_fecha_hora_inicio
+                            ? new Date(service.visita_fecha_hora_inicio).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
                             : 'Cita pendiente'}
                     </span>
                 </div>
@@ -205,15 +198,3 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
         </motion.div>
     );
 }
-
-function DetailItem({ label, value, className = "" }: { label: string, value: string | null | undefined, className?: string }) {
-    return (
-        <div className={`flex flex-col min-w-0 ${className}`}>
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{label}</span>
-            <span className="text-xs font-semibold text-slate-700 truncate">
-                {value || '---'}
-            </span>
-        </div>
-    );
-}
-

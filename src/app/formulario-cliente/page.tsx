@@ -77,6 +77,10 @@ export default function FormularioClientePage() {
 
     const loadInitialData = async () => {
         setLoading(true);
+        const timeoutId = setTimeout(() => {
+            setLoading(false);
+        }, 7000); // 7 seconds timeout
+
         try {
             console.log('Fetching initial data...');
             // Load precios zonas
@@ -117,6 +121,7 @@ export default function FormularioClientePage() {
         } catch (err) {
             console.error('Error loading data:', err);
         } finally {
+            clearTimeout(timeoutId);
             setLoading(false);
         }
     };

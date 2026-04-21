@@ -48,45 +48,71 @@ export default function Home() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-      } else {
+      // Security timeout to prevent getting stuck in loading state (5 seconds)
+      const timeoutId = setTimeout(() => {
+        setLoading(false);
+      }, 5000);
+
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        if (!session) {
+          router.push('/login');
+          return;
+        }
+
         setUser(session.user);
-        const { data: userData, error } = await supabase
+
+        const { data: userData, error: profileError } = await supabase
           .from('Usuarios')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
 
-        if (!error && userData) {
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Error fetching profile:', profileError.message);
+        }
+
+        if (userData) {
           setProfile(userData);
 
           // Grant all permissions to all users
-          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Indicador quejas', 'Configuración']);
+          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
         }
+      } catch (error) {
+        console.error('Auth verification failed:', error);
+        // On error, we still need to stop loading so the user isn't stuck
+        // They will likely be redirect by the auth listener if session is truly invalid
+      } finally {
+        clearTimeout(timeoutId);
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         router.push('/login');
       } else {
         setUser(session.user);
-        const { data: userData } = await supabase
-          .from('Usuarios')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-        if (userData) setProfile(userData);
+        // Only fetch profile if we don't have it yet to avoid redundant loads
+        if (!profile) {
+          supabase.from('Usuarios')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single()
+            .then(({ data }) => { if (data) setProfile(data); });
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [router]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, profile]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -128,7 +154,27 @@ export default function Home() {
   const userPhoto = profile?.url_foto || null;
   const defaultPhoto = 'https://lnphhmowklqiomownurw.supabase.co/storage/v1/object/public/publico/fotos/withoutphoto.png';
 
-  const menuItems = [
+  const isCliente = portalType === 'cliente';
+
+  // Map of menu item title -> route (portal-aware)
+  const routeMap: Record<string, string> = {
+    'Solicitar servicio': isCliente ? '/solicitud-pedido-cliente' : '/solicitar-servicio',
+    'Servicios Abiertos': isCliente ? '/servicios-abiertos-clientes' : '/servicios-abiertos',
+    'Buscar servicio cerrado': isCliente ? '/servicios-cerrados-clientes' : '/servicios-cerrados',
+    'Aprobaciones': '/aprobaciones',
+    'Mi agenda': '/mi-agenda',
+    'Historial de servicios': '/historial-servicios',
+    'Ayuda': '/ayuda',
+    'Exhibiciones': '/exhibiciones',
+    'Base de datos': '/base-de-datos',
+    'Inventario Almacenes': '/inventario',
+    'Agenda Tecnicos': '/agenda-tecnicos',
+    'BI': '/bi',
+    'Indicador quejas': '/indicador-quejas',
+    'Configuración': '/configuracion',
+  };
+
+  const allMenuItems = [
     { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-brand' },
     { title: 'Servicios Abiertos', icon: ClipboardList, color: 'bg-emerald-500' },
     { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-indigo-500' },
@@ -145,10 +191,10 @@ export default function Home() {
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
-  // Filter items for clients
-  const filteredItems = portalType === 'cliente'
-    ? menuItems.filter(item => ['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado'].includes(item.title))
-    : menuItems;
+  const CLIENT_ITEMS = ['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado'];
+  const filteredItems = isCliente
+    ? allMenuItems.filter(item => CLIENT_ITEMS.includes(item.title))
+    : allMenuItems;
 
 
   return (
@@ -204,7 +250,7 @@ export default function Home() {
 
           <div className="flex-1">
             <h1 className="text-3xl font-black text-brand tracking-tighter mb-0.5 leading-none">
-              {portalType === 'cliente' ? '¡Bienvenido Cliente Firplak!' : '¡Bienvenido!'}
+              {isCliente ? '¡Bienvenido Cliente Firplak!' : '¡Bienvenido!'}
             </h1>
             <p className="text-lg font-bold text-slate-700 leading-tight mb-0.5">{fullName}</p>
             <p className="text-xs font-medium text-slate-400 mb-2">{user.email}</p>
@@ -215,7 +261,7 @@ export default function Home() {
         </motion.section>
 
         {/* Share Form Button - Hidden for clients */}
-        {portalType !== 'cliente' && (
+        {!isCliente && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -235,7 +281,7 @@ export default function Home() {
         )}
 
         {/* Compact Action Grid */}
-        <div className={`grid gap-6 w-full justify-center ${portalType === 'cliente' ? 'grid-cols-1 sm:grid-cols-3 max-w-2xl' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7'}`}>
+        <div className={`grid gap-6 w-full justify-center ${isCliente ? 'grid-cols-1 sm:grid-cols-3 max-w-2xl' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7'}`}>
           {filteredItems.map((item, index) => (
             <motion.button
               key={item.title}
@@ -245,35 +291,8 @@ export default function Home() {
               whileHover={{ y: -5, scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                if (item.title === 'Configuración') {
-                  router.push('/configuracion');
-                } else if (item.title === 'Solicitar servicio') {
-                  router.push(portalType === 'cliente' ? '/solicitud-pedido-cliente' : '/solicitar-servicio');
-                } else if (item.title === 'Servicios Abiertos') {
-                  router.push(portalType === 'cliente' ? '/servicios-abiertos-clientes' : '/servicios-abiertos');
-                } else if (item.title === 'Buscar servicio cerrado') {
-                  router.push(portalType === 'cliente' ? '/servicios-cerrados-clientes' : '/servicios-cerrados');
-                } else if (item.title === 'Aprobaciones') {
-                  router.push('/aprobaciones');
-                } else if (item.title === 'Mi agenda') {
-                  router.push('/mi-agenda');
-                } else if (item.title === 'Historial de servicios') {
-                  router.push('/historial-servicios');
-                } else if (item.title === 'Ayuda') {
-                  router.push('/ayuda');
-                } else if (item.title === 'Exhibiciones') {
-                  router.push('/exhibiciones');
-                } else if (item.title === 'Base de datos') {
-                  router.push('/base-de-datos');
-                } else if (item.title === 'Inventario Almacenes') {
-                  router.push('/inventario');
-                } else if (item.title === 'Agenda Tecnicos') {
-                  router.push('/agenda-tecnicos');
-                } else if (item.title === 'BI') {
-                  router.push('/bi');
-                } else if (item.title === 'Indicador quejas') {
-                  router.push('/indicador-quejas');
-                }
+                const route = routeMap[item.title];
+                if (route) router.push(route);
               }}
               className={`group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden ${portalType === 'cliente' ? 'max-w-[200px] w-full mx-auto' : ''}`}
             >
@@ -285,7 +304,7 @@ export default function Home() {
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest text-center group-hover:text-brand transition-colors">
-                  {portalType === 'cliente' && item.title === 'Buscar servicio cerrado' ? 'Servicios Cerrados' : item.title}
+                  {isCliente && item.title === 'Buscar servicio cerrado' ? 'Servicios Cerrados' : item.title}
                 </span>
               </div>
             </motion.button>

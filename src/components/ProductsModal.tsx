@@ -18,7 +18,6 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     const [productos, setProductos] = useState<any[]>([]);
     const [repuestos, setRepuestos] = useState<any[]>([]);
     const [isEditing, setIsEditing] = useState(false);
-    const [saving, setSaving] = useState(false);
     
     // Pickers states
     const [showProductPicker, setShowProductPicker] = useState(false);
@@ -233,7 +232,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                             )}
                                         </div>
                                         <div className="grid gap-3">
-                                            {productos.map((item, idx) => (
+                                            {productos.map((item) => (
                                                 <motion.div
                                                     key={item.id}
                                                     initial={{ opacity: 0, x: -10 }}
@@ -315,7 +314,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                             )}
                                         </div>
                                         <div className="grid gap-3">
-                                            {repuestos.map((item, idx) => (
+                                            {repuestos.map((item) => (
                                                 <motion.div
                                                     key={item.id}
                                                     initial={{ opacity: 0, x: -10 }}

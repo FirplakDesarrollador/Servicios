@@ -2,8 +2,18 @@
 
 import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { X, Loader2, MessageSquare, Send, Paperclip, Trash2, Camera, FileText } from 'lucide-react';
+import { X, Loader2, MessageSquare, Send, Paperclip, Camera, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+/** Removes accents and special chars that are invalid in storage paths */
+const sanitizePath = (path: string): string =>
+    path
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ñ/g, 'n')
+        .replace(/Ñ/g, 'N')
+        .replace(/[^a-zA-Z0-9\/\-_.]/g, '_');
+
 
 interface CommentModalProps {
     isOpen: boolean;
@@ -34,27 +44,15 @@ export default function CommentModal({ isOpen, onClose, servicioId, consecutivo,
         const uploadPromises = files.map(async (file) => {
             const fileExt = file.name.split('.').pop();
             const fileName = `${crypto.randomUUID()}.${fileExt}`;
-            // Use consecutivo if available for folder organization
-            const sanitizePath = (path: string) => {
-                return path
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "") // Remove accents
-                    .replace(/ñ/g, "n")
-                    .replace(/Ñ/g, "N")
-                    .replace(/[^a-zA-Z0-9\/\-_.]/g, "_"); // Replace other special characters with underscore
-            };
-
             const folderPath = sanitizePath(consecutivo || servicioId.toString());
             const filePath = `${folderPath}/documentos/${fileName}`;
-
-            console.log(`Uploading to bucket 'servicios', path: ${filePath}`);
 
             const { error: uploadError } = await supabase.storage
                 .from('servicios')
                 .upload(filePath, file);
 
             if (uploadError) {
-                console.error('Upload Error Details:', uploadError);
+                console.error('Upload error:', uploadError);
                 throw uploadError;
             }
 

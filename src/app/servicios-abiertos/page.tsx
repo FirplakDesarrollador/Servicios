@@ -9,18 +9,11 @@ import {
     Search,
     Eraser,
     Calendar as CalendarIcon,
-    ChevronDown,
     Filter,
     FileDown,
     Loader2,
-    LayoutGrid,
-    List,
     AlertCircle,
-    User,
     Settings,
-    Headphones,
-    ChevronLeft,
-    ChevronRight,
     Users
 } from 'lucide-react';
 import ServiceCard from '@/components/servicios-abiertos/ServiceCard';
@@ -48,87 +41,64 @@ export default function ServiciosAbiertosPage() {
 
     useEffect(() => {
         const init = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                router.push('/login');
-                return;
+            const timeoutId = setTimeout(() => {
+                setLoading(false);
+            }, 6000); // 6 seconds security timeout for list pages
+
+            try {
+                const { data: { session }, error: authError } = await supabase.auth.getSession();
+                if (authError) throw authError;
+
+                if (!session) {
+                    router.push('/login');
+                    return;
+                }
+
+                // Parallel fetch for profile, services, techs and macs for efficiency
+                const [profileRes, servicesRes, techRes, macRes] = await Promise.all([
+                    supabase.from('Usuarios').select('*').eq('user_id', session.user.id).single(),
+                    supabase.from('query_servicios').select('*').eq('estado', true).order('created_at', { ascending: false }),
+                    supabase.from('Usuarios').select('*').in('rol', ['tecnico', 'coordinador_tecnico', 'asesor_tecnico', 'promotor_tecnico', 'promotor_tecnico_exhibiciones', 'promotor_tecnico_comercial']).order('display_name'),
+                    supabase.from('Usuarios').select('*').eq('rol', 'mac').not('user_id', 'is', null).order('display_name')
+                ]);
+
+                // Handle Profile
+                if (profileRes.data) setProfile(profileRes.data);
+
+                // Handle Services
+                if (servicesRes.error) console.error('Error fetching services:', servicesRes.error.message);
+                if (servicesRes.data) {
+                    const mappedServices = servicesRes.data.map((s: any) => ({
+                        ...s,
+                        ubicacionNombre: s.ubicacion_nombre || s.ubicacionNombre,
+                        ubicacionCiudad: s.ubicacion_ciudad || s.ubicacionCiudad,
+                        consumidorNombre: s.consumidor_nombre || s.consumidorNombre,
+                        asesorNombre: s.asesor_nombre || s.asesorNombre,
+                        coordinadorNombre: s.coordinador_nombre || s.coordinadorNombre,
+                        macNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
+                        asesorMacNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
+                        asesorMacId: s.asesor_mac_id || s.asesorMacId,
+                        tecnicoNombre: s.tecnico_nombre || s.tecnicoNombre,
+                        tipoDeServicio: s.tipo_de_servicio || s.tipoDeServicio,
+                        numeroDePedido: s.numero_de_pedido || s.numeroDePedido,
+                        estadoAgendamiento: s.estado_visita || s.estadoVisita || 'Sin agendar',
+                        fechaProgramada: s.visita_fecha_hora_inicio ? new Date(s.visita_fecha_hora_inicio).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Null'
+                    }));
+                    setServices(mappedServices);
+                    setFilteredServices(mappedServices);
+                }
+
+                // Handle Technicians & MACs
+                setTechnicians(techRes.data || []);
+                setMacAdvisors(macRes.data || []);
+
+            } catch (err) {
+                console.error('Initialization error:', err);
+                // Even on error, we must hide loading
+            } finally {
+                clearTimeout(timeoutId);
+                setLoading(false);
             }
-
-            // Fetch current user details
-            const { data: userData } = await supabase
-                .from('Usuarios')
-                .select('*')
-                .eq('user_id', session.user.id)
-                .single();
-            setProfile(userData);
-
-            // Fetch Services
-            console.log('Fetching services from Servicios table...');
-
-            // Query query_servicios view as it contains all joined data
-            const { data: servicesData, error: servicesError } = await supabase
-                .from('query_servicios')
-                .select('*')
-                .eq('estado', true)
-                .order('created_at', { ascending: false });
-
-            if (servicesError) {
-                console.error('Error fetching services:', JSON.stringify(servicesError, null, 2));
-            }
-
-            if (servicesData) {
-                console.log('Data found:', servicesData.length, 'records');
-                // console.log('Raw services data:', servicesData); // Debug log removed
-                // console.log('First record sample:', servicesData[0]); // Debug log removed
-
-                // Map view fields for UI compatibility
-                const mappedServices = servicesData.map((s: any) => ({
-                    ...s,
-                    ubicacionNombre: s.ubicacion_nombre || s.ubicacionNombre,
-                    ubicacionCiudad: s.ubicacion_ciudad || s.ubicacionCiudad,
-                    consumidorNombre: s.consumidor_nombre || s.consumidorNombre,
-                    asesorNombre: s.asesor_nombre || s.asesorNombre,
-                    coordinadorNombre: s.coordinador_nombre || s.coordinadorNombre,
-                    macNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
-                    asesorMacNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
-                    asesorMacId: s.asesor_mac_id || s.asesorMacId,
-                    tecnicoNombre: s.tecnico_nombre || s.tecnicoNombre,
-                    tipoDeServicio: s.tipo_de_servicio || s.tipoDeServicio,
-                    numeroDePedido: s.numero_de_pedido || s.numeroDePedido,
-                    estadoAgendamiento: s.estado_visita || s.estadoVisita || 'Sin agendar',
-                    // Add formatted scheduled date for easier display
-                    fechaProgramada: s.visita_fecha_hora_inicio ? new Date(s.visita_fecha_hora_inicio).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Null'
-                }));
-
-                setServices(mappedServices);
-                setFilteredServices(mappedServices);
-            }
-
-            // Fetch Technicians
-            const { data: techData } = await supabase
-                .from('Usuarios')
-                .select('*')
-                .in('rol', [
-                    'tecnico',
-                    'coordinador_tecnico',
-                    'asesor_tecnico',
-                    'promotor_tecnico',
-                    'promotor_tecnico_exhibiciones',
-                    'promotor_tecnico_comercial'
-                ])
-                .order('display_name');
-            setTechnicians(techData || []);
-
-            // Fetch MAC Advisors
-            const { data: macData } = await supabase
-                .from('Usuarios')
-                .select('*')
-                .eq('rol', 'mac')
-                .not('user_id', 'is', null)
-                .order('display_name');
-            setMacAdvisors(macData || []);
-
-            setLoading(false);
         };
 
         init();
