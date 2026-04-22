@@ -105,16 +105,14 @@ export default function ApprovalServiceCard({ service, currentUserRole }: Props)
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {currentUserRole !== 'director_comercial' && (
-                        <span className="text-sm text-slate-700">
-                            <span className="font-medium">Asesor MAC: </span>
-                            {loading ? (
-                                <span className="text-slate-400">Cargando...</span>
-                            ) : (
-                                <span className="font-semibold">{macUser?.display_name || 'N/A'}</span>
-                            )}
-                        </span>
-                    )}
+                    <span className="text-sm text-slate-700">
+                        <span className="font-medium">Asesor MAC: </span>
+                        {loading ? (
+                            <span className="text-slate-400">Cargando...</span>
+                        ) : (
+                            <span className="font-semibold">{macUser?.display_name || 'N/A'}</span>
+                        )}
+                    </span>
 
                     <button
                         onClick={() => router.push(`/servicios/${service.id}`)}

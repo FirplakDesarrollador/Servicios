@@ -108,17 +108,11 @@ export default function ExhibicionesPage() {
                 // Load ALL salas (we'll filter by estadoActivo in the UI)
                 console.log('[Exhibiciones] Loading all salas for userId:', profile.id, 'rol:', profile.rol)
 
+                // No role-based filtering: show all salas to everyone
                 let query = supabase
                     .from('query_ubicaciones')
                     .select('*')
 
-                // Role-based filtering
-                const rolesLimitados = ['comercial', 'promotor', 'asesor_tecnico']
-                if (rolesLimitados.includes(profile.rol)) {
-                    const asesorIds = [profile.id, ...(profile.id_colaboradores || [])]
-                    console.log('[Exhibiciones] Applying role-based filter for asesor_id:', asesorIds)
-                    query = query.in('asesor_id', asesorIds)
-                }
 
                 const { data: salasData, error: salasError } = await query
 
@@ -141,19 +135,17 @@ export default function ExhibicionesPage() {
                 }
                 setSalas(salasData || [])
 
-                // Load asesores if needed
-                const rolesConFiltroAsesor = ['desarrollador', 'mac', 'coordinador_comercial', 'director_comercial', 'gerente']
-                if (rolesConFiltroAsesor.includes(profile.rol)) {
-                    const { data: asesoresData } = await supabase
-                        .from('Usuarios')
-                        .select('id, display_name')
-                        .in('rol', ['comercial', 'mac', 'coordinador_comercial', 'director_comercial', 'ecommerce'])
-                        .order('display_name', { ascending: true })
+                // Always load all advisors for everyone
+                const { data: asesoresData } = await supabase
+                    .from('Usuarios')
+                    .select('id, display_name')
+                    .in('rol', ['comercial', 'mac', 'coordinador_comercial', 'director_comercial', 'ecommerce'])
+                    .order('display_name', { ascending: true })
 
-                    if (asesoresData && isMountedRef.current) {
-                        setAsesores(asesoresData)
-                    }
+                if (asesoresData && isMountedRef.current) {
+                    setAsesores(asesoresData)
                 }
+
 
             } catch (error) {
                 console.error('[Exhibiciones] Unexpected error:', error)
@@ -238,12 +230,13 @@ export default function ExhibicionesPage() {
         window.location.reload()
     }
 
-    const rolesConFiltroAsesor = ['desarrollador', 'mac', 'coordinador_comercial', 'director_comercial', 'gerente']
+    const rolesConFiltroAsesor = ['everyone'] // Dummy value
+
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand/5 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-brand to-brand-dark text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -271,13 +264,13 @@ export default function ExhibicionesPage() {
                     <div className="flex flex-wrap gap-4 items-end">
                         {/* Estado */}
                         <div className="flex-shrink-0">
-                            <label className="block text-xs font-medium text-[#254153] mb-1">
+                            <label className="block text-xs font-medium text-brand mb-1">
                                 Estado del cliente
                             </label>
                             <select
                                 value={estadoActivo ? 'true' : 'false'}
                                 onChange={(e) => setEstadoActivo(e.target.value === 'true')}
-                                className="w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#254153] focus:border-[#254153]"
+                                className="w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
                             >
                                 <option value="true">Activo</option>
                                 <option value="false">Inactivo</option>
@@ -298,8 +291,9 @@ export default function ExhibicionesPage() {
                             />
                         </div>
 
-                        {/* Filtro por asesor */}
-                        {rolesConFiltroAsesor.includes(userRole) && (
+                        {/* Filtro por asesor - Now for everyone */}
+                        {true && (
+
                             <div className="flex-shrink-0">
                                 <label className="block text-xs font-medium text-[#254153] mb-1">
                                     Filtrar por asesor
@@ -341,7 +335,7 @@ export default function ExhibicionesPage() {
                         {/* Clear button */}
                         <button
                             onClick={handleClearFilters}
-                            className="p-2 text-[#254153] hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-brand hover:bg-brand/5 rounded-lg transition-colors"
                             title="Limpiar filtros"
                         >
                             <Eraser className="w-8 h-8" />
@@ -365,7 +359,7 @@ export default function ExhibicionesPage() {
                 {/* Loading */}
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153]"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
                     </div>
                 ) : (
                     /* Salas list */
