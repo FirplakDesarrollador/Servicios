@@ -30,10 +30,11 @@ interface ServiceCardProps {
     onClick: (service: any) => void;
     onDelete?: (service: any) => void;
     onAssignMac?: (service: any) => void;
+    onCerrarService?: (service: any) => void;
     currentUserRole?: string;
 }
 
-export default function ServiceCard({ service, onClick, onDelete, onAssignMac, currentUserRole }: ServiceCardProps) {
+export default function ServiceCard({ service, onClick, onDelete, onAssignMac, onCerrarService, currentUserRole }: ServiceCardProps) {
     // Normalization helper
     const getVal = (snake: string, camel: string) => service[snake] || service[camel];
 
@@ -128,6 +129,18 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, c
                     {onDelete && (
                         <button onClick={() => onDelete(service)} className="p-2 hover:bg-rose-50 rounded-xl transition-all text-slate-300 hover:text-rose-500">
                             <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+                    {onCerrarService && (
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onCerrarService(service);
+                            }} 
+                            className="p-2 hover:bg-rose-50 rounded-xl transition-all text-slate-300 hover:text-rose-600" 
+                            title="Cerrar Servicio"
+                        >
+                            <CheckCircle2 className="w-4 h-4" />
                         </button>
                     )}
                     <button 

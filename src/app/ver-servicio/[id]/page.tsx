@@ -58,6 +58,7 @@ import ProductsModal from '@/components/ProductsModal';
 import CommentModal from '@/components/CommentModal';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
 import ModalEditCondebe from '@/components/ModalEditCondebe';
+import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 
 type TabType = 'informacion' | 'observaciones' | 'agendamiento' | 'aprobaciones' | 'servicios_relacionados' | 'solicitud_repuesto';
 
@@ -76,6 +77,7 @@ export default function VerServicioPage() {
     const [showCommentModal, setShowCommentModal] = useState(false);
     const [showEditConsumerModal, setShowEditConsumerModal] = useState(false);
     const [showEditCondebeModal, setShowEditCondebeModal] = useState(false);
+    const [showCloseModal, setShowCloseModal] = useState(false);
     const [loadingInvoice, setLoadingInvoice] = useState(false);
     const [refreshComments, setRefreshComments] = useState(0);
     const [technicians, setTechnicians] = useState<any[]>([]);
@@ -258,6 +260,7 @@ export default function VerServicioPage() {
                                 onShowProducts={() => setShowProductsModal(true)}
                                 onEditConsumer={() => setShowEditConsumerModal(true)}
                                 onEditCondebe={() => setShowEditCondebeModal(true)}
+                                onCloseService={() => setShowCloseModal(true)}
                             />
                         )}
                         {activeTab === 'observaciones' && (
@@ -324,6 +327,16 @@ export default function VerServicioPage() {
                     facturado: service.facturado
                 }}
             />
+            <ModalCerrarServicio
+                isOpen={showCloseModal}
+                onClose={() => setShowCloseModal(false)}
+                onSuccess={() => {
+                    fetchService(); // Refresh service data to reflect closed status
+                    setShowCloseModal(false);
+                }}
+                service={service}
+                currentUser={currentUser}
+            />
         </div>
     );
 }
@@ -332,12 +345,14 @@ function InformacionTab({
     service, 
     onShowProducts,
     onEditConsumer,
-    onEditCondebe
+    onEditCondebe,
+    onCloseService
 }: { 
     service: any, 
     onShowProducts: () => void,
     onEditConsumer: () => void,
-    onEditCondebe: () => void
+    onEditCondebe: () => void,
+    onCloseService: () => void
 }) {
     const router = useRouter();
     return (
@@ -429,6 +444,16 @@ function InformacionTab({
                             >
                                 <LinkIcon className="w-4 h-4" />
                                 Crear servicio enlazado
+                            </button>
+                        )}
+
+                        {service.estado === true && (
+                            <button
+                                onClick={onCloseService}
+                                className="w-full h-12 flex items-center justify-center gap-3 bg-rose-600 text-white rounded-md text-sm font-semibold hover:bg-rose-700 transition-colors mt-3"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Cerrar Servicio
                             </button>
                         )}
                     </div>

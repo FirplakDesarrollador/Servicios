@@ -49,6 +49,7 @@ export default function SolicitarServicioPage() {
     const [facturado, setFacturado] = useState(false);
     const [decisionCliente, setDecisionCliente] = useState('');
     const [observaciones, setObservaciones] = useState('');
+    const [llevaClienteFinal, setLlevaClienteFinal] = useState(true);
 
     // Selection States
     const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
@@ -366,9 +367,9 @@ export default function SolicitarServicioPage() {
                     consecutivo: consecutivo,
                     numero_de_pedido: numeroPedido,
                     comercial_id: currentUser?.id,
-                    consumidor_id: clienteFinalSeleccionado?.id || null,
+                    consumidor_id: llevaClienteFinal ? (clienteFinalSeleccionado?.id || null) : null,
                     estado: true,
-                    ubicacion_id: isEcommerce ? 2126 : clienteSeleccionado?.id,
+                    ubicacion_id: canalVenta === 'canal_propio_ecommerce' ? 2126 : clienteSeleccionado?.id,
                     coordinador_id: finalCoordinadorId,
                     tipo_de_servicio: tipoServicio,
                     canal_de_venta: canalVenta,
@@ -522,13 +523,18 @@ export default function SolicitarServicioPage() {
                                 </select>
                             </div>
 
-                            {/* Canal de venta */}
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-brand ml-1">Canal de venta *</label>
                                 <select
                                     ref={canalVentaRef}
                                     value={canalVenta}
-                                    onChange={(e) => setCanalVenta(e.target.value)}
+                                    onChange={(e) => {
+                                        const newVal = e.target.value;
+                                        setCanalVenta(newVal);
+                                        setClienteSeleccionado(null);
+                                        setClienteFinalSeleccionado(null);
+                                        setLlevaClienteFinal(newVal === 'canal_propio_ecommerce');
+                                    }}
                                     className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm font-medium"
                                 >
                                     <option value="">Seleccione una opción...</option>
@@ -575,85 +581,120 @@ export default function SolicitarServicioPage() {
                     </div>
 
                     {/* Cliente Selection */}
-                    <div ref={clienteRef} className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
-                                <User className="w-4 h-4" />
-                                {canalVenta === 'canal_constructor' ? 'Cliente Constructor' : 'Cliente Distribuidor'}
-                            </h3>
-                            {clienteSeleccionado && (
-                                <button className="text-brand hover:scale-110 transition-transform">
-                                    <PlusCircle className="w-5 h-5" />
-                                </button>
-                            )}
-                        </div>
+                    {canalVenta !== 'canal_propio_ecommerce' && (
+                        <div ref={clienteRef} className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
+                                    <User className="w-4 h-4" />
+                                    {!canalVenta 
+                                        ? 'Seleccione Canal' 
+                                        : canalVenta === 'canal_constructor' 
+                                            ? 'Cliente Constructor' 
+                                            : canalVenta === 'canal_propio_firplakhome'
+                                                ? 'Cliente Firplakhome'
+                                                : 'Cliente Distribuidor'
+                                    }
+                                </h3>
+                                {clienteSeleccionado && (
+                                    <button className="text-brand hover:scale-110 transition-transform">
+                                        <PlusCircle className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
 
-                        <button
-                            onClick={() => canalVenta && setShowBuscadorClientes(true)}
-                            disabled={!canalVenta}
-                            className={`w-full p-4 border-2 rounded-2xl transition-all font-black text-sm flex items-center justify-center gap-2 ${!canalVenta
-                                ? 'bg-slate-50 border-slate-100 text-slate-300 border-dashed'
-                                : clienteSeleccionado
-                                    ? 'bg-brand/5 border-brand text-brand shadow-sm'
-                                    : 'border-slate-200 border-dashed hover:bg-slate-50 text-slate-400'
-                                }`}
-                        >
-                            {clienteSeleccionado ? clienteSeleccionado.nombre : canalVenta ? 'Presione para buscar cliente...' : 'Seleccione canal de venta primero'}
-                        </button>
+                            <button
+                                onClick={() => canalVenta && setShowBuscadorClientes(true)}
+                                disabled={!canalVenta}
+                                className={`w-full p-4 border-2 rounded-2xl transition-all font-black text-sm flex items-center justify-center gap-2 ${!canalVenta
+                                    ? 'bg-slate-50 border-slate-100 text-slate-300 border-dashed'
+                                    : clienteSeleccionado
+                                        ? 'bg-brand/5 border-brand text-brand shadow-sm'
+                                        : 'border-slate-200 border-dashed hover:bg-slate-50 text-slate-400'
+                                    }`}
+                            >
+                                {clienteSeleccionado ? clienteSeleccionado.nombre : canalVenta ? 'Presione para buscar cliente...' : 'Seleccione canal de venta primero'}
+                            </button>
 
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-400 font-medium uppercase">Dirección</span>
-                                <span className="font-bold">{clienteSeleccionado?.direccion || '---'}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-400 font-medium uppercase">Teléfono</span>
-                                <span className="font-bold">{clienteSeleccionado?.telefono || '---'}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-400 font-medium uppercase">Contacto</span>
-                                <span className="font-bold">{clienteSeleccionado?.nombre_contacto || clienteSeleccionado?.contacto || '---'}</span>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-400 font-medium uppercase">Dirección</span>
+                                    <span className="font-bold">{clienteSeleccionado?.direccion || '---'}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-400 font-medium uppercase">Teléfono</span>
+                                    <span className="font-bold">{clienteSeleccionado?.telefono || '---'}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-400 font-medium uppercase">Contacto</span>
+                                    <span className="font-bold">{clienteSeleccionado?.nombre_contacto || clienteSeleccionado?.contacto || '---'}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Cliente Final Selection */}
-                    <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
+                    <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-6">
                         <div className="flex items-center justify-between">
-                            <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
-                                <User className="w-4 h-4 text-emerald-500" />
-                                Cliente Final
-                            </h3>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${llevaClienteFinal ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                                    <User className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">
+                                        Cliente Final
+                                    </h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                        {llevaClienteFinal ? 'Información del consumidor' : 'Sin cliente final'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={() => {
+                                    setLlevaClienteFinal(!llevaClienteFinal);
+                                    if (llevaClienteFinal) setClienteFinalSeleccionado(null);
+                                }}
+                                className={`w-14 h-8 rounded-full transition-all flex items-center p-1 shadow-inner ${llevaClienteFinal ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                            >
+                                <motion.div 
+                                    animate={{ x: llevaClienteFinal ? 24 : 0 }}
+                                    className="w-6 h-6 bg-white rounded-full shadow-md"
+                                />
+                            </button>
                         </div>
 
-                        <button
-                            onClick={() => setShowBuscadorClienteFinal(true)}
-                            className={`w-full p-4 border-2 rounded-2xl transition-all font-black text-sm flex items-center justify-center gap-2 ${clienteFinalSeleccionado
-                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
-                                : 'border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-400'
-                                }`}
-                        >
-                            {clienteFinalSeleccionado ? (clienteFinalSeleccionado._search_type === 'ubicacion' ? (clienteFinalSeleccionado.nombre || clienteFinalSeleccionado.cliente_nombre) : clienteFinalSeleccionado.contacto) : 'Presione para buscar cliente final...'}
-                        </button>
+                        {llevaClienteFinal && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="space-y-4"
+                            >
+                                <button
+                                    onClick={() => setShowBuscadorClienteFinal(true)}
+                                    className={`w-full p-4 border-2 rounded-2xl transition-all font-black text-sm flex items-center justify-center gap-2 ${clienteFinalSeleccionado
+                                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
+                                        : 'border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-400'
+                                        }`}
+                                >
+                                    {clienteFinalSeleccionado ? (clienteFinalSeleccionado._search_type === 'ubicacion' ? (clienteFinalSeleccionado.nombre || clienteFinalSeleccionado.cliente_nombre) : clienteFinalSeleccionado.contacto) : 'Presione para buscar cliente final...'}
+                                </button>
 
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-400 font-medium uppercase">Ciudad</span>
-                                <span className="font-bold">{clienteFinalSeleccionado?.ciudad || '---'}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-400 font-medium uppercase">Dirección</span>
-                                <span className="font-bold">{clienteFinalSeleccionado?.direccion || '---'}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-400 font-medium uppercase">Teléfono</span>
-                                <span className="font-bold">{clienteFinalSeleccionado?.telefono || '---'}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-400 font-medium uppercase">Contacto</span>
-                                <span className="font-bold">{clienteFinalSeleccionado?.contacto || clienteFinalSeleccionado?.nombre_contacto || '---'}</span>
-                            </div>
-                        </div>
+                                <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-400 font-medium uppercase tracking-widest">Ciudad</span>
+                                        <span className="font-bold text-slate-700">{clienteFinalSeleccionado?.ciudad || '---'}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-400 font-medium uppercase tracking-widest">Dirección</span>
+                                        <span className="font-bold text-slate-700">{clienteFinalSeleccionado?.direccion || '---'}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-400 font-medium uppercase tracking-widest">Teléfono</span>
+                                        <span className="font-bold text-slate-700">{clienteFinalSeleccionado?.telefono || '---'}</span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
                     </div>
 
                     {/* Productos Section */}
@@ -818,18 +859,25 @@ export default function SolicitarServicioPage() {
                     </div>
 
                     {/* Observaciones */}
-                    <div className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
-                        <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2 mb-4">
-                            Comentarios / Observaciones *
-                        </h3>
+                    <div className="md:col-span-2 bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
+                            Comentarios / Observaciones
+                        </label>
                         <textarea
                             ref={observacionesRef}
                             value={observaciones}
                             onChange={(e) => setObservaciones(e.target.value)}
                             rows={4}
-                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all font-medium text-slate-700"
+                            className={`w-full p-6 bg-slate-50 border rounded-2xl focus:outline-none transition-all font-medium text-slate-700 resize-none ${
+                                !observaciones.trim() ? 'border-rose-200 focus:border-rose-300' : 'border-slate-100 focus:border-brand/20 focus:ring-4 focus:ring-brand/5'
+                            }`}
                             placeholder="Escriba aquí los detalles adicionales del servicio..."
                         />
+                        {!observaciones.trim() && (
+                            <p className="mt-2 text-[10px] font-bold text-rose-500 uppercase tracking-widest">
+                                Este campo es obligatorio
+                            </p>
+                        )}
                     </div>
 
                     {/* Actions */}

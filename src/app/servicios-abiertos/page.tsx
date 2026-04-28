@@ -14,9 +14,11 @@ import {
     Loader2,
     AlertCircle,
     Settings,
-    Users
+    Users,
+    ChevronRight
 } from 'lucide-react';
 import ServiceCard from '@/components/servicios-abiertos/ServiceCard';
+import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 
 export default function ServiciosAbiertosPage() {
     const router = useRouter();
@@ -36,6 +38,7 @@ export default function ServiciosAbiertosPage() {
     const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
     const [assigningMacService, setAssigningMacService] = useState<any>(null);
     const [isUpdatingMac, setIsUpdatingMac] = useState(false);
+    const [closingService, setClosingService] = useState<any>(null);
 
     // Pagination States
     const [currentPage, setCurrentPage] = useState(1);
@@ -469,6 +472,7 @@ export default function ServiciosAbiertosPage() {
                                             onDelete={handleDeleteService}
                                             onClick={(s) => router.push(`/ver-servicio/${s.id}`)}
                                             onAssignMac={(s) => setAssigningMacService(s)}
+                                            onCerrarService={(s) => setClosingService(s)}
                                         />
                                 ))}
                             </AnimatePresence>
@@ -572,6 +576,18 @@ export default function ServiciosAbiertosPage() {
                     </div>
                 )}
             </AnimatePresence>
+
+            <ModalCerrarServicio
+                isOpen={!!closingService}
+                onClose={() => setClosingService(null)}
+                onSuccess={() => {
+                    // Update local state to remove closed service
+                    setServices(prev => prev.filter(s => s.id !== closingService.id));
+                    setClosingService(null);
+                }}
+                service={closingService}
+                currentUser={profile}
+            />
         </div>
     );
 }
