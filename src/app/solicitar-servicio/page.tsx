@@ -90,13 +90,13 @@ export default function SolicitarServicioPage() {
 
             // Fetch next consecutivo
             const { data: consecutivoData } = await supabase
-                .from('NuevoConsecutivo')
-                .select('nuevoConsecutivo')
+                .from('nuevo_consecutivo')
+                .select('nuevo_consecutivo')
                 .limit(1)
                 .single();
 
             if (consecutivoData) {
-                setNextConsecutivo(consecutivoData.nuevoConsecutivo);
+                setNextConsecutivo(consecutivoData.nuevo_consecutivo);
             }
 
             // Generate 5-digit random suffix

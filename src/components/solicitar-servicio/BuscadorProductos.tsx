@@ -121,7 +121,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
 
                 {/* Main Content Area (Two Columns) */}
                 <div className="flex-1 overflow-hidden p-4 pt-0">
-                    <div className="bg-slate-50 rounded-xl p-3 h-full overflow-y-auto custom-scrollbar">
+                    <div className="bg-slate-50 rounded-xl p-3 h-full overflow-hidden">
                         <div className="flex flex-wrap justify-center gap-4">
 
                             {/* Left Column: Productos Encontrados */}
@@ -130,7 +130,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                                     <span className="text-sm text-slate-700">Productos encontrados:</span>
                                     <span className="text-sm text-slate-400 font-light">{results.length}</span>
                                 </div>
-                                <div className="bg-white rounded-lg border border-slate-200 min-h-[300px] flex flex-col p-1 gap-1.5">
+                                <div className="bg-white rounded-lg border border-slate-200 max-h-[450px] overflow-y-auto custom-scrollbar flex flex-col p-1 gap-1.5">
                                     {loading ? (
                                         <div className="flex items-center justify-center h-40">
                                             <Loader2 className="w-6 h-6 animate-spin text-brand" />
@@ -174,7 +174,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                                     <span className="text-sm text-slate-700">Productos seleccionados:</span>
                                     <span className="text-sm text-slate-400 font-light">{productosSeleccionados.length}</span>
                                 </div>
-                                <div className="bg-white rounded-lg border border-slate-200 min-h-[300px] flex flex-col p-1 gap-1.5">
+                                <div className="bg-white rounded-lg border border-slate-200 max-h-[450px] overflow-y-auto custom-scrollbar flex flex-col p-1 gap-1.5">
                                     {productosSeleccionados.length > 0 ? (
                                         productosSeleccionados.map((item, idx) => (
                                             <div key={`sel-${idx}`} className="bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-2">
