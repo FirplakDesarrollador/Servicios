@@ -339,6 +339,7 @@ function InformacionTab({
     onEditConsumer: () => void,
     onEditCondebe: () => void
 }) {
+    const router = useRouter();
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -420,6 +421,16 @@ function InformacionTab({
                             <Package className="w-4 h-4" />
                             Ver Productos
                         </button>
+
+                        {service.estado === false && (
+                            <button
+                                onClick={() => router.push(`/solicitar-servicio?parent_id=${service.id}`)}
+                                className="w-full h-12 flex items-center justify-center gap-3 bg-emerald-600 text-white rounded-md text-sm font-semibold hover:bg-emerald-700 transition-colors"
+                            >
+                                <LinkIcon className="w-4 h-4" />
+                                Crear servicio enlazado
+                            </button>
+                        )}
                     </div>
 
 
@@ -1737,13 +1748,104 @@ function AprobacionesTab({ service, currentUser, onRefresh }: { service: any, cu
 }
 
 function ServiciosRelacionadosTab({ service }: { service: any }) {
-    return (
-        <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center premium-shadow">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <LinkIcon className="w-8 h-8 text-slate-200" />
+    const [relacionados, setRelacionados] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        const fetchRelacionados = async () => {
+            // First, make sure we have the service_parent_id (it might not be in the view)
+            let parentId = service.service_parent_id;
+            
+            if (parentId === undefined) {
+                const { data: sData } = await supabase
+                    .from('Servicios')
+                    .select('service_parent_id')
+                    .eq('id', service.id)
+                    .single();
+                if (sData) parentId = sData.service_parent_id;
+            }
+
+            // Fetch both the parent and any children
+            const query = supabase.from('Servicios').select('*');
+            
+            if (parentId && service.id) {
+                query.or(`id.eq.${parentId},service_parent_id.eq.${service.id}`);
+            } else if (service.id) {
+                query.eq('service_parent_id', service.id);
+            } else {
+                setLoading(false);
+                return;
+            }
+
+            const { data, error } = await query.neq('id', service.id);
+
+            if (!error) {
+                setRelacionados(data || []);
+            }
+            setLoading(false);
+        };
+
+        fetchRelacionados();
+    }, [service.id, service.service_parent_id]);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-brand animate-spin" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Servicios Relacionados</h3>
-            <p className="text-slate-500 font-medium">No hay servicios relacionados registrados.</p>
+        );
+    }
+
+    if (relacionados.length === 0) {
+        return (
+            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center premium-shadow">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <LinkIcon className="w-8 h-8 text-slate-200" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">Servicios Relacionados</h3>
+                <p className="text-slate-500 font-medium">No hay servicios relacionados registrados.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800">Servicios Relacionados</h3>
+                <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">
+                    {relacionados.length} {relacionados.length === 1 ? 'vínculo' : 'vínculos'}
+                </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {relacionados.map((s) => (
+                    <div 
+                        key={s.id}
+                        onClick={() => router.push(`/ver-servicio/${s.id}`)}
+                        className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-brand hover:shadow-md cursor-pointer transition-all flex items-center justify-between group"
+                    >
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-brand uppercase tracking-wider px-2 py-0.5 bg-brand/5 rounded-md">
+                                    {s.consecutivo}
+                                </span>
+                                {s.id === service.service_parent_id && (
+                                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider px-2 py-0.5 bg-amber-50 rounded-md">
+                                        Principal
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-sm font-bold text-slate-700 mt-1">{s.tipo_de_servicio}</span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                                {new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                        </div>
+                        <div className="w-10 h-10 bg-slate-50 group-hover:bg-brand/10 rounded-xl flex items-center justify-center transition-colors">
+                            <ExternalLink className="w-5 h-5 text-slate-300 group-hover:text-brand transition-colors" />
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

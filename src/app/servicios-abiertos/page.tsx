@@ -34,6 +34,8 @@ export default function ServiciosAbiertosPage() {
     const [filterTechnician, setFilterTechnician] = useState('');
     const [filterMacAdvisor, setFilterMacAdvisor] = useState('');
     const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+    const [assigningMacService, setAssigningMacService] = useState<any>(null);
+    const [isUpdatingMac, setIsUpdatingMac] = useState(false);
 
     // Pagination States
     const [currentPage, setCurrentPage] = useState(1);
@@ -225,6 +227,37 @@ export default function ServiciosAbiertosPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleAssignMac = async (advisorId: string, advisorName: string) => {
+        if (!assigningMacService) return;
+        setIsUpdatingMac(true);
+        try {
+            const { error } = await supabase
+                .from('Servicios')
+                .update({ 
+                    asesor_mac_id: advisorId,
+                    asesor_mac_nombre: advisorName 
+                })
+                .eq('id', assigningMacService.id);
+
+            if (error) throw error;
+
+            // Update local state
+            setServices(prev => prev.map(s => 
+                s.id === assigningMacService.id 
+                    ? { ...s, asesor_mac_id: advisorId, asesor_mac_nombre: advisorName, asesorMacNombre: advisorName }
+                    : s
+            ));
+            
+            setAssigningMacService(null);
+            alert('Asesor MAC asignado correctamente');
+        } catch (error: any) {
+            console.error('Error assigning MAC:', error);
+            alert('Error al asignar: ' + error.message);
+        } finally {
+            setIsUpdatingMac(false);
+        }
     };
 
     if (loading) {
@@ -435,6 +468,7 @@ export default function ServiciosAbiertosPage() {
                                             currentUserRole={profile?.rol}
                                             onDelete={handleDeleteService}
                                             onClick={(s) => router.push(`/ver-servicio/${s.id}`)}
+                                            onAssignMac={(s) => setAssigningMacService(s)}
                                         />
                                 ))}
                             </AnimatePresence>
@@ -465,6 +499,79 @@ export default function ServiciosAbiertosPage() {
                     </div>
                 )}
             </main>
+
+            {/* Modal de Asignación MAC */}
+            <AnimatePresence>
+                {assigningMacService && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setAssigningMacService(null)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col"
+                        >
+                            <div className="p-8 pb-4">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                                        <Users className="w-5 h-5 text-indigo-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Asignar Asesor MAC</h2>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{assigningMacService.consecutivo}</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                                    Selecciona un asesor para el seguimiento de esta garantía.
+                                </p>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto max-h-[400px] p-4 flex flex-col gap-2">
+                                {macAdvisors.map(mac => (
+                                    <button
+                                        key={mac.id}
+                                        onClick={() => handleAssignMac(mac.id, mac.display_name)}
+                                        disabled={isUpdatingMac}
+                                        className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group text-left"
+                                    >
+                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl overflow-hidden shadow-inner shrink-0">
+                                            <img 
+                                                src={mac.url_foto || 'https://lnphhmowklqiomownurw.supabase.co/storage/v1/object/public/publico/fotos/withoutphoto.png'} 
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-black text-slate-700 leading-tight">{mac.display_name}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{mac.rol || 'Asesor MAC'}</p>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                                    </button>
+                                ))}
+                                {macAdvisors.length === 0 && (
+                                    <div className="p-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                                        <p className="text-sm font-bold text-slate-400">No se encontraron usuarios mac</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 bg-slate-50 flex items-center justify-center">
+                                <button
+                                    onClick={() => setAssigningMacService(null)}
+                                    className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-slate-600 transition-colors"
+                                >
+                                    Cancelar operación
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

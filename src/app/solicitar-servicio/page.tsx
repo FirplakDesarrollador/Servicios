@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft,
@@ -33,11 +33,13 @@ import BuscadorRepuestos from '@/components/solicitar-servicio/BuscadorRepuestos
 
 export default function SolicitarServicioPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [nextConsecutivo, setNextConsecutivo] = useState<number>(1);
     const [randomSuffix, setRandomSuffix] = useState<string>('');
+    const [parentServiceId, setParentServiceId] = useState<string | null>(null);
 
     // Form States
     const [consecutivo, setConsecutivo] = useState('');
@@ -66,6 +68,7 @@ export default function SolicitarServicioPage() {
     const canalVentaRef = useRef<HTMLSelectElement>(null);
     const clienteRef = useRef<HTMLDivElement>(null);
     const repuestosRef = useRef<HTMLDivElement>(null);
+    const observacionesRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         const init = async () => {
@@ -98,6 +101,47 @@ export default function SolicitarServicioPage() {
             // Generate 5-digit random suffix
             const random = Math.floor(10000 + Math.random() * 90000).toString();
             setRandomSuffix(random);
+
+            // Handle parent service pre-fill
+            const parentId = searchParams.get('parent_id');
+            if (parentId) {
+                setParentServiceId(parentId);
+                const { data: parentData } = await supabase
+                    .from('Servicios')
+                    .select('*, Ubicaciones(*), Consumidores(*)')
+                    .eq('id', parentId)
+                    .single();
+
+                if (parentData) {
+                    setCanalVenta(parentData.canal_de_venta);
+                    setClienteSeleccionado(parentData.Ubicaciones);
+                    setClienteFinalSeleccionado(parentData.Consumidores);
+                    if (parentData.numero_de_pedido) {
+                        setNumeroPedido(parentData.numero_de_pedido);
+                    }
+
+                    // Logic for tipo_de_servicio
+                    if (parentData.tipo_de_servicio === 'visita_instalacion') {
+                        setTipoServicio('instalacion');
+                    } else {
+                        setTipoServicio('garantia_sin_pedido');
+                    }
+
+                    // Fetch products from parent service
+                    const { data: productsData } = await supabase
+                        .from('productos_servicios')
+                        .select('*, Productos(*)')
+                        .eq('servicio_id', parentId);
+                    
+                    if (productsData) {
+                        const formattedProducts = productsData.map(ps => ({
+                            ...ps.Productos,
+                            cantidad: ps.cantidad
+                        }));
+                        setProductosSeleccionados(formattedProducts);
+                    }
+                }
+            }
 
             setLoading(false);
         };
@@ -204,6 +248,13 @@ export default function SolicitarServicioPage() {
             alert('Por favor complete el campo obligatorio: Tipo de servicio');
             tipoServicioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             tipoServicioRef.current?.focus();
+            return;
+        }
+
+        if (!observaciones || observaciones.trim() === '') {
+            alert('Por favor complete el campo obligatorio: Comentarios / Observaciones');
+            observacionesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            observacionesRef.current?.focus();
             return;
         }
 
@@ -332,6 +383,7 @@ export default function SolicitarServicioPage() {
                     asesor_mac_id: (currentUser?.rol === 'mac' && ![26, 6, 66].includes(currentUser?.id))
                         ? currentUser.id
                         : null,
+                    service_parent_id: parentServiceId ? parseInt(parentServiceId) : null,
                 })
                 .select()
                 .single();
@@ -768,9 +820,10 @@ export default function SolicitarServicioPage() {
                     {/* Observaciones */}
                     <div className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
                         <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2 mb-4">
-                            Comentarios / Observaciones
+                            Comentarios / Observaciones *
                         </h3>
                         <textarea
+                            ref={observacionesRef}
                             value={observaciones}
                             onChange={(e) => setObservaciones(e.target.value)}
                             rows={4}
