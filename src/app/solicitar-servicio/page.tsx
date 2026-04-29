@@ -578,10 +578,10 @@ export default function SolicitarServicioPage() {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    )}
 
                     {/* Cliente Selection */}
-                    {canalVenta !== 'canal_propio_ecommerce' && (
+                    {canalVenta && canalVenta !== 'canal_propio_ecommerce' && (
                         <div ref={clienteRef} className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
@@ -633,7 +633,8 @@ export default function SolicitarServicioPage() {
                     )}
 
                     {/* Cliente Final Selection */}
-                    <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-6">
+                    {canalVenta && (
+                        <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white flex flex-col gap-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${llevaClienteFinal ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
@@ -696,6 +697,7 @@ export default function SolicitarServicioPage() {
                             </motion.div>
                         )}
                     </div>
+                    )}
 
                     {/* Productos Section */}
                     <div className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
