@@ -10,9 +10,10 @@ interface ModalCerrarServicioProps {
     onClose: () => void;
     service: any;
     onSuccess?: () => void;
+    currentUser?: any;
 }
 
-export default function ModalCerrarServicio({ isOpen, onClose, service, onSuccess }: ModalCerrarServicioProps) {
+export default function ModalCerrarServicio({ isOpen, onClose, service, onSuccess, currentUser }: ModalCerrarServicioProps) {
     const [step, setStep] = useState(1);
     const [razonCierre, setRazonCierre] = useState('');
     const [files, setFiles] = useState<File[]>([]);
@@ -143,7 +144,8 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                 .insert([{
                     servicio_id: service.id,
                     contenido: `SERVICIO CERRADO - Observaciones: ${razonCierre}. ${entregaParcial ? '(Entrega Parcial)' : ''}`,
-                    tipo: 'cierre'
+                    tipo: 'cierre',
+                    usuario_id: currentUser?.id
                 }])
                 .select()
                 .single();
