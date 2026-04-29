@@ -578,7 +578,7 @@ export default function SolicitarServicioPage() {
                                 </div>
                             )}
                         </div>
-                    )}
+                    </div>
 
                     {/* Cliente Selection */}
                     {canalVenta && canalVenta !== 'canal_propio_ecommerce' && (
