@@ -300,7 +300,7 @@ export default function VerServicioPage() {
             <CommentModal
                 isOpen={showCommentModal}
                 onClose={() => setShowCommentModal(false)}
-                servicioId={service.id}
+                serviceId={service.id}
                 consecutivo={service.consecutivo}
                 currentUser={currentUser}
                 onSuccess={() => setRefreshComments(prev => prev + 1)}

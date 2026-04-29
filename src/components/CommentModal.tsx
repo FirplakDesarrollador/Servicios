@@ -9,10 +9,12 @@ interface CommentModalProps {
     isOpen: boolean;
     onClose: () => void;
     serviceId: string;
+    consecutivo?: string;
+    currentUser?: any;
     onSuccess?: () => void;
 }
 
-export default function CommentModal({ isOpen, onClose, serviceId, onSuccess }: CommentModalProps) {
+export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, currentUser }: CommentModalProps) {
     const [content, setContent] = useState('');
     const [files, setFiles] = useState<File[]>([]);
     const [uploading, setUploading] = useState(false);
@@ -42,7 +44,7 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess }: 
                 .insert([{
                     servicio_id: serviceId,
                     contenido: content,
-                    autor_id: (await supabase.auth.getUser()).data.user?.id,
+                    usuario_id: currentUser?.id,
                     tipo: 'seguimiento'
                 }])
                 .select()
