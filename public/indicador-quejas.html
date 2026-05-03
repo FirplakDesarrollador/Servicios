@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -227,6 +227,21 @@
             </div>
         </div>
 
+        <!-- ROW 5: Clientes -->
+        <div class="grid grid-cols-1 gap-5 mb-6">
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
+                <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Top Clientes Afectados
+                </h3>
+                <div class="h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                    <div id="cClientWrapper" class="relative hover:min-h-[300px] transition-all">
+                        <canvas id="cClient"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <footer class="py-3 text-center border-t border-slate-200 bg-white">
@@ -251,7 +266,7 @@
         const parseNum = (v) => { if(!v) return 0; if(typeof v === 'number') return v; return parseFloat(v.toString().replace(/,/g, '')) || 0; };
         const norm = (s) => String(s || '').toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        let globalFilters = { tipo: "Queja", city: "", zone: [], channel: "", monthKey: [], problem: [], agent: [], family: [], resp: [] };
+        let globalFilters = { tipo: "Queja", city: "", zone: [], channel: "", monthKey: [], problem: [], agent: [], family: [], resp: [], client: [] };
 
         const toggleFilterArr = (key, value) => {
             const arr = globalFilters[key];
@@ -287,7 +302,8 @@
                     _family: String(i['Grupo Art'] || '').trim(),
                     _serie: String(i['Serie'] || '').trim(),
                     _resolucion: String(i['Resolución'] || i['Resolucion'] || 'SIN DATO').trim(),
-                    _respRaw: String(i['Resp Problema'] || 'SIN ASIGNAR').toUpperCase().trim().replace(/[ÁÉÍÓÚ]/g, (m) => ({'Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'}[m]))
+                    _respRaw: String(i['Resp Problema'] || 'SIN ASIGNAR').toUpperCase().trim().replace(/[ÁÉÍÓÚ]/g, (m) => ({'Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'}[m])),
+                    _sn: String(i['SN'] || '').trim() || 'SIN CLIENTE'
                 };
             }).map(x => {
                 const m = { 'TRANSPORTADORA':'LOGISTICA','LOGISTICA':'LOGISTICA','DIGITACION':'LOGISTICA','ABASTECIMIENTO':'LOGISTICA','DESPACHOS':'LOGISTICA','ASESOR':'COMERCIAL','MAC':'COMERCIAL','VENTAS - COMERCIAL':'COMERCIAL','VENTAS-COMERCIAL':'COMERCIAL','ATENCION':'NO APLICA','FALSA QUEJA':'NO APLICA','CLIENTE':'NO APLICA' };
@@ -315,7 +331,7 @@
         }
 
         function clearAllFilters() {
-            globalFilters = { tipo:"Queja", city:"", channel:"", monthKey:[], problem:[], agent:[], family:[], resp:[], zone:[] };
+            globalFilters = { tipo:"Queja", city:"", channel:"", monthKey:[], problem:[], agent:[], family:[], resp:[], zone:[], client:[] };
             document.getElementById('fTipo').value = "Queja";
             document.getElementById('fCity').value = "";
             document.getElementById('fChan').value = "";
@@ -340,7 +356,8 @@
                     && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
                     && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
                     && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
-                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone));
+                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
+                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn));
             });
         }
 
@@ -369,7 +386,8 @@
                     && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
                     && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
                     && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
-                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone));
+                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
+                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn));
             });
 
             document.getElementById('v-quejas').innerText = filtered.length.toLocaleString('en-US');
@@ -420,6 +438,7 @@
             renderFamily();
             renderAgent();
             renderZone();
+            renderClient();
         }
 
         function renderTrend() {
@@ -573,7 +592,8 @@
                     && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
                     && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
                     && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
-                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone));
+                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
+                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn));
             };
 
             const curData = raw.filter(x => x._d >= curDStart && x._d <= curDEnd && applyVariationFilter(x));
@@ -693,6 +713,47 @@
                         legend:{position:'right',labels:{color:'#475569',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},
                         tooltip:{backgroundColor:'rgba(255,255,255,0.95)',titleColor:'#1e293b',bodyColor:'#475569',borderColor:'#e2e8f0',borderWidth:1,callbacks:{label:(ctx)=>` ${ctx.raw} (${((ctx.raw/total)*100).toFixed(1)}%)`}},
                         datalabels:{display:true,color:'#1e293b',formatter:(v)=>((v/total)*100).toFixed(0)+'%',font:{weight:'bold',size:9}}
+                    }
+                }
+            });
+        }
+
+        function renderClient() {
+            if(charts.c) charts.c.destroy();
+            const q={},u={}; 
+            filtered.forEach(x => { const c = x._sn; q[c]=(q[c]||0)+1; u[c]=(u[c]||0)+x._qty; });
+            const top = Object.entries(q).sort((a,b)=>b[1]-a[1]).slice(0, 15);
+            const totalQ=filtered.length;
+
+            const calcHeight = Math.max(300, top.length * 35);
+            document.getElementById('cClientWrapper').style.height = calcHeight + 'px';
+
+            charts.c = new Chart(document.getElementById('cClient'),{
+                type:'bar',
+                data:{
+                    labels:top.map(x=>x[0]),
+                    datasets:[
+                        {label:'Registros',data:top.map(x=>x[1]),
+                            backgroundColor:(ctx)=>getChartColor(globalFilters.client, top[ctx.dataIndex]?.[0], '#3b82f6'),
+                            borderRadius:3, barPercentage: 0.8,
+                            datalabels:{color:'#1e3a5f',align:'top',anchor:'end',offset:2,font:{weight:'800',size:9},formatter:(v)=>v>0?`${v} (${((v/totalQ)*100).toFixed(1)}%)`:''}},
+                        {label:'Cantidades',data:top.map(x=>u[x[0]]),
+                            backgroundColor:(ctx)=>getChartColor(globalFilters.client, top[ctx.dataIndex]?.[0], '#94a3b8'),
+                            borderRadius:3, barPercentage: 0.8,
+                            datalabels:{color:'#64748b',align:'bottom',anchor:'end',offset:2,font:{weight:'700',size:8},formatter:(v)=>v>0?`${Math.round(v)} uds`:''}}
+                    ]
+                },
+                options:{
+                    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+                    layout:{padding:{right:90}},
+                    onClick:(e,el)=>{if(el[0]) toggleFilterArr('client', top[el[0].index][0])},
+                    scales:{
+                        x:{stacked:true, display:false},
+                        y:{stacked:true, afterFit:(s)=>{s.width=150;},ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}
+                    },
+                    plugins:{
+                        legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},
+                        datalabels:{display:true}
                     }
                 }
             });
