@@ -474,7 +474,10 @@
                                 return grad;
                             },
                             borderColor:'#3b82f6', borderWidth:1.5, borderRadius:6, borderSkipped:false,
-                            datalabels: { display:true, color:'#1e3a5f', font:{weight:'800',size:11}, anchor:'end', align:'end', offset:2 }
+                            datalabels: { 
+                                display:true, color:'#1e3a5f', font:{weight:'800',size:11}, anchor:'end', align:'end', offset:2,
+                                formatter: (v) => v > 0 && filtered.length > 0 ? `${v} (${((v/filtered.length)*100).toFixed(1)}%)` : ''
+                            }
                         },
                         {
                             type:'line', label:'Tendencia', data: vals,
@@ -497,16 +500,51 @@
             });
         }
 
+        const getBarLabelConfig = (type, totalRef) => {
+            const isMain = type === 'main';
+            return {
+                display: true,
+                anchor: 'end',
+                align: (ctx) => {
+                    const v = ctx.dataset.data[ctx.dataIndex];
+                    if (!v) return 'end';
+                    const maxVal = Math.max(...ctx.dataset.data);
+                    return (maxVal && (v / maxVal) > 0.15) ? 'start' : 'end';
+                },
+                color: (ctx) => {
+                    const v = ctx.dataset.data[ctx.dataIndex];
+                    if (!v) return 'transparent';
+                    const maxVal = Math.max(...ctx.dataset.data);
+                    const isInside = (maxVal && (v / maxVal) > 0.15);
+                    if (isInside) return '#ffffff';
+                    return isMain ? '#1e3a5f' : '#64748b';
+                },
+                font: {
+                    weight: isMain ? '900' : '600',
+                    size: isMain ? 10 : 9,
+                    family: 'Inter'
+                },
+                offset: 4,
+                formatter: (v) => {
+                    if (!v) return '';
+                    if (isMain) {
+                        const pct = totalRef ? ((v / totalRef) * 100).toFixed(1) : 0;
+                        return `${v} (${pct}%)`;
+                    } else {
+                        return `${Math.round(v)} uds`;
+                    }
+                }
+            };
+        };
+
         function renderProblem() {
             if(charts.p) charts.p.destroy();
             const q = {}, u = {};
             filtered.forEach(x => { const p = x._prob || 'SIN TIPO'; q[p] = (q[p]||0)+1; u[p] = (u[p]||0)+x._qty; });
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
             const totalQ = filtered.length;
-            const totalU = filtered.reduce((a,b)=>a+b._qty,0);
 
-            // Define container height based on elements
-            const calcHeight = Math.max(300, top.length * 35);
+            const calcHeight = Math.max(300, top.length * 45);
             document.getElementById('cProblemWrapper').style.height = calcHeight + 'px';
 
             charts.p = new Chart(document.getElementById('cProblem'), {
@@ -517,24 +555,24 @@
                         {
                             label: 'Registros', data: top.map(x => x[1]), 
                             backgroundColor: (ctx) => getChartColor(globalFilters.problem, top[ctx.dataIndex]?.[0], '#3b82f6'),
-                            borderRadius: 3, barPercentage: 0.8,
-                            datalabels: { color:'#1e3a5f', align:'top', anchor:'end', offset:2, font:{weight:'800',size:9}, formatter:(v)=>v>0?`${v} (${((v/totalQ)*100).toFixed(1)}%)`:'' }
+                            borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.8,
+                            datalabels: getBarLabelConfig('main', totalQ)
                         },
                         {
                             label: 'Cantidades', data: top.map(x => u[x[0]] || 0), 
                             backgroundColor: (ctx) => getChartColor(globalFilters.problem, top[ctx.dataIndex]?.[0], '#94a3b8'),
-                            borderRadius: 3, barPercentage: 0.8,
-                            datalabels: { color:'#64748b', align:'bottom', anchor:'end', offset:2, font:{weight:'700',size:8}, formatter:(v)=>v>0?`${Math.round(v)} uds`:'' }
+                            borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.8,
+                            datalabels: getBarLabelConfig('sec')
                         }
                     ]
                 },
                 options: {
                     indexAxis:'y', responsive:true, maintainAspectRatio:false,
-                    layout:{padding:{right:90}},
+                    layout:{padding:{right:120}},
                     onClick:(e,el)=>{if(el[0]) toggleFilterArr('problem', top[el[0].index][0])},
                     scales:{
-                        x:{stacked:true, display:false},
-                        y:{stacked:true, afterFit:(s)=>{s.width=120;}, ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false}, grid:{display:false}, border:{display:false}}
+                        x:{display:false},
+                        y:{afterFit:(s)=>{s.width=120;}, ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false}, grid:{display:false}, border:{display:false}}
                     },
                     plugins:{
                         legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},
@@ -666,9 +704,9 @@
             if(charts.a) charts.a.destroy();
             const q={},u={}; filtered.forEach(x => { const c=x._family.includes('-')?x._family.split('-')[1].trim():x._family; q[c]=(q[c]||0)+1; u[c]=(u[c]||0)+x._qty; });
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
-            const totalQ=filtered.length, totalU=filtered.reduce((a,b)=>a+b._qty,0);
+            const totalQ=filtered.length;
 
-            const calcHeight = Math.max(250, top.length * 35);
+            const calcHeight = Math.max(250, top.length * 45);
             document.getElementById('cAgentWrapper').style.height = calcHeight + 'px';
 
             charts.a = new Chart(document.getElementById('cAgent'),{
@@ -676,22 +714,22 @@
                 data:{
                     labels:top.map(x=>x[0]),
                     datasets:[
-                        {label:'Quejas',data:top.map(x=>x[1]),
+                        {label:'Registros',data:top.map(x=>x[1]),
                             backgroundColor:(ctx)=>getChartColor(globalFilters.family, top[ctx.dataIndex]?.[0], '#3b82f6'),
-                            borderRadius:3,
-                            datalabels:{color:'#1e3a5f',align:'top',anchor:'end',offset:2,font:{weight:'800',size:9},formatter:(v)=>v>0?`${v} (${((v/totalQ)*100).toFixed(1)}%)`:''}},
-                        {label:'Unid',data:top.map(x=>u[x[0]]),
+                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8,
+                            datalabels:getBarLabelConfig('main', totalQ)},
+                        {label:'Cantidades',data:top.map(x=>u[x[0]]),
                             backgroundColor:(ctx)=>getChartColor(globalFilters.family, top[ctx.dataIndex]?.[0], '#94a3b8'),
-                            borderRadius:3,
-                            datalabels:{color:'#64748b',align:'bottom',anchor:'end',offset:2,font:{weight:'700',size:8},formatter:(v)=>v>0?`${Math.round(v)} uds`:''}}
+                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8,
+                            datalabels:getBarLabelConfig('sec')}
                     ]
                 },
                 options:{
-                    indexAxis:'y',responsive:true,maintainAspectRatio:false,barPercentage:0.85,categoryPercentage:0.8,
-                    layout:{padding:{right:90}},
+                    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+                    layout:{padding:{right:120}},
                     onClick:(e,el)=>{if(el[0]) toggleFilterArr('family', top[el[0].index][0])},
                     scales:{x:{display:false},y:{afterFit:(s)=>{s.width=100;},ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}},
-                    plugins:{legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8},boxWidth:8,padding:5}},datalabels:{display:true}}
+                    plugins:{legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},datalabels:{display:true}}
                 }
             });
         }
@@ -725,7 +763,7 @@
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]).slice(0, 15);
             const totalQ=filtered.length;
 
-            const calcHeight = Math.max(300, top.length * 35);
+            const calcHeight = Math.max(300, top.length * 45);
             document.getElementById('cClientWrapper').style.height = calcHeight + 'px';
 
             charts.c = new Chart(document.getElementById('cClient'),{
@@ -735,21 +773,21 @@
                     datasets:[
                         {label:'Registros',data:top.map(x=>x[1]),
                             backgroundColor:(ctx)=>getChartColor(globalFilters.client, top[ctx.dataIndex]?.[0], '#3b82f6'),
-                            borderRadius:3, barPercentage: 0.8,
-                            datalabels:{color:'#1e3a5f',align:'top',anchor:'end',offset:2,font:{weight:'800',size:9},formatter:(v)=>v>0?`${v} (${((v/totalQ)*100).toFixed(1)}%)`:''}},
+                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8,
+                            datalabels:getBarLabelConfig('main', totalQ)},
                         {label:'Cantidades',data:top.map(x=>u[x[0]]),
                             backgroundColor:(ctx)=>getChartColor(globalFilters.client, top[ctx.dataIndex]?.[0], '#94a3b8'),
-                            borderRadius:3, barPercentage: 0.8,
-                            datalabels:{color:'#64748b',align:'bottom',anchor:'end',offset:2,font:{weight:'700',size:8},formatter:(v)=>v>0?`${Math.round(v)} uds`:''}}
+                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8,
+                            datalabels:getBarLabelConfig('sec')}
                     ]
                 },
                 options:{
                     indexAxis:'y',responsive:true,maintainAspectRatio:false,
-                    layout:{padding:{right:90}},
+                    layout:{padding:{right:120}},
                     onClick:(e,el)=>{if(el[0]) toggleFilterArr('client', top[el[0].index][0])},
                     scales:{
-                        x:{stacked:true, display:false},
-                        y:{stacked:true, afterFit:(s)=>{s.width=150;},ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}
+                        x:{display:false},
+                        y:{afterFit:(s)=>{s.width=150;},ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}
                     },
                     plugins:{
                         legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},
