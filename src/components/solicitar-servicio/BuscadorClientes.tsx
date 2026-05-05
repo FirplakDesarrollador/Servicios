@@ -27,17 +27,19 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
             setLoading(true);
             try {
                 // Search in both views to consolidate "Payer/Client" and "Location"
+                const words = searchTerm.trim().split(/\s+/).filter(Boolean);
+
+                let uQuery = supabase.from('query_ubicaciones_fast').select('*');
+                let cQuery = supabase.from('query_consumidores').select('*');
+
+                words.forEach(word => {
+                    uQuery = uQuery.or(`nombre.ilike.%${word}%,cliente_nombre.ilike.%${word}%,nit.ilike.%${word}%,direccion.ilike.%${word}%`);
+                    cQuery = cQuery.or(`contacto.ilike.%${word}%,cedula.ilike.%${word}%,direccion.ilike.%${word}%`);
+                });
+
                 const [ubicacionesRes, consumidoresRes] = await Promise.all([
-                    supabase
-                        .from('query_ubicaciones_fast')
-                        .select('*')
-                        .or(`nombre.ilike.%${searchTerm}%,cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
-                        .limit(20),
-                    supabase
-                        .from('query_consumidores')
-                        .select('*')
-                        .or(`contacto.ilike.%${searchTerm}%,cedula.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
-                        .limit(20)
+                    uQuery.limit(20),
+                    cQuery.limit(20)
                 ]);
 
                 if (ubicacionesRes.error) throw ubicacionesRes.error;
