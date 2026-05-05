@@ -15,7 +15,7 @@ interface BuscadorClienteFinalProps {
 type SearchCriteria = 'cedula' | 'nombre';
 
 export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClienteFinalProps) {
-    const [criteria, setCriteria] = useState<SearchCriteria>('nombre');
+    const [criteria, setCriteria] = useState<SearchCriteria>('cedula');
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -215,10 +215,12 @@ export default function BuscadorClienteFinal({ onSelect, onClose }: BuscadorClie
             <ModalCrearClienteFinal
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
-                onSuccess={() => {
+                onSuccess={(nuevoCliente) => {
                     setShowCreateModal(false);
+                    if (nuevoCliente) {
+                        onSelect({ ...nuevoCliente, _search_type: 'consumidor' });
+                    }
                 }}
-
             />
         </motion.div>
 

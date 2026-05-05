@@ -25,7 +25,14 @@ import {
     X,
     Paperclip,
     ExternalLink,
-    Pencil
+    Pencil,
+    MapPin,
+    Phone,
+    Building2,
+    Minus,
+    PlusCircle as PlusCircleIcon,
+    Video,
+    Eye
 } from 'lucide-react';
 import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
@@ -61,6 +68,7 @@ export default function SolicitarServicioPage() {
     const [productosSeleccionados, setProductosSeleccionados] = useState<any[]>([]);
     const [repuestosSeleccionados, setRepuestosSeleccionados] = useState<any[]>([]);
     const [adjuntos, setAdjuntos] = useState<any[]>([]);
+    const [previewFile, setPreviewFile] = useState<any>(null);
 
     // Modal Control States
     const [showBuscadorClientes, setShowBuscadorClientes] = useState(false);
@@ -624,27 +632,38 @@ export default function SolicitarServicioPage() {
                                 className={`w-full p-4 border-2 rounded-2xl transition-all font-black text-sm flex items-center justify-center gap-2 ${!canalVenta
                                     ? 'bg-slate-50 border-slate-100 text-slate-300 border-dashed'
                                     : clienteSeleccionado
-                                        ? 'bg-brand/5 border-brand text-brand shadow-sm'
+                                        ? 'bg-brand/5 border-brand text-brand shadow-md'
                                         : 'border-slate-200 border-dashed hover:bg-slate-50 text-slate-400'
                                     }`}
                             >
                                 {clienteSeleccionado ? clienteSeleccionado.nombre : canalVenta ? 'Presione para buscar cliente...' : 'Seleccione canal de venta primero'}
                             </button>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-slate-400 font-medium uppercase">Dirección</span>
-                                    <span className="font-bold">{clienteSeleccionado?.direccion || '---'}</span>
+                            {clienteSeleccionado && (
+                                <div className="space-y-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-100/50">
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-slate-400">
+                                            <MapPin className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Dirección</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-700 text-right max-w-[60%] line-clamp-1">{clienteSeleccionado?.direccion || '---'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-slate-400">
+                                            <Phone className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Teléfono</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-700">{clienteSeleccionado?.telefono || '---'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-slate-400">
+                                            <User className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Contacto</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-700 text-right max-w-[60%] line-clamp-1">{clienteSeleccionado?.nombre_contacto || clienteSeleccionado?.contacto || '---'}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-slate-400 font-medium uppercase">Teléfono</span>
-                                    <span className="font-bold">{clienteSeleccionado?.telefono || '---'}</span>
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-slate-400 font-medium uppercase">Contacto</span>
-                                    <span className="font-bold">{clienteSeleccionado?.nombre_contacto || clienteSeleccionado?.contacto || '---'}</span>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     )}
 
@@ -707,18 +726,27 @@ export default function SolicitarServicioPage() {
                                     {clienteFinalSeleccionado ? (clienteFinalSeleccionado._search_type === 'ubicacion' ? (clienteFinalSeleccionado.nombre || clienteFinalSeleccionado.cliente_nombre) : clienteFinalSeleccionado.contacto) : 'Presione para buscar cliente final...'}
                                 </button>
 
-                                <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-400 font-medium uppercase tracking-widest">Ciudad</span>
-                                        <span className="font-bold text-slate-700">{clienteFinalSeleccionado?.ciudad || '---'}</span>
+                                <div className="space-y-3 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/50">
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-emerald-600/60">
+                                            <Building2 className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Ciudad</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-800">{clienteFinalSeleccionado?.ciudad || '---'}</span>
                                     </div>
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-400 font-medium uppercase tracking-widest">Dirección</span>
-                                        <span className="font-bold text-slate-700">{clienteFinalSeleccionado?.direccion || '---'}</span>
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-emerald-600/60">
+                                            <MapPin className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Dirección</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-800 text-right max-w-[60%] line-clamp-1">{clienteFinalSeleccionado?.direccion || '---'}</span>
                                     </div>
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-400 font-medium uppercase tracking-widest">Teléfono</span>
-                                        <span className="font-bold text-slate-700">{clienteFinalSeleccionado?.telefono || '---'}</span>
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-emerald-600/60">
+                                            <Phone className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Teléfono</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-800">{clienteFinalSeleccionado?.telefono || '---'}</span>
                                     </div>
                                 </div>
                             </motion.div>
@@ -749,21 +777,46 @@ export default function SolicitarServicioPage() {
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                                 {productosSeleccionados.map((prod, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 group">
-                                        <div className="flex flex-col">
+                                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group gap-4">
+                                        <div className="flex flex-col flex-1 min-w-0">
                                             <span className="text-[10px] font-black text-brand uppercase tracking-wider">{prod.sku}</span>
-                                            <span className="text-xs font-bold text-slate-700 uppercase truncate max-w-[150px]">{prod.nombre}</span>
+                                            <span className="text-xs font-bold text-slate-700 uppercase leading-tight">{prod.nombre}</span>
                                             {(prod.color_base || prod.color_mueble) && (
-                                                <span className="text-[9px] text-slate-400 font-medium uppercase mt-0.5">
+                                                <span className="text-[9px] text-slate-400 font-medium uppercase mt-1">
                                                     {prod.color_base && `Base: ${prod.color_base}`}
                                                     {prod.color_base && prod.color_mueble && ' | '}
                                                     {prod.color_mueble && `Mueble: ${prod.color_mueble}`}
                                                 </span>
                                             )}
                                         </div>
+                                        
+                                        <div className="flex items-center bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+                                            <button 
+                                                onClick={() => {
+                                                    const newQty = Math.max(1, (prod.cantidad || 1) - 1);
+                                                    setProductosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                }}
+                                                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                            >
+                                                <Minus className="w-3.5 h-3.5" />
+                                            </button>
+                                            <span className="px-3 text-xs font-black text-brand min-w-[2rem] text-center">
+                                                {prod.cantidad || 1}
+                                            </span>
+                                            <button 
+                                                onClick={() => {
+                                                    const newQty = (prod.cantidad || 1) + 1;
+                                                    setProductosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                }}
+                                                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+
                                         <button
                                             onClick={() => setProductosSeleccionados(prev => prev.filter((_, i) => i !== idx))}
-                                            className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                            className="p-2 text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -796,14 +849,39 @@ export default function SolicitarServicioPage() {
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                                 {repuestosSeleccionados.map((rep, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 group">
-                                        <div className="flex flex-col">
+                                    <div key={idx} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 group gap-4">
+                                        <div className="flex flex-col flex-1 min-w-0">
                                             <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">{rep.sku}</span>
-                                            <span className="text-xs font-bold text-slate-700 uppercase truncate max-w-[150px]">{rep.nombre}</span>
+                                            <span className="text-xs font-bold text-slate-700 uppercase leading-tight">{rep.nombre}</span>
                                         </div>
+
+                                        <div className="flex items-center bg-white rounded-xl border border-indigo-100 p-1 shadow-sm">
+                                            <button 
+                                                onClick={() => {
+                                                    const newQty = Math.max(1, (rep.cantidad || 1) - 1);
+                                                    setRepuestosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                }}
+                                                className="p-1 hover:bg-indigo-50 rounded-lg text-indigo-400 transition-colors"
+                                            >
+                                                <Minus className="w-3.5 h-3.5" />
+                                            </button>
+                                            <span className="px-3 text-xs font-black text-indigo-600 min-w-[2rem] text-center">
+                                                {rep.cantidad || 1}
+                                            </span>
+                                            <button 
+                                                onClick={() => {
+                                                    const newQty = (rep.cantidad || 1) + 1;
+                                                    setRepuestosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                }}
+                                                className="p-1 hover:bg-indigo-50 rounded-lg text-indigo-400 transition-colors"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+
                                         <button
                                             onClick={() => setRepuestosSeleccionados(prev => prev.filter((_, i) => i !== idx))}
-                                            className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                            className="p-2 text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -826,7 +904,7 @@ export default function SolicitarServicioPage() {
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             className="hidden"
-                            accept="image/*,.pdf"
+                            accept="image/*,video/*,.pdf"
                         />
 
                         <div
@@ -837,7 +915,7 @@ export default function SolicitarServicioPage() {
                                 <Upload className="w-6 h-6 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                             </div>
                             <p className="text-slate-400 group-hover:text-slate-600 font-bold text-sm transition-colors">Presione para cargar archivos...</p>
-                            <p className="text-xs text-slate-300 font-medium">Imágenes, PDF</p>
+                            <p className="text-xs text-slate-300 font-medium">Imágenes, Videos, PDF</p>
                         </div>
 
                         {/* File Preview List */}
@@ -857,18 +935,34 @@ export default function SolicitarServicioPage() {
                                                         alt="preview"
                                                         className="w-full h-full object-cover"
                                                     />
+                                                ) : file.type.startsWith('video/') ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <Video className="w-10 h-10 text-brand" />
+                                                        <span className="text-[8px] font-black uppercase text-brand/60">Video</span>
+                                                    </div>
                                                 ) : (
                                                     <FileText className="w-10 h-10 text-slate-400" />
                                                 )}
 
-                                                {/* Overlay with Remove Button */}
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                {/* Overlay with Actions */}
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setPreviewFile(file);
+                                                        }}
+                                                        className="bg-white/20 backdrop-blur-md text-white p-2 rounded-full hover:bg-white/40 transition-colors shadow-lg"
+                                                        title="Ver archivo"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             removeAdjunto(idx);
                                                         }}
                                                         className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                                                        title="Eliminar"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -1005,6 +1099,78 @@ export default function SolicitarServicioPage() {
                             setShowEditClienteFinal(false);
                         }}
                     />
+                )}
+
+                {/* Attachment Preview Modal */}
+                {previewFile && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm"
+                        onClick={() => setPreviewFile(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative max-w-4xl w-full bg-white rounded-[2rem] overflow-hidden shadow-2xl"
+                        >
+                            <button
+                                onClick={() => setPreviewFile(null)}
+                                className="absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+
+                            <div className="p-8">
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight truncate pr-12">
+                                        {previewFile.name}
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        {(previewFile.size / 1024 / 1024).toFixed(2)} MB • {previewFile.type}
+                                    </p>
+                                </div>
+
+                                <div className="bg-slate-100 rounded-2xl overflow-hidden flex items-center justify-center min-h-[300px] max-h-[70vh]">
+                                    {previewFile.type.startsWith('image/') ? (
+                                        <img
+                                            src={URL.createObjectURL(previewFile)}
+                                            alt="Preview"
+                                            className="max-w-full max-h-full object-contain shadow-inner"
+                                        />
+                                    ) : previewFile.type.startsWith('video/') ? (
+                                        <video
+                                            controls
+                                            autoPlay
+                                            className="max-w-full max-h-full shadow-inner"
+                                            src={URL.createObjectURL(previewFile)}
+                                        />
+                                    ) : previewFile.type === 'application/pdf' ? (
+                                        <iframe
+                                            src={URL.createObjectURL(previewFile)}
+                                            className="w-full h-[60vh] border-none shadow-inner rounded-xl"
+                                            title="PDF Preview"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-4 text-slate-400">
+                                            <FileText className="w-20 h-20" />
+                                            <p className="font-bold">No hay vista previa disponible para este formato</p>
+                                            <a
+                                                href={URL.createObjectURL(previewFile)}
+                                                download={previewFile.name}
+                                                className="px-6 py-2 bg-brand text-white rounded-full font-black text-xs uppercase"
+                                            >
+                                                Descargar para ver
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

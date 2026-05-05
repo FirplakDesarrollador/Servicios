@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface ModalCrearClienteFinalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (cliente?: any) => void;
     initialData?: any;
     serviceId?: string | number;
 }
@@ -158,13 +158,18 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
                 correo_electronico: formData.correo_electronico.toLowerCase(),
             };
 
+            let savedId = null;
+
             if (formData.id) {
                 // Update Consumer
-                const { error: updateError } = await supabase
+                const { data, error: updateError } = await supabase
                     .from('Consumidores')
                     .update(payload)
-                    .eq('id', formData.id);
+                    .eq('id', formData.id)
+                    .select('id')
+                    .single();
                 if (updateError) throw updateError;
+                savedId = data.id;
 
                 // SPECIAL REQUEST: If serviceId is provided, update the service's coordinator based on the new city's zone
                 if (serviceId) {
@@ -178,13 +183,23 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
                 }
             } else {
                 // Insert
-                const { error: insertError } = await supabase
+                const { data, error: insertError } = await supabase
                     .from('Consumidores')
-                    .insert([{ ...payload, created_at: new Date().toISOString() }]);
+                    .insert([{ ...payload, created_at: new Date().toISOString() }])
+                    .select('id')
+                    .single();
                 if (insertError) throw insertError;
+                savedId = data.id;
             }
 
-            onSuccess();
+            // Fetch the FULL record with city names from the view
+            const { data: fullRecord, error: fetchError } = await supabase
+                .from('query_consumidores')
+                .select('*')
+                .eq('id', savedId)
+                .single();
+
+            onSuccess(fullRecord || { ...payload, id: savedId });
             onClose();
             // Reset form will be handled by useEffect when re-opening
         } catch (err: any) {
