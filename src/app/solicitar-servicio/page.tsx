@@ -24,12 +24,16 @@ import {
     ImageIcon,
     X,
     Paperclip,
-    ExternalLink
+    ExternalLink,
+    Pencil
 } from 'lucide-react';
 import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
 import BuscadorProductos from '@/components/solicitar-servicio/BuscadorProductos';
 import BuscadorRepuestos from '@/components/solicitar-servicio/BuscadorRepuestos';
+import ModalCrearSala from '@/components/base-de-datos/ModalCrearSala';
+import ModalEditSala from '@/components/base-de-datos/ModalEditSala';
+import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
 
 export default function SolicitarServicioPage() {
     const router = useRouter();
@@ -63,6 +67,8 @@ export default function SolicitarServicioPage() {
     const [showBuscadorClienteFinal, setShowBuscadorClienteFinal] = useState(false);
     const [showBuscadorProductos, setShowBuscadorProductos] = useState(false);
     const [showBuscadorRepuestos, setShowBuscadorRepuestos] = useState(false);
+    const [showEditSala, setShowEditSala] = useState(false);
+    const [showEditClienteFinal, setShowEditClienteFinal] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const tipoServicioRef = useRef<HTMLSelectElement>(null);
@@ -596,9 +602,19 @@ export default function SolicitarServicioPage() {
                                     }
                                 </h3>
                                 {clienteSeleccionado && (
-                                    <button className="text-brand hover:scale-110 transition-transform">
-                                        <PlusCircle className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={() => setShowEditSala(true)}
+                                            className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                                            title="Editar datos de ubicación"
+                                        >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                            Editar
+                                        </button>
+                                        <button className="text-brand hover:scale-110 transition-transform">
+                                            <PlusCircle className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 
@@ -649,6 +665,17 @@ export default function SolicitarServicioPage() {
                                     </p>
                                 </div>
                             </div>
+
+                            {clienteFinalSeleccionado && (
+                                <button 
+                                    onClick={() => setShowEditClienteFinal(true)}
+                                    className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                                    title="Editar datos de cliente final"
+                                >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    Editar
+                                </button>
+                            )}
 
                             <button 
                                 onClick={() => {
@@ -936,6 +963,47 @@ export default function SolicitarServicioPage() {
                             ));
                         }}
                         onClose={() => setShowBuscadorRepuestos(false)}
+                    />
+                )}
+                {showEditSala && (
+                    <ModalEditSala
+                        isOpen={showEditSala}
+                        initialData={clienteSeleccionado}
+                        onClose={() => setShowEditSala(false)}
+                        onSuccess={async () => {
+                            // Refresh selected client data
+                            const { data } = await supabase
+                                .from('query_ubicaciones_fast')
+                                .select('*')
+                                .eq('id', clienteSeleccionado.id)
+                                .single();
+                            if (data) setClienteSeleccionado(data);
+                            setShowEditSala(false);
+                        }}
+                    />
+                )}
+                {showEditClienteFinal && (
+                    <ModalCrearClienteFinal
+                        isOpen={showEditClienteFinal}
+                        initialData={{
+                            ...clienteFinalSeleccionado,
+                            // Map fields if necessary (ModalCrearClienteFinal uses specific names)
+                            contacto: clienteFinalSeleccionado.contacto,
+                            cedula: clienteFinalSeleccionado.cedula,
+                            correo_electronico: clienteFinalSeleccionado.correo_electronico,
+                            telefono: clienteFinalSeleccionado.telefono
+                        }}
+                        onClose={() => setShowEditClienteFinal(false)}
+                        onSuccess={async () => {
+                            // Refresh selected consumer data
+                            const { data } = await supabase
+                                .from('query_consumidores')
+                                .select('*')
+                                .eq('id', clienteFinalSeleccionado.id)
+                                .single();
+                            if (data) setClienteFinalSeleccionado(data);
+                            setShowEditClienteFinal(false);
+                        }}
                     />
                 )}
             </AnimatePresence>
