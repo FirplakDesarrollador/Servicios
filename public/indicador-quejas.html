@@ -34,9 +34,9 @@
 <body class="min-h-screen">
 
     <!-- HEADER -->
-    <header class="bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 text-white px-8 py-5 shadow-xl relative overflow-hidden">
+    <header class="bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 text-white px-6 md:px-10 2xl:px-16 py-6 shadow-xl relative overflow-hidden">
         <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%23ffffff&quot; fill-opacity=&quot;0.15&quot;%3E%3Cpath d=&quot;M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
-        <div class="relative max-w-[1600px] mx-auto flex items-center justify-between">
+        <div class="relative w-full flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-black tracking-tight leading-none">Reporte Indicador de <span class="text-blue-300">Quejas</span></h1>
                 <p class="text-blue-200/70 text-xs font-medium mt-1">Gerencia Servicio al Cliente MAC · SAP Business One</p>
@@ -44,9 +44,9 @@
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-sm border border-white/10">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-[10px] font-bold text-blue-100 uppercase tracking-widest">En Vivo</span>
+                    <span class="text-[11px] 2xl:text-xs font-bold text-blue-100 uppercase tracking-widest">En Vivo</span>
                 </div>
-                <button onclick="exportCSV()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm border border-white/10 transition-all text-[10px] font-bold uppercase tracking-widest">
+                <button onclick="exportCSV()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm border border-white/10 transition-all text-[11px] 2xl:text-xs font-bold uppercase tracking-widest">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Exportar
                 </button>
@@ -56,36 +56,36 @@
 
     <!-- FILTERS BAR -->
     <div class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
-        <div class="max-w-[1600px] mx-auto px-8 py-2.5 flex items-center gap-5 overflow-x-auto">
+        <div class="w-full mx-auto px-6 md:px-10 2xl:px-16 py-3 flex items-center gap-5 overflow-x-auto">
             <div class="shrink-0">
                 <select id="fTipo" onchange="apply()" class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-300"><option value="">Todos</option></select>
             </div>
             <div class="w-px h-5 bg-slate-200"></div>
             <div class="flex items-center gap-2 shrink-0">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Desde</label>
+                <label class="text-[11px] 2xl:text-xs font-bold text-slate-500 uppercase tracking-widest">Desde</label>
                 <input type="date" id="dateStart" onchange="apply()" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-300">
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Hasta</label>
+                <label class="text-[11px] 2xl:text-xs font-bold text-slate-500 uppercase tracking-widest">Hasta</label>
                 <input type="date" id="dateEnd" onchange="apply()" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-300">
             </div>
             <div class="w-px h-5 bg-slate-200"></div>
             <div class="flex items-center gap-2 shrink-0">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ciudad</label>
+                <label class="text-[11px] 2xl:text-xs font-bold text-slate-500 uppercase tracking-widest">Ciudad</label>
                 <select id="fCity" onchange="apply()" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 outline-none"><option value="">Todas</option></select>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Canal</label>
+                <label class="text-[11px] 2xl:text-xs font-bold text-slate-500 uppercase tracking-widest">Canal</label>
                 <select id="fChan" onchange="apply()" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 outline-none"><option value="">Todos</option></select>
             </div>
             <div class="ml-auto shrink-0 flex items-center gap-3">
-                <button onclick="clearAllFilters()" class="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Limpiar Filtros</button>
+                <button onclick="clearAllFilters()" class="text-[11px] 2xl:text-xs font-bold text-blue-600 uppercase tracking-widest hover:underline">Limpiar Filtros</button>
             </div>
         </div>
     </div>
 
     <!-- MAIN CONTENT -->
-    <main class="max-w-[1600px] mx-auto px-8 py-5">
+    <main class="w-full mx-auto px-6 md:px-10 2xl:px-16 py-6">
 
         <!-- ROW 1: KPIs + Canal de Venta — UNIFIED -->
         <section class="mb-5">
@@ -96,32 +96,32 @@
                         <div class="absolute -top-8 -right-8 w-28 h-28 bg-blue-400/10 rounded-full"></div>
                         <div class="absolute -bottom-6 -left-6 w-20 h-20 bg-blue-300/5 rounded-full"></div>
                         <div class="relative">
-                            <p class="text-[9px] font-bold text-blue-300/80 uppercase tracking-[0.25em]">Total Quejas</p>
-                            <h3 id="v-quejas" class="text-4xl font-black leading-none mt-1">0</h3>
+                            <p class="text-[11px] font-bold text-blue-300/80 uppercase tracking-[0.2em]">Total Quejas</p>
+                            <h3 id="v-quejas" class="text-6xl font-black leading-none mt-2">0</h3>
                         </div>
                         <div class="relative h-12 w-px bg-white/10"></div>
                         <div class="relative space-y-2">
                             <div class="flex items-center gap-2">
                                 <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                                <p class="text-[8px] font-bold text-blue-300/60 uppercase">Cantidades</p>
-                                <p id="v-units" class="text-sm font-black text-blue-200 ml-1">0</p>
+                                <p class="text-[11px] 2xl:text-xs font-bold text-blue-300/60 uppercase">Cantidades</p>
+                                <p id="v-units" class="text-lg font-black text-blue-200 ml-1.5">0</p>
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                                <p class="text-[8px] font-bold text-blue-300/60 uppercase">Inversión</p>
-                                <p id="v-cost" class="text-sm font-black text-emerald-400 ml-1">$0</p>
+                                <p class="text-[11px] 2xl:text-xs font-bold text-blue-300/60 uppercase">Inversión</p>
+                                <p id="v-cost" class="text-lg font-black text-emerald-400 ml-1.5">$0</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Variación Periodo -->
                     <div class="px-6 py-4 flex flex-col justify-center items-center border-r border-slate-100 shrink-0 min-w-[160px] bg-slate-50/50">
-                        <p class="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1.5">Variación Periodo</p>
+                        <p class="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Variación Periodo</p>
                         <div class="flex items-center gap-1.5">
                             <span id="q-arrow" class="text-lg leading-none">—</span>
-                            <span id="q-pct" class="text-xl font-black text-slate-800 leading-none">0%</span>
+                            <span id="q-pct" class="text-3xl font-black text-slate-800 leading-none">0%</span>
                         </div>
-                        <p id="q-label" class="text-[7px] font-bold text-slate-400 uppercase tracking-wider mt-2 text-center leading-tight max-w-[150px]">vs periodo anterior</p>
+                        <p id="q-label" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-3 text-center leading-tight max-w-[150px]">vs periodo anterior</p>
                     </div>
 
                     <!-- Canal de Venta Cards -->
@@ -138,10 +138,10 @@
         </section>
 
         <!-- ROW 2: Tendencia Mensual (left) + Tipo de Problema (right) -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-6">
-            <div class="lg:col-span-3 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+            <div class="lg:col-span-7 2xl:col-span-8 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                         Tendencia Mensual
                     </h3>
@@ -152,16 +152,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="h-[300px]"><canvas id="cTrend"></canvas></div>
+                <div class="h-[400px] 2xl:h-[480px]"><canvas id="cTrend"></canvas></div>
             </div>
 
-            <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
-                <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+            <div class="lg:col-span-5 2xl:col-span-4 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
+                <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     Tipo de Problema
                 </h3>
-                <div class="h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                    <div id="cProblemWrapper" class="relative hover:min-h-[300px] transition-all">
+                <div class="h-[400px] 2xl:h-[480px] overflow-y-auto custom-scrollbar pr-1">
+                    <div id="cProblemWrapper" class="relative hover:min-h-[400px] 2xl:h-[480px] transition-all">
                         <canvas id="cProblem"></canvas>
                     </div>
                 </div>
@@ -171,23 +171,23 @@
         <!-- ROW 3: Departamento + Subgrupos -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
-                <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                     Quejas por Departamento
                 </h3>
-                <div class="flex items-center h-[250px]">
+                <div class="flex items-center h-[320px] 2xl:h-[380px]">
                     <div class="w-[50%] h-full"><canvas id="cFamily"></canvas></div>
                     <div id="family-legend" class="w-[50%] pl-4 space-y-1 overflow-y-auto max-h-full custom-scrollbar"></div>
                 </div>
             </div>
 
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
-                <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                     Subgrupos Afectados
                 </h3>
-                <div class="h-[250px] overflow-y-auto custom-scrollbar pr-1">
-                    <div id="cAgentWrapper" class="relative hover:min-h-[250px] transition-all">
+                <div class="h-[320px] 2xl:h-[380px] overflow-y-auto custom-scrollbar pr-1">
+                    <div id="cAgentWrapper" class="relative hover:min-h-[320px] 2xl:h-[380px] transition-all">
                         <canvas id="cAgent"></canvas>
                     </div>
                 </div>
@@ -197,22 +197,22 @@
         <!-- ROW 4: Zona + Ciudad Table -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
-                <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     Quejas por Zona
                 </h3>
-                <div class="h-[260px]"><canvas id="cZone"></canvas></div>
+                <div class="h-[320px] 2xl:h-[380px]"><canvas id="cZone"></canvas></div>
             </div>
 
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm card-hover overflow-hidden flex flex-col">
                 <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
-                    <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         Top Ciudades
                     </h3>
                 </div>
                 <div class="flex-1 overflow-y-auto max-h-[280px] custom-scrollbar">
-                    <table class="w-full text-left text-[11px] font-medium">
+                    <table class="w-full text-left text-xs font-medium">
                         <thead class="sticky top-0 bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider z-10">
                             <tr>
                                 <th class="px-5 py-2.5">Ciudad</th>
@@ -230,12 +230,12 @@
         <!-- ROW 5: Clientes -->
         <div class="grid grid-cols-1 gap-5 mb-6">
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
-                <h3 class="text-xs font-black text-brand-800 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                     Top Clientes Afectados
                 </h3>
-                <div class="h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                    <div id="cClientWrapper" class="relative hover:min-h-[300px] transition-all">
+                <div class="h-[400px] 2xl:h-[480px] overflow-y-auto custom-scrollbar pr-1">
+                    <div id="cClientWrapper" class="relative hover:min-h-[400px] 2xl:h-[480px] transition-all">
                         <canvas id="cClient"></canvas>
                     </div>
                 </div>
@@ -475,7 +475,7 @@
                             },
                             borderColor:'#3b82f6', borderWidth:1.5, borderRadius:6, borderSkipped:false,
                             datalabels: { 
-                                display:true, color:'#1e3a5f', font:{weight:'800',size:11}, anchor:'end', align:'end', offset:2,
+                                display:true, color:'#1e3a5f', font:{weight:'800',size:13}, anchor:'end', align:'end', offset:2,
                                 formatter: (v) => v > 0 && filtered.length > 0 ? `${v} (${((v/filtered.length)*100).toFixed(1)}%)` : ''
                             }
                         },
@@ -500,31 +500,40 @@
             });
         }
 
-        const getBarLabelConfig = (type, totalRef) => {
+                        const getBarLabelConfig = (type, totalRef) => {
             const isMain = type === 'main';
             return {
                 display: true,
+                clip: false,
                 anchor: 'end',
                 align: (ctx) => {
                     const v = ctx.dataset.data[ctx.dataIndex];
                     if (!v) return 'end';
-                    const maxVal = Math.max(...ctx.dataset.data);
-                    return (maxVal && (v / maxVal) > 0.15) ? 'start' : 'end';
+                    const globalMax = Math.max(...ctx.chart.data.datasets.flatMap(d => d.data));
+                    const threshold = isMain ? 0.35 : 0.15;
+                    return (globalMax && (v / globalMax) > threshold) ? 'start' : 'end';
                 },
                 color: (ctx) => {
                     const v = ctx.dataset.data[ctx.dataIndex];
                     if (!v) return 'transparent';
-                    const maxVal = Math.max(...ctx.dataset.data);
-                    const isInside = (maxVal && (v / maxVal) > 0.15);
+                    const globalMax = Math.max(...ctx.chart.data.datasets.flatMap(d => d.data));
+                    const threshold = isMain ? 0.35 : 0.15;
+                    const isInside = (globalMax && (v / globalMax) > threshold);
                     if (isInside) return '#ffffff';
                     return isMain ? '#1e3a5f' : '#64748b';
                 },
                 font: {
                     weight: isMain ? '900' : '600',
-                    size: isMain ? 10 : 9,
+                    size: isMain ? 11 : 10,
                     family: 'Inter'
                 },
-                offset: 4,
+                offset: (ctx) => {
+                    const v = ctx.dataset.data[ctx.dataIndex];
+                    const globalMax = Math.max(...ctx.chart.data.datasets.flatMap(d => d.data));
+                    const threshold = isMain ? 0.35 : 0.15;
+                    const isInside = (globalMax && (v / globalMax) > threshold);
+                    return isInside ? 6 : 6; // Keep 6px offset for both inside and outside to ensure visual consistency
+                },
                 formatter: (v) => {
                     if (!v) return '';
                     if (isMain) {
@@ -544,7 +553,7 @@
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
             const totalQ = filtered.length;
 
-            const calcHeight = Math.max(300, top.length * 45);
+            const calcHeight = Math.max(400, top.length * 65);
             document.getElementById('cProblemWrapper').style.height = calcHeight + 'px';
 
             charts.p = new Chart(document.getElementById('cProblem'), {
@@ -568,14 +577,14 @@
                 },
                 options: {
                     indexAxis:'y', responsive:true, maintainAspectRatio:false,
-                    layout:{padding:{right:120}},
+                    layout:{padding:{right:160}},
                     onClick:(e,el)=>{if(el[0]) toggleFilterArr('problem', top[el[0].index][0])},
                     scales:{
                         x:{display:false},
-                        y:{afterFit:(s)=>{s.width=120;}, ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false}, grid:{display:false}, border:{display:false}}
+                        y:{afterFit:(s)=>{s.width=180;}, ticks:{color:'#475569',font:{size:10,weight:'bold'},autoSkip:false}, grid:{display:false}, border:{display:false}}
                     },
                     plugins:{
-                        legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},
+                        legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:10,weight:'bold'},boxWidth:12,padding:10}},
                         datalabels:{display:true}
                     }
                 }
@@ -650,15 +659,15 @@
 
             if(pct > 0) {
                 arrowEl.innerHTML = '▲'; arrowEl.className = 'text-xl text-rose-500';
-                pctEl.className = 'text-2xl font-black text-rose-600';
+                pctEl.className = 'text-4xl font-black text-rose-600';
                 pctEl.innerText = '+' + Math.abs(pct).toFixed(1) + '%';
             } else if(pct < 0) {
                 arrowEl.innerHTML = '▼'; arrowEl.className = 'text-xl text-emerald-500';
-                pctEl.className = 'text-2xl font-black text-emerald-600';
+                pctEl.className = 'text-4xl font-black text-emerald-600';
                 pctEl.innerText = '-' + Math.abs(pct).toFixed(1) + '%';
             } else {
                 arrowEl.innerHTML = '—'; arrowEl.className = 'text-xl text-slate-400';
-                pctEl.className = 'text-2xl font-black text-slate-600';
+                pctEl.className = 'text-4xl font-black text-slate-600';
                 pctEl.innerText = '0%';
             }
             
@@ -683,7 +692,7 @@
                     plugins:{
                         legend:{display:false},
                         tooltip:{ backgroundColor:'rgba(255,255,255,0.95)', titleColor:'#1e293b', bodyColor:'#475569', borderColor:'#e2e8f0', borderWidth:1, callbacks:{ label:(ctx)=>` ${ctx.raw} (${((ctx.raw/total)*100).toFixed(1)}%)` } },
-                        datalabels:{ display:(ctx)=>(ctx.dataset.data[ctx.dataIndex]/total*100)>=8, color:'#fff', formatter:(v)=>((v/total)*100).toFixed(1)+'%', font:{weight:'black',size:11}, anchor:'center', align:'center', textStrokeColor:'rgba(0,0,0,0.3)', textStrokeWidth:3 }
+                        datalabels:{ display:(ctx)=>(ctx.dataset.data[ctx.dataIndex]/total*100)>=8, color:'#fff', formatter:(v)=>((v/total)*100).toFixed(1)+'%', font:{weight:'black',size:13}, anchor:'center', align:'center', textStrokeColor:'rgba(0,0,0,0.3)', textStrokeWidth:3 }
                     }
                 }
             });
@@ -694,7 +703,7 @@
                 return `
                 <div onclick="toggleFilterArr('resp', '${k}')" class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded-lg transition-all ${opacityCls}">
                     <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:${bg}"></span>
-                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-tight truncate">${k}</span>
+                    <span class="text-[11px] 2xl:text-xs font-bold text-slate-600 uppercase tracking-tight truncate">${k}</span>
                     <span class="text-[10px] font-black text-slate-800 ml-auto shrink-0">${m[k]} <span class="text-slate-400 font-bold">${((m[k]/total)*100).toFixed(1)}%</span></span>
                 </div>
             `}).join('');
@@ -706,7 +715,7 @@
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
             const totalQ=filtered.length;
 
-            const calcHeight = Math.max(250, top.length * 45);
+            const calcHeight = Math.max(320, top.length * 65);
             document.getElementById('cAgentWrapper').style.height = calcHeight + 'px';
 
             charts.a = new Chart(document.getElementById('cAgent'),{
@@ -726,10 +735,10 @@
                 },
                 options:{
                     indexAxis:'y',responsive:true,maintainAspectRatio:false,
-                    layout:{padding:{right:120}},
+                    layout:{padding:{right:160}},
                     onClick:(e,el)=>{if(el[0]) toggleFilterArr('family', top[el[0].index][0])},
-                    scales:{x:{display:false},y:{afterFit:(s)=>{s.width=100;},ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}},
-                    plugins:{legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},datalabels:{display:true}}
+                    scales:{x:{display:false},y:{afterFit:(s)=>{s.width=180;},ticks:{color:'#475569',font:{size:10,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}},
+                    plugins:{legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:10,weight:'bold'},boxWidth:12,padding:10}},datalabels:{display:true}}
                 }
             });
         }
@@ -748,7 +757,7 @@
                     layout:{padding:10},
                     onClick:(e,el)=>{if(el[0]) toggleFilterArr('zone', keys[el[0].index])},
                     plugins:{
-                        legend:{position:'right',labels:{color:'#475569',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},
+                        legend:{position:'right',labels:{color:'#475569',font:{size:10,weight:'bold'},boxWidth:12,padding:10}},
                         tooltip:{backgroundColor:'rgba(255,255,255,0.95)',titleColor:'#1e293b',bodyColor:'#475569',borderColor:'#e2e8f0',borderWidth:1,callbacks:{label:(ctx)=>` ${ctx.raw} (${((ctx.raw/total)*100).toFixed(1)}%)`}},
                         datalabels:{display:true,color:'#1e293b',formatter:(v)=>((v/total)*100).toFixed(0)+'%',font:{weight:'bold',size:9}}
                     }
@@ -763,7 +772,7 @@
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]).slice(0, 15);
             const totalQ=filtered.length;
 
-            const calcHeight = Math.max(300, top.length * 45);
+            const calcHeight = Math.max(400, top.length * 65);
             document.getElementById('cClientWrapper').style.height = calcHeight + 'px';
 
             charts.c = new Chart(document.getElementById('cClient'),{
@@ -783,14 +792,14 @@
                 },
                 options:{
                     indexAxis:'y',responsive:true,maintainAspectRatio:false,
-                    layout:{padding:{right:120}},
+                    layout:{padding:{right:160}},
                     onClick:(e,el)=>{if(el[0]) toggleFilterArr('client', top[el[0].index][0])},
                     scales:{
                         x:{display:false},
-                        y:{afterFit:(s)=>{s.width=150;},ticks:{color:'#475569',font:{size:8,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}
+                        y:{afterFit:(s)=>{s.width=180;},ticks:{color:'#475569',font:{size:10,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}
                     },
                     plugins:{
-                        legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:8,weight:'bold'},boxWidth:8,padding:6}},
+                        legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:10,weight:'bold'},boxWidth:12,padding:10}},
                         datalabels:{display:true}
                     }
                 }
@@ -809,9 +818,9 @@
                         <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700 uppercase transition-colors">${s[0] || '(Vacío)'}</span>
                         <div class="mt-1 w-full bg-slate-100 rounded-full h-1"><div class="h-1 rounded-full bg-blue-400" style="width:${barW}%"></div></div>
                     </td>
-                    <td class="px-3 py-2.5 text-center text-xs font-black text-blue-700">${s[1].q}</td>
+                    <td class="px-3 py-2.5 text-center text-sm font-black text-blue-700">${s[1].q}</td>
                     <td class="px-3 py-2.5 text-center text-xs font-bold text-slate-500">${Math.round(s[1].u)}</td>
-                    <td class="px-3 py-2.5 text-right text-[10px] font-bold text-emerald-600">$${Math.round(s[1].c).toLocaleString('en-US')}</td>
+                    <td class="px-3 py-2.5 text-right text-[11px] 2xl:text-xs font-bold text-emerald-600">$${Math.round(s[1].c).toLocaleString('en-US')}</td>
                 </tr>`;
             }).join('');
         }
@@ -840,7 +849,7 @@
         <a href="/indicador-clientes.html" class="h-full px-6 flex items-center border-r border-slate-300 hover:bg-slate-200/60 transition-colors text-xs font-medium text-slate-600 cursor-pointer">
             KPI 2: Analítica de Cliente
         </a>
-        <div class="ml-auto px-4 text-[10px] font-bold text-slate-400">Microsoft Power BI (Simulación)</div>
+        <div class="ml-auto px-4 text-[11px] 2xl:text-xs font-bold text-slate-400">Microsoft Power BI (Simulación)</div>
     </div>
 </body>
 </html>
