@@ -30,6 +30,12 @@
         .card-hover { transition: all 0.3s ease; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.12); }
     </style>
+    <style>
+        table { table-layout: fixed; width: 100%; }
+        tbody tr { contain: content; }
+        .card-hover { transition: transform 0.2s; }
+        .card-hover:hover { transform: translateY(-2px); }
+    </style>
 </head>
 <body class="min-h-screen">
 
@@ -310,16 +316,15 @@
         const parseNum = (v) => { if(!v) return 0; if(typeof v === 'number') return v; return parseFloat(v.toString().replace(/,/g, '')) || 0; };
         const norm = (s) => String(s || '').toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        let globalFilters = { tipo: "Queja", city: [], zone: [], channel: "", monthKey: [], problem: [], agent: [], family: [], resp: [], client: [], plant: [] };
+        let globalFilters = { tipo: "Queja", city: "", zone: "", channel: "", monthKey: "", problem: "", agent: "", family: "", resp: "", client: "", plant: "" };
 
-        const toggleFilterArr = (key, value) => {
-            const arr = globalFilters[key];
-            const i = arr.indexOf(value);
-            if(i > -1) arr.splice(i,1); else arr.push(value);
+        const setFilter = (key, value) => {
+            if (globalFilters[key] === value) globalFilters[key] = (key === 'tipo' ? 'Queja' : '');
+            else globalFilters[key] = value;
             apply();
         };
 
-        const getChartColor = (arr, val, color) => !arr.length || arr.includes(val) ? color : '#e2e8f0';
+        const getChartColor = (currentVal, itemVal, color) => (!currentVal || currentVal === itemVal) ? color : '#e2e8f0';
 
         async function init() {
             const { data: zones } = await client.from('Zonas').select('*');
@@ -376,9 +381,9 @@
         }
 
         function clearAllFilters() {
-            globalFilters = { tipo:"Queja", city:[], channel:"", monthKey:[], problem:[], agent:[], family:[], resp:[], zone:[], client:[], plant:[] };
+            globalFilters = { tipo:"Queja", city:"", channel:"", monthKey:"", problem:"", agent:"", family:"", resp:"", zone:"", client:"", plant:"" };
             document.getElementById('fTipo').value = "Queja";
-            document.getElementById('fCity').value = ""; globalFilters.city = [];
+            document.getElementById('fCity').value = "";
             document.getElementById('fChan').value = "";
             
             // Predeterminado del 10/12/2025 al ultimo dia con datos
@@ -393,17 +398,25 @@
         }
 
         function applyFiltersToData(data) {
+            const s = window._activeStartDate || new Date(0);
+            const e = window._activeEndDate || new Date(2100,0,1);
+            
             return data.filter(x => {
-                return (!globalFilters.tipo || x._serie === globalFilters.tipo)
-                    && (!globalFilters.city.length || globalFilters.city.includes(x._city))
-                    && (!globalFilters.channel || x._chan === globalFilters.channel)
-                    && (!globalFilters.monthKey.length || globalFilters.monthKey.includes(x._monthKey))
-                    && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
-                    && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
-                    && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
-                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
-                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn))
-                    && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
+                if (x._d < s || x._d > e) return false;
+                if (globalFilters.tipo && x._serie !== globalFilters.tipo) return false;
+                if (globalFilters.city && x._city !== globalFilters.city) return false;
+                if (globalFilters.channel && x._chan !== globalFilters.channel) return false;
+                if (globalFilters.monthKey && x._monthKey !== globalFilters.monthKey) return false;
+                if (globalFilters.problem && x._prob !== globalFilters.problem) return false;
+                if (globalFilters.family) {
+                    const fam = x._family.includes('-') ? x._family.split('-')[1].trim() : x._family;
+                    if (fam !== globalFilters.family) return false;
+                }
+                if (globalFilters.resp && x._resp !== globalFilters.resp) return false;
+                if (globalFilters.zone && x._zone !== globalFilters.zone) return false;
+                if (globalFilters.client && x._sn !== globalFilters.client) return false;
+                if (globalFilters.plant && x._plant !== globalFilters.plant) return false;
+                return true;
             });
         }
 
@@ -411,10 +424,7 @@
             const startVal = document.getElementById('dateStart').value;
             const endVal = document.getElementById('dateEnd').value;
             
-            // City filter now array-based, dropdown sets single value for compat
-            const fCityVal = document.getElementById('fCity').value;
-            if (fCityVal && !globalFilters.city.includes(fCityVal)) { globalFilters.city = [fCityVal]; }
-            else if (!fCityVal) { globalFilters.city = globalFilters.city; }
+            globalFilters.city = document.getElementById('fCity').value;
             globalFilters.channel = document.getElementById('fChan').value;
             globalFilters.tipo = document.getElementById('fTipo').value;
 
@@ -422,23 +432,10 @@
             let e = endVal ? new Date(endVal) : new Date(2100,0,1);
             if(endVal) e.setHours(23,59,59);
 
-            // Expose the active dynamic dates strictly globally for the Trend Chart etc
             window._activeStartDate = s;
             window._activeEndDate = e;
 
-            filtered = raw.filter(x => {
-                return (!s || x._d >= s) && (!e || x._d <= e)
-                    && (!globalFilters.tipo || x._serie === globalFilters.tipo)
-                    && (!globalFilters.city.length || globalFilters.city.includes(x._city))
-                    && (!globalFilters.channel || x._chan === globalFilters.channel)
-                    && (!globalFilters.monthKey.length || globalFilters.monthKey.includes(x._monthKey))
-                    && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
-                    && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
-                    && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
-                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
-                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn))
-                    && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
-            });
+            filtered = applyFiltersToData(raw);
 
             document.getElementById('v-quejas').innerText = filtered.length.toLocaleString('en-US');
             document.getElementById('v-units').innerText = Math.round(filtered.reduce((a,b)=>a+b._qty,0)).toLocaleString('en-US');
@@ -516,13 +513,9 @@
                         {
                             type:'bar', label:'Registros', data: vals,
                             backgroundColor: (ctx) => {
-                                const chart = ctx.chart;
-                                const {ctx: c, chartArea} = chart;
-                                if(!chartArea) return 'rgba(59,130,246,0.15)';
-                                const grad = c.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                grad.addColorStop(0, 'rgba(59,130,246,0.05)');
-                                grad.addColorStop(1, 'rgba(59,130,246,0.3)');
-                                return grad;
+                                const key = timeframe[ctx.dataIndex]?.key;
+                                const base = '#3b82f64d'; // blue-400 with 30% opacity
+                                return getChartColor(globalFilters.monthKey, key, '#3b82f6');
                             },
                             borderColor:'#3b82f6', borderWidth:1.5, borderRadius:6, borderSkipped:false,
                             datalabels: { 
@@ -541,7 +534,7 @@
                 options: {
                     responsive:true, maintainAspectRatio:false,
                     layout: { padding: { top:25, left:5, right:5 } },
-                    onClick: (e,el) => { if(el[0]) toggleFilterArr('monthKey', timeframe[el[0].index].key); },
+                    onClick: (e,el) => { if(el[0]) setFilter('monthKey', timeframe[el[0].index].key); },
                     plugins: { legend:{display:false}, datalabels:{display:true}, tooltip:{ backgroundColor:'rgba(15,36,64,0.95)', titleFont:{weight:'bold'}, bodyFont:{weight:'bold'}, cornerRadius:8, padding:10 } },
                     scales: {
                         x:{ticks:{color:'#64748b',font:{size:10,weight:'600'}},grid:{display:false},border:{display:false}},
@@ -599,6 +592,7 @@
 
         function renderProblem() {
             if(charts.p) charts.p.destroy();
+            
             const q = {}, u = {};
             filtered.forEach(x => { const p = x._prob || 'SIN TIPO'; q[p] = (q[p]||0)+1; u[p] = (u[p]||0)+x._qty; });
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
@@ -629,7 +623,7 @@
                 options: {
                     indexAxis:'y', responsive:true, maintainAspectRatio:false,
                     layout:{padding:{right:160}},
-                    onClick:(e,el)=>{if(el[0]) toggleFilterArr('problem', top[el[0].index][0])},
+                    onClick:(e,el)=>{if(el[0]) setFilter('problem', top[el[0].index][0])},
                     scales:{
                         x:{display:false},
                         y:{afterFit:(s)=>{s.width=180;}, ticks:{color:'#475569',font:{size:10,weight:'bold'},autoSkip:false}, grid:{display:false}, border:{display:false}}
@@ -685,14 +679,14 @@
             // Apply filters for variation universe EXCEPT monthKey so we don't nullify our forced dates
             const applyVariationFilter = (x) => {
                 return (!globalFilters.tipo || x._serie === globalFilters.tipo)
-                    && (!globalFilters.city.length || globalFilters.city.includes(x._city))
+                    && (!globalFilters.city || x._city === globalFilters.city)
                     && (!globalFilters.channel || x._chan === globalFilters.channel)
-                    && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
-                    && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
-                    && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
-                    && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
-                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn))
-                    && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
+                    && (!globalFilters.problem || x._prob === globalFilters.problem)
+                    && (!globalFilters.family || (x._family.includes('-') ? x._family.split('-')[1].trim() : x._family) === globalFilters.family)
+                    && (!globalFilters.resp || x._resp === globalFilters.resp)
+                    && (!globalFilters.zone || x._zone === globalFilters.zone)
+                    && (!globalFilters.client || x._sn === globalFilters.client)
+                    && (!globalFilters.plant || x._plant === globalFilters.plant);
             };
 
             const curData = raw.filter(x => x._d >= curDStart && x._d <= curDEnd && applyVariationFilter(x));
@@ -723,7 +717,7 @@
                 pctEl.innerText = '0%';
             }
             
-            const isCustom = globalFilters.monthKey && globalFilters.monthKey.length > 0;
+            const isCustom = !!globalFilters.monthKey;
             labelEl.innerText = `${curCount} vs ${prevCount} · ${monthsDiff} mes(es)${isCustom?' selec.':' vencidos'}`;
         }
 
@@ -740,7 +734,7 @@
                 options:{
                     responsive:true, maintainAspectRatio:false,
                     layout:{ padding:{left:10,right:10,top:10,bottom:10} },
-                    onClick:(e,el)=>{ if(el[0]) toggleFilterArr('resp', keys[el[0].index]) },
+                    onClick:(e,el)=>{ if(el[0]) setFilter('resp', keys[el[0].index]) },
                     plugins:{
                         legend:{display:false},
                         tooltip:{ backgroundColor:'rgba(255,255,255,0.95)', titleColor:'#1e293b', bodyColor:'#475569', borderColor:'#e2e8f0', borderWidth:1, callbacks:{ label:(ctx)=>` ${ctx.raw} (${((ctx.raw/total)*100).toFixed(1)}%)` } },
@@ -749,11 +743,11 @@
                 }
             });
             document.getElementById('family-legend').innerHTML = keys.map((k,i) => {
-                const isActive = !globalFilters.resp.length || globalFilters.resp.includes(k);
+                const isActive = !globalFilters.resp || globalFilters.resp === k;
                 const bg = isActive ? colors[i%colors.length] : '#cbd5e1';
                 const opacityCls = isActive ? 'opacity-100' : 'opacity-50 grayscale';
                 return `
-                <div onclick="toggleFilterArr('resp', '${k}')" class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded-lg transition-all ${opacityCls}">
+                <div onclick="setFilter('resp', '${k}')" class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded-lg transition-all ${opacityCls}">
                     <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:${bg}"></span>
                     <span class="text-[11px] 2xl:text-xs font-bold text-slate-600 uppercase tracking-tight truncate">${k}</span>
                     <span class="text-[10px] font-black text-slate-800 ml-auto shrink-0">${m[k]} <span class="text-slate-400 font-bold">${((m[k]/total)*100).toFixed(1)}%</span></span>
@@ -763,6 +757,7 @@
 
         function renderAgent() {
             if(charts.a) charts.a.destroy();
+            
             const q={},u={}; filtered.forEach(x => { const c=x._family.includes('-')?x._family.split('-')[1].trim():x._family; q[c]=(q[c]||0)+1; u[c]=(u[c]||0)+x._qty; });
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
             const totalQ=filtered.length;
@@ -788,7 +783,7 @@
                 options:{
                     indexAxis:'y',responsive:true,maintainAspectRatio:false,
                     layout:{padding:{right:160}},
-                    onClick:(e,el)=>{if(el[0]) toggleFilterArr('family', top[el[0].index][0])},
+                    onClick:(e,el)=>{if(el[0]) setFilter('family', top[el[0].index][0])},
                     scales:{x:{display:false},y:{afterFit:(s)=>{s.width=180;},ticks:{color:'#475569',font:{size:10,weight:'bold'},autoSkip:false},grid:{display:false},border:{display:false}}},
                     plugins:{legend:{position:'top',align:'end',labels:{color:'#64748b',font:{size:10,weight:'bold'},boxWidth:12,padding:10}},datalabels:{display:true}}
                 }
@@ -797,6 +792,7 @@
 
         function renderZone() {
             if(charts.z) charts.z.destroy();
+            
             const m={}; filtered.forEach(x=>{m[x._zone]=(m[x._zone]||0)+1;});
             const total=filtered.length;
             const keys=Object.keys(m).sort((a,b)=>m[b]-m[a]);
@@ -807,7 +803,7 @@
                 options:{
                     responsive:true,maintainAspectRatio:false,cutout:'50%',
                     layout:{padding:10},
-                    onClick:(e,el)=>{if(el[0]) toggleFilterArr('zone', keys[el[0].index])},
+                    onClick:(e,el)=>{if(el[0]) setFilter('zone', keys[el[0].index])},
                     plugins:{
                         legend:{position:'right',labels:{color:'#475569',font:{size:10,weight:'bold'},boxWidth:12,padding:10}},
                         tooltip:{backgroundColor:'rgba(255,255,255,0.95)',titleColor:'#1e293b',bodyColor:'#475569',borderColor:'#e2e8f0',borderWidth:1,callbacks:{label:(ctx)=>` ${ctx.raw} (${((ctx.raw/total)*100).toFixed(1)}%)`}},
@@ -832,27 +828,7 @@
 
         function renderClient() {
             const searchVal = (document.getElementById('clientSearch')?.value || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            // Use data filtered by everything EXCEPT client filter, so table always shows all clients
-            const clientData = filtered.length > 0 || !globalFilters.client.length ? (() => {
-                const startVal = document.getElementById('dateStart').value;
-                const endVal = document.getElementById('dateEnd').value;
-                let s = startVal ? new Date(startVal) : new Date(0);
-                let e = endVal ? new Date(endVal) : new Date(2100,0,1);
-                if(endVal) e.setHours(23,59,59);
-                return raw.filter(x => {
-                    return (!s || x._d >= s) && (!e || x._d <= e)
-                        && (!globalFilters.tipo || x._serie === globalFilters.tipo)
-                        && (!globalFilters.city.length || globalFilters.city.includes(x._city))
-                        && (!globalFilters.channel || x._chan === globalFilters.channel)
-                        && (!globalFilters.monthKey.length || globalFilters.monthKey.includes(x._monthKey))
-                        && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
-                        && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
-                        && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
-                        && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
-                        && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
-                        // NOTE: client filter is intentionally excluded
-                });
-            })() : [];
+            const clientData = filtered;
             const cMap = {};
             clientData.forEach(x => {
                 const c = x._sn || 'SIN CLIENTE';
@@ -894,11 +870,11 @@
                 const pctQ = totalQ > 0 ? ((d.q / totalQ) * 100).toFixed(1) : '0.0';
                 const pctU = totalU > 0 ? ((d.u / totalU) * 100).toFixed(1) : '0.0';
                 const barW = Math.round((d.q / maxQ) * 100);
-                const isActive = !globalFilters.client.length || globalFilters.client.includes(cli);
+                const isActive = !globalFilters.client || globalFilters.client === cli;
                 const opCls = isActive ? '' : 'opacity-40';
-                const activeBg = globalFilters.client.includes(cli) ? 'bg-blue-50/70' : '';
+                const activeBg = globalFilters.client === cli ? 'bg-blue-50/70' : '';
                 return `
-                <tr onclick="toggleFilterArr('client', '${cli.replace(/'/g, "\\'")}')"
+                <tr onclick="setFilter('client', '${cli.replace(/'/g, "\\'")}')"
                     class="hover:bg-blue-50/50 transition-colors cursor-pointer group ${opCls} ${activeBg}">
                     <td class="px-5 py-2.5">
                         <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700 uppercase transition-colors">${cli}</span>
@@ -924,6 +900,7 @@
 
         function renderPlantTable() {
             const pMap = {};
+            
             filtered.forEach(x => {
                 const p = x._plant || 'SIN PLANTA';
                 if(!pMap[p]) pMap[p] = { q:0, u:0, c:0 };
@@ -940,9 +917,11 @@
                 const pctQ = totalQ > 0 ? ((d.q / totalQ) * 100).toFixed(1) : '0.0';
                 const pctU = totalU > 0 ? ((d.u / totalU) * 100).toFixed(1) : '0.0';
                 const barW = Math.round((d.q / maxQ) * 100);
+                const isActive = !globalFilters.plant || globalFilters.plant === plant;
+                const opCls = isActive ? '' : 'opacity-40';
                 return `
-                <tr onclick="toggleFilterArr('plant', '${plant.replace(/'/g, "\\'")}')"
-                    class="hover:bg-blue-50/50 transition-colors cursor-pointer group">
+                <tr onclick="setFilter('plant', '${plant.replace(/'/g, "\\'")}')"
+                    class="hover:bg-blue-50/50 transition-colors cursor-pointer group ${opCls}">
                     <td class="px-4 py-2.5">
                         <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700 uppercase transition-colors">${plant}</span>
                         <div class="mt-1 w-full bg-slate-100 rounded-full h-1"><div class="h-1 rounded-full bg-blue-400" style="width:${barW}%"></div></div>
@@ -954,6 +933,7 @@
                     <td class="px-3 py-2.5 text-right text-xs font-bold text-emerald-600">$${Math.round(d.c).toLocaleString('en-US')}</td>
                 </tr>`;
             }).join('');
+
             // TOTAL GENERAL row
             document.getElementById('tPlantFoot').innerHTML = `
                 <tr class="font-black">
@@ -967,13 +947,16 @@
         }
 
         function renderTable() {
+            
             const m={}; filtered.forEach(x=>{if(!m[x._city])m[x._city]={q:0,u:0,c:0};m[x._city].q++;m[x._city].u+=x._qty;m[x._city].c+=x._cost;});
             const sorted=Object.entries(m).sort((a,b)=>b[1].q-a[1].q);
             const maxQ = sorted.length > 0 ? sorted[0][1].q : 1;
             document.getElementById('tBody').innerHTML = sorted.map(s => {
                 const barW = Math.round((s[1].q / maxQ)*100);
+                const isActive = !globalFilters.city || globalFilters.city === s[0];
+                const opCls = isActive ? '' : 'opacity-40';
                 return `
-                <tr onclick="toggleFilterArr('city', '${s[0]}')" class="hover:bg-blue-50/50 transition-colors cursor-pointer group">
+                <tr onclick="setFilter('city', '${s[0]}')" class="hover:bg-blue-50/50 transition-colors cursor-pointer group ${opCls}">
                     <td class="px-5 py-2.5">
                         <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700 uppercase transition-colors">${s[0] || '(Vacío)'}</span>
                         <div class="mt-1 w-full bg-slate-100 rounded-full h-1"><div class="h-1 rounded-full bg-blue-400" style="width:${barW}%"></div></div>
