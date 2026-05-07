@@ -169,8 +169,8 @@
         </div>
 
         <!-- ROW 3: Departamento + Subgrupos -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
+            <div class="lg:col-span-4 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
                 <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                     Quejas por Departamento
@@ -181,7 +181,30 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
+            <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm card-hover overflow-hidden flex flex-col">
+                <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        Plantas Afectadas
+                    </h3>
+                </div>
+                <div class="flex-1 overflow-y-auto max-h-[340px] custom-scrollbar">
+                    <table class="w-full text-left text-xs font-medium">
+                        <thead class="sticky top-0 bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider z-10">
+                            <tr>
+                                <th class="px-4 py-2.5">Planta</th>
+                                <th class="px-3 py-2.5 text-center">Quejas</th>
+                                <th class="px-3 py-2.5 text-center">Cant</th>
+                                <th class="px-3 py-2.5 text-center">% Reg</th>
+                                <th class="px-3 py-2.5 text-center">% Cant</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tPlantBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
                 <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                     Subgrupos Afectados
@@ -266,7 +289,7 @@
         const parseNum = (v) => { if(!v) return 0; if(typeof v === 'number') return v; return parseFloat(v.toString().replace(/,/g, '')) || 0; };
         const norm = (s) => String(s || '').toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        let globalFilters = { tipo: "Queja", city: "", zone: [], channel: "", monthKey: [], problem: [], agent: [], family: [], resp: [], client: [] };
+        let globalFilters = { tipo: "Queja", city: "", zone: [], channel: "", monthKey: [], problem: [], agent: [], family: [], resp: [], client: [], plant: [] };
 
         const toggleFilterArr = (key, value) => {
             const arr = globalFilters[key];
@@ -303,7 +326,8 @@
                     _serie: String(i['Serie'] || '').trim(),
                     _resolucion: String(i['Resolución'] || i['Resolucion'] || 'SIN DATO').trim(),
                     _respRaw: String(i['Resp Problema'] || 'SIN ASIGNAR').toUpperCase().trim().replace(/[ÁÉÍÓÚ]/g, (m) => ({'Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'}[m])),
-                    _sn: String(i['SN'] || '').trim() || 'SIN CLIENTE'
+                    _sn: String(i['SN'] || '').trim() || 'SIN CLIENTE',
+                    _plant: String(i['Planta'] || 'SIN PLANTA').trim()
                 };
             }).map(x => {
                 const m = { 'TRANSPORTADORA':'LOGISTICA','LOGISTICA':'LOGISTICA','DIGITACION':'LOGISTICA','ABASTECIMIENTO':'LOGISTICA','DESPACHOS':'LOGISTICA','ASESOR':'COMERCIAL','MAC':'COMERCIAL','VENTAS - COMERCIAL':'COMERCIAL','VENTAS-COMERCIAL':'COMERCIAL','ATENCION':'NO APLICA','FALSA QUEJA':'NO APLICA','CLIENTE':'NO APLICA' };
@@ -331,7 +355,7 @@
         }
 
         function clearAllFilters() {
-            globalFilters = { tipo:"Queja", city:"", channel:"", monthKey:[], problem:[], agent:[], family:[], resp:[], zone:[], client:[] };
+            globalFilters = { tipo:"Queja", city:"", channel:"", monthKey:[], problem:[], agent:[], family:[], resp:[], zone:[], client:[], plant:[] };
             document.getElementById('fTipo').value = "Queja";
             document.getElementById('fCity').value = "";
             document.getElementById('fChan').value = "";
@@ -357,7 +381,8 @@
                     && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
                     && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
                     && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
-                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn));
+                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn))
+                    && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
             });
         }
 
@@ -387,7 +412,8 @@
                     && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
                     && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
                     && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
-                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn));
+                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn))
+                    && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
             });
 
             document.getElementById('v-quejas').innerText = filtered.length.toLocaleString('en-US');
@@ -436,6 +462,7 @@
             renderTrend();
             renderProblem();
             renderFamily();
+            renderPlantTable();
             renderAgent();
             renderZone();
             renderClient();
@@ -640,7 +667,8 @@
                     && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
                     && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
                     && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
-                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn));
+                    && (!globalFilters.client.length || globalFilters.client.includes(x._sn))
+                    && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
             };
 
             const curData = raw.filter(x => x._d >= curDStart && x._d <= curDEnd && applyVariationFilter(x));
@@ -804,6 +832,37 @@
                     }
                 }
             });
+        }
+
+        function renderPlantTable() {
+            const pMap = {};
+            filtered.forEach(x => {
+                const p = x._plant || 'SIN PLANTA';
+                if(!pMap[p]) pMap[p] = { q:0, u:0 };
+                pMap[p].q++;
+                pMap[p].u += x._qty;
+            });
+            const totalQ = filtered.length;
+            const totalU = filtered.reduce((a,b) => a + b._qty, 0);
+            const sorted = Object.entries(pMap).sort((a,b) => b[1].q - a[1].q);
+            const maxQ = sorted.length > 0 ? sorted[0][1].q : 1;
+            document.getElementById('tPlantBody').innerHTML = sorted.map(([plant, d]) => {
+                const pctQ = totalQ > 0 ? ((d.q / totalQ) * 100).toFixed(1) : '0.0';
+                const pctU = totalU > 0 ? ((d.u / totalU) * 100).toFixed(1) : '0.0';
+                const barW = Math.round((d.q / maxQ) * 100);
+                return `
+                <tr onclick="toggleFilterArr('plant', '${plant.replace(/'/g, "\\'")}')"
+                    class="hover:bg-blue-50/50 transition-colors cursor-pointer group">
+                    <td class="px-4 py-2.5">
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700 uppercase transition-colors">${plant}</span>
+                        <div class="mt-1 w-full bg-slate-100 rounded-full h-1"><div class="h-1 rounded-full bg-blue-400" style="width:${barW}%"></div></div>
+                    </td>
+                    <td class="px-3 py-2.5 text-center text-sm font-black text-blue-700">${d.q}</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-slate-500">${Math.round(d.u)}</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-emerald-600">${pctQ}%</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-emerald-600">${pctU}%</td>
+                </tr>`;
+            }).join('');
         }
 
         function renderTable() {
