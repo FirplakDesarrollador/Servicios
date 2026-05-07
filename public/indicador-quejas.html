@@ -832,17 +832,38 @@
 
         function renderClient() {
             const searchVal = (document.getElementById('clientSearch')?.value || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            // Use data filtered by everything EXCEPT client filter, so table always shows all clients
+            const clientData = filtered.length > 0 || !globalFilters.client.length ? (() => {
+                const startVal = document.getElementById('dateStart').value;
+                const endVal = document.getElementById('dateEnd').value;
+                let s = startVal ? new Date(startVal) : new Date(0);
+                let e = endVal ? new Date(endVal) : new Date(2100,0,1);
+                if(endVal) e.setHours(23,59,59);
+                return raw.filter(x => {
+                    return (!s || x._d >= s) && (!e || x._d <= e)
+                        && (!globalFilters.tipo || x._serie === globalFilters.tipo)
+                        && (!globalFilters.city.length || globalFilters.city.includes(x._city))
+                        && (!globalFilters.channel || x._chan === globalFilters.channel)
+                        && (!globalFilters.monthKey.length || globalFilters.monthKey.includes(x._monthKey))
+                        && (!globalFilters.problem.length || globalFilters.problem.includes(x._prob))
+                        && (!globalFilters.family.length || globalFilters.family.includes(x._family.includes('-') ? x._family.split('-')[1].trim() : x._family))
+                        && (!globalFilters.resp.length || globalFilters.resp.includes(x._resp))
+                        && (!globalFilters.zone.length || globalFilters.zone.includes(x._zone))
+                        && (!globalFilters.plant.length || globalFilters.plant.includes(x._plant));
+                        // NOTE: client filter is intentionally excluded
+                });
+            })() : [];
             const cMap = {};
-            filtered.forEach(x => {
+            clientData.forEach(x => {
                 const c = x._sn || 'SIN CLIENTE';
                 if(!cMap[c]) cMap[c] = { q:0, u:0, c:0 };
                 cMap[c].q++;
                 cMap[c].u += x._qty;
                 cMap[c].c += x._cost;
             });
-            const totalQ = filtered.length;
-            const totalU = filtered.reduce((a,b) => a + b._qty, 0);
-            const totalC = filtered.reduce((a,b) => a + b._cost, 0);
+            const totalQ = clientData.length;
+            const totalU = clientData.reduce((a,b) => a + b._qty, 0);
+            const totalC = clientData.reduce((a,b) => a + b._cost, 0);
             let entries = Object.entries(cMap);
             // Apply search filter
             if (searchVal) {
@@ -864,15 +885,21 @@
                 const el = document.getElementById('sortIco_'+k);
                 if(el) el.textContent = (_clientSort.col === k) ? (_clientSort.dir === 'desc' ? '▼' : '▲') : '';
             });
-            document.getElementById('tClientBody').innerHTML = sorted.map(([cli, d]) => {
+            // Clear previous content completely before re-rendering
+            const tbody = document.getElementById('tClientBody');
+            const tfoot = document.getElementById('tClientFoot');
+            tbody.innerHTML = '';
+            tfoot.innerHTML = '';
+            tbody.innerHTML = sorted.map(([cli, d]) => {
                 const pctQ = totalQ > 0 ? ((d.q / totalQ) * 100).toFixed(1) : '0.0';
                 const pctU = totalU > 0 ? ((d.u / totalU) * 100).toFixed(1) : '0.0';
                 const barW = Math.round((d.q / maxQ) * 100);
                 const isActive = !globalFilters.client.length || globalFilters.client.includes(cli);
                 const opCls = isActive ? '' : 'opacity-40';
+                const activeBg = globalFilters.client.includes(cli) ? 'bg-blue-50/70' : '';
                 return `
                 <tr onclick="toggleFilterArr('client', '${cli.replace(/'/g, "\\'")}')"
-                    class="hover:bg-blue-50/50 transition-colors cursor-pointer group ${opCls}">
+                    class="hover:bg-blue-50/50 transition-colors cursor-pointer group ${opCls} ${activeBg}">
                     <td class="px-5 py-2.5">
                         <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700 uppercase transition-colors">${cli}</span>
                         <div class="mt-1 w-full bg-slate-100 rounded-full h-1"><div class="h-1 rounded-full bg-blue-400" style="width:${barW}%"></div></div>
@@ -884,7 +911,7 @@
                     <td class="px-3 py-2.5 text-right text-xs font-bold text-emerald-600">$${Math.round(d.c).toLocaleString('en-US')}</td>
                 </tr>`;
             }).join('');
-            document.getElementById('tClientFoot').innerHTML = `
+            tfoot.innerHTML = `
                 <tr class="font-black">
                     <td class="px-5 py-3 text-xs text-brand-800 uppercase tracking-wider">Total General</td>
                     <td class="px-3 py-3 text-center text-sm text-brand-800">${totalQ}</td>
