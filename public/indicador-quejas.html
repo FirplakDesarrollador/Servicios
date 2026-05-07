@@ -170,7 +170,7 @@
 
         <!-- ROW 3: Departamento + Subgrupos -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
-            <div class="lg:col-span-4 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
+            <div class="lg:col-span-3 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
                 <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                     Quejas por Departamento
@@ -181,7 +181,7 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm card-hover overflow-hidden flex flex-col">
+            <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm card-hover overflow-hidden flex flex-col">
                 <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
                     <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
@@ -197,14 +197,16 @@
                                 <th class="px-3 py-2.5 text-center">Cant</th>
                                 <th class="px-3 py-2.5 text-center">% Reg</th>
                                 <th class="px-3 py-2.5 text-center">% Cant</th>
+                                <th class="px-3 py-2.5 text-right">Valor</th>
                             </tr>
                         </thead>
                         <tbody id="tPlantBody" class="divide-y divide-slate-100"></tbody>
+                        <tfoot id="tPlantFoot" class="border-t-2 border-slate-300 bg-slate-50/80"></tfoot>
                     </table>
                 </div>
             </div>
 
-            <div class="lg:col-span-5 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
+            <div class="lg:col-span-4 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm card-hover">
                 <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                     Subgrupos Afectados
@@ -838,12 +840,14 @@
             const pMap = {};
             filtered.forEach(x => {
                 const p = x._plant || 'SIN PLANTA';
-                if(!pMap[p]) pMap[p] = { q:0, u:0 };
+                if(!pMap[p]) pMap[p] = { q:0, u:0, c:0 };
                 pMap[p].q++;
                 pMap[p].u += x._qty;
+                pMap[p].c += x._cost;
             });
             const totalQ = filtered.length;
             const totalU = filtered.reduce((a,b) => a + b._qty, 0);
+            const totalC = filtered.reduce((a,b) => a + b._cost, 0);
             const sorted = Object.entries(pMap).sort((a,b) => b[1].q - a[1].q);
             const maxQ = sorted.length > 0 ? sorted[0][1].q : 1;
             document.getElementById('tPlantBody').innerHTML = sorted.map(([plant, d]) => {
@@ -861,8 +865,19 @@
                     <td class="px-3 py-2.5 text-center text-xs font-bold text-slate-500">${Math.round(d.u)}</td>
                     <td class="px-3 py-2.5 text-center text-xs font-bold text-emerald-600">${pctQ}%</td>
                     <td class="px-3 py-2.5 text-center text-xs font-bold text-emerald-600">${pctU}%</td>
+                    <td class="px-3 py-2.5 text-right text-xs font-bold text-emerald-600">$${Math.round(d.c).toLocaleString('en-US')}</td>
                 </tr>`;
             }).join('');
+            // TOTAL GENERAL row
+            document.getElementById('tPlantFoot').innerHTML = `
+                <tr class="font-black">
+                    <td class="px-4 py-3 text-xs text-brand-800 uppercase tracking-wider">Total General</td>
+                    <td class="px-3 py-3 text-center text-sm text-brand-800">${totalQ}</td>
+                    <td class="px-3 py-3 text-center text-xs text-slate-700">${Math.round(totalU).toLocaleString('en-US')}</td>
+                    <td class="px-3 py-3 text-center text-xs text-brand-800">100%</td>
+                    <td class="px-3 py-3 text-center text-xs text-brand-800">100%</td>
+                    <td class="px-3 py-3 text-right text-xs text-brand-800">$${Math.round(totalC).toLocaleString('en-US')}</td>
+                </tr>`;
         }
 
         function renderTable() {
