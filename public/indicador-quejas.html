@@ -31,7 +31,7 @@
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.12); }
     </style>
     <style>
-        table { table-layout: fixed; width: 100%; }
+        table { table-layout: auto; width: 100%; }
         tbody tr { contain: content; }
         .card-hover { transition: transform 0.2s; }
         .card-hover:hover { transform: translateY(-2px); }
@@ -188,7 +188,7 @@
             </div>
 
             <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm card-hover overflow-hidden flex flex-col">
-                <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+                <div class="h-[44px] px-5 flex items-center border-b border-slate-100 bg-slate-50/50">
                     <h3 class="text-sm font-black text-brand-800 uppercase tracking-widest flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                         Plantas Afectadas
@@ -198,12 +198,12 @@
                     <table class="w-full text-left text-xs font-medium">
                         <thead class="sticky top-0 bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider z-10">
                             <tr>
-                                <th class="px-4 py-2.5">Planta</th>
-                                <th class="px-3 py-2.5 text-center">Quejas</th>
-                                <th class="px-3 py-2.5 text-center">Cant</th>
-                                <th class="px-3 py-2.5 text-center">% Reg</th>
-                                <th class="px-3 py-2.5 text-center">% Cant</th>
-                                <th class="px-3 py-2.5 text-right">Valor</th>
+                                <th class="px-2 h-[40px]">Planta</th>
+                                <th class="px-1.5 h-[40px] text-center">Quejas</th>
+                                <th class="px-1.5 h-[40px] text-center">Cant</th>
+                                <th class="px-1.5 h-[40px] text-center">% Reg</th>
+                                <th class="px-1.5 h-[40px] text-center">% Cant</th>
+                                <th class="px-1.5 h-[40px] text-right">Valor</th>
                             </tr>
                         </thead>
                         <tbody id="tPlantBody" class="divide-y divide-slate-100"></tbody>
@@ -316,11 +316,19 @@
         const parseNum = (v) => { if(!v) return 0; if(typeof v === 'number') return v; return parseFloat(v.toString().replace(/,/g, '')) || 0; };
         const norm = (s) => String(s || '').toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        let globalFilters = { tipo: "Queja", city: "", zone: "", channel: "", monthKey: "", problem: "", agent: "", family: "", resp: "", client: "", plant: "" };
+        let globalFilters = { tipo: "Queja", city: "", zone: "", channel: "", monthKey: "", problem: "", agent: "", family: "", resp: "", client: "", plant: [] };
 
         const setFilter = (key, value) => {
             if (globalFilters[key] === value) globalFilters[key] = (key === 'tipo' ? 'Queja' : '');
             else globalFilters[key] = value;
+            apply();
+        };
+
+        const toggleFilterArr = (key, val) => {
+            if (!Array.isArray(globalFilters[key])) globalFilters[key] = [];
+            const idx = globalFilters[key].indexOf(val);
+            if (idx > -1) globalFilters[key].splice(idx, 1);
+            else globalFilters[key].push(val);
             apply();
         };
 
@@ -381,7 +389,7 @@
         }
 
         function clearAllFilters() {
-            globalFilters = { tipo:"Queja", city:"", channel:"", monthKey:"", problem:"", agent:"", family:"", resp:"", zone:"", client:"", plant:"" };
+            globalFilters = { tipo:"Queja", city:"", channel:"", monthKey:"", problem:"", agent:"", family:"", resp:"", zone:"", client:"", plant:[] };
             document.getElementById('fTipo').value = "Queja";
             document.getElementById('fCity').value = "";
             document.getElementById('fChan').value = "";
@@ -397,25 +405,25 @@
             apply();
         }
 
-        function applyFiltersToData(data) {
+        function applyFiltersToData(data, excludeKey = null) {
             const s = window._activeStartDate || new Date(0);
             const e = window._activeEndDate || new Date(2100,0,1);
             
             return data.filter(x => {
                 if (x._d < s || x._d > e) return false;
-                if (globalFilters.tipo && x._serie !== globalFilters.tipo) return false;
-                if (globalFilters.city && x._city !== globalFilters.city) return false;
-                if (globalFilters.channel && x._chan !== globalFilters.channel) return false;
-                if (globalFilters.monthKey && x._monthKey !== globalFilters.monthKey) return false;
-                if (globalFilters.problem && x._prob !== globalFilters.problem) return false;
-                if (globalFilters.family) {
+                if (excludeKey !== 'tipo' && globalFilters.tipo && x._serie !== globalFilters.tipo) return false;
+                if (excludeKey !== 'city' && globalFilters.city && x._city !== globalFilters.city) return false;
+                if (excludeKey !== 'channel' && globalFilters.channel && x._chan !== globalFilters.channel) return false;
+                if (excludeKey !== 'monthKey' && globalFilters.monthKey && x._monthKey !== globalFilters.monthKey) return false;
+                if (excludeKey !== 'problem' && globalFilters.problem && x._prob !== globalFilters.problem) return false;
+                if (excludeKey !== 'family' && globalFilters.family) {
                     const fam = x._family.includes('-') ? x._family.split('-')[1].trim() : x._family;
                     if (fam !== globalFilters.family) return false;
                 }
-                if (globalFilters.resp && x._resp !== globalFilters.resp) return false;
-                if (globalFilters.zone && x._zone !== globalFilters.zone) return false;
-                if (globalFilters.client && x._sn !== globalFilters.client) return false;
-                if (globalFilters.plant && x._plant !== globalFilters.plant) return false;
+                if (excludeKey !== 'resp' && globalFilters.resp && x._resp !== globalFilters.resp) return false;
+                if (excludeKey !== 'zone' && globalFilters.zone && x._zone !== globalFilters.zone) return false;
+                if (excludeKey !== 'client' && globalFilters.client && x._sn !== globalFilters.client) return false;
+                if (excludeKey !== 'plant' && globalFilters.plant && globalFilters.plant.length && !globalFilters.plant.includes(x._plant)) return false;
                 return true;
             });
         }
@@ -686,7 +694,7 @@
                     && (!globalFilters.resp || x._resp === globalFilters.resp)
                     && (!globalFilters.zone || x._zone === globalFilters.zone)
                     && (!globalFilters.client || x._sn === globalFilters.client)
-                    && (!globalFilters.plant || x._plant === globalFilters.plant);
+                    && (!globalFilters.plant || !globalFilters.plant.length || globalFilters.plant.includes(x._plant));
             };
 
             const curData = raw.filter(x => x._d >= curDStart && x._d <= curDEnd && applyVariationFilter(x));
@@ -900,49 +908,53 @@
 
         function renderPlantTable() {
             const pMap = {};
+            const contextData = applyFiltersToData(raw, 'plant');
             
-            filtered.forEach(x => {
+            contextData.forEach(x => {
                 const p = x._plant || 'SIN PLANTA';
                 if(!pMap[p]) pMap[p] = { q:0, u:0, c:0 };
                 pMap[p].q++;
                 pMap[p].u += x._qty;
                 pMap[p].c += x._cost;
             });
-            const totalQ = filtered.length;
-            const totalU = filtered.reduce((a,b) => a + b._qty, 0);
-            const totalC = filtered.reduce((a,b) => a + b._cost, 0);
+            const totalQ = contextData.length;
+            const totalU = contextData.reduce((a,b) => a + b._qty, 0);
+            const totalC = contextData.reduce((a,b) => a + b._cost, 0);
             const sorted = Object.entries(pMap).sort((a,b) => b[1].q - a[1].q);
             const maxQ = sorted.length > 0 ? sorted[0][1].q : 1;
             document.getElementById('tPlantBody').innerHTML = sorted.map(([plant, d]) => {
                 const pctQ = totalQ > 0 ? ((d.q / totalQ) * 100).toFixed(1) : '0.0';
                 const pctU = totalU > 0 ? ((d.u / totalU) * 100).toFixed(1) : '0.0';
                 const barW = Math.round((d.q / maxQ) * 100);
-                const isActive = !globalFilters.plant || globalFilters.plant === plant;
-                const opCls = isActive ? '' : 'opacity-40';
+                
+                const isSelected = globalFilters.plant.includes(plant);
+                const isAnySelected = globalFilters.plant.length > 0;
+                const opCls = isAnySelected ? (isSelected ? 'bg-blue-50/70' : 'opacity-40') : '';
+                
                 return `
-                <tr onclick="setFilter('plant', '${plant.replace(/'/g, "\\'")}')"
+                <tr onclick="toggleFilterArr('plant', '${plant.replace(/'/g, "\\'")}')"
                     class="hover:bg-blue-50/50 transition-colors cursor-pointer group ${opCls}">
-                    <td class="px-4 py-2.5">
+                    <td class="px-2 py-0 h-[50px] whitespace-nowrap">
                         <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700 uppercase transition-colors">${plant}</span>
                         <div class="mt-1 w-full bg-slate-100 rounded-full h-1"><div class="h-1 rounded-full bg-blue-400" style="width:${barW}%"></div></div>
                     </td>
-                    <td class="px-3 py-2.5 text-center text-sm font-black text-blue-700">${d.q}</td>
-                    <td class="px-3 py-2.5 text-center text-xs font-bold text-slate-500">${Math.round(d.u)}</td>
-                    <td class="px-3 py-2.5 text-center text-xs font-bold text-emerald-600">${pctQ}%</td>
-                    <td class="px-3 py-2.5 text-center text-xs font-bold text-emerald-600">${pctU}%</td>
-                    <td class="px-3 py-2.5 text-right text-xs font-bold text-emerald-600">$${Math.round(d.c).toLocaleString('en-US')}</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-sm font-black text-blue-700">${d.q}</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-xs font-bold text-slate-500">${Math.round(d.u)}</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-xs font-bold text-emerald-600">${pctQ}%</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-xs font-bold text-emerald-600">${pctU}%</td>
+                    <td class="px-1.5 py-0 h-[50px] text-right text-xs font-bold text-emerald-600">$${Math.round(d.c).toLocaleString('en-US')}</td>
                 </tr>`;
             }).join('');
 
             // TOTAL GENERAL row
             document.getElementById('tPlantFoot').innerHTML = `
                 <tr class="font-black">
-                    <td class="px-4 py-3 text-xs text-brand-800 uppercase tracking-wider">Total General</td>
-                    <td class="px-3 py-3 text-center text-sm text-brand-800">${totalQ}</td>
-                    <td class="px-3 py-3 text-center text-xs text-slate-700">${Math.round(totalU).toLocaleString('en-US')}</td>
-                    <td class="px-3 py-3 text-center text-xs text-brand-800">100%</td>
-                    <td class="px-3 py-3 text-center text-xs text-brand-800">100%</td>
-                    <td class="px-3 py-3 text-right text-xs text-brand-800">$${Math.round(totalC).toLocaleString('en-US')}</td>
+                    <td class="px-2 py-0 h-[50px] text-xs text-brand-800 uppercase tracking-wider">Total General</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-sm text-brand-800">${totalQ}</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-xs text-slate-700">${Math.round(totalU).toLocaleString('en-US')}</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-xs text-brand-800">100%</td>
+                    <td class="px-1.5 py-0 h-[50px] text-center text-xs text-brand-800">100%</td>
+                    <td class="px-1.5 py-0 h-[50px] text-right text-xs text-brand-800">$${Math.round(totalC).toLocaleString('en-US')}</td>
                 </tr>`;
         }
 
