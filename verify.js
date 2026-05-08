@@ -1,0 +1,12 @@
+const fs = require('fs');
+const txt = fs.readFileSync('public/indicador-quejas.html', 'utf8');
+console.log('tClientBody:', txt.includes('tClientBody'));
+console.log('tClientFoot:', txt.includes('tClientFoot'));
+console.log('cZone canvas:', txt.includes('id="cZone"'));
+console.log('tBody (cities):', txt.includes('id="tBody"'));
+console.log('main closing:', txt.includes('</main>'));
+console.log('footer:', txt.includes('footer'));
+console.log('ROW 4 Clientes:', txt.includes('ROW 4: Top Clientes'));
+console.log('ROW 5 Zona:', txt.includes('ROW 5: Zona'));
+console.log('cClient canvas removed:', !txt.includes('id="cClient"'));
+console.log('cClientWrapper removed:', !txt.includes('cClientWrapper'));

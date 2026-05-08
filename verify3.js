@@ -1,0 +1,13 @@
+const fs = require('fs');
+const t = fs.readFileSync('public/indicador-quejas.html', 'utf8');
+console.log('=== FINAL VERIFICATION ===');
+console.log('1. Search box:', t.includes('id="clientSearch"'));
+console.log('2. Sort function:', t.includes('function sortClientTable'));
+console.log('3. _clientSort state:', t.includes('_clientSort'));
+console.log('4. Sort icons:', t.includes('sortIco_q'));
+console.log('5. City array init:', t.includes('city: []'));
+console.log('6. City filter array:', t.includes('globalFilters.city.includes(x._city)'));
+console.log('7. toggleFilterArr city:', t.includes("toggleFilterArr('city'"));
+console.log('8. Search filter logic:', t.includes('searchVal'));
+console.log('9. entries.sort:', t.includes('entries.sort'));
+console.log('10. Old chart code gone:', !t.includes('cClientWrapper'));

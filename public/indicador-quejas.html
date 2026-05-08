@@ -167,7 +167,7 @@
                     Tipo de Problema
                 </h3>
                 <div class="h-[400px] 2xl:h-[480px] overflow-y-auto custom-scrollbar pr-1">
-                    <div id="cProblemWrapper" class="relative hover:min-h-[400px] 2xl:h-[480px] transition-all">
+                    <div id="cProblemWrapper" class="relative">
                         <canvas id="cProblem"></canvas>
                     </div>
                 </div>
@@ -218,7 +218,7 @@
                     Subgrupos Afectados
                 </h3>
                 <div class="h-[320px] 2xl:h-[380px] overflow-y-auto custom-scrollbar pr-1">
-                    <div id="cAgentWrapper" class="relative hover:min-h-[320px] 2xl:h-[380px] transition-all">
+                    <div id="cAgentWrapper" class="relative">
                         <canvas id="cAgent"></canvas>
                     </div>
                 </div>
@@ -598,7 +598,7 @@
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
             const totalQ = filtered.length;
 
-            const calcHeight = Math.max(400, top.length * 65);
+            const calcHeight = Math.max(400, top.length * 50);
             document.getElementById('cProblemWrapper').style.height = calcHeight + 'px';
 
             charts.p = new Chart(document.getElementById('cProblem'), {
@@ -609,13 +609,13 @@
                         {
                             label: 'Registros', data: top.map(x => x[1]), 
                             backgroundColor: (ctx) => getChartColor(globalFilters.problem, top[ctx.dataIndex]?.[0], '#3b82f6'),
-                            borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.8,
+                            borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.8, maxBarThickness: 30,
                             datalabels: getBarLabelConfig('main', totalQ)
                         },
                         {
                             label: 'Cantidades', data: top.map(x => u[x[0]] || 0), 
                             backgroundColor: (ctx) => getChartColor(globalFilters.problem, top[ctx.dataIndex]?.[0], '#94a3b8'),
-                            borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.8,
+                            borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.8, maxBarThickness: 30,
                             datalabels: getBarLabelConfig('sec')
                         }
                     ]
@@ -762,7 +762,7 @@
             const top = Object.entries(q).sort((a,b)=>b[1]-a[1]);
             const totalQ=filtered.length;
 
-            const calcHeight = Math.max(320, top.length * 65);
+            const calcHeight = Math.max(320, top.length * 50);
             document.getElementById('cAgentWrapper').style.height = calcHeight + 'px';
 
             charts.a = new Chart(document.getElementById('cAgent'),{
@@ -772,11 +772,11 @@
                     datasets:[
                         {label:'Registros',data:top.map(x=>x[1]),
                             backgroundColor:(ctx)=>getChartColor(globalFilters.family, top[ctx.dataIndex]?.[0], '#3b82f6'),
-                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8,
+                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8, maxBarThickness: 30,
                             datalabels:getBarLabelConfig('main', totalQ)},
                         {label:'Cantidades',data:top.map(x=>u[x[0]]),
                             backgroundColor:(ctx)=>getChartColor(globalFilters.family, top[ctx.dataIndex]?.[0], '#94a3b8'),
-                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8,
+                            borderRadius:3, barPercentage:0.85, categoryPercentage:0.8, maxBarThickness: 30,
                             datalabels:getBarLabelConfig('sec')}
                     ]
                 },
