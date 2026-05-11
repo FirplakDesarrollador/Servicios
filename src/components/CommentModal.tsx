@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, FileText, Upload, Trash2, Loader2 } from 'lucide-react';
+import { X, Camera, FileText, Upload, Trash2, Loader2, Video, ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface CommentModalProps {
@@ -54,27 +54,41 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
 
             // 2. Subir archivos si existen
             if (files.length > 0 && commentData) {
+                const uploadedUrls = [];
                 for (const file of files) {
                     const fileExt = file.name.split('.').pop();
-                    const fileName = `${Math.random()}.${fileExt}`;
-                    const filePath = `comentarios/${serviceId}/${fileName}`;
+                    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                    
+                    const sanitizePath = (path: string) => {
+                        return path
+                            .normalize("NFD")
+                            .replace(/[\u0300-\u036f]/g, "")
+                            .replace(/ñ/g, "n")
+                            .replace(/Ñ/g, "N")
+                            .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
+                    };
+
+                    const folderPath = sanitizePath(consecutivo || serviceId);
+                    const filePath = `${folderPath}/comentarios/${fileName}`;
 
                     const { error: uploadError } = await supabase.storage
-                        .from('archivos_servicios')
+                        .from('servicios')
                         .upload(filePath, file);
 
                     if (uploadError) throw uploadError;
 
-                    // Registrar adjunto
-                    await supabase
-                        .from('Adjuntos')
-                        .insert([{
-                            comentario_id: commentData.id,
-                            url: filePath,
-                            nombre: file.name,
-                            tipo: file.type
-                        }]);
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('servicios')
+                        .getPublicUrl(filePath);
+
+                    uploadedUrls.push(publicUrl);
                 }
+
+                // Actualizar el comentario con las URLs de los documentos
+                await supabase
+                    .from('Comentarios')
+                    .update({ documentos: uploadedUrls })
+                    .eq('id', commentData.id);
             }
 
             onSuccess?.();
@@ -174,7 +188,13 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
                                             className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <FileText className="w-4 h-4 text-slate-400" />
+                                                {file.type.startsWith('image/') ? (
+                                                    <ImageIcon className="w-4 h-4 text-emerald-500" />
+                                                ) : file.type.startsWith('video/') ? (
+                                                    <Video className="w-4 h-4 text-brand" />
+                                                ) : (
+                                                    <FileText className="w-4 h-4 text-slate-400" />
+                                                )}
                                                 <span className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
                                                     {file.name}
                                                 </span>

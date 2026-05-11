@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eraser, CheckCircle, AlertCircle, Loader2, Camera, FileText, ChevronLeft, ChevronRight, PenTool, Upload, Trash2 } from 'lucide-react';
+import { X, Eraser, CheckCircle, AlertCircle, Loader2, Camera, FileText, ChevronLeft, ChevronRight, PenTool, Upload, Trash2, Video, ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface ModalCerrarServicioProps {
@@ -154,26 +154,40 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
 
             // 4. Subir archivos si existen
             if (files.length > 0 && commentData) {
+                const uploadedUrls = [];
                 for (const file of files) {
                     const fileExt = file.name.split('.').pop();
-                    const fileName = `${Math.random()}.${fileExt}`;
-                    const filePath = `cierre/${service.id}/${fileName}`;
+                    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                    
+                    const sanitizePath = (path: string) => {
+                        return path
+                            .normalize("NFD")
+                            .replace(/[\u0300-\u036f]/g, "")
+                            .replace(/ñ/g, "n")
+                            .replace(/Ñ/g, "N")
+                            .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
+                    };
+
+                    const folderPath = sanitizePath(service?.codigo_servicio || service?.id?.toString() || 'cierre');
+                    const filePath = `${folderPath}/cierre/${fileName}`;
 
                     const { error: uploadError } = await supabase.storage
-                        .from('archivos_servicios')
+                        .from('servicios')
                         .upload(filePath, file);
 
                     if (uploadError) throw uploadError;
 
-                    await supabase
-                        .from('Adjuntos')
-                        .insert([{
-                            comentario_id: commentData.id,
-                            url: filePath,
-                            nombre: file.name,
-                            tipo: file.type
-                        }]);
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('servicios')
+                        .getPublicUrl(filePath);
+
+                    uploadedUrls.push(publicUrl);
                 }
+
+                await supabase
+                    .from('Comentarios')
+                    .update({ documentos: uploadedUrls })
+                    .eq('id', commentData.id);
             }
 
             onSuccess?.();
@@ -274,7 +288,13 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                                                     className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <FileText className="w-4 h-4 text-slate-400" />
+                                                        {file.type.startsWith('image/') ? (
+                                                            <ImageIcon className="w-4 h-4 text-emerald-500" />
+                                                        ) : file.type.startsWith('video/') ? (
+                                                            <Video className="w-4 h-4 text-brand" />
+                                                        ) : (
+                                                            <FileText className="w-4 h-4 text-slate-400" />
+                                                        )}
                                                         <span className="text-[10px] font-bold text-slate-600 truncate max-w-[120px]">
                                                             {file.name}
                                                         </span>

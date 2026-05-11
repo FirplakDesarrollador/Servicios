@@ -52,6 +52,7 @@ import {
     Search,
     ChevronDown,
     Check,
+    Play,
 } from 'lucide-react';
 import { InfoField, InfoSection } from '@/components/InfoField';
 import ProductsModal from '@/components/ProductsModal';
@@ -497,20 +498,20 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
     const [newAttachments, setNewAttachments] = useState<File[]>([]);
     const editFileInputRef = useRef<HTMLInputElement>(null);
 
-    const allGalleryImages = useMemo(() => {
-        const images: string[] = [];
+    const allMedia = useMemo(() => {
+        const media: string[] = [];
         comentarios.forEach(c => {
             (c.documentos || []).forEach((doc: string) => {
-                if (/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc)) {
-                    images.push(doc);
+                if (/\.(jpg|jpeg|png|webp|gif|svg|mp4|webm|ogg|mov)$/i.test(doc)) {
+                    media.push(doc);
                 }
             });
         });
-        return images;
+        return media;
     }, [comentarios]);
 
-    const handleOpenLightbox = (imageUrl: string) => {
-        const index = allGalleryImages.indexOf(imageUrl);
+    const handleOpenLightbox = (url: string) => {
+        const index = allMedia.indexOf(url);
         if (index !== -1) {
             setLightboxIndex(index);
             setShowLightbox(true);
@@ -518,12 +519,12 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
     };
 
     const handleNext = useCallback(() => {
-        setLightboxIndex((prev) => (prev + 1) % allGalleryImages.length);
-    }, [allGalleryImages.length]);
+        setLightboxIndex((prev) => (prev + 1) % allMedia.length);
+    }, [allMedia.length]);
 
     const handlePrev = useCallback(() => {
-        setLightboxIndex((prev) => (prev - 1 + allGalleryImages.length) % allGalleryImages.length);
-    }, [allGalleryImages.length]);
+        setLightboxIndex((prev) => (prev - 1 + allMedia.length) % allMedia.length);
+    }, [allMedia.length]);
 
     useEffect(() => {
         if (!showLightbox) return;
@@ -824,27 +825,47 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
                                                 <div className="mt-4 flex flex-wrap gap-4">
                                                     {comentario.documentos.map((doc: string, idx: number) => {
                                                         const isImage = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc);
-                                                        return isImage ? (
-                                                            <button 
-                                                                key={idx} 
-                                                                onClick={() => handleOpenLightbox(doc)}
-                                                                className="relative group block"
-                                                            >
-                                                                <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-100 shadow-sm group-hover:border-brand/40 group-hover:shadow-md transition-all">
-                                                                    <img 
-                                                                        src={doc} 
-                                                                        alt={`Adjunto ${idx + 1}`}
-                                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                                    />
-                                                                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                        <Zap className="w-4 h-4 text-white drop-shadow-md" />
+                                                        const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(doc);
+                                                        
+                                                        if (isImage || isVideo) {
+                                                            return (
+                                                                <button 
+                                                                    key={idx} 
+                                                                    onClick={() => handleOpenLightbox(doc)}
+                                                                    className="relative group block"
+                                                                >
+                                                                    <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-100 shadow-sm group-hover:border-brand/40 group-hover:shadow-md transition-all">
+                                                                        {isImage ? (
+                                                                            <img 
+                                                                                src={doc} 
+                                                                                alt={`Adjunto ${idx + 1}`}
+                                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                                                                                <video 
+                                                                                    src={doc} 
+                                                                                    className="w-full h-full object-cover opacity-60"
+                                                                                />
+                                                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                                                    <div className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                                                                                        <Play className="w-4 h-4 text-white fill-white" />
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                            <Zap className="w-4 h-4 text-white drop-shadow-md" />
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                                <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-brand text-[8px] font-black text-white rounded-lg shadow-lg border-2 border-white">
-                                                                    IMG
-                                                                </span>
-                                                            </button>
-                                                        ) : (
+                                                                    <span className={`absolute -top-2 -right-2 px-2 py-0.5 text-[8px] font-black text-white rounded-lg shadow-lg border-2 border-white ${isImage ? 'bg-brand' : 'bg-slate-800'}`}>
+                                                                        {isImage ? 'IMG' : 'VIDEO'}
+                                                                    </span>
+                                                                </button>
+                                                            );
+                                                        }
+
+                                                        return (
                                                             <a 
                                                                 key={idx} 
                                                                 href={doc} 
@@ -886,36 +907,46 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
                         </button>
 
                         <div className="relative w-full h-full flex items-center justify-center">
-                            {allGalleryImages.length > 1 && (
+                            {allMedia.length > 1 && (
                                 <>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-                                        className="absolute left-0 md:-left-12 p-6 text-white/40 hover:text-white transition-all"
+                                        className="absolute left-0 md:-left-12 p-6 text-white/40 hover:text-white transition-all z-20"
                                     >
                                         <ChevronLeft className="w-12 h-12" />
                                     </button>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleNext(); }}
-                                        className="absolute right-0 md:-right-12 p-6 text-white/40 hover:text-white transition-all"
+                                        className="absolute right-0 md:-right-12 p-6 text-white/40 hover:text-white transition-all z-20"
                                     >
                                         <ChevronRight className="w-12 h-12" />
                                     </button>
                                 </>
                             )}
 
-                            <motion.img 
-                                key={lightboxIndex}
-                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                src={allGalleryImages[lightboxIndex]} 
-                                className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
-                            />
+                            {allMedia[lightboxIndex] && /\.(mp4|webm|ogg|mov)$/i.test(allMedia[lightboxIndex]) ? (
+                                <video 
+                                    key={lightboxIndex}
+                                    src={allMedia[lightboxIndex]}
+                                    controls
+                                    autoPlay
+                                    className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl"
+                                />
+                            ) : (
+                                <motion.img 
+                                    key={lightboxIndex}
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    src={allMedia[lightboxIndex]} 
+                                    className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
+                                />
+                            )}
                         </div>
 
                         <div className="mt-8 text-center space-y-2">
                             <p className="text-white font-black uppercase tracking-[0.3em] text-xs">Visualizando evidencia</p>
                             <p className="text-white/40 font-bold text-[10px] uppercase tracking-widest">
-                                Imagen {lightboxIndex + 1} de {allGalleryImages.length} • Use las flechas del teclado
+                                Archivo {lightboxIndex + 1} de {allMedia.length} • Use las flechas del teclado
                             </p>
                         </div>
                     </motion.div>

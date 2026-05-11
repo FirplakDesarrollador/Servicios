@@ -61,6 +61,7 @@ export default function ModalEditSala({ isOpen, onClose, onSuccess, initialData 
             const { data: users, error: fetchError } = await supabase
                 .from('Usuarios')
                 .select('id, display_name')
+                .in('rol', ['comercial', 'coordinador_comercial', 'director_comercial', 'asesor_tecnico', 'promotor_tecnico_comercial'])
                 .order('display_name');
             
             if (fetchError) {

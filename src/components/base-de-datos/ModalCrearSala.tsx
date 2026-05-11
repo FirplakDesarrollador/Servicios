@@ -81,7 +81,7 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
             const { data: users } = await supabase
                 .from('Usuarios')
                 .select('id, display_name')
-                .in('rol', ['comercial', 'coordinador_comercial', 'asesor_comercial', 'asesor_tecnico', 'admin', 'super_admin'])
+                .in('rol', ['comercial', 'coordinador_comercial', 'director_comercial', 'asesor_tecnico', 'promotor_tecnico_comercial'])
                 .order('display_name');
             setAsesores(users || []);
         } catch (err) {
