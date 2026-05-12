@@ -139,6 +139,8 @@ export default function BaseDatosPage() {
 
             if (count !== null) {
                 setHasMore(prev => ({ ...prev, [tab]: (from + (result?.length || 0)) < count }));
+                // Actualizar el total para este tab con el conteo filtrado
+                setTotals(prev => ({ ...prev, [tab]: count }));
             }
             setLoaded(prev => ({ ...prev, [tab]: true }));
         } catch (error) {
