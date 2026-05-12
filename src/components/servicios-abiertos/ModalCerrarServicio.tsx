@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eraser, CheckCircle, AlertCircle, Loader2, Camera, FileText, ChevronLeft, ChevronRight, PenTool, Upload, Trash2, Video, ImageIcon } from 'lucide-react';
+import { X, Eraser, CheckCircle, AlertCircle, Loader2, Camera, FileText, ChevronLeft, ChevronRight, PenTool, Upload, Trash2, Video, ImageIcon, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface ModalCerrarServicioProps {
@@ -16,7 +16,7 @@ interface ModalCerrarServicioProps {
 export default function ModalCerrarServicio({ isOpen, onClose, service, onSuccess, currentUser }: ModalCerrarServicioProps) {
     const [step, setStep] = useState(1);
     const [razonCierre, setRazonCierre] = useState('');
-    const [files, setFiles] = useState<File[]>([]);
+    const [files, setFiles] = useState<{ file: File; isHidden: boolean }[]>([]);
     const [entregaParcial, setEntregaParcial] = useState(false);
     
     const [isSaving, setIsSaving] = useState(false);
@@ -39,8 +39,18 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
     // File handling
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setFiles([...files, ...Array.from(e.target.files)]);
+            const newFiles = Array.from(e.target.files).map(file => ({
+                file,
+                isHidden: false
+            }));
+            setFiles([...files, ...newFiles]);
         }
+    };
+
+    const toggleVisibility = (index: number) => {
+        setFiles(prev => prev.map((item, i) => 
+            i === index ? { ...item, isHidden: !item.isHidden } : item
+        ));
     };
 
     const removeFile = (index: number) => {
@@ -155,7 +165,10 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
             // 4. Subir archivos si existen
             if (files.length > 0 && commentData) {
                 const uploadedUrls = [];
-                for (const file of files) {
+                const hiddenUrls = [];
+
+                for (const item of files) {
+                    const { file, isHidden } = item;
                     const fileExt = file.name.split('.').pop();
                     const fileName = `${crypto.randomUUID()}.${fileExt}`;
                     
@@ -168,7 +181,7 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                             .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
                     };
 
-                    const folderPath = sanitizePath(service?.codigo_servicio || service?.id?.toString() || 'cierre');
+                    const folderPath = sanitizePath(service?.consecutivo || service?.id?.toString() || 'cierre');
                     const filePath = `${folderPath}/cierre/${fileName}`;
 
                     const { error: uploadError } = await supabase.storage
@@ -182,12 +195,32 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                         .getPublicUrl(filePath);
 
                     uploadedUrls.push(publicUrl);
+                    if (isHidden) {
+                        hiddenUrls.push(publicUrl);
+                    }
                 }
 
                 await supabase
                     .from('Comentarios')
                     .update({ documentos: uploadedUrls })
                     .eq('id', commentData.id);
+
+                // Si hay archivos ocultos, actualizar soportes_pago en la tabla Servicios
+                if (hiddenUrls.length > 0) {
+                    const { data: servData } = await supabase
+                        .from('Servicios')
+                        .select('soportes_pago')
+                        .eq('id', service.id)
+                        .single();
+
+                    const currentSoportes = servData?.soportes_pago || [];
+                    await supabase
+                        .from('Servicios')
+                        .update({ 
+                            soportes_pago: [...currentSoportes, ...hiddenUrls] 
+                        })
+                        .eq('id', service.id);
+                }
             }
 
             onSuccess?.();
@@ -278,35 +311,47 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                                         <motion.div 
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
-                                            className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"
+                                            className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2"
                                         >
-                                            {files.map((file, index) => (
-                                                <motion.div
-                                                    key={index}
-                                                    initial={{ scale: 0.9, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        {file.type.startsWith('image/') ? (
-                                                            <ImageIcon className="w-4 h-4 text-emerald-500" />
-                                                        ) : file.type.startsWith('video/') ? (
-                                                            <Video className="w-4 h-4 text-brand" />
-                                                        ) : (
-                                                            <FileText className="w-4 h-4 text-slate-400" />
-                                                        )}
-                                                        <span className="text-[10px] font-bold text-slate-600 truncate max-w-[120px]">
-                                                            {file.name}
-                                                        </span>
-                                                    </div>
-                                                    <button 
-                                                        onClick={() => removeFile(index)}
-                                                        className="p-1 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors"
+                                            {files.map((item, index) => {
+                                                const { file, isHidden } = item;
+                                                const isImage = file.type.startsWith('image/');
+                                                const isVideo = file.type.startsWith('video/');
+                                                
+                                                return (
+                                                    <motion.div 
+                                                        key={index} 
+                                                        initial={{ scale: 0.9, opacity: 0 }}
+                                                        animate={{ scale: 1, opacity: 1 }}
+                                                        className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl border transition-all ${isHidden ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100'}`}
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </motion.div>
-                                            ))}
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isHidden ? 'bg-amber-100 text-amber-600' : 'bg-white text-brand border border-slate-100'}`}>
+                                                                {isImage ? <ImageIcon className="w-4 h-4" /> : isVideo ? <Video className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
+                                                                <span className="text-[8px] font-medium text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <button
+                                                                onClick={() => toggleVisibility(index)}
+                                                                className={`p-2 rounded-xl transition-all ${isHidden ? 'bg-amber-500 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-100'}`}
+                                                                title={isHidden ? "Visible para técnicos" : "Ocultar para técnicos"}
+                                                            >
+                                                                {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => removeFile(index)}
+                                                                className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            })}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

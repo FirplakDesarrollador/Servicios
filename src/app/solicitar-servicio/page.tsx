@@ -32,7 +32,9 @@ import {
     Minus,
     PlusCircle as PlusCircleIcon,
     Video,
-    Eye
+    Eye,
+    EyeOff,
+    Maximize2
 } from 'lucide-react';
 import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
@@ -67,7 +69,7 @@ export default function SolicitarServicioPage() {
     const [clienteFinalSeleccionado, setClienteFinalSeleccionado] = useState<any>(null);
     const [productosSeleccionados, setProductosSeleccionados] = useState<any[]>([]);
     const [repuestosSeleccionados, setRepuestosSeleccionados] = useState<any[]>([]);
-    const [adjuntos, setAdjuntos] = useState<any[]>([]);
+    const [adjuntos, setAdjuntos] = useState<{ file: File; isHidden: boolean }[]>([]);
     const [previewFile, setPreviewFile] = useState<any>(null);
 
     // Modal Control States
@@ -208,22 +210,30 @@ export default function SolicitarServicioPage() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const newFiles = Array.from(e.target.files);
+            const newFiles = Array.from(e.target.files).map(file => ({
+                file,
+                isHidden: false
+            }));
             setAdjuntos(prev => [...prev, ...newFiles]);
         }
+    };
+
+    const toggleVisibility = (index: number) => {
+        setAdjuntos(prev => prev.map((item, i) => 
+            i === index ? { ...item, isHidden: !item.isHidden } : item
+        ));
     };
 
     const removeAdjunto = (index: number) => {
         setAdjuntos(prev => prev.filter((_, i) => i !== index));
     };
 
-    const uploadFiles = async (files: File[]) => {
-        const uploadPromises = files.map(async (file) => {
+    const uploadFiles = async (items: { file: File; isHidden: boolean }[]) => {
+        const uploadPromises = items.map(async (item) => {
+            const { file, isHidden } = item;
             try {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${crypto.randomUUID()}.${fileExt}`;
-                // Use the generated consecutive for the folder structure
-                // Fallback to 'temp' if for some reason consecutivo is missing (shouldn't happen on save)
                 const sanitizePath = (path: string) => {
                     return path
                         .normalize("NFD")
@@ -234,7 +244,6 @@ export default function SolicitarServicioPage() {
                 };
 
                 const folderPath = sanitizePath(consecutivo || 'temp');
-                // User requested folder name be the consecutive, containing all docs
                 const filePath = `${folderPath}/documentos/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
@@ -247,7 +256,7 @@ export default function SolicitarServicioPage() {
                     .from('servicios')
                     .getPublicUrl(filePath);
 
-                return publicUrl;
+                return { url: publicUrl, isHidden };
             } catch (error) {
                 console.error('Error uploading file:', error);
                 return null;
@@ -255,7 +264,12 @@ export default function SolicitarServicioPage() {
         });
 
         const results = await Promise.all(uploadPromises);
-        return results.filter((url): url is string => url !== null);
+        const validResults = results.filter((r): r is { url: string; isHidden: boolean } => r !== null);
+        
+        return {
+            allUrls: validResults.map(r => r.url),
+            hiddenUrls: validResults.filter(r => r.isHidden).map(r => r.url)
+        };
     };
 
     const handleSave = async () => {
@@ -339,7 +353,7 @@ export default function SolicitarServicioPage() {
 
         try {
             // 1. Upload Files
-            const uploadedUrls = await uploadFiles(adjuntos);
+            const { allUrls, hiddenUrls } = await uploadFiles(adjuntos);
 
             // 2. Prepare Approval Logic & Coordinator Assignment
             const aprobacionDirector = determineApproval(tipoServicio, facturado, 'director');
@@ -399,6 +413,7 @@ export default function SolicitarServicioPage() {
                         ? currentUser.id
                         : null,
                     service_parent_id: parentServiceId ? parseInt(parentServiceId) : null,
+                    soportes_pago: hiddenUrls
                 })
                 .select()
                 .single();
@@ -410,7 +425,7 @@ export default function SolicitarServicioPage() {
                 await supabase.from('Comentarios').insert({
                     servicio_id: servicioData.id,
                     contenido: observaciones || 'Anexos adjuntos',
-                    documentos: uploadedUrls,
+                    documentos: allUrls,
                     usuario_id: currentUser?.id,
                     tipo: 'solicitud_servicio'
                 });
@@ -921,31 +936,52 @@ export default function SolicitarServicioPage() {
                         {/* File Preview List */}
                         {adjuntos.length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                {adjuntos.map((file, idx) => {
+                                {adjuntos.map((item, idx) => {
+                                    const { file, isHidden } = item;
                                     const isImage = file.type.startsWith('image/');
                                     const previewUrl = isImage ? URL.createObjectURL(file) : null;
 
                                     return (
-                                        <div key={idx} className="relative group bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                                        <div key={idx} className={`relative group bg-slate-50 rounded-xl border overflow-hidden transition-all ${isHidden ? 'border-amber-200 ring-2 ring-amber-500/20' : 'border-slate-200'}`}>
                                             {/* Preview/Icon */}
                                             <div className="h-24 w-full flex items-center justify-center bg-slate-100 overflow-hidden relative">
                                                 {isImage && previewUrl ? (
                                                     <img
                                                         src={previewUrl}
                                                         alt="preview"
-                                                        className="w-full h-full object-cover"
+                                                        className={`w-full h-full object-cover ${isHidden ? 'grayscale opacity-50' : ''}`}
                                                     />
                                                 ) : file.type.startsWith('video/') ? (
-                                                    <div className="flex flex-col items-center gap-1">
+                                                    <div className={`flex flex-col items-center gap-1 ${isHidden ? 'opacity-40' : ''}`}>
                                                         <Video className="w-10 h-10 text-brand" />
                                                         <span className="text-[8px] font-black uppercase text-brand/60">Video</span>
                                                     </div>
                                                 ) : (
-                                                    <FileText className="w-10 h-10 text-slate-400" />
+                                                    <div className={`${isHidden ? 'opacity-40' : ''}`}>
+                                                        <FileText className="w-10 h-10 text-slate-400" />
+                                                    </div>
+                                                )}
+
+                                                {/* Visibility Status Badge */}
+                                                {isHidden && (
+                                                    <div className="absolute top-2 left-2 px-2 py-0.5 bg-amber-500 text-white text-[8px] font-black uppercase rounded-lg shadow-lg z-10 flex items-center gap-1">
+                                                        <EyeOff className="w-2.5 h-2.5" />
+                                                        Privado
+                                                    </div>
                                                 )}
 
                                                 {/* Overlay with Actions */}
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleVisibility(idx);
+                                                        }}
+                                                        className={`p-2 rounded-full transition-colors shadow-lg ${isHidden ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-white/20 backdrop-blur-md text-white hover:bg-white/40'}`}
+                                                        title={isHidden ? "Hacer visible para técnico" : "Ocultar para técnico"}
+                                                    >
+                                                        {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -954,7 +990,7 @@ export default function SolicitarServicioPage() {
                                                         className="bg-white/20 backdrop-blur-md text-white p-2 rounded-full hover:bg-white/40 transition-colors shadow-lg"
                                                         title="Ver archivo"
                                                     >
-                                                        <Eye className="w-4 h-4" />
+                                                        <Maximize2 className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={(e) => {

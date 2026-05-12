@@ -276,6 +276,7 @@ export default function VerServicioPage() {
                             <AgendamientoTab 
                                 service={service} 
                                 technicians={technicians}
+                                currentUser={currentUser}
                                 onRefresh={fetchService}
                             />
                         )}
@@ -498,17 +499,25 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
     const [newAttachments, setNewAttachments] = useState<File[]>([]);
     const editFileInputRef = useRef<HTMLInputElement>(null);
 
+    const isFileHidden = useCallback((url: string) => {
+        if (!service?.soportes_pago || !Array.isArray(service.soportes_pago)) return false;
+        const isTechnician = currentUser?.rol === 'tecnico' || currentUser?.rol === 'tecnico_externo';
+        if (!isTechnician) return false;
+        return service.soportes_pago.includes(url);
+    }, [service?.soportes_pago, currentUser?.rol]);
+
     const allMedia = useMemo(() => {
         const media: string[] = [];
         comentarios.forEach(c => {
             (c.documentos || []).forEach((doc: string) => {
+                if (isFileHidden(doc)) return;
                 if (/\.(jpg|jpeg|png|webp|gif|svg|mp4|webm|ogg|mov)$/i.test(doc)) {
                     media.push(doc);
                 }
             });
         });
         return media;
-    }, [comentarios]);
+    }, [comentarios, isFileHidden]);
 
     const handleOpenLightbox = (url: string) => {
         const index = allMedia.indexOf(url);
@@ -823,7 +832,7 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
 
                                             {comentario.documentos?.length > 0 && (
                                                 <div className="mt-4 flex flex-wrap gap-4">
-                                                    {comentario.documentos.map((doc: string, idx: number) => {
+                                                    {comentario.documentos.filter((doc: string) => !isFileHidden(doc)).map((doc: string, idx: number) => {
                                                         const isImage = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc);
                                                         const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(doc);
                                                         
@@ -956,13 +965,16 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
     );
 }
 
-function AgendamientoTab({ service, technicians, onRefresh }: { service: any, technicians: any[], onRefresh: () => void }) {
+function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { service: any, technicians: any[], currentUser: any, onRefresh: () => void }) {
     const [aplicaTecnico, setAplicaTecnico] = useState(service.aplica_tecnico ?? true);
-    const [selectedTechId, setSelectedTechId] = useState<number | null>(null);
+    const [selectedTechId, setSelectedTechId] = useState<string>('');
     const [fechaInicio, setFechaInicio] = useState<string>('');
     const [fechaFin, setFechaFin] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
     const [loadingVisit, setLoadingVisit] = useState(true);
+    const [hasSavedVisit, setHasSavedVisit] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
 
     // Estados para el calendario de disponibilidad
     const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => {
@@ -984,6 +996,7 @@ function AgendamientoTab({ service, technicians, onRefresh }: { service: any, te
             
             if (data) {
                 setSelectedTechId(data.tecnico_id);
+                setHasSavedVisit(true);
                 if (data.fecha_hora_inicio) {
                     // Supabase devuelve "timestamp without time zone" sin 'Z'
                     // Añadimos 'Z' para interpretarlo como UTC y convertir a local
@@ -1067,8 +1080,12 @@ function AgendamientoTab({ service, technicians, onRefresh }: { service: any, te
         const dayVisitas = filterVisitasByDate(techVisitas, day);
         return dayVisitas.some(v => {
             if (!v.fecha_hora_inicio || !v.fecha_hora_fin) return false;
-            const vStart = new Date(v.fecha_hora_inicio);
-            const vEnd = new Date(v.fecha_hora_fin);
+            // Las fechas de Supabase pueden venir sin 'Z' (timestamp without time zone)
+            // Asegurar que se interpreten correctamente
+            const rawStart = v.fecha_hora_inicio.endsWith('Z') ? v.fecha_hora_inicio : v.fecha_hora_inicio + 'Z';
+            const rawEnd = v.fecha_hora_fin.endsWith('Z') ? v.fecha_hora_fin : v.fecha_hora_fin + 'Z';
+            const vStart = new Date(rawStart);
+            const vEnd = new Date(rawEnd);
             return (slotStart < vEnd && slotEnd > vStart);
         });
     };
@@ -1082,27 +1099,50 @@ function AgendamientoTab({ service, technicians, onRefresh }: { service: any, te
             return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
         };
 
+        const clickedFormatted = formatForInput(clickedTime);
+
+        // Si ya hay selección y el click cae dentro del rango → deseleccionar
+        if (fechaInicio && fechaFin) {
+            const startDate = new Date(fechaInicio);
+            const endDate = new Date(fechaFin);
+            if (clickedTime >= startDate && clickedTime < endDate) {
+                setFechaInicio('');
+                setFechaFin('');
+                return;
+            }
+        }
+
+        // Si no hay inicio → establecer hora de inicio (sin fin aún)
         if (!fechaInicio) {
-            setFechaInicio(formatForInput(clickedTime));
-            setFechaFin(formatForInput(new Date(clickedTime.getTime() + 60 * 60000))); // Default 1h
+            setFechaInicio(clickedFormatted);
+            setFechaFin('');
             return;
         }
 
         const currentStart = new Date(fechaInicio);
-        const currentEnd = new Date(fechaFin);
 
-        // Si es un día diferente, reinicia el rango en ese día
-        if (format(new Date(currentStart), 'yyyy-MM-dd') !== format(day, 'yyyy-MM-dd')) {
-            setFechaInicio(formatForInput(clickedTime));
-            setFechaFin(formatForInput(new Date(clickedTime.getTime() + 60 * 60000)));
+        // Si es un día diferente al inicio → reiniciar con nuevo inicio
+        if (format(currentStart, 'yyyy-MM-dd') !== format(day, 'yyyy-MM-dd')) {
+            setFechaInicio(clickedFormatted);
+            setFechaFin('');
             return;
         }
 
-        if (clickedTime < currentStart) {
-            setFechaInicio(formatForInput(clickedTime));
-        } else {
-            setFechaFin(formatForInput(new Date(clickedTime.getTime() + 30 * 60000)));
+        // Si ya hay inicio pero no hay fin
+        if (!fechaFin) {
+            if (clickedTime <= currentStart) {
+                // Click arriba o en el mismo → mover el inicio
+                setFechaInicio(clickedFormatted);
+            } else {
+                // Click abajo → establecer fin (+30min del slot clickeado)
+                setFechaFin(formatForInput(new Date(clickedTime.getTime() + 30 * 60000)));
+            }
+            return;
         }
+
+        // Ya hay inicio y fin, click fuera del rango → nuevo inicio
+        setFechaInicio(clickedFormatted);
+        setFechaFin('');
     };
 
     const handleSave = async () => {
@@ -1200,10 +1240,55 @@ function AgendamientoTab({ service, technicians, onRefresh }: { service: any, te
             }
 
             alert('Agendamiento guardado correctamente.');
+            setHasSavedVisit(true);
             onRefresh();
         } catch (error: any) {
             console.error('[AgendamientoTab] Error en handleSave:', error);
             alert(`Error al guardar: ${error.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCancelVisit = async () => {
+        if (!cancelReason.trim()) {
+            alert('Por favor ingrese el motivo de la cancelación.');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            // 1. Desactivar la visita
+            const { error: visitError } = await supabase
+                .from('Visitas')
+                .update({ estado: false })
+                .eq('servicio_id', service.id)
+                .eq('estado', true);
+            
+            if (visitError) throw visitError;
+
+            // 2. Guardar el comentario
+            const { error: commentError } = await supabase
+                .from('Comentarios')
+                .insert([{
+                    servicio_id: service.id,
+                    contenido: `AGENDAMIENTO CANCELADO - Motivo: ${cancelReason}`,
+                    usuario_id: currentUser?.id,
+                    tipo: 'motivo_cancelacion_visita'
+                }]);
+            
+            if (commentError) throw commentError;
+
+            alert('Agendamiento cancelado correctamente.');
+            setHasSavedVisit(false);
+            setFechaInicio('');
+            setFechaFin('');
+            setIsCancelling(false);
+            setCancelReason('');
+            onRefresh();
+        } catch (error: any) {
+            console.error('Error al cancelar agendamiento:', error);
+            alert(`Error al cancelar: ${error.message}`);
         } finally {
             setIsSaving(false);
         }
@@ -1255,150 +1340,281 @@ function AgendamientoTab({ service, technicians, onRefresh }: { service: any, te
                         className="bg-white rounded-[2.5rem] border border-slate-100 p-8 md:p-12 premium-shadow space-y-10"
                     >
                         <div className="space-y-6">
-                            <label className="flex items-center gap-2 text-[10px] font-black text-brand uppercase tracking-widest ml-1">
-                                <UserCheck className="w-4 h-4" />
+                            <label className="flex items-center gap-3 text-[10px] font-black text-brand uppercase tracking-[0.3em] ml-1">
+                                <div className="w-8 h-8 bg-brand/10 rounded-xl flex items-center justify-center">
+                                    <UserCheck className="w-4 h-4 text-brand" />
+                                </div>
                                 Técnico Responsable
                             </label>
                             
-                            <div className="relative max-w-2xl group">
-                                <DropdownSingleSelect 
-                                    options={technicians.map(t => ({ 
-                                        id: t.id, 
-                                        label: `${t.display_name} ${t.cedula ? `(${t.cedula})` : ''} - ${t.rol?.toUpperCase()}`,
-                                        url_foto: t.url_foto,
-                                        display_name: t.display_name,
-                                        rol: t.rol
-                                    }))}
-                                    selectedId={selectedTechId}
-                                    onChange={(id) => setSelectedTechId(id)}
-                                    placeholder="Seleccione un técnico del listado..."
-                                />
+                            <div className="relative max-w-2xl">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 to-blue-500/20 rounded-[2.5rem] blur opacity-25" />
+                                <div className="relative">
+                                    <DropdownSingleSelect 
+                                        options={technicians.map(t => ({ 
+                                            id: t.id, 
+                                            label: `${t.display_name} ${t.cedula ? `(${t.cedula})` : ''}`,
+                                            url_foto: t.url_foto,
+                                            display_name: t.display_name,
+                                            rol: t.rol
+                                        }))}
+                                        selectedId={selectedTechId}
+                                        onChange={(id) => setSelectedTechId(id)}
+                                        placeholder="Seleccione un técnico para ver su agenda..."
+                                    />
+                                </div>
                             </div>
                         </div>
 
                         {/* ── Resumen del rango agendado ── */}
                         {fechaInicio && (
-                            <div className="flex items-center gap-4 px-6 py-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl">
-                                <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
-                                    <Calendar className="w-5 h-5 text-white" />
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-6 p-8 bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-50/30 border border-emerald-100 rounded-[2.5rem] shadow-xl shadow-emerald-500/5"
+                            >
+                                <div className="w-16 h-16 bg-emerald-500 rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-emerald-500/40 transform rotate-3">
+                                    <Calendar className="w-8 h-8 text-white" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Rango agendado</p>
-                                    <p className="text-sm font-black text-slate-800">
-                                        {format(new Date(fechaInicio), "EEEE d 'de' MMMM", { locale: es })}
-                                    </p>
-                                    <p className="text-xs font-bold text-slate-600">
-                                        {format(new Date(fechaInicio), 'HH:mm', { locale: es })} 
-                                        {' → '}
-                                        {fechaFin ? format(new Date(fechaFin), 'HH:mm', { locale: es }) : '...'}
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.4em] mb-2">Visita Programada</p>
+                                    <h5 className="text-xl font-black text-slate-800 tracking-tight leading-none mb-2">
+                                        {format(new Date(fechaInicio), "EEEE, d 'de' MMMM", { locale: es })}
+                                    </h5>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-xl border border-emerald-100 shadow-sm">
+                                            <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                                            <span className="text-xs font-black text-slate-700">
+                                                {format(new Date(fechaInicio), 'HH:mm', { locale: es })} 
+                                                {' → '}
+                                                {fechaFin ? format(new Date(fechaFin), 'HH:mm', { locale: es }) : '--:--'}
+                                            </span>
+                                        </div>
                                         {fechaFin && (
-                                            <span className="ml-2 text-emerald-600 text-[10px] font-bold">
-                                                ({Math.round((new Date(fechaFin).getTime() - new Date(fechaInicio).getTime()) / 60000)} min)
+                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-100/50 px-3 py-1.5 rounded-xl">
+                                                Duración: {Math.round((new Date(fechaFin).getTime() - new Date(fechaInicio).getTime()) / 60000)} min
                                             </span>
                                         )}
-                                    </p>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={() => { setFechaInicio(''); setFechaFin(''); }}
-                                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                                    title="Limpiar rango"
-                                >
-                                    <XCircle className="w-5 h-5" />
-                                </button>
-                            </div>
+                                <div className="flex items-center gap-3">
+                                    {hasSavedVisit && !isCancelling && (
+                                        <button
+                                            onClick={() => setIsCancelling(true)}
+                                            className="px-6 py-4 bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-rose-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                                        >
+                                            <XCircle className="w-4 h-4" />
+                                            Cancelar Cita
+                                        </button>
+                                    )}
+                                    {!hasSavedVisit && (
+                                        <button
+                                            onClick={() => { setFechaInicio(''); setFechaFin(''); }}
+                                            className="p-4 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all border border-transparent hover:border-rose-100"
+                                            title="Limpiar selección"
+                                        >
+                                            <XCircle className="w-6 h-6" />
+                                        </button>
+                                    )}
+                                </div>
+                            </motion.div>
                         )}
 
-                        {/* ── Calendario de disponibilidad ── */}
-                        {selectedTechId && (
-                            <div className="mt-6 pt-6 border-t border-slate-100 space-y-4">
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-2">
-                                    <div>
-                                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                            <Clock className="w-4 h-4 text-brand" />
-                                            Disponibilidad del técnico
-                                        </h4>
+                        {/* ── UI de Cancelación ── */}
+                        <AnimatePresence>
+                            {isCancelling && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="bg-rose-50/50 border border-rose-100 rounded-[2rem] p-8 space-y-6"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-rose-200">
+                                            <AlertCircle className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[10px] font-black text-rose-600 uppercase tracking-[0.2em]">Motivo de Cancelación</h4>
+                                            <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest mt-0.5">Este motivo se guardará como un comentario en el servicio</p>
+                                        </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                                    <textarea
+                                        value={cancelReason}
+                                        onChange={(e) => setCancelReason(e.target.value)}
+                                        placeholder="Escriba aquí el por qué de la cancelación..."
+                                        className="w-full p-6 bg-white border border-rose-100 rounded-[2rem] focus:outline-none focus:ring-4 focus:ring-rose-500/5 transition-all resize-none text-slate-700 font-medium text-sm"
+                                        rows={3}
+                                    />
+
+                                    <div className="flex justify-end gap-3">
+                                        <button
+                                            onClick={() => { setIsCancelling(false); setCancelReason(''); }}
+                                            className="px-6 py-3 bg-white text-slate-400 text-[9px] font-black uppercase rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all"
+                                        >
+                                            Volver
+                                        </button>
+                                        <button
+                                            onClick={handleCancelVisit}
+                                            disabled={isSaving || !cancelReason.trim()}
+                                            className="px-8 py-3 bg-rose-500 text-white text-[9px] font-black uppercase rounded-2xl shadow-xl shadow-rose-500/20 hover:scale-105 transition-all disabled:opacity-50 disabled:grayscale"
+                                        >
+                                            {isSaving ? 'Procesando...' : 'Confirmar Cancelación'}
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* ── Calendario de disponibilidad ── */}
+                        {selectedTechId && !hasSavedVisit && !isCancelling && (
+                            <div className="space-y-6 mt-8 pt-8 border-t border-slate-100">
+                                {/* Header + Nav */}
+                                <div className="flex items-center justify-between flex-wrap gap-4">
+                                    <div>
+                                        <h4 className="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
+                                            <div className="w-8 h-8 bg-gradient-to-br from-brand to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
+                                                <Clock className="w-4 h-4 text-white" />
+                                            </div>
+                                            Agenda del Técnico
+                                        </h4>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-1 ml-10">Toque los horarios disponibles para agendar</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => setSelectedWeekStart(subDays(selectedWeekStart, 7))} className="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center transition-all shadow-sm">
+                                            <ChevronLeft className="w-4 h-4 text-slate-600" />
+                                        </button>
+                                        <div className="flex gap-0.5 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
                                             {weekDays.map((day, idx) => {
-                                                const isSelected = isSameDay(day, selectedWeekStart);
+                                                const isSel = isSameDay(day, selectedWeekStart);
+                                                const isToday = isSameDay(day, new Date());
                                                 return (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => setSelectedWeekStart(day)}
-                                                        className={`w-8 h-8 rounded-lg flex flex-col items-center justify-center transition-all ${
-                                                            isSelected ? 'bg-brand text-white shadow-md' : 'text-slate-400 hover:bg-white hover:text-slate-600'
-                                                        }`}
-                                                    >
-                                                        <span className="text-[7px] font-bold uppercase">{format(day, 'EEE', { locale: es }).substring(0, 1)}</span>
-                                                        <span className="text-xs font-black">{format(day, 'd')}</span>
+                                                    <button key={idx} onClick={() => setSelectedWeekStart(day)}
+                                                        className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all ${
+                                                            isSel 
+                                                                ? 'bg-gradient-to-br from-brand to-blue-600 text-white shadow-lg shadow-brand/30 scale-105' 
+                                                                : isToday 
+                                                                    ? 'bg-brand/5 text-brand border border-brand/20' 
+                                                                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                                                        }`}>
+                                                        <span className="text-[7px] font-bold uppercase leading-none">{format(day, 'EEE', { locale: es }).substring(0, 3)}</span>
+                                                        <span className="text-xs font-black leading-none mt-0.5">{format(day, 'd')}</span>
                                                     </button>
-                                                )
+                                                );
                                             })}
                                         </div>
-                                        
-                                        <button 
-                                            onClick={() => { setFechaInicio(''); setFechaFin(''); }}
-                                            className="px-4 py-2 bg-amber-500 text-white text-[9px] font-black uppercase rounded-lg shadow-lg shadow-amber-500/20 hover:scale-105 transition-all"
-                                        >
-                                            Sin fecha
+                                        <button onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, 7))} className="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center transition-all shadow-sm">
+                                            <ChevronRight className="w-4 h-4 text-slate-600" />
+                                        </button>
+                                        <div className="w-px h-6 bg-slate-200 mx-1" />
+                                        <button onClick={() => { setFechaInicio(''); setFechaFin(''); }}
+                                            className="h-9 px-4 bg-white text-slate-500 text-[9px] font-bold uppercase rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
+                                            Limpiar
                                         </button>
                                     </div>
                                 </div>
 
+                                {/* Leyenda */}
+                                <div className="flex items-center gap-6 px-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Disponible</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-brand" />
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Seleccionado</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Ocupado</span>
+                                    </div>
+                                </div>
+
                                 {loadingAvailability ? (
-                                    <div className="h-96 flex flex-col items-center justify-center bg-slate-50/50 rounded-[2.5rem] border border-dashed border-slate-200 gap-4">
-                                        <Loader2 className="w-8 h-8 animate-spin text-brand" />
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Consultando agenda...</p>
+                                    <div className="h-80 flex flex-col items-center justify-center gap-4 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                                        <div className="relative">
+                                            <div className="w-12 h-12 border-3 border-slate-200 border-t-brand rounded-full animate-spin" />
+                                        </div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cargando disponibilidad...</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                        {displayedDays.map((day, dIdx) => (
-                                            <div key={dIdx} className="bg-slate-50/50 rounded-[1.5rem] p-3 flex flex-col border border-slate-100">
-                                                <div className="text-center py-2 bg-white border border-slate-200 text-slate-800 rounded-xl shadow-sm mb-3">
-                                                    <p className="text-[9px] font-bold uppercase tracking-widest text-[#254153] mb-0">{format(day, 'EEEE', { locale: es })}</p>
-                                                    <p className="text-xs font-black tracking-tighter">{format(day, 'd \'de\' MMMM', { locale: es })}</p>
-                                                </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                        {displayedDays.map((day, dIdx) => {
+                                            const dayColors = [
+                                                { bg: 'from-blue-500 to-indigo-600', light: 'bg-blue-50', accent: 'text-blue-600', dot: 'bg-blue-500' },
+                                                { bg: 'from-violet-500 to-purple-600', light: 'bg-violet-50', accent: 'text-violet-600', dot: 'bg-violet-500' },
+                                                { bg: 'from-teal-500 to-cyan-600', light: 'bg-teal-50', accent: 'text-teal-600', dot: 'bg-teal-500' },
+                                                { bg: 'from-amber-500 to-orange-600', light: 'bg-amber-50', accent: 'text-amber-600', dot: 'bg-amber-500' },
+                                            ];
+                                            const color = dayColors[dIdx % 4];
+                                            const isToday = isSameDay(day, new Date());
 
-                                                <div className="flex-1 h-[320px] overflow-y-auto pr-2 space-y-1.5 custom-scrollbar">
-                                                    {timeSlots.map((time, tIdx) => {
-                                                        const occupied = isSlotOccupied(day, time);
-                                                        const slotDate = new Date(day);
-                                                        const [h, m] = time.split(':').map(Number);
-                                                        slotDate.setHours(h, m, 0, 0);
-                                                        
-                                                        const isSelected = fechaInicio && fechaFin && 
-                                                                         slotDate >= new Date(fechaInicio) && 
-                                                                         slotDate < new Date(fechaFin);
-                                                        
-                                                        return (
-                                                            <div key={tIdx} className="flex items-center gap-2">
-                                                                <span className="text-[9px] font-bold text-slate-400 w-8 text-right">{time}</span>
-                                                                <button
-                                                                    disabled={occupied}
-                                                                    onClick={() => handleSelectSlot(day, time)}
-                                                                    className={`flex-1 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest border-2 transition-all ${
+                                            return (
+                                                <div key={dIdx} className={`rounded-2xl border overflow-hidden transition-all hover:shadow-lg ${isToday ? 'border-brand/30 shadow-md shadow-brand/5' : 'border-slate-100 bg-white'}`}>
+                                                    {/* Header del día con gradiente */}
+                                                    <div className={`px-4 py-4 bg-gradient-to-r ${color.bg} relative overflow-hidden`}>
+                                                        <div className="absolute inset-0 bg-white/10" />
+                                                        <div className="relative">
+                                                            <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">{format(day, 'EEEE', { locale: es })}</p>
+                                                            <p className="text-lg font-black text-white leading-tight">{format(day, "d 'de' MMMM", { locale: es })}</p>
+                                                            {isToday && (
+                                                                <span className="inline-block mt-1 text-[8px] font-bold uppercase tracking-widest bg-white/20 text-white px-2 py-0.5 rounded-md backdrop-blur-sm">Hoy</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Slots */}
+                                                    <div className="h-[300px] overflow-y-auto p-2 space-y-0.5">
+                                                        {timeSlots.map((time, tIdx) => {
+                                                            const occupied = isSlotOccupied(day, time);
+                                                            const slotDate = new Date(day);
+                                                            const [h, m] = time.split(':').map(Number);
+                                                            slotDate.setHours(h, m, 0, 0);
+                                                            // Rango completo seleccionado
+                                                            const isInRange = fechaInicio && fechaFin && slotDate >= new Date(fechaInicio) && slotDate < new Date(fechaFin);
+                                                            // Solo inicio seleccionado (esperando segundo click)
+                                                            const isStartOnly = fechaInicio && !fechaFin && format(slotDate, 'yyyy-MM-dd HH:mm') === format(new Date(fechaInicio), 'yyyy-MM-dd HH:mm');
+                                                            const isSelected = isInRange || isStartOnly;
+                                                            const isHour = m === 0;
+
+                                                            return (
+                                                                <button key={tIdx} disabled={occupied} onClick={() => handleSelectSlot(day, time)}
+                                                                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all group ${
                                                                         occupied 
-                                                                            ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed grayscale'
-                                                                            : isSelected
-                                                                                ? 'bg-brand text-white border-brand shadow-xl'
-                                                                                : 'bg-white border-emerald-500/30 text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50'
-                                                                    }`}
-                                                                >
-                                                                    {occupied ? (
-                                                                        <span className="flex items-center justify-center gap-1.5">
-                                                                            <XCircle className="w-2.5 h-2.5" />
-                                                                            Ocupado
-                                                                        </span>
-                                                                    ) : isSelected ? 'Seleccionado' : 'Libre'}
+                                                                            ? 'bg-red-50/80 cursor-not-allowed' 
+                                                                            : isSelected 
+                                                                                ? `${color.light} ring-1 ring-inset ring-current/10 ${color.accent}` 
+                                                                                : 'hover:bg-slate-50 active:bg-slate-100'
+                                                                    } ${isHour ? 'mt-1' : ''}`}>
+                                                                    {/* Dot indicador */}
+                                                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all ${
+                                                                        occupied ? 'bg-red-400' : isSelected ? color.dot : 'bg-emerald-400 group-hover:scale-125'
+                                                                    }`} />
+                                                                    {/* Hora */}
+                                                                    <span className={`text-[10px] font-mono w-10 flex-shrink-0 transition-colors ${
+                                                                        occupied ? 'text-red-300 line-through font-medium' :
+                                                                        isHour ? 'font-black text-slate-600' : 'font-medium text-slate-300'
+                                                                    } ${isSelected ? `${color.accent} font-bold` : ''}`}>
+                                                                        {time}
+                                                                    </span>
+                                                                    {/* Barra visual */}
+                                                                    <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                                                        <div className={`h-full rounded-full transition-all ${
+                                                                            occupied ? 'w-full bg-red-300' : isSelected ? `w-full ${color.dot}` : 'w-0 group-hover:w-full bg-emerald-300'
+                                                                        }`} style={{ transition: 'width 0.3s ease' }} />
+                                                                    </div>
+                                                                    {/* Icono estado */}
+                                                                    <div className="w-5 flex-shrink-0 flex justify-center">
+                                                                        {isSelected && <Check className={`w-3.5 h-3.5 ${color.accent}`} />}
+                                                                        {occupied && <Lock className="w-3.5 h-3.5 text-red-400" />}
+                                                                    </div>
                                                                 </button>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>

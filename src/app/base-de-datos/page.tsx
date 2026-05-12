@@ -37,6 +37,14 @@ export default function BaseDatosPage() {
     const [isModalSalaOpen, setIsModalSalaOpen] = useState(false);
     const [isModalClienteFinalOpen, setIsModalClienteFinalOpen] = useState(false);
 
+    // Totales desde la view (ligero, sin cargar datos)
+    const [totals, setTotals] = useState<{ Ciudades: number; Clientes: number; 'Salas / Obras': number; 'Clientes Finales': number }>({
+        Ciudades: 0,
+        Clientes: 0,
+        'Salas / Obras': 0,
+        'Clientes Finales': 0,
+    });
+
     // Data states
     const [data, setData] = useState<{
         Ciudades: any[];
@@ -161,6 +169,20 @@ export default function BaseDatosPage() {
             }
 
             setUserRole(profile.rol);
+
+            // Fetch totals from view (lightweight)
+            const { data: totalsData } = await supabase
+                .from('view_totales_base_datos')
+                .select('*')
+                .single();
+            if (totalsData) {
+                setTotals({
+                    Ciudades: totalsData.total_ciudades,
+                    Clientes: totalsData.total_clientes,
+                    'Salas / Obras': totalsData.total_salas_obras,
+                    'Clientes Finales': totalsData.total_clientes_finales,
+                });
+            }
 
             await fetchData('Ciudades');
             setLoading(false);
@@ -315,11 +337,9 @@ export default function BaseDatosPage() {
                                 )}
                                 <Icon className={`w-5 h-5 relative z-10 transition-transform ${isActive ? 'scale-110' : ''}`} />
                                 <span className="relative z-10 text-xs uppercase tracking-widest">{tab.name}</span>
-                                {isActive && (
-                                    <span className="relative z-10 bg-white/20 px-2 py-0.5 rounded-full text-[10px]">
-                                        {filteredData.length}
-                                    </span>
-                                )}
+                                <span className={`relative z-10 px-2.5 py-0.5 rounded-full text-[10px] font-black tabular-nums ${isActive ? 'bg-white/20' : 'bg-slate-200/60 text-slate-500'}`}>
+                                    {totals[tab.name as keyof typeof totals]?.toLocaleString() || '0'}
+                                </span>
                             </button>
                         );
                     })}

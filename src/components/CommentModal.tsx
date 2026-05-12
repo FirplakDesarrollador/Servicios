@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, FileText, Upload, Trash2, Loader2, Video, ImageIcon } from 'lucide-react';
+import { X, Camera, FileText, Upload, Trash2, Loader2, Video, ImageIcon, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface CommentModalProps {
@@ -16,14 +16,24 @@ interface CommentModalProps {
 
 export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, currentUser }: CommentModalProps) {
     const [content, setContent] = useState('');
-    const [files, setFiles] = useState<File[]>([]);
+    const [files, setFiles] = useState<{ file: File; isHidden: boolean }[]>([]);
     const [uploading, setUploading] = useState(false);
     const [showError, setShowError] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setFiles([...files, ...Array.from(e.target.files)]);
+            const newFiles = Array.from(e.target.files).map(file => ({
+                file,
+                isHidden: false
+            }));
+            setFiles([...files, ...newFiles]);
         }
+    };
+
+    const toggleVisibility = (index: number) => {
+        setFiles(prev => prev.map((item, i) => 
+            i === index ? { ...item, isHidden: !item.isHidden } : item
+        ));
     };
 
     const removeFile = (index: number) => {
@@ -55,7 +65,10 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
             // 2. Subir archivos si existen
             if (files.length > 0 && commentData) {
                 const uploadedUrls = [];
-                for (const file of files) {
+                const hiddenUrls = [];
+
+                for (const item of files) {
+                    const { file, isHidden } = item;
                     const fileExt = file.name.split('.').pop();
                     const fileName = `${crypto.randomUUID()}.${fileExt}`;
                     
@@ -82,6 +95,9 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
                         .getPublicUrl(filePath);
 
                     uploadedUrls.push(publicUrl);
+                    if (isHidden) {
+                        hiddenUrls.push(publicUrl);
+                    }
                 }
 
                 // Actualizar el comentario con las URLs de los documentos
@@ -89,6 +105,23 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
                     .from('Comentarios')
                     .update({ documentos: uploadedUrls })
                     .eq('id', commentData.id);
+
+                // Si hay archivos ocultos, actualizar soportes_pago en la tabla Servicios
+                if (hiddenUrls.length > 0) {
+                    const { data: serviceData } = await supabase
+                        .from('Servicios')
+                        .select('soportes_pago')
+                        .eq('id', serviceId)
+                        .single();
+
+                    const currentSoportes = serviceData?.soportes_pago || [];
+                    await supabase
+                        .from('Servicios')
+                        .update({ 
+                            soportes_pago: [...currentSoportes, ...hiddenUrls] 
+                        })
+                        .eq('id', serviceId);
+                }
             }
 
             onSuccess?.();
@@ -180,33 +213,47 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
                                     animate={{ opacity: 1, height: 'auto' }}
                                     className="space-y-2 pt-2"
                                 >
-                                    {files.map((file, index) => (
-                                        <motion.div
-                                            key={index}
-                                            initial={{ x: -20, opacity: 0 }}
-                                            animate={{ x: 0, opacity: 1 }}
-                                            className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                {file.type.startsWith('image/') ? (
-                                                    <ImageIcon className="w-4 h-4 text-emerald-500" />
-                                                ) : file.type.startsWith('video/') ? (
-                                                    <Video className="w-4 h-4 text-brand" />
-                                                ) : (
-                                                    <FileText className="w-4 h-4 text-slate-400" />
-                                                )}
-                                                <span className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
-                                                    {file.name}
-                                                </span>
-                                            </div>
-                                            <button 
-                                                onClick={() => removeFile(index)}
-                                                className="p-1 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors"
+                                    {files.map((item, index) => {
+                                        const { file, isHidden } = item;
+                                        const isImage = file.type.startsWith('image/');
+                                        return (
+                                            <motion.div 
+                                                key={index}
+                                                initial={{ x: -20, opacity: 0 }}
+                                                animate={{ x: 0, opacity: 1 }}
+                                                className={`flex items-center justify-between p-3 bg-slate-50 rounded-2xl border transition-all ${isHidden ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100'}`}
                                             >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </motion.div>
-                                    ))}
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    {isImage ? <ImageIcon className="w-4 h-4 text-brand flex-shrink-0" /> : <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
+                                                        {isHidden && <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">Solo Administrativo</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            toggleVisibility(index);
+                                                        }}
+                                                        className={`p-1.5 rounded-lg transition-colors ${isHidden ? 'text-amber-500 hover:bg-amber-100' : 'text-slate-300 hover:bg-slate-200'}`}
+                                                        title={isHidden ? "Visible para técnicos" : "Ocultar para técnicos"}
+                                                    >
+                                                        {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            removeFile(index);
+                                                        }}
+                                                        className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
                                 </motion.div>
                             )}
                         </AnimatePresence>
