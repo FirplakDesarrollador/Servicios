@@ -23,12 +23,12 @@ export default function ConfigurationPage() {
             color: 'bg-brand'
         },
         {
-            title: 'Gestión de Roles y Permisos (Deshabilitado)',
-            description: 'Los permisos ahora están habilitados globalmente para todos los usuarios.',
+            title: 'Gestión de Roles y Permisos',
+            description: 'Configurar los módulos accesibles por defecto para cada rol del sistema.',
             icon: ShieldCheck,
-            path: '#',
+            path: '/configuracion/roles',
             color: 'bg-emerald-500',
-            disabled: true
+            disabled: false
         },
         {
             title: 'Seguridad y Auditoría',

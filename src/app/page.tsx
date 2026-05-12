@@ -78,8 +78,8 @@ export default function Home() {
         if (userData) {
           setProfile(userData);
 
-          // Grant all permissions to all users
-          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
+          // Usar los permisos definidos en la base de datos para este usuario
+          setPermissions(userData.acceso_a_modulos || []);
         }
       } catch (error) {
         console.error('Auth verification failed:', error);
@@ -104,7 +104,12 @@ export default function Home() {
             .select('*')
             .eq('user_id', session.user.id)
             .single()
-            .then(({ data }) => { if (data) setProfile(data); });
+            .then(({ data }) => { 
+              if (data) {
+                setProfile(data);
+                setPermissions(data.acceso_a_modulos || []);
+              }
+            });
         }
       }
     });
@@ -194,7 +199,7 @@ export default function Home() {
   const CLIENT_ITEMS = ['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado'];
   const filteredItems = isCliente
     ? allMenuItems.filter(item => CLIENT_ITEMS.includes(item.title))
-    : allMenuItems;
+    : allMenuItems.filter(item => permissions.includes(item.title));
 
 
   return (

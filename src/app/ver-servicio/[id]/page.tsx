@@ -1789,7 +1789,7 @@ function AprobacionesTab({ service, currentUser, onRefresh }: { service: any, cu
     const director = service.aprobacion_director || {};
 
     const canApproveLogistica = (currentUser?.rol === 'desarrollador' || currentUser?.rol === 'auxiliar_novedades') && logistica.estado === 'Pendiente';
-    const canApproveDirector = (currentUser?.rol === 'desarrollador' || currentUser?.rol === 'director_comercial') && director.estado === 'Pendiente';
+    const canApproveDirector = currentUser?.rol === 'director_comercial' && director.estado === 'Pendiente';
 
     const getDocumentLabel = () => {
         if (service.decision_cliente === 'Quiere Nota Credito y Dinero') return '# de Nota crédito';
@@ -2011,7 +2011,12 @@ function AprobacionesTab({ service, currentUser, onRefresh }: { service: any, cu
                         value={ordenVenta}
                         onChange={(e) => setOrdenVenta(e.target.value)}
                         placeholder="null"
-                        className="w-full border border-slate-300 p-2.5 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-slate-700"
+                        readOnly={!(currentUser?.rol === 'desarrollador' || currentUser?.rol === 'director_comercial' || currentUser?.rol === 'auxiliar_pedidos')}
+                        className={`w-full border p-2.5 rounded-lg text-sm transition-all text-slate-700 ${
+                            !(currentUser?.rol === 'desarrollador' || currentUser?.rol === 'director_comercial' || currentUser?.rol === 'auxiliar_pedidos')
+                                ? 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-80'
+                                : 'bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand'
+                        }`}
                     />
                 </div>
             </div>

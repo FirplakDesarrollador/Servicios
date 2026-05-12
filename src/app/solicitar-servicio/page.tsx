@@ -95,25 +95,14 @@ export default function SolicitarServicioPage() {
                 return;
             }
 
-            // Fetch current user details from Usuarios table
-            const { data: userData } = await supabase
-                .from('Usuarios')
-                .select('*')
-                .eq('user_id', session.user.id)
-                .single();
+            // Fetch user and consecutivo in parallel
+            const [userRes, consecRes] = await Promise.all([
+                supabase.from('Usuarios').select('*').eq('user_id', session.user.id).single(),
+                supabase.from('nuevo_consecutivo').select('nuevo_consecutivo').limit(1).single()
+            ]);
 
-            setCurrentUser(userData);
-
-            // Fetch next consecutivo
-            const { data: consecutivoData } = await supabase
-                .from('nuevo_consecutivo')
-                .select('nuevo_consecutivo')
-                .limit(1)
-                .single();
-
-            if (consecutivoData) {
-                setNextConsecutivo(consecutivoData.nuevo_consecutivo);
-            }
+            if (userRes.data) setCurrentUser(userRes.data);
+            if (consecRes.data) setNextConsecutivo(consecRes.data.nuevo_consecutivo);
 
             // Generate 5-digit random suffix
             const random = Math.floor(10000 + Math.random() * 90000).toString();
@@ -305,7 +294,8 @@ export default function SolicitarServicioPage() {
         const determineApproval = (tipo: string, facturado: boolean, role: 'director' | 'logistica' | 'mac') => {
             const t = tipo.toLowerCase();
             if (role === 'director') {
-                if ((t.includes('visita') || t.includes('atencion') || t.includes('instalacion')) && !facturado) {
+                // Requieren aprobación del director si no son facturados
+                if ((t === 'visita_instalacion' || t === 'mantenimiento_con_kit') && !facturado) {
                     return { estado: 'Pendiente' };
                 }
                 return { estado: 'No_aplica' };
@@ -420,35 +410,52 @@ export default function SolicitarServicioPage() {
 
             if (servicioError) throw servicioError;
 
-            // 4. Insert Comentario
-            if (observaciones || uploadedUrls.length > 0) {
-                await supabase.from('Comentarios').insert({
-                    servicio_id: servicioData.id,
-                    contenido: observaciones || 'Anexos adjuntos',
-                    documentos: allUrls,
-                    usuario_id: currentUser?.id,
-                    tipo: 'solicitud_servicio'
-                });
+            // 4, 5 & 6. Execute remaining inserts in parallel for better performance
+            const postCreationTasks = [];
+
+            // Add Comment task
+            if (observaciones || allUrls.length > 0) {
+                postCreationTasks.push(
+                    supabase.from('Comentarios').insert({
+                        servicio_id: servicioData.id,
+                        contenido: observaciones || 'Anexos adjuntos',
+                        documentos: allUrls,
+                        usuario_id: currentUser?.id,
+                        tipo: 'solicitud_servicio'
+                    })
+                );
             }
 
-            // 5. Insert Productos
+            // Add Products task
             if (productosSeleccionados.length > 0) {
                 const productosToInsert = productosSeleccionados.map(p => ({
                     servicio_id: servicioData.id,
                     producto_id: p.id,
                     cantidad: p.cantidad || 1
                 }));
-                await supabase.from('productos_servicios').insert(productosToInsert);
+                postCreationTasks.push(
+                    supabase.from('productos_servicios').insert(productosToInsert)
+                );
             }
 
-            // 6. Insert Repuestos
+            // Add Repuestos task
             if (repuestosSeleccionados.length > 0) {
                 const repuestosToInsert = repuestosSeleccionados.map(r => ({
                     servicio_id: servicioData.id,
                     repuesto_id: r.id,
                     cantidad: r.cantidad || 1
                 }));
-                await supabase.from('Repuestos_Servicios').insert(repuestosToInsert);
+                postCreationTasks.push(
+                    supabase.from('Repuestos_Servicios').insert(repuestosToInsert)
+                );
+            }
+
+            // Execute all secondary tasks in parallel
+            if (postCreationTasks.length > 0) {
+                const results = await Promise.all(postCreationTasks);
+                // Check for errors in parallel tasks
+                const taskError = results.find(r => r.error);
+                if (taskError) throw taskError.error;
             }
 
             alert('Servicio creado correctamente');
@@ -841,70 +848,83 @@ export default function SolicitarServicioPage() {
                         )}
                     </div>
 
-                    {/* Repuestos Section */}
-                    <div ref={repuestosRef} className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
-                                <Settings className="w-4 h-4" />
-                                Repuestos / Kits ({repuestosSeleccionados.length})
-                            </h3>
-                            <button
-                                onClick={() => setShowBuscadorRepuestos(true)}
-                                className="bg-indigo-600 text-white text-[10px] font-black uppercase px-4 py-1.5 rounded-full shadow-md hover:scale-105 transition-all flex items-center gap-1.5"
+                    {/* Repuestos Section - Conditional Visibility */}
+                    <AnimatePresence>
+                        {(tipoServicio.toLowerCase().includes('kit') || 
+                          tipoServicio.toLowerCase().includes('repuesto') || 
+                          tipoServicio.toLowerCase().includes('reposicion')) && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+                                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                className="md:col-span-2 overflow-hidden"
                             >
-                                <Plus className="w-3 h-3" />
-                                Añadir
-                            </button>
-                        </div>
-
-                        {repuestosSeleccionados.length === 0 ? (
-                            <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-[1.5rem] text-slate-300 font-bold italic tracking-tighter text-lg">
-                                No hay repuestos seleccionados
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                                {repuestosSeleccionados.map((rep, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 group gap-4">
-                                        <div className="flex flex-col flex-1 min-w-0">
-                                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">{rep.sku}</span>
-                                            <span className="text-xs font-bold text-slate-700 uppercase leading-tight">{rep.nombre}</span>
-                                        </div>
-
-                                        <div className="flex items-center bg-white rounded-xl border border-indigo-100 p-1 shadow-sm">
-                                            <button 
-                                                onClick={() => {
-                                                    const newQty = Math.max(1, (rep.cantidad || 1) - 1);
-                                                    setRepuestosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
-                                                }}
-                                                className="p-1 hover:bg-indigo-50 rounded-lg text-indigo-400 transition-colors"
-                                            >
-                                                <Minus className="w-3.5 h-3.5" />
-                                            </button>
-                                            <span className="px-3 text-xs font-black text-indigo-600 min-w-[2rem] text-center">
-                                                {rep.cantidad || 1}
-                                            </span>
-                                            <button 
-                                                onClick={() => {
-                                                    const newQty = (rep.cantidad || 1) + 1;
-                                                    setRepuestosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
-                                                }}
-                                                className="p-1 hover:bg-indigo-50 rounded-lg text-indigo-400 transition-colors"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-
+                                <div ref={repuestosRef} className="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-black text-brand uppercase text-sm tracking-widest flex items-center gap-2">
+                                            <Settings className="w-4 h-4" />
+                                            Repuestos / Kits ({repuestosSeleccionados.length})
+                                        </h3>
                                         <button
-                                            onClick={() => setRepuestosSeleccionados(prev => prev.filter((_, i) => i !== idx))}
-                                            className="p-2 text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
+                                            onClick={() => setShowBuscadorRepuestos(true)}
+                                            className="bg-indigo-600 text-white text-[10px] font-black uppercase px-4 py-1.5 rounded-full shadow-md hover:scale-105 transition-all flex items-center gap-1.5"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <Plus className="w-3 h-3" />
+                                            Añadir
                                         </button>
                                     </div>
-                                ))}
-                            </div>
+
+                                    {repuestosSeleccionados.length === 0 ? (
+                                        <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-[1.5rem] text-slate-300 font-bold italic tracking-tighter text-lg">
+                                            No hay repuestos seleccionados
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                                            {repuestosSeleccionados.map((rep, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 group gap-4">
+                                                    <div className="flex flex-col flex-1 min-w-0">
+                                                        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">{rep.sku}</span>
+                                                        <span className="text-xs font-bold text-slate-700 uppercase leading-tight">{rep.nombre}</span>
+                                                    </div>
+
+                                                    <div className="flex items-center bg-white rounded-xl border border-indigo-100 p-1 shadow-sm">
+                                                        <button 
+                                                            onClick={() => {
+                                                                const newQty = Math.max(1, (rep.cantidad || 1) - 1);
+                                                                setRepuestosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                            }}
+                                                            className="p-1 hover:bg-indigo-50 rounded-lg text-indigo-400 transition-colors"
+                                                        >
+                                                            <Minus className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <span className="px-3 text-xs font-black text-indigo-600 min-w-[2rem] text-center">
+                                                            {rep.cantidad || 1}
+                                                        </span>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const newQty = (rep.cantidad || 1) + 1;
+                                                                setRepuestosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                            }}
+                                                            className="p-1 hover:bg-indigo-50 rounded-lg text-indigo-400 transition-colors"
+                                                        >
+                                                            <Plus className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => setRepuestosSeleccionados(prev => prev.filter((_, i) => i !== idx))}
+                                                        className="p-2 text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
                         )}
-                    </div>
+                    </AnimatePresence>
 
                     {/* Adjuntos Section */}
                     <div className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
