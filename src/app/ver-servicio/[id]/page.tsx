@@ -1661,7 +1661,7 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
 
 
 
-function DropdownSingleSelect({ options, selectedId, onChange, placeholder }: { options: any[], selectedId: number | null, onChange: (id: number) => void, placeholder: string }) {
+function DropdownSingleSelect({ options, selectedId, onChange, placeholder }: { options: any[], selectedId: string | number | null, onChange: (id: any) => void, placeholder: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);

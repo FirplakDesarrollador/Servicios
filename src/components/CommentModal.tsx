@@ -14,7 +14,7 @@ interface CommentModalProps {
     onSuccess?: () => void;
 }
 
-export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, currentUser }: CommentModalProps) {
+export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, currentUser, consecutivo }: CommentModalProps) {
     const [content, setContent] = useState('');
     const [files, setFiles] = useState<{ file: File; isHidden: boolean }[]>([]);
     const [uploading, setUploading] = useState(false);
