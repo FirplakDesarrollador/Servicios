@@ -5,6 +5,7 @@ import { Eye } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { parseLocalTimestamp } from '@/lib/dateUtils'
 
 interface ServiceVisit {
     id: number
@@ -33,7 +34,8 @@ export default function ServiceHistoryCard({ service }: ServiceHistoryCardProps)
 
     const formatTime = (dateString: string) => {
         try {
-            return format(new Date(dateString), 'HH:mm', { locale: es })
+            const date = parseLocalTimestamp(dateString)
+            return date ? format(date, 'HH:mm', { locale: es }) : 'N/A'
         } catch {
             return 'N/A'
         }
@@ -41,7 +43,8 @@ export default function ServiceHistoryCard({ service }: ServiceHistoryCardProps)
 
     const formatDate = (dateString: string) => {
         try {
-            return format(new Date(dateString), 'dd/MM/yyyy', { locale: es })
+            const date = parseLocalTimestamp(dateString)
+            return date ? format(date, 'dd/MM/yyyy', { locale: es }) : 'N/A'
         } catch {
             return 'N/A'
         }

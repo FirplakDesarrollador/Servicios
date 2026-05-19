@@ -11,7 +11,10 @@ import {
     formatDateES, 
     filterVisitasByDate, 
     countVisitasByDate,
-    Visita
+    Visita,
+    parseLocalTimestamp,
+    formatToLocalInput,
+    formatFromLocalInput
 } from '@/lib/dateUtils';
 import {
     ArrowLeft,
@@ -998,22 +1001,10 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                 setSelectedTechId(data.tecnico_id);
                 setHasSavedVisit(true);
                 if (data.fecha_hora_inicio) {
-                    // Supabase devuelve "timestamp without time zone" sin 'Z'
-                    // Añadimos 'Z' para interpretarlo como UTC y convertir a local
-                    const raw = data.fecha_hora_inicio.endsWith('Z') 
-                        ? data.fecha_hora_inicio 
-                        : data.fecha_hora_inicio + 'Z';
-                    const date = new Date(raw);
-                    const formatted = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-                    setFechaInicio(formatted);
+                    setFechaInicio(formatToLocalInput(data.fecha_hora_inicio));
                 }
                 if (data.fecha_hora_fin) {
-                    const raw = data.fecha_hora_fin.endsWith('Z') 
-                        ? data.fecha_hora_fin 
-                        : data.fecha_hora_fin + 'Z';
-                    const date = new Date(raw);
-                    const formatted = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-                    setFechaFin(formatted);
+                    setFechaFin(formatToLocalInput(data.fecha_hora_fin));
                 }
             }
             setLoadingVisit(false);
@@ -1080,12 +1071,9 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
         const dayVisitas = filterVisitasByDate(techVisitas, day);
         return dayVisitas.some(v => {
             if (!v.fecha_hora_inicio || !v.fecha_hora_fin) return false;
-            // Las fechas de Supabase pueden venir sin 'Z' (timestamp without time zone)
-            // Asegurar que se interpreten correctamente
-            const rawStart = v.fecha_hora_inicio.endsWith('Z') ? v.fecha_hora_inicio : v.fecha_hora_inicio + 'Z';
-            const rawEnd = v.fecha_hora_fin.endsWith('Z') ? v.fecha_hora_fin : v.fecha_hora_fin + 'Z';
-            const vStart = new Date(rawStart);
-            const vEnd = new Date(rawEnd);
+            const vStart = parseLocalTimestamp(v.fecha_hora_inicio);
+            const vEnd = parseLocalTimestamp(v.fecha_hora_fin);
+            if (!vStart || !vEnd) return false;
             return (slotStart < vEnd && slotEnd > vStart);
         });
     };
@@ -1096,7 +1084,12 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
         clickedTime.setHours(h, m, 0, 0);
 
         const formatForInput = (date: Date) => {
-            return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            const yyyy = date.getFullYear();
+            const MM = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
         };
 
         const clickedFormatted = formatForInput(clickedTime);
@@ -1181,18 +1174,15 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
 
             // ─── 3. Guardar la Visita ───
             if (aplicaTecnico && selectedTechId) {
-                // Convertir fechas locales (yyyy-MM-ddTHH:mm) a ISO UTC para Supabase
-                const toISOForDB = (localStr: string): string | null => {
-                    if (!localStr) return null;
-                    // El valor del input datetime-local ya viene sin offset, 
-                    // lo tratamos como hora local de Colombia (UTC-5)
-                    return new Date(localStr).toISOString();
+                // Convertir fechas locales (yyyy-MM-ddTHH:mm) a formato de base de datos local
+                const toLocalForDB = (localStr: string): string | null => {
+                    return formatFromLocalInput(localStr);
                 };
 
                 const visitData = {
                     tecnico_id: selectedTechId,
-                    fecha_hora_inicio: toISOForDB(fechaInicio),
-                    fecha_hora_fin: toISOForDB(fechaFin),
+                    fecha_hora_inicio: toLocalForDB(fechaInicio),
+                    fecha_hora_fin: toLocalForDB(fechaFin),
                     servicio_id: service.id,
                     nombre: service.consecutivo || `Servicio-${service.id}`,
                     estado: true,
@@ -1379,20 +1369,20 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                 <div className="flex-1">
                                     <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.4em] mb-2">Visita Programada</p>
                                     <h5 className="text-xl font-black text-slate-800 tracking-tight leading-none mb-2">
-                                        {format(new Date(fechaInicio), "EEEE, d 'de' MMMM", { locale: es })}
+                                        {format(parseLocalTimestamp(fechaInicio)!, "EEEE, d 'de' MMMM", { locale: es })}
                                     </h5>
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-xl border border-emerald-100 shadow-sm">
                                             <Clock className="w-3.5 h-3.5 text-emerald-500" />
                                             <span className="text-xs font-black text-slate-700">
-                                                {format(new Date(fechaInicio), 'HH:mm', { locale: es })} 
+                                                {format(parseLocalTimestamp(fechaInicio)!, 'HH:mm', { locale: es })} 
                                                 {' → '}
-                                                {fechaFin ? format(new Date(fechaFin), 'HH:mm', { locale: es }) : '--:--'}
+                                                {fechaFin ? format(parseLocalTimestamp(fechaFin)!, 'HH:mm', { locale: es }) : '--:--'}
                                             </span>
                                         </div>
                                         {fechaFin && (
                                             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-100/50 px-3 py-1.5 rounded-xl">
-                                                Duración: {Math.round((new Date(fechaFin).getTime() - new Date(fechaInicio).getTime()) / 60000)} min
+                                                Duración: {Math.round(((parseLocalTimestamp(fechaFin)?.getTime() || 0) - (parseLocalTimestamp(fechaInicio)?.getTime() || 0)) / 60000)} min
                                             </span>
                                         )}
                                     </div>
@@ -1571,9 +1561,9 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                                             const [h, m] = time.split(':').map(Number);
                                                             slotDate.setHours(h, m, 0, 0);
                                                             // Rango completo seleccionado
-                                                            const isInRange = fechaInicio && fechaFin && slotDate >= new Date(fechaInicio) && slotDate < new Date(fechaFin);
+                                                            const isInRange = fechaInicio && fechaFin && slotDate >= parseLocalTimestamp(fechaInicio)! && slotDate < parseLocalTimestamp(fechaFin)!;
                                                             // Solo inicio seleccionado (esperando segundo click)
-                                                            const isStartOnly = fechaInicio && !fechaFin && format(slotDate, 'yyyy-MM-dd HH:mm') === format(new Date(fechaInicio), 'yyyy-MM-dd HH:mm');
+                                                            const isStartOnly = fechaInicio && !fechaFin && format(slotDate, 'yyyy-MM-dd HH:mm') === format(parseLocalTimestamp(fechaInicio)!, 'yyyy-MM-dd HH:mm');
                                                             const isSelected = isInRange || isStartOnly;
                                                             const isHour = m === 0;
 

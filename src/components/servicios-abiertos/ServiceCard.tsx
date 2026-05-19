@@ -24,6 +24,7 @@ import {
     Zap,
     Share2,
 } from 'lucide-react';
+import { parseLocalTimestamp } from '@/lib/dateUtils';
 
 interface ServiceCardProps {
     service: any;
@@ -190,7 +191,7 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, o
                         <span className="text-[9px] font-black uppercase opacity-70">Fecha y Hora de Cita</span>
                         <span className="text-xs font-black">
                             {service.visita_fecha_hora_inicio 
-                                ? new Date(service.visita_fecha_hora_inicio).toLocaleString('es-CO', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
+                                ? parseLocalTimestamp(service.visita_fecha_hora_inicio)?.toLocaleString('es-CO', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
                                 : 'PENDIENTE POR AGENDAR'}
                         </span>
                     </div>

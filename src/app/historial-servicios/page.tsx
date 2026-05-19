@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import ServiceHistoryCard from '@/components/historial/ServiceHistoryCard'
+import { parseLocalTimestamp } from '@/lib/dateUtils'
 
 interface User {
     id: number
@@ -196,7 +197,8 @@ export default function HistorialServiciosPage() {
         return services.filter(service => {
             // Filtro por fecha
             if (selectedDate) {
-                const serviceDate = format(new Date(service.fecha_hora_inicio), 'yyyy-MM-dd')
+                const parsed = parseLocalTimestamp(service.fecha_hora_inicio)
+                const serviceDate = parsed ? format(parsed, 'yyyy-MM-dd') : ''
                 if (serviceDate !== selectedDate) return false
             }
 

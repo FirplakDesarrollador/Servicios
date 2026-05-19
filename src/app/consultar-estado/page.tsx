@@ -18,6 +18,7 @@ import {
     MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { parseLocalTimestamp } from '@/lib/dateUtils';
 
 interface EstadoServicio {
     consecutivo: string;
@@ -127,7 +128,8 @@ function ConsultarEstadoContent() {
 
     const formatearFecha = (fecha: string | null) => {
         if (!fecha) return 'Pendiente';
-        const date = new Date(fecha);
+        const date = parseLocalTimestamp(fecha);
+        if (!date) return 'Pendiente';
         return date.toLocaleDateString('es-CO', {
             day: '2-digit',
             month: 'long',
@@ -137,7 +139,8 @@ function ConsultarEstadoContent() {
 
     const formatearHora = (fecha: string | null) => {
         if (!fecha) return '';
-        const date = new Date(fecha);
+        const date = parseLocalTimestamp(fecha);
+        if (!date) return '';
         return date.toLocaleTimeString('es-CO', {
             hour: '2-digit',
             minute: '2-digit',
