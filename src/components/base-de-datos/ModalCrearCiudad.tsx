@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
     X, 
@@ -10,7 +10,9 @@ import {
     Loader2, 
     CheckCircle2,
     AlertCircle,
-    PlusCircle
+    PlusCircle,
+    Search,
+    ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -24,6 +26,9 @@ export default function ModalCrearCiudad({ isOpen, onClose, onSuccess }: ModalCr
     const [loading, setLoading] = useState(false);
     const [zonas, setZonas] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [isZonaDropdownOpen, setIsZonaDropdownOpen] = useState(false);
+    const [zonaSearch, setZonaSearch] = useState('');
+    const zonaDropdownRef = useRef<HTMLDivElement>(null);
 
     // Form states
     const [formData, setFormData] = useState({
@@ -34,6 +39,17 @@ export default function ModalCrearCiudad({ isOpen, onClose, onSuccess }: ModalCr
     });
 
     const [coordinadorNombre, setCoordinadorNombre] = useState('');
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (zonaDropdownRef.current && !zonaDropdownRef.current.contains(event.target as Node)) {
+                setIsZonaDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
@@ -58,7 +74,16 @@ export default function ModalCrearCiudad({ isOpen, onClose, onSuccess }: ModalCr
         setFormData(prev => ({ ...prev, zona_id: zonaId }));
         const selectedZona = zonas.find(z => z.id.toString() === zonaId);
         setCoordinadorNombre(selectedZona ? selectedZona.coordinador_nombre : '');
+        setZonaSearch('');
+        setIsZonaDropdownOpen(false);
     };
+
+    const selectedZona = zonas.find(z => z.id.toString() === formData.zona_id);
+    const filteredZonas = useMemo(() => {
+        const query = zonaSearch.trim().toLowerCase();
+        if (!query) return zonas;
+        return zonas.filter(zona => String(zona.zona || '').toLowerCase().includes(query));
+    }, [zonas, zonaSearch]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -120,10 +145,10 @@ export default function ModalCrearCiudad({ isOpen, onClose, onSuccess }: ModalCr
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20"
+                        className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-visible border border-white/20"
                     >
                         {/* Header */}
-                        <div className="bg-brand p-8 text-white relative">
+                        <div className="bg-brand p-8 text-white relative rounded-t-[2.5rem]">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -144,7 +169,7 @@ export default function ModalCrearCiudad({ isOpen, onClose, onSuccess }: ModalCr
                         </div>
 
                         {/* Form */}
-                        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                        <form onSubmit={handleSubmit} className="p-8 space-y-6 rounded-b-[2.5rem]">
                             {error && (
                                 <motion.div 
                                     initial={{ opacity: 0, x: -10 }}
@@ -209,17 +234,86 @@ export default function ModalCrearCiudad({ isOpen, onClose, onSuccess }: ModalCr
                             {/* Zona */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Zona Operativa</label>
-                                <select 
-                                    value={formData.zona_id}
-                                    onChange={(e) => handleZonaChange(e.target.value)}
-                                    required
-                                    className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-brand/30 focus:bg-white transition-all appearance-none"
-                                >
-                                    <option value="">Seleccione una zona...</option>
-                                    {zonas.map(zona => (
-                                        <option key={zona.id} value={zona.id}>{zona.zona}</option>
-                                    ))}
-                                </select>
+                                <div className="relative" ref={zonaDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsZonaDropdownOpen(prev => !prev)}
+                                        className={`w-full min-h-14 rounded-2xl border-2 px-4 py-3 text-sm transition-all flex items-center justify-between gap-3 text-left shadow-sm ${
+                                            selectedZona
+                                                ? 'bg-white border-brand/10 shadow-slate-100'
+                                                : 'bg-slate-50 border-slate-100 hover:bg-white hover:border-brand/10'
+                                        } focus:outline-none focus:border-brand/30 focus:ring-4 focus:ring-brand/5`}
+                                    >
+                                        <span className={selectedZona ? 'truncate text-slate-700 font-medium' : 'truncate text-slate-400'}>
+                                            {selectedZona ? selectedZona.zona : 'Seleccione una zona...'}
+                                        </span>
+                                        <span className={`h-9 w-9 rounded-xl flex items-center justify-center transition-all ${
+                                            isZonaDropdownOpen ? 'bg-brand text-white' : 'bg-white text-slate-400 border border-slate-100'
+                                        }`}>
+                                            <ChevronDown className={`w-4 h-4 transition-transform ${isZonaDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </span>
+                                    </button>
+
+                                    {isZonaDropdownOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                            className="absolute z-50 mt-3 w-full overflow-hidden rounded-[1.5rem] border border-slate-100 bg-white shadow-2xl shadow-slate-950/10"
+                                        >
+                                            <div className="border-b border-slate-100 bg-slate-50 p-3">
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={zonaSearch}
+                                                        onChange={(e) => setZonaSearch(e.target.value)}
+                                                        placeholder="Buscar zona..."
+                                                        className="w-full h-12 rounded-2xl border border-slate-100 bg-white pl-10 pr-4 text-sm font-medium text-slate-700 outline-none focus:border-brand/30 focus:ring-4 focus:ring-brand/5 placeholder:text-slate-300 shadow-sm"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="max-h-72 overflow-y-auto p-2 space-y-1">
+                                                {filteredZonas.length > 0 ? (
+                                                    filteredZonas.map((zona) => {
+                                                        const isSelected = formData.zona_id === zona.id.toString();
+                                                        return (
+                                                            <button
+                                                                key={zona.id}
+                                                                type="button"
+                                                                onClick={() => handleZonaChange(zona.id.toString())}
+                                                                className={`w-full rounded-2xl px-3 py-3 text-left transition-all border ${
+                                                                    isSelected
+                                                                        ? 'bg-brand text-white border-brand shadow-lg shadow-slate-200'
+                                                                        : 'text-slate-700 border-transparent hover:bg-slate-50 hover:border-slate-100'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                                                        isSelected ? 'bg-white/15 text-white' : 'bg-brand/10 text-brand'
+                                                                    }`}>
+                                                                        <MapPin className="w-4 h-4" />
+                                                                    </div>
+                                                                    <span className="text-sm font-medium truncate flex-1">{zona.zona}</span>
+                                                                    {isSelected && <CheckCircle2 className="w-5 h-5 shrink-0 text-white" />}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="px-4 py-8 text-center">
+                                                        <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center">
+                                                            <Search className="h-5 w-5 text-slate-300" />
+                                                        </div>
+                                                        <p className="text-sm font-medium text-slate-500">Sin resultados</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Coordinador (Read Only) */}

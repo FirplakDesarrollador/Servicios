@@ -66,6 +66,307 @@ import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServ
 
 type TabType = 'informacion' | 'observaciones' | 'agendamiento' | 'aprobaciones' | 'servicios_relacionados' | 'solicitud_repuesto';
 
+const escapeHtml = (value: unknown) => {
+    if (value === null || value === undefined || value === '') return '---';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
+
+const formatReportValue = (value: unknown) => escapeHtml(value);
+
+const formatReportDateTime = (value: string | null | undefined) => {
+    if (!value) return '---';
+    const parsedLocal = parseLocalTimestamp(value);
+    const date = parsedLocal && !Number.isNaN(parsedLocal.getTime()) ? parsedLocal : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return escapeHtml(value);
+
+    return date.toLocaleString('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+};
+
+const formatReportDate = (value: string | null | undefined) => {
+    if (!value) return '---';
+    const parsedLocal = parseLocalTimestamp(value);
+    const date = parsedLocal && !Number.isNaN(parsedLocal.getTime()) ? parsedLocal : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return escapeHtml(value);
+
+    return date.toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+    });
+};
+
+const buildReportRows = (rows: Array<[string, unknown]>) => rows.map(([label, value]) => `
+    <tr>
+        <th>${escapeHtml(label)}</th>
+        <td>${formatReportValue(value)}</td>
+    </tr>
+`).join('');
+
+const buildServiceReportHtml = ({
+    service,
+    comments,
+    visits,
+    products,
+    spareParts,
+    generatedAt,
+    generatedBy
+}: {
+    service: any;
+    comments: any[];
+    visits: any[];
+    products: any[];
+    spareParts: any[];
+    generatedAt: Date;
+    generatedBy: any;
+}) => {
+    const generatedAtText = generatedAt.toLocaleString('es-CO', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+
+    const status = service.estado !== false ? 'Abierto' : 'Cerrado';
+    const generalRows = buildReportRows([
+        ['ID del servicio', service.id],
+        ['Consecutivo', service.consecutivo],
+        ['Estado', status],
+        ['Fecha solicitud', formatReportDate(service.created_at)],
+        ['Tipo de servicio', service.tipo_de_servicio],
+        ['Pedido / factura', service.numero_de_pedido],
+        ['Facturado', service.facturado ? 'Si' : 'No'],
+        ['Canal de venta', service.canal_de_venta],
+        ['Asesor comercial', service.asesor_nombre],
+        ['Coordinador', service.coordinador_nombre],
+        ['Tecnico actual', service.tecnico_nombre],
+        ['Zona de atencion', service.consumidor_zona || service.ubicacion_zona || 'Sin asignar']
+    ]);
+
+    const distributorRows = buildReportRows([
+        ['Nombre', service.ubicacion_nombre],
+        ['NIT', service.ubicacion_nit],
+        ['Departamento', service.ubicacion_departamento],
+        ['Ciudad', service.ubicacion_ciudad],
+        ['Direccion', service.ubicacion_direccion],
+        ['Contacto', service.ubicacion_contacto],
+        ['Telefono', service.ubicacion_telefono]
+    ]);
+
+    const consumerRows = buildReportRows([
+        ['Nombre', service.consumidor_contacto],
+        ['Cedula', service.consumidor_cedula],
+        ['Correo', service.consumidor_correo],
+        ['Telefono', service.consumidor_telefono],
+        ['Departamento', service.consumidor_departamento],
+        ['Ciudad', service.consumidor_ciudad],
+        ['Direccion', service.consumidor_direccion],
+        ['Descripcion direccion', service.consumidor_descripcion_direccion]
+    ]);
+
+    const visitRows = visits.length > 0
+        ? visits.map((visit, index) => {
+            const isCancelled = visit.estado === false && (!!visit.motivo_cancelacion || visit.reagendado);
+            const visitStatus = visit.estado === true ? 'Activa' : isCancelled ? 'Cancelada / reagendada' : 'Terminada';
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${escapeHtml(visitStatus)}</td>
+                    <td>${formatReportDateTime(visit.fecha_hora_inicio)}</td>
+                    <td>${formatReportDateTime(visit.fecha_hora_fin)}</td>
+                    <td>${formatReportDateTime(visit.fecha_hora_inicio_real)}</td>
+                    <td>${formatReportDateTime(visit.fecha_hora_fin_real)}</td>
+                    <td>${formatReportValue(visit.tecnico_nombre || visit.nombre)}</td>
+                    <td>${formatReportValue(visit.modificado_por)}</td>
+                    <td>${formatReportValue(visit.motivo_cancelacion)}</td>
+                    <td>${formatReportValue(visit.diagnostico_servicio)}</td>
+                    <td>${formatReportValue(visit.trabajo_realizado_servicio)}</td>
+                </tr>
+            `;
+        }).join('')
+        : '<tr><td colspan="11" class="empty">No hay agendamientos registrados.</td></tr>';
+
+    const commentRows = comments.length > 0
+        ? comments.map((comment) => `
+            <tr>
+                <td>${formatReportDateTime(comment.created_at)}</td>
+                <td>${formatReportValue(comment.display_name || comment.usuario_nombre)}</td>
+                <td>${formatReportValue(comment.rol)}</td>
+                <td>${formatReportValue(comment.tipo)}</td>
+                <td>${formatReportValue(comment.contenido)}</td>
+                <td>${Array.isArray(comment.documentos) && comment.documentos.length > 0 ? comment.documentos.map((doc: string) => `<div>${escapeHtml(doc)}</div>`).join('') : '---'}</td>
+            </tr>
+        `).join('')
+        : '<tr><td colspan="6" class="empty">No hay observaciones registradas.</td></tr>';
+
+    const productRows = products.length > 0
+        ? products.map((item) => {
+            const product = item.Productos || item.productos || item;
+            return `
+                <tr>
+                    <td>${formatReportValue(product.referencia || product.codigo || product.id)}</td>
+                    <td>${formatReportValue(product.descripcion || product.nombre || product.producto)}</td>
+                    <td>${formatReportValue(item.cantidad)}</td>
+                </tr>
+            `;
+        }).join('')
+        : '<tr><td colspan="3" class="empty">No hay productos registrados.</td></tr>';
+
+    const sparePartRows = spareParts.length > 0
+        ? spareParts.map((item) => {
+            const sparePart = item.Repuestos || item.repuestos || item;
+            return `
+                <tr>
+                    <td>${formatReportValue(sparePart.referencia || sparePart.codigo || sparePart.id)}</td>
+                    <td>${formatReportValue(sparePart.descripcion || sparePart.nombre || sparePart.repuesto)}</td>
+                    <td>${formatReportValue(item.cantidad)}</td>
+                </tr>
+            `;
+        }).join('')
+        : '<tr><td colspan="3" class="empty">No hay repuestos registrados.</td></tr>';
+
+    return `<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Ficha de servicio ${escapeHtml(service.consecutivo || service.id)}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 32px; color: #0f172a; font-family: Arial, Helvetica, sans-serif; background: #f8fafc; }
+        .page { max-width: 1180px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; }
+        header { padding: 28px 32px; color: #fff; background: #0f172a; display: flex; justify-content: space-between; gap: 24px; }
+        h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.02em; }
+        h2 { margin: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #1e40af; }
+        section { padding: 24px 32px; border-top: 1px solid #e2e8f0; }
+        .meta { text-align: right; font-size: 13px; line-height: 1.55; color: #cbd5e1; }
+        .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; background: ${service.estado !== false ? '#dcfce7' : '#ffe4e6'}; color: ${service.estado !== false ? '#166534' : '#9f1239'}; font-weight: 700; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px 12px; vertical-align: top; text-align: left; }
+        th { width: 220px; background: #f8fafc; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+        thead th { width: auto; background: #eef2ff; color: #1e293b; }
+        .empty { color: #64748b; text-align: center; padding: 18px; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .footer { padding: 20px 32px 28px; color: #64748b; font-size: 12px; border-top: 1px solid #e2e8f0; }
+        @media print {
+            body { padding: 0; background: #fff; }
+            .page { border: 0; border-radius: 0; }
+            section { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header>
+            <div>
+                <h1>Ficha de Servicio</h1>
+                <div>${escapeHtml(service.consecutivo || `Servicio ${service.id}`)}</div>
+                <div style="margin-top: 12px;"><span class="pill">${escapeHtml(status)}</span></div>
+            </div>
+            <div class="meta">
+                <strong>Fecha y hora de descarga</strong><br />
+                ${escapeHtml(generatedAtText)}<br />
+                <strong>Descargado por</strong><br />
+                ${formatReportValue(generatedBy?.display_name || generatedBy?.nombres || generatedBy?.correo || generatedBy?.email)}
+            </div>
+        </header>
+
+        <section>
+            <h2>Informacion general</h2>
+            <table><tbody>${generalRows}</tbody></table>
+        </section>
+
+        <section class="two-col">
+            <div>
+                <h2>Datos del canal / distribuidor</h2>
+                <table><tbody>${distributorRows}</tbody></table>
+            </div>
+            <div>
+                <h2>Datos del cliente final</h2>
+                <table><tbody>${consumerRows}</tbody></table>
+            </div>
+        </section>
+
+        <section>
+            <h2>Agendamientos, terminaciones y cancelaciones</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Estado</th>
+                        <th>Inicio programado</th>
+                        <th>Fin programado</th>
+                        <th>Inicio real / cancelacion</th>
+                        <th>Fin real</th>
+                        <th>Tecnico</th>
+                        <th>Modificado por</th>
+                        <th>Motivo cancelacion</th>
+                        <th>Diagnostico</th>
+                        <th>Trabajo realizado</th>
+                    </tr>
+                </thead>
+                <tbody>${visitRows}</tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Observaciones</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th>Tipo</th>
+                        <th>Contenido</th>
+                        <th>Documentos</th>
+                    </tr>
+                </thead>
+                <tbody>${commentRows}</tbody>
+            </table>
+        </section>
+
+        <section class="two-col">
+            <div>
+                <h2>Productos</h2>
+                <table>
+                    <thead><tr><th>Referencia</th><th>Descripcion</th><th>Cantidad</th></tr></thead>
+                    <tbody>${productRows}</tbody>
+                </table>
+            </div>
+            <div>
+                <h2>Repuestos</h2>
+                <table>
+                    <thead><tr><th>Referencia</th><th>Descripcion</th><th>Cantidad</th></tr></thead>
+                    <tbody>${sparePartRows}</tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="footer">
+            Informe generado desde Firplak Servicios. Fecha y hora de descarga: ${escapeHtml(generatedAtText)}.
+        </div>
+    </div>
+</body>
+</html>`;
+};
+
 export default function VerServicioPage() {
     const router = useRouter();
     const params = useParams();
@@ -85,6 +386,7 @@ export default function VerServicioPage() {
     const [loadingInvoice, setLoadingInvoice] = useState(false);
     const [refreshComments, setRefreshComments] = useState(0);
     const [technicians, setTechnicians] = useState<any[]>([]);
+    const [downloadingReport, setDownloadingReport] = useState(false);
 
     const fetchService = useCallback(async () => {
         if (!id) return;
@@ -140,6 +442,93 @@ export default function VerServicioPage() {
         };
         fetchTechs();
     }, [fetchService]);
+
+    const handleDownloadServiceReport = async () => {
+        if (!service?.id || downloadingReport) return;
+
+        setDownloadingReport(true);
+        try {
+            const [
+                commentsRes,
+                visitsViewRes,
+                visitsRes,
+                productsRes,
+                sparePartsRes
+            ] = await Promise.all([
+                supabase
+                    .from('query_comentarios')
+                    .select('*')
+                    .eq('servicio_id', service.id)
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('query_visita_firma')
+                    .select('*')
+                    .eq('servicio_id', service.id)
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('Visitas')
+                    .select('*')
+                    .eq('servicio_id', service.id)
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('productos_servicios')
+                    .select('*, Productos(*)')
+                    .eq('servicio_id', service.id),
+                supabase
+                    .from('Repuestos_Servicios')
+                    .select('*, Repuestos(*)')
+                    .eq('servicio_id', service.id)
+            ]);
+
+            const firstError = commentsRes.error || visitsViewRes.error || visitsRes.error || productsRes.error || sparePartsRes.error;
+            if (firstError) throw firstError;
+
+            const visitsById = new Map<number, any>();
+            (visitsRes.data || []).forEach((visit: any) => visitsById.set(visit.id, visit));
+            (visitsViewRes.data || []).forEach((visit: any) => {
+                const existing = visitsById.get(visit.id) || {};
+                visitsById.set(visit.id, { ...existing, ...visit });
+            });
+
+            const visits = Array.from(visitsById.values()).sort((a, b) => {
+                const aDate = new Date(a.created_at || a.fecha_hora_inicio || 0).getTime();
+                const bDate = new Date(b.created_at || b.fecha_hora_inicio || 0).getTime();
+                return aDate - bDate;
+            });
+
+            const generatedAt = new Date();
+            const html = buildServiceReportHtml({
+                service,
+                comments: commentsRes.data || [],
+                visits,
+                products: productsRes.data || [],
+                spareParts: sparePartsRes.data || [],
+                generatedAt,
+                generatedBy: currentUser
+            });
+
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const safeName = (service.consecutivo || `servicio-${service.id}`)
+                .toString()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9-_]/g, '_');
+
+            link.href = url;
+            link.download = `ficha-servicio-${safeName}.html`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error: any) {
+            console.error('Error downloading service report:', error);
+            alert(`Error al descargar la ficha del servicio: ${error.message || 'Intente nuevamente.'}`);
+        } finally {
+            setDownloadingReport(false);
+        }
+    };
 
     const tabs = useMemo(() => [
         { id: 'informacion' as TabType, label: 'Información', icon: Info },
@@ -265,6 +654,8 @@ export default function VerServicioPage() {
                                 onEditConsumer={() => setShowEditConsumerModal(true)}
                                 onEditCondebe={() => setShowEditCondebeModal(true)}
                                 onCloseService={() => setShowCloseModal(true)}
+                                onDownloadReport={handleDownloadServiceReport}
+                                isDownloadingReport={downloadingReport}
                             />
                         )}
                         {activeTab === 'observaciones' && (
@@ -351,13 +742,17 @@ function InformacionTab({
     onShowProducts,
     onEditConsumer,
     onEditCondebe,
-    onCloseService
+    onCloseService,
+    onDownloadReport,
+    isDownloadingReport
 }: { 
     service: any, 
     onShowProducts: () => void,
     onEditConsumer: () => void,
     onEditCondebe: () => void,
-    onCloseService: () => void
+    onCloseService: () => void,
+    onDownloadReport: () => void,
+    isDownloadingReport: boolean
 }) {
     const router = useRouter();
     return (
@@ -440,6 +835,19 @@ function InformacionTab({
                         >
                             <Package className="w-4 h-4" />
                             Ver Productos
+                        </button>
+
+                        <button
+                            onClick={onDownloadReport}
+                            disabled={isDownloadingReport}
+                            className="w-full h-12 flex items-center justify-center gap-3 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors mb-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {isDownloadingReport ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Download className="w-4 h-4" />
+                            )}
+                            {isDownloadingReport ? 'Generando ficha...' : 'Descargar Ficha de Servicios'}
                         </button>
 
                         {service.estado === false && (
@@ -979,6 +1387,14 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
     const [isCancelling, setIsCancelling] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
 
+    const [currentVisitId, setCurrentVisitId] = useState<number | null>(null);
+    const [historialVisitas, setHistorialVisitas] = useState<any[]>([]);
+    const [selectedSignature, setSelectedSignature] = useState<{
+        src: string;
+        nombre: string;
+        cedula: string;
+    } | null>(null);
+
     // Estados para el calendario de disponibilidad
     const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => {
         const now = new Date();
@@ -986,6 +1402,25 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
     });
     const [techVisitas, setTechVisitas] = useState<Visita[]>([]);
     const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+    const getSignatureSrc = (signature: string) =>
+        signature.startsWith('data:image') ? signature : `data:image/png;base64,${signature}`;
+
+    const fetchHistorialVisitas = useCallback(async () => {
+        try {
+            const { data, error } = await supabase
+                .from('query_visita_firma')
+                .select('*')
+                .eq('servicio_id', service.id)
+                .eq('estado', false)
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            setHistorialVisitas(data || []);
+        } catch (error) {
+            console.error('Error fetching visit history:', error);
+        }
+    }, [service.id]);
 
     useEffect(() => {
         const fetchCurrentVisit = async () => {
@@ -1000,17 +1435,21 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
             if (data) {
                 setSelectedTechId(data.tecnico_id);
                 setHasSavedVisit(true);
+                setCurrentVisitId(data.id);
                 if (data.fecha_hora_inicio) {
                     setFechaInicio(formatToLocalInput(data.fecha_hora_inicio));
                 }
                 if (data.fecha_hora_fin) {
                     setFechaFin(formatToLocalInput(data.fecha_hora_fin));
                 }
+            } else {
+                setCurrentVisitId(null);
             }
             setLoadingVisit(false);
         };
         fetchCurrentVisit();
-    }, [service.id]);
+        fetchHistorialVisitas();
+    }, [service.id, fetchHistorialVisitas]);
 
     useEffect(() => {
         if (!selectedTechId) {
@@ -1188,7 +1627,8 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                     estado: true,
                     recurrente: false,
                     reagendado: false,
-                    personal: false
+                    personal: false,
+                    modified_by: currentUser?.id
                 };
 
                 console.log('[AgendamientoTab] Guardando visita:', visitData);
@@ -1225,13 +1665,14 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                 // Si no aplica técnico, desactivar visitas activas
                 await supabase
                     .from('Visitas')
-                    .update({ estado: false })
+                    .update({ estado: false, modified_by: currentUser?.id })
                     .eq('servicio_id', service.id);
             }
 
             alert('Agendamiento guardado correctamente.');
             setHasSavedVisit(true);
             onRefresh();
+            fetchHistorialVisitas();
         } catch (error: any) {
             console.error('[AgendamientoTab] Error en handleSave:', error);
             alert(`Error al guardar: ${error.message}`);
@@ -1251,7 +1692,11 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
             // 1. Desactivar la visita
             const { error: visitError } = await supabase
                 .from('Visitas')
-                .update({ estado: false })
+                .update({ 
+                    estado: false,
+                    reagendado: true,
+                    modified_by: currentUser?.id
+                })
                 .eq('servicio_id', service.id)
                 .eq('estado', true);
             
@@ -1262,7 +1707,8 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                 .from('Comentarios')
                 .insert([{
                     servicio_id: service.id,
-                    contenido: `AGENDAMIENTO CANCELADO - Motivo: ${cancelReason}`,
+                    visita_id: currentVisitId,
+                    contenido: cancelReason,
                     usuario_id: currentUser?.id,
                     tipo: 'motivo_cancelacion_visita'
                 }]);
@@ -1276,6 +1722,7 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
             setIsCancelling(false);
             setCancelReason('');
             onRefresh();
+            fetchHistorialVisitas();
         } catch (error: any) {
             console.error('Error al cancelar agendamiento:', error);
             alert(`Error al cancelar: ${error.message}`);
@@ -1645,6 +2092,246 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                     Guardar Agendamiento
                 </button>
             </div>
+
+            {/* Historial de visitas agendadas */}
+            {historialVisitas.length > 0 && (
+                <div className="mt-12 pt-8 border-t border-slate-200 space-y-6">
+                    <h3 className="text-center font-black text-slate-800 uppercase tracking-tight text-lg mb-6">
+                        Historial de visitas agendadas
+                    </h3>
+                    <div className="space-y-4">
+                        {historialVisitas.map((visit) => {
+                            const isCancelled = !!visit.motivo_cancelacion;
+                            
+                            // Date/Time helper values
+                            const getDurationString = (start: string | null, end: string | null) => {
+                                if (!start || !end) return 'N/A';
+                                try {
+                                    const startDate = parseLocalTimestamp(start);
+                                    const endDate = parseLocalTimestamp(end);
+                                    if (!startDate || !endDate) return 'N/A';
+                                    const diffMs = endDate.getTime() - startDate.getTime();
+                                    if (diffMs < 0) return '0 horas y 0 minutos';
+                                    const diffHrs = Math.floor(diffMs / 3600000);
+                                    const diffMins = Math.round((diffMs % 3600000) / 60000);
+                                    return `${diffHrs} horas y ${diffMins} minutos`;
+                                } catch {
+                                    return 'N/A';
+                                }
+                            };
+
+                            const getFormattedDateTime = (start: string | null, end: string | null) => {
+                                if (!start || !end) return 'N/A';
+                                try {
+                                    const startDate = parseLocalTimestamp(start);
+                                    const endDate = parseLocalTimestamp(end);
+                                    if (!startDate || !endDate) return 'N/A';
+                                    const dateStr = startDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const timeStartStr = startDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    const timeEndStr = endDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    return `${dateStr} ${timeStartStr} - ${timeEndStr}`;
+                                } catch {
+                                    return 'N/A';
+                                }
+                            };
+
+                            const getCancelFormattedDateTime = (scheduledStart: string | null, realStart: string | null) => {
+                                if (!scheduledStart || !realStart) return 'N/A';
+                                try {
+                                    const datePart = parseLocalTimestamp(scheduledStart);
+                                    const timePart = parseLocalTimestamp(realStart);
+                                    if (!datePart || !timePart) return 'N/A';
+                                    const dateStr = datePart.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const timeStr = timePart.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    return `${dateStr} ${timeStr} - ${timeStr}`;
+                                } catch {
+                                    return 'N/A';
+                                }
+                            };
+
+                            const getCancellationDateTime = (realStart: string | null) => {
+                                if (!realStart) return 'N/A';
+                                try {
+                                    const realDate = parseLocalTimestamp(realStart);
+                                    if (!realDate) return 'N/A';
+                                    const dateStr = realDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const timeStr = realDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    return `${dateStr} ${timeStr}`;
+                                } catch {
+                                    return 'N/A';
+                                }
+                            };
+
+                            return (
+                                <div key={visit.id} className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col gap-4">
+                                    {isCancelled ? (
+                                        <>
+                                            <div className="flex items-center gap-2">
+                                                <XCircle className="w-5 h-5 text-red-500" />
+                                                <span className="text-sm font-bold text-red-500 uppercase tracking-wider">Cancelada</span>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Fecha y hora:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">
+                                                        {getCancelFormattedDateTime(visit.fecha_hora_inicio, visit.fecha_hora_inicio_real)}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Técnico asignado:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.tecnico_nombre || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Fecha y hora cancelación:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{getCancellationDateTime(visit.fecha_hora_inicio_real)}</p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Cancelado por:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.modificado_por || 'N/A'}</p>
+                                                </div>
+                                                <div className="md:col-span-2">
+                                                    <p className="font-bold text-slate-700">Motivo cancelación:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.motivo_cancelacion || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                                <span className="text-sm font-bold text-emerald-500 uppercase tracking-wider">Terminada</span>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Fecha y hora:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">
+                                                        {getFormattedDateTime(visit.fecha_hora_inicio_real, visit.fecha_hora_fin_real)}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Duración:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">
+                                                        {getDurationString(visit.fecha_hora_inicio_real, visit.fecha_hora_fin_real)}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Técnico asignado:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.tecnico_nombre || 'N/A'}</p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Persona que recibe:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.nombre_persona_recibe || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Cédula de quien recibe:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.cedula_persona_recibe || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Correo de quien recibe:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.correo_persona_recibe || 'N/A'}</p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="font-bold text-slate-700">Teléfono de quien recibe:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.telefono_persona_recibe || 'N/A'}</p>
+                                                </div>
+                                                <div className="md:col-span-2">
+                                                    <p className="font-bold text-slate-700">Diagnóstico:</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{visit.diagnostico_servicio || 'N/A'}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-t border-slate-100 pt-3 mt-1 text-xs gap-4">
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-slate-700">Trabajo realizado:</p>
+                                                    <p className="text-slate-600 font-medium mt-1 whitespace-pre-wrap">{visit.trabajo_realizado_servicio || 'N/A'}</p>
+                                                </div>
+                                                {visit.firma_base64 && (
+                                                    <div className="flex items-center gap-2 mt-3 md:mt-0 self-end md:self-auto">
+                                                        <span className="font-bold text-slate-700">Firma:</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedSignature({
+                                                                src: getSignatureSrc(visit.firma_base64),
+                                                                nombre: visit.nombre_persona_recibe || 'N/A',
+                                                                cedula: visit.cedula_persona_recibe || 'N/A'
+                                                            })}
+                                                            className="group rounded-xl focus:outline-none focus:ring-4 focus:ring-[#254153]/15"
+                                                            title="Ver firma ampliada"
+                                                        >
+                                                            <img 
+                                                                src={getSignatureSrc(visit.firma_base64)}
+                                                                alt="Firma" 
+                                                                className="h-12 object-contain bg-slate-50 border border-slate-200 rounded-xl p-1 transition-all group-hover:border-[#254153]/40 group-hover:shadow-md"
+                                                            />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            <AnimatePresence>
+                {selectedSignature && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4"
+                        onClick={() => setSelectedSignature(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.94, y: 18 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.94, y: 18 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                            className="relative w-full max-w-3xl rounded-[32px] bg-white p-6 shadow-2xl border border-white/30"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <div className="flex items-start justify-between gap-4 mb-5">
+                                <div>
+                                    <h3 className="text-lg font-black text-[#254153] uppercase tracking-wider">Firma del cliente</h3>
+                                    <p className="text-xs font-bold text-slate-400 mt-1">Vista ampliada</p>
+                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente</p>
+                                            <p className="text-sm font-black text-[#254153] mt-1">{selectedSignature.nombre}</p>
+                                        </div>
+                                        <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cédula</p>
+                                            <p className="text-sm font-black text-[#254153] mt-1">{selectedSignature.cedula}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedSignature(null)}
+                                    className="h-11 w-11 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex items-center justify-center transition-colors"
+                                    aria-label="Cerrar vista de firma"
+                                >
+                                    <XCircle className="h-6 w-6" />
+                                </button>
+                            </div>
+
+                            <div className="min-h-[260px] rounded-[24px] border border-slate-100 bg-slate-50 p-6 flex items-center justify-center">
+                                <img
+                                    src={selectedSignature.src}
+                                    alt="Firma ampliada"
+                                    className="max-h-[65vh] w-full object-contain"
+                                />
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

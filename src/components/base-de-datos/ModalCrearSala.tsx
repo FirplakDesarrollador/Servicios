@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
     X, 
@@ -11,7 +11,9 @@ import {
     Loader2, 
     CheckCircle2,
     AlertCircle,
-    PlusCircle
+    PlusCircle,
+    Search,
+    ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -29,6 +31,9 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
     const [clientes, setClientes] = useState<any[]>([]);
     const [ciudades, setCiudades] = useState<any[]>([]);
     const [asesores, setAsesores] = useState<any[]>([]);
+    const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+    const [clientSearch, setClientSearch] = useState('');
+    const clientDropdownRef = useRef<HTMLDivElement>(null);
 
     // Form states
     const [formData, setFormData] = useState({
@@ -96,7 +101,20 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
             setClientes([]);
         }
         setFormData(prev => ({ ...prev, cliente_id: '', nit: '' }));
+        setClientSearch('');
+        setIsClientDropdownOpen(false);
     }, [formData.tipo_de_cliente]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
+                setIsClientDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const fetchClientes = async (tipo: string) => {
         try {
@@ -107,11 +125,26 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
         }
     };
 
-    const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = e.target.value;
+    const handleClientChange = (id: string) => {
         const selected = clientes.find(c => c.id.toString() === id);
         setFormData(prev => ({ ...prev, cliente_id: id, nit: selected ? selected.nit : '' }));
+        setClientSearch('');
+        setIsClientDropdownOpen(false);
     };
+
+    const selectedClient = clientes.find(c => c.id.toString() === formData.cliente_id);
+    const filteredClientes = useMemo(() => {
+        const query = clientSearch.trim().toLowerCase();
+        if (!query) return clientes.slice(0, 80);
+
+        return clientes
+            .filter((cliente) => {
+                const nombre = String(cliente.nombre || '').toLowerCase();
+                const nit = String(cliente.nit || '').toLowerCase();
+                return nombre.includes(query) || nit.includes(query);
+            })
+            .slice(0, 80);
+    }, [clientes, clientSearch]);
 
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value;
@@ -230,10 +263,104 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente</label>
                                                 {formData.nit && <span className="text-[10px] font-bold text-indigo-600">NIT: {formData.nit}</span>}
                                             </div>
-                                            <select value={formData.cliente_id} onChange={handleClientChange} disabled={!formData.tipo_de_cliente} required className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-300 focus:bg-white transition-all appearance-none disabled:opacity-50">
-                                                <option value="">{formData.tipo_de_cliente ? 'Seleccione el cliente...' : 'Primero elija tipo'}</option>
-                                                {clientes.map(c => <option key={c.id} value={c.id.toString()}>{c.nombre}</option>)}
-                                            </select>
+                                            <div className="relative" ref={clientDropdownRef}>
+                                                <button
+                                                    type="button"
+                                                    disabled={!formData.tipo_de_cliente}
+                                                    onClick={() => setIsClientDropdownOpen(prev => !prev)}
+                                                    className={`w-full min-h-14 rounded-2xl border-2 px-4 py-3 text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-between gap-3 text-left shadow-sm ${
+                                                        selectedClient
+                                                            ? 'bg-white border-indigo-100 shadow-indigo-100/60'
+                                                            : 'bg-slate-50 border-slate-100 hover:bg-white hover:border-indigo-100'
+                                                    } focus:outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50`}
+                                                >
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className={selectedClient ? 'block truncate text-slate-700 font-medium' : 'block truncate text-slate-400'}>
+                                                            {selectedClient ? selectedClient.nombre : (formData.tipo_de_cliente ? 'Seleccione el cliente...' : 'Primero elija tipo')}
+                                                        </span>
+                                                    </span>
+                                                    <span className={`h-9 w-9 rounded-xl flex items-center justify-center transition-all ${
+                                                        isClientDropdownOpen ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 border border-slate-100'
+                                                    }`}>
+                                                        <ChevronDown className={`w-4 h-4 transition-transform ${isClientDropdownOpen ? 'rotate-180' : ''}`} />
+                                                    </span>
+                                                </button>
+
+                                                {isClientDropdownOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                                        className="absolute z-50 mt-3 w-full overflow-hidden rounded-[1.5rem] border border-indigo-100 bg-white shadow-2xl shadow-indigo-950/10"
+                                                    >
+                                                        <div className="border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white p-3">
+                                                            <div className="flex items-center justify-between gap-3 mb-3">
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-600">Buscar cliente</p>
+                                                                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-400 shadow-sm">
+                                                                    {filteredClientes.length} de {clientes.length}
+                                                                </span>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+                                                                <input
+                                                                    autoFocus
+                                                                    type="text"
+                                                                    value={clientSearch}
+                                                                    onChange={(e) => setClientSearch(e.target.value)}
+                                                                    placeholder="Nombre, razón social o NIT..."
+                                                                    className="w-full h-12 rounded-2xl border border-indigo-100 bg-white pl-10 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/60 placeholder:text-slate-300 shadow-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="max-h-80 overflow-y-auto p-2 space-y-1.5">
+                                                            {filteredClientes.length > 0 ? (
+                                                                filteredClientes.map((cliente) => {
+                                                                    const isSelected = formData.cliente_id === cliente.id.toString();
+                                                                    return (
+                                                                        <button
+                                                                            key={cliente.id}
+                                                                            type="button"
+                                                                            onClick={() => handleClientChange(cliente.id.toString())}
+                                                                            className={`w-full rounded-2xl px-3 py-3 text-left transition-all border ${
+                                                                                isSelected
+                                                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200'
+                                                                                    : 'text-slate-700 border-transparent hover:bg-slate-50 hover:border-slate-100'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                                                                                    isSelected ? 'bg-white/15 text-white' : 'bg-indigo-50 text-indigo-600'
+                                                                                }`}>
+                                                                                    <Building2 className="w-4 h-4" />
+                                                                                </div>
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <p className="text-sm font-medium truncate">{cliente.nombre}</p>
+                                                                                </div>
+                                                                                {isSelected && <CheckCircle2 className="w-5 h-5 shrink-0 text-white" />}
+                                                                            </div>
+                                                                        </button>
+                                                                    );
+                                                                })
+                                                            ) : (
+                                                                <div className="px-4 py-10 text-center">
+                                                                    <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center">
+                                                                        <Search className="h-5 w-5 text-slate-300" />
+                                                                    </div>
+                                                                    <p className="text-sm font-black text-slate-500">Sin resultados</p>
+                                                                    <p className="mt-1 text-xs font-bold text-slate-300">Intenta con otro nombre o NIT.</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {clientes.length > 80 && !clientSearch && (
+                                                            <div className="border-t border-slate-100 bg-slate-50 px-4 py-2 text-[10px] font-bold text-slate-400">
+                                                                Mostrando los primeros 80. Escribe para filtrar la lista completa.
+                                                            </div>
+                                                        )}
+                                                    </motion.div>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{formData.tipo_de_cliente === 'Constructor' ? 'Nombre de la Obra' : 'Nombre del Almacén'}</label>
