@@ -353,8 +353,7 @@ export default function SolicitarServicioPage() {
 
             // Determine Coordinator based on Zone (as requested)
             let finalCoordinadorId = null;
-            const itemForZone = clienteFinalSeleccionado || clienteSeleccionado;
-            let zoneId = itemForZone?.zona_id;
+            let zoneId = clienteFinalSeleccionado?.zona_id || clienteSeleccionado?.zona_id;
 
             // Fallback for Ecommerce if no client zone
             if (!zoneId && isEcommerce) {
@@ -375,7 +374,8 @@ export default function SolicitarServicioPage() {
 
             // Last resort fallback to the ID present in the view if lookup failed
             if (!finalCoordinadorId) {
-                finalCoordinadorId = itemForZone?.coordinador_id || itemForZone?.coordinadorId;
+                finalCoordinadorId = clienteFinalSeleccionado?.coordinador_id || clienteFinalSeleccionado?.coordinadorId || 
+                                     clienteSeleccionado?.coordinador_id || clienteSeleccionado?.coordinadorId;
             }
 
             // 3. Insert Servicio
