@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
     X, 
@@ -15,7 +15,8 @@ import {
     UserPlus,
     Building2,
     Compass,
-    AtSign
+    AtSign,
+    Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,6 +34,19 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
 
     // Data lists
     const [ciudades, setCiudades] = useState<any[]>([]);
+    const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+    const [citySearch, setCitySearch] = useState('');
+    const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+                setIsCityDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Form states
     const [formData, setFormData] = useState({
@@ -116,8 +130,7 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
         }
     };
 
-    const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = e.target.value;
+    const handleCityChange = (id: string) => {
         const selected = ciudades.find(c => c.id.toString() === id);
         
         setFormData(prev => ({ ...prev, ciudad_id: id }));
@@ -129,7 +142,19 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
         } else {
             setGeoInfo({ departamento: '' });
         }
+        setIsCityDropdownOpen(false);
+        setCitySearch('');
     };
+
+    const selectedCityData = ciudades.find(c => c.id.toString() === formData.ciudad_id);
+    const filteredCiudades = useMemo(() => {
+        const query = citySearch.trim().toLowerCase();
+        if (!query) return ciudades;
+
+        return ciudades.filter(city => 
+            String(city.ciudad || '').toLowerCase().includes(query)
+        );
+    }, [ciudades, citySearch]);
 
     const handleNoEmail = () => {
         setFormData(prev => ({ ...prev, correo_electronico: 'notiene@correo.com' }));
@@ -298,19 +323,67 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
                                 {/* Ciudad */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Ciudad *</label>
-                                    <div className="relative group">
-                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors z-10" />
-                                        <select 
-                                            value={formData.ciudad_id}
-                                            onChange={handleCityChange}
-                                            required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all appearance-none"
+                                    <div className="relative group" ref={cityDropdownRef}>
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCityDropdownOpen(prev => !prev)}
+                                            className={`w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all appearance-none flex items-center justify-between text-left ${
+                                                isCityDropdownOpen ? 'bg-white border-sky-300 ring-4 ring-sky-50' : ''
+                                            }`}
                                         >
-                                            <option value="">Seleccione ciudad...</option>
-                                            {ciudades.map(c => (
-                                                <option key={c.id} value={c.id}>{c.ciudad}</option>
-                                            ))}
-                                        </select>
+                                            <span className="block truncate">
+                                                {selectedCityData ? selectedCityData.ciudad : 'Seleccione ciudad...'}
+                                            </span>
+                                        </button>
+
+                                        {isCityDropdownOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                                className="absolute z-50 mt-3 w-full overflow-hidden rounded-[1.5rem] border border-sky-100 bg-white shadow-2xl shadow-sky-950/10"
+                                            >
+                                                <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50 to-white p-3">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-400" />
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            value={citySearch}
+                                                            onChange={(e) => setCitySearch(e.target.value)}
+                                                            placeholder="Buscar ciudad..."
+                                                            className="w-full h-12 rounded-2xl border border-sky-100 bg-white pl-10 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100/60 placeholder:text-slate-300 shadow-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="max-h-60 overflow-y-auto p-2 space-y-1.5">
+                                                    {filteredCiudades.length > 0 ? (
+                                                        filteredCiudades.map((ciudad) => {
+                                                            const isSelected = formData.ciudad_id === ciudad.id.toString();
+                                                            return (
+                                                                <button
+                                                                    key={ciudad.id}
+                                                                    type="button"
+                                                                    onClick={() => handleCityChange(ciudad.id.toString())}
+                                                                    className={`w-full rounded-2xl px-4 py-3 text-left transition-all border ${
+                                                                        isSelected
+                                                                            ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-200'
+                                                                            : 'text-slate-700 border-transparent hover:bg-slate-50 hover:border-slate-100'
+                                                                    }`}
+                                                                >
+                                                                    <span className="text-sm font-medium">{ciudad.ciudad}</span>
+                                                                </button>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <div className="px-4 py-6 text-center">
+                                                            <p className="text-sm font-black text-slate-500">Sin resultados</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
                                     </div>
                                 </div>
 
