@@ -17,13 +17,15 @@ import {
     MapPin,
     Calendar,
     Hash,
-    MoreHorizontal
+    MoreHorizontal,
+    Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ModalCrearCiudad from '@/components/base-de-datos/ModalCrearCiudad';
 import ModalCrearCliente from '@/components/base-de-datos/ModalCrearCliente';
 import ModalCrearSala from '@/components/base-de-datos/ModalCrearSala';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
+import ModalEditSala from '@/components/base-de-datos/ModalEditSala';
 
 export default function BaseDatosPage() {
     const router = useRouter();
@@ -36,6 +38,20 @@ export default function BaseDatosPage() {
     const [isModalClienteOpen, setIsModalClienteOpen] = useState(false);
     const [isModalSalaOpen, setIsModalSalaOpen] = useState(false);
     const [isModalClienteFinalOpen, setIsModalClienteFinalOpen] = useState(false);
+    
+    // Edit states
+    const [isModalEditSalaOpen, setIsModalEditSalaOpen] = useState(false);
+    const [isModalEditClienteFinalOpen, setIsModalEditClienteFinalOpen] = useState(false);
+    const [itemToEdit, setItemToEdit] = useState<any>(null);
+
+    const handleEdit = (item: any) => {
+        setItemToEdit(item);
+        if (activeTab === 'Salas / Obras') {
+            setIsModalEditSalaOpen(true);
+        } else if (activeTab === 'Clientes Finales') {
+            setIsModalEditClienteFinalOpen(true);
+        }
+    };
 
     // Totales desde la view (ligero, sin cargar datos)
     const [totals, setTotals] = useState<{ Ciudades: number; Clientes: number; 'Salas / Obras': number; 'Clientes Finales': number }>({
@@ -374,7 +390,7 @@ export default function BaseDatosPage() {
                                                     transition={{ delay: idx * 0.05 }}
                                                     className="group hover:bg-slate-50 transition-colors"
                                                 >
-                                                    {renderTableRows(activeTab, item)}
+                                                    {renderTableRows(activeTab, item, handleEdit)}
                                                 </motion.tr>
                                             ))
                                         ) : (
@@ -440,6 +456,20 @@ export default function BaseDatosPage() {
                 onClose={() => setIsModalClienteFinalOpen(false)}
                 onSuccess={() => fetchData('Clientes Finales')}
             />
+
+            <ModalEditSala
+                isOpen={isModalEditSalaOpen}
+                onClose={() => setIsModalEditSalaOpen(false)}
+                onSuccess={() => fetchData('Salas / Obras')}
+                initialData={itemToEdit}
+            />
+
+            <ModalCrearClienteFinal
+                isOpen={isModalEditClienteFinalOpen}
+                onClose={() => setIsModalEditClienteFinalOpen(false)}
+                onSuccess={() => fetchData('Clientes Finales')}
+                initialData={itemToEdit}
+            />
         </div>
     );
 }
@@ -455,8 +485,7 @@ function renderTableHeaders(tab: string) {
                     <th>Departamento</th>
                     <th>Zona</th>
                     <th>Coordinador</th>
-                    <th>Creado</th>
-                    <th className="pr-6 text-right">Acciones</th>
+                    <th className="pr-6">Creado</th>
                 </>
             );
         case 'Clientes':
@@ -466,8 +495,7 @@ function renderTableHeaders(tab: string) {
                     <th>Nombre</th>
                     <th>NIT</th>
                     <th>Tipo</th>
-                    <th>Creado</th>
-                    <th className="pr-6 text-right">Acciones</th>
+                    <th className="pr-6">Creado</th>
                 </>
             );
         case 'Salas / Obras':
@@ -498,7 +526,7 @@ function renderTableHeaders(tab: string) {
     }
 }
 
-function renderTableRows(tab: string, item: any) {
+function renderTableRows(tab: string, item: any, onEdit?: (item: any) => void) {
     const cellClass = "py-5 text-sm font-bold text-slate-700 bg-white/50 first:rounded-l-2xl last:rounded-r-2xl border-y border-slate-100 first:border-l last:border-r transition-colors group-hover:bg-white group-hover:border-brand/10 group-hover:shadow-lg group-hover:shadow-slate-200/50 group-hover:-translate-y-0.5";
     
     const formatDate = (date: string) => {
@@ -536,16 +564,11 @@ function renderTableRows(tab: string, item: any) {
                             <span className="text-[10px] text-slate-400 font-bold">{item.coordinador_correo}</span>
                         </div>
                     </td>
-                    <td className={cellClass}>
+                    <td className={`${cellClass} pr-6`}>
                         <div className="flex items-center gap-2 text-slate-400">
                             <Calendar className="w-3 h-3" />
                             <span className="text-xs">{formatDate(item.created_at)}</span>
                         </div>
-                    </td>
-                    <td className={`${cellClass} pr-6 text-right`}>
-                        <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-brand transition-colors">
-                            <MoreHorizontal className="w-5 h-5" />
-                        </button>
                     </td>
                 </>
             );
@@ -567,16 +590,11 @@ function renderTableRows(tab: string, item: any) {
                             {item.tipo_de_cliente}
                         </span>
                     </td>
-                    <td className={cellClass}>
+                    <td className={`${cellClass} pr-6`}>
                         <div className="flex items-center gap-2 text-slate-400">
                             <Calendar className="w-3 h-3" />
                             <span className="text-xs">{formatDate(item.created_at)}</span>
                         </div>
-                    </td>
-                    <td className={`${cellClass} pr-6 text-right`}>
-                        <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
-                            <MoreHorizontal className="w-5 h-5" />
-                        </button>
                     </td>
                 </>
             );
@@ -611,8 +629,12 @@ function renderTableRows(tab: string, item: any) {
                         </div>
                     </td>
                     <td className={`${cellClass} pr-6 text-right`}>
-                        <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors">
-                            <MoreHorizontal className="w-5 h-5" />
+                        <button 
+                            onClick={() => onEdit && onEdit(item)}
+                            className="p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-600 transition-colors"
+                            title="Editar Ubicación"
+                        >
+                            <Pencil className="w-4 h-4" />
                         </button>
                     </td>
                 </>
@@ -643,8 +665,12 @@ function renderTableRows(tab: string, item: any) {
                         </div>
                     </td>
                     <td className={`${cellClass} pr-6 text-right`}>
-                        <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-rose-600 transition-colors">
-                            <MoreHorizontal className="w-5 h-5" />
+                        <button 
+                            onClick={() => onEdit && onEdit(item)}
+                            className="p-2 bg-rose-50 hover:bg-rose-100 rounded-lg text-rose-600 transition-colors"
+                            title="Editar Cliente Final"
+                        >
+                            <Pencil className="w-4 h-4" />
                         </button>
                     </td>
                 </>

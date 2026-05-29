@@ -133,6 +133,8 @@ export default function SolicitarServicioPage() {
                         setTipoServicio('garantia_sin_pedido');
                     }
 
+                    setObservaciones(`Este es un servicio enlazado y el servicio original es ${parentData.consecutivo}`);
+
                     // Fetch products from parent service
                     const { data: productsData } = await supabase
                         .from('productos_servicios')
