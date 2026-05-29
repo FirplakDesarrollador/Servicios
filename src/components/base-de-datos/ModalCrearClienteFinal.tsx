@@ -21,14 +21,15 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ModalCrearClienteFinalProps {
-    isOpen: boolean;
-    onClose: () => void;
+    isOpen?: boolean;
+    isInline?: boolean;
+    onClose?: () => void;
     onSuccess: (cliente?: any) => void;
     initialData?: any;
     serviceId?: string | number;
 }
 
-export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, initialData, serviceId }: ModalCrearClienteFinalProps) {
+export default function ModalCrearClienteFinal({ isOpen = true, isInline = false, onClose, onSuccess, initialData, serviceId }: ModalCrearClienteFinalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +67,7 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
     });
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen || isInline) {
             fetchCiudades();
             if (initialData) {
                 setFormData({
@@ -225,7 +226,7 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
                 .single();
 
             onSuccess(fullRecord || { ...payload, id: savedId });
-            onClose();
+            if (onClose) onClose();
             // Reset form will be handled by useEffect when re-opening
         } catch (err: any) {
             console.error('Error saving consumer:', err);
@@ -234,6 +235,257 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
             setLoading(false);
         }
     };
+
+    const content = (
+        <div className={`relative w-full bg-white flex flex-col ${isInline ? 'rounded-2xl border border-slate-100 shadow-sm' : 'max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 max-h-[90vh]'}`}>
+            {/* Header */}
+            <div className={`bg-sky-500 text-white relative flex-shrink-0 ${isInline ? 'p-6 rounded-t-2xl' : 'p-8'}`}>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                            <UserPlus className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black uppercase tracking-tighter">{formData.id ? 'Editar Cliente Final' : 'Crear Cliente Final'}</h2>
+                            <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">{formData.id ? 'Actualizar información' : 'Consumidor Directo'}</p>
+                        </div>
+                    </div>
+                    {!isInline && onClose && (
+                        <button 
+                            onClick={onClose}
+                            className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Form Body */}
+            <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6">
+                {error && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="p-4 bg-sky-50 border border-sky-100 rounded-2xl flex items-center gap-3 text-sky-600 text-sm font-bold"
+                    >
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        {error}
+                    </motion.div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Cédula */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Cédula / Identificación *</label>
+                        <div className="relative group">
+                            <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <input 
+                                type="text"
+                                value={formData.cedula}
+                                onChange={(e) => setFormData(prev => ({ ...prev, cedula: e.target.value }))}
+                                required
+                                className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
+                                placeholder="Ej: 10203040"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Nombre */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre Completo *</label>
+                        <div className="relative group">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <input 
+                                type="text"
+                                value={formData.contacto}
+                                onChange={(e) => setFormData(prev => ({ ...prev, contacto: e.target.value }))}
+                                required
+                                className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
+                                placeholder="Nombre del cliente"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Ciudad */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Ciudad *</label>
+                        <div className="relative group" ref={cityDropdownRef}>
+                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                            <button
+                                type="button"
+                                onClick={() => setIsCityDropdownOpen(prev => !prev)}
+                                className={`w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all appearance-none flex items-center justify-between text-left ${
+                                    isCityDropdownOpen ? 'bg-white border-sky-300 ring-4 ring-sky-50' : ''
+                                }`}
+                            >
+                                <span className="block truncate">
+                                    {selectedCityData ? selectedCityData.ciudad : 'Seleccione ciudad...'}
+                                </span>
+                            </button>
+
+                            {isCityDropdownOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                    className="absolute z-50 mt-3 w-full overflow-hidden rounded-[1.5rem] border border-sky-100 bg-white shadow-2xl shadow-sky-950/10"
+                                >
+                                    <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50 to-white p-3">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-400" />
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={citySearch}
+                                                onChange={(e) => setCitySearch(e.target.value)}
+                                                placeholder="Buscar ciudad..."
+                                                className="w-full h-12 rounded-2xl border border-sky-100 bg-white pl-10 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100/60 placeholder:text-slate-300 shadow-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="max-h-60 overflow-y-auto p-2 space-y-1.5">
+                                        {filteredCiudades.length > 0 ? (
+                                            filteredCiudades.map((ciudad) => {
+                                                const isSelected = formData.ciudad_id === ciudad.id.toString();
+                                                return (
+                                                    <button
+                                                        key={ciudad.id}
+                                                        type="button"
+                                                        onClick={() => handleCityChange(ciudad.id.toString())}
+                                                        className={`w-full rounded-2xl px-4 py-3 text-left transition-all border ${
+                                                            isSelected
+                                                                ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-200'
+                                                                : 'text-slate-700 border-transparent hover:bg-slate-50 hover:border-slate-100'
+                                                        }`}
+                                                    >
+                                                        <span className="text-sm font-medium">{ciudad.ciudad}</span>
+                                                    </button>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="px-4 py-6 text-center">
+                                                <p className="text-sm font-black text-slate-500">Sin resultados</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Departamento (Auto) */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Departamento</label>
+                        <div className="h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 flex items-center text-sm font-bold text-slate-400 italic">
+                            {geoInfo.departamento || 'Seleccione una ciudad'}
+                        </div>
+                    </div>
+
+                    {/* Dirección */}
+                    <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Dirección de Residencia</label>
+                        <div className="relative group">
+                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <input 
+                                type="text"
+                                value={formData.direccion}
+                                onChange={(e) => setFormData(prev => ({ ...prev, direccion: e.target.value }))}
+                                className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
+                                placeholder="Calle, Carrera, Barrio..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Referencia */}
+                    <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Punto de Referencia</label>
+                        <div className="relative group">
+                            <Compass className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <input 
+                                type="text"
+                                value={formData.descripcion_direccion}
+                                onChange={(e) => setFormData(prev => ({ ...prev, descripcion_direccion: e.target.value }))}
+                                className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
+                                placeholder="Ej: Frente al parque principal"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Teléfono */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Teléfono / WhatsApp *</label>
+                        <div className="relative group">
+                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <input 
+                                type="tel"
+                                value={formData.telefono}
+                                onChange={(e) => setFormData(prev => ({ ...prev, telefono: e.target.value }))}
+                                required
+                                className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
+                                placeholder="3001234567"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Correo */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center ml-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Correo Electrónico</label>
+                            <button 
+                                type="button" 
+                                onClick={handleNoEmail}
+                                className="text-[9px] font-black text-sky-500 uppercase hover:underline"
+                            >
+                                No tiene correo
+                            </button>
+                        </div>
+                        <div className="relative group">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <input 
+                                type="email"
+                                value={formData.correo_electronico}
+                                onChange={(e) => setFormData(prev => ({ ...prev, correo_electronico: e.target.value }))}
+                                className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
+                                placeholder="cliente@ejemplo.com"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-4 pt-4 sticky bottom-0 bg-white pb-2">
+                    {!isInline && onClose && (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 h-14 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all active:scale-95"
+                        >
+                            Cancelar
+                        </button>
+                    )}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-[2] h-14 bg-sky-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-sky-200 hover:shadow-sky-400 transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
+                    >
+                        {loading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <>
+                                <CheckCircle2 className="w-5 h-5" />
+                                {formData.id ? 'Actualizar Cliente Final' : 'Crear Cliente Final'}
+                            </>
+                        )}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+
+    if (isInline) {
+        return content;
+    }
 
     return (
         <AnimatePresence>
@@ -251,246 +503,9 @@ export default function ModalCrearClienteFinal({ isOpen, onClose, onSuccess, ini
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 flex flex-col max-h-[90vh]"
+                        className="relative w-full max-w-2xl"
                     >
-                        {/* Header */}
-                        <div className="bg-sky-500 p-8 text-white relative flex-shrink-0">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                                        <UserPlus className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-black uppercase tracking-tighter">{formData.id ? 'Editar Cliente Final' : 'Crear Cliente Final'}</h2>
-                                        <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">{formData.id ? 'Actualizar información' : 'Consumidor Directo'}</p>
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={onClose}
-                                    className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Form Body */}
-                        <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6">
-                            {error && (
-                                <motion.div 
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className="p-4 bg-sky-50 border border-sky-100 rounded-2xl flex items-center gap-3 text-sky-600 text-sm font-bold"
-                                >
-                                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                    {error}
-                                </motion.div>
-                            )}
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Cédula */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Cédula / Identificación *</label>
-                                    <div className="relative group">
-                                        <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                                        <input 
-                                            type="text"
-                                            value={formData.cedula}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, cedula: e.target.value }))}
-                                            required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
-                                            placeholder="Ej: 10203040"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Nombre */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre Completo *</label>
-                                    <div className="relative group">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                                        <input 
-                                            type="text"
-                                            value={formData.contacto}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, contacto: e.target.value }))}
-                                            required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
-                                            placeholder="Nombre del cliente"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Ciudad */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Ciudad *</label>
-                                    <div className="relative group" ref={cityDropdownRef}>
-                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsCityDropdownOpen(prev => !prev)}
-                                            className={`w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all appearance-none flex items-center justify-between text-left ${
-                                                isCityDropdownOpen ? 'bg-white border-sky-300 ring-4 ring-sky-50' : ''
-                                            }`}
-                                        >
-                                            <span className="block truncate">
-                                                {selectedCityData ? selectedCityData.ciudad : 'Seleccione ciudad...'}
-                                            </span>
-                                        </button>
-
-                                        {isCityDropdownOpen && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                                                className="absolute z-50 mt-3 w-full overflow-hidden rounded-[1.5rem] border border-sky-100 bg-white shadow-2xl shadow-sky-950/10"
-                                            >
-                                                <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50 to-white p-3">
-                                                    <div className="relative">
-                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-400" />
-                                                        <input
-                                                            autoFocus
-                                                            type="text"
-                                                            value={citySearch}
-                                                            onChange={(e) => setCitySearch(e.target.value)}
-                                                            placeholder="Buscar ciudad..."
-                                                            className="w-full h-12 rounded-2xl border border-sky-100 bg-white pl-10 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100/60 placeholder:text-slate-300 shadow-sm"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="max-h-60 overflow-y-auto p-2 space-y-1.5">
-                                                    {filteredCiudades.length > 0 ? (
-                                                        filteredCiudades.map((ciudad) => {
-                                                            const isSelected = formData.ciudad_id === ciudad.id.toString();
-                                                            return (
-                                                                <button
-                                                                    key={ciudad.id}
-                                                                    type="button"
-                                                                    onClick={() => handleCityChange(ciudad.id.toString())}
-                                                                    className={`w-full rounded-2xl px-4 py-3 text-left transition-all border ${
-                                                                        isSelected
-                                                                            ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-200'
-                                                                            : 'text-slate-700 border-transparent hover:bg-slate-50 hover:border-slate-100'
-                                                                    }`}
-                                                                >
-                                                                    <span className="text-sm font-medium">{ciudad.ciudad}</span>
-                                                                </button>
-                                                            );
-                                                        })
-                                                    ) : (
-                                                        <div className="px-4 py-6 text-center">
-                                                            <p className="text-sm font-black text-slate-500">Sin resultados</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Departamento (Auto) */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Departamento</label>
-                                    <div className="h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 flex items-center text-sm font-bold text-slate-400 italic">
-                                        {geoInfo.departamento || 'Seleccione una ciudad'}
-                                    </div>
-                                </div>
-
-                                {/* Dirección */}
-                                <div className="space-y-2 md:col-span-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Dirección de Residencia</label>
-                                    <div className="relative group">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                                        <input 
-                                            type="text"
-                                            value={formData.direccion}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, direccion: e.target.value }))}
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
-                                            placeholder="Calle, Carrera, Barrio..."
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Referencia */}
-                                <div className="space-y-2 md:col-span-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Punto de Referencia</label>
-                                    <div className="relative group">
-                                        <Compass className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                                        <input 
-                                            type="text"
-                                            value={formData.descripcion_direccion}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, descripcion_direccion: e.target.value }))}
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
-                                            placeholder="Ej: Frente al parque principal"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Teléfono */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Teléfono / WhatsApp *</label>
-                                    <div className="relative group">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                                        <input 
-                                            type="tel"
-                                            value={formData.telefono}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, telefono: e.target.value }))}
-                                            required
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
-                                            placeholder="3001234567"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Correo */}
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center ml-1">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Correo Electrónico</label>
-                                        <button 
-                                            type="button" 
-                                            onClick={handleNoEmail}
-                                            className="text-[9px] font-black text-sky-500 uppercase hover:underline"
-                                        >
-                                            No tiene correo
-                                        </button>
-                                    </div>
-                                    <div className="relative group">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                                        <input 
-                                            type="email"
-                                            value={formData.correo_electronico}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, correo_electronico: e.target.value }))}
-                                            className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-300 focus:bg-white transition-all"
-                                            placeholder="cliente@ejemplo.com"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-4 pt-4 sticky bottom-0 bg-white pb-2">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="flex-1 h-14 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all active:scale-95"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="flex-[2] h-14 bg-sky-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-sky-200 hover:shadow-sky-400 transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
-                                >
-                                    {loading ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        <>
-                                            <CheckCircle2 className="w-5 h-5" />
-                                            {formData.id ? 'Actualizar Cliente Final' : 'Crear Cliente Final'}
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </form>
+                        {content}
                     </motion.div>
                 </div>
             )}

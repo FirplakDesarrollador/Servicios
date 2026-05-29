@@ -28,10 +28,10 @@ export default function SolicitudesClientesPage() {
             let query = supabase.from('solicitudes_clientes').select('*');
             
             if (searchTerm) {
-                query = query.or(`nombre_razon_social.ilike.%${searchTerm}%,consecutivo.ilike.%${searchTerm}%,ciudad.ilike.%${searchTerm}%,correo_electronico.ilike.%${searchTerm}%`);
+                query = query.or(`nombre_razon_social.ilike.%${searchTerm}%,persona_contacto.ilike.%${searchTerm}%`);
             }
             
-            const { data, error } = await query.order('fecha_creacion', { ascending: false });
+            const { data, error } = await query.order('created_at', { ascending: false });
             
             if (error) throw error;
             setSolicitudes(data || []);
@@ -156,7 +156,7 @@ export default function SolicitudesClientesPage() {
                                 <SolicitudCard 
                                     key={sol.id} 
                                     solicitud={sol} 
-                                    onClick={(s) => alert(`Gestión de solicitud ${s.consecutivo} próximamente.`)} 
+                                    onClick={(s) => router.push(`/solicitudes-clientes/${s.id}`)} 
                                 />
                             ))
                         ) : (

@@ -53,11 +53,11 @@ export default function SolicitudCard({ solicitud, onClick }: SolicitudCardProps
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-50">
                 <div className="flex items-center gap-3">
                     <div className="px-3 py-1.5 bg-brand/10 text-brand rounded-lg text-xs font-black tracking-widest uppercase">
-                        {solicitud.consecutivo}
+                        #{solicitud.id}
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter leading-none">Fecha de registro</span>
-                        <span className="text-xs font-bold text-slate-600">{formatDate(solicitud.fecha_creacion)}</span>
+                        <span className="text-xs font-bold text-slate-600">{formatDate(solicitud.created_at)}</span>
                     </div>
                 </div>
 

@@ -44,7 +44,13 @@ import ModalCrearSala from '@/components/base-de-datos/ModalCrearSala';
 import ModalEditSala from '@/components/base-de-datos/ModalEditSala';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
 
-export default function SolicitarServicioPage() {
+interface SolicitarServicioProps {
+    isInline?: boolean;
+    defaultSolicitudId?: string;
+    onSuccess?: () => void;
+}
+
+export default function SolicitarServicioPage({ isInline = false, defaultSolicitudId, onSuccess }: SolicitarServicioProps = {}) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
@@ -63,6 +69,7 @@ export default function SolicitarServicioPage() {
     const [decisionCliente, setDecisionCliente] = useState('');
     const [observaciones, setObservaciones] = useState('');
     const [llevaClienteFinal, setLlevaClienteFinal] = useState(true);
+    const [solicitudConsecutivo, setSolicitudConsecutivo] = useState<string | null>(null);
 
     // Selection States
     const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
@@ -151,6 +158,43 @@ export default function SolicitarServicioPage() {
                 }
             }
 
+            // Handle solicitud_id pre-fill
+            const solicitudId = defaultSolicitudId || searchParams.get('solicitud_id');
+            if (solicitudId) {
+                const { data: solicitudData } = await supabase
+                    .from('solicitudes_clientes')
+                    .select('*')
+                    .eq('id', solicitudId)
+                    .single();
+
+                if (solicitudData) {
+                    setLlevaClienteFinal(true);
+                    setCanalVenta('canal_propio_ecommerce');
+                    if (solicitudData.consecutivo) {
+                        setSolicitudConsecutivo(solicitudData.consecutivo);
+                    }
+                    if (solicitudData.tipodeservicio) {
+                        const tipo = solicitudData.tipodeservicio.toLowerCase();
+                        if (tipo.includes('visita')) {
+                            setTipoServicio('visita_instalacion');
+                        } else if (tipo.includes('instalaci')) {
+                            setTipoServicio('instalacion');
+                        }
+                    }
+                    // Mapear los datos de la solicitud al cliente final seleccionado (aunque no tenga ID en BD aún)
+                    // Si ya se creó en la BD, idealmente se debería buscar por cédula, pero esto lo pre-carga visualmente.
+                    setClienteFinalSeleccionado({
+                        cedula: solicitudData.numeroid,
+                        contacto: solicitudData.nombre_razon_social,
+                        telefono: solicitudData.telefono,
+                        direccion: solicitudData.direccion,
+                        ciudad: solicitudData.ciudad,
+                        correo_electronico: solicitudData.correo_electronico,
+                        _search_type: 'consumidor'
+                    });
+                }
+            }
+
             setLoading(false);
         };
 
@@ -159,6 +203,11 @@ export default function SolicitarServicioPage() {
 
     // Update consecutivo when tipoServicio or user changes
     useEffect(() => {
+        if (solicitudConsecutivo) {
+            setConsecutivo(solicitudConsecutivo);
+            return;
+        }
+
         if (!tipoServicio || !currentUser) {
             setConsecutivo('');
             return;
@@ -176,7 +225,7 @@ export default function SolicitarServicioPage() {
         }
 
         setConsecutivo(newConsecutivo);
-    }, [tipoServicio, currentUser, randomSuffix, facturado]);
+    }, [tipoServicio, currentUser, randomSuffix, facturado, solicitudConsecutivo]);
 
     const handleClear = () => {
         setNumeroPedido('');
@@ -462,7 +511,11 @@ export default function SolicitarServicioPage() {
 
             alert('Servicio creado correctamente');
             handleClear();
-            router.push('/');
+            if (onSuccess) {
+                onSuccess();
+            } else {
+                router.push('/');
+            }
 
         } catch (error: any) {
             console.error('Error creating service:', error);
@@ -481,27 +534,29 @@ export default function SolicitarServicioPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans pb-10">
-            <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg">
-                <button
-                    onClick={() => router.push('/')}
-                    className="mr-4 p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div className="flex-1 flex items-center justify-between">
-                    <h1 className="font-black text-xl tracking-tight uppercase">Solicitar Servicio</h1>
+        <div className={isInline ? "pb-10" : "min-h-screen bg-[#F1F5F9] text-slate-800 font-sans pb-10"}>
+            {!isInline && (
+                <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg">
                     <button
-                        onClick={handleClear}
-                        className="flex items-center gap-2 px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"
+                        onClick={() => router.push('/')}
+                        className="mr-4 p-2 hover:bg-white/10 rounded-lg transition-colors"
                     >
-                        <Eraser className="w-3.5 h-3.5" />
-                        Limpiar
+                        <ArrowLeft className="w-5 h-5" />
                     </button>
-                </div>
-            </header>
+                    <div className="flex-1 flex items-center justify-between">
+                        <h1 className="font-black text-xl tracking-tight uppercase">Solicitar Servicio</h1>
+                        <button
+                            onClick={handleClear}
+                            className="flex items-center gap-2 px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"
+                        >
+                            <Eraser className="w-3.5 h-3.5" />
+                            Limpiar
+                        </button>
+                    </div>
+                </header>
+            )}
 
-            <main className="pt-24 px-4 max-w-4xl mx-auto">
+            <main className={`${isInline ? "" : "pt-24 px-4 max-w-4xl mx-auto"}`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Info Card */}
                     <div className="md:col-span-2 bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white">
