@@ -39,7 +39,6 @@ export default function DetalleSolicitudClientePage() {
 
     const tabs = [
         { id: 'detalle' as TabType, label: 'Detalle de Solicitud', icon: FileText },
-        { id: 'crear_cliente' as TabType, label: 'Crear Cliente', icon: UserPlus },
         { id: 'solicitar_servicio' as TabType, label: 'Solicitar Servicio', icon: PlusCircle },
     ];
 
@@ -275,29 +274,7 @@ export default function DetalleSolicitudClientePage() {
                             </>
                         )}
 
-                        {activeTab === 'crear_cliente' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="max-w-2xl mx-auto"
-                            >
-                                <ModalCrearClienteFinal
-                                    isInline={true}
-                                    onSuccess={(nuevoCliente) => {
-                                        alert('Cliente creado exitosamente');
-                                        setActiveTab('detalle');
-                                    }}
-                                    initialData={{
-                                        cedula: solicitud.numeroid,
-                                        contacto: solicitud.nombre_razon_social,
-                                        ciudad: solicitud.ciudad,
-                                        direccion: solicitud.direccion,
-                                        telefono: solicitud.telefono,
-                                        correo_electronico: solicitud.correo_electronico,
-                                    }}
-                                />
-                            </motion.div>
-                        )}
+
 
                         {activeTab === 'solicitar_servicio' && (
                             <motion.div

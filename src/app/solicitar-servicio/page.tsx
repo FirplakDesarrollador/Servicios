@@ -76,7 +76,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
     const [clienteFinalSeleccionado, setClienteFinalSeleccionado] = useState<any>(null);
     const [productosSeleccionados, setProductosSeleccionados] = useState<any[]>([]);
     const [repuestosSeleccionados, setRepuestosSeleccionados] = useState<any[]>([]);
-    const [adjuntos, setAdjuntos] = useState<{ file: File; isHidden: boolean }[]>([]);
+    const [adjuntos, setAdjuntos] = useState<{ file?: File; url?: string; name?: string; isHidden: boolean }[]>([]);
     const [previewFile, setPreviewFile] = useState<any>(null);
 
     // Modal Control States
@@ -182,7 +182,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         }
                     }
                     // Mapear los datos de la solicitud al cliente final seleccionado (aunque no tenga ID en BD aún)
-                    // Si ya se creó en la BD, idealmente se debería buscar por cédula, pero esto lo pre-carga visualmente.
+                    // Se creará en la BD automáticamente al guardar el servicio si no tiene ID.
                     setClienteFinalSeleccionado({
                         cedula: solicitudData.numeroid,
                         contacto: solicitudData.nombre_razon_social,
@@ -192,6 +192,13 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         correo_electronico: solicitudData.correo_electronico,
                         _search_type: 'consumidor'
                     });
+
+                    // Auto-attach files from solicitud
+                    const newAdjuntos = [];
+                    if (solicitudData.soporte_pago_url) newAdjuntos.push({ url: solicitudData.soporte_pago_url, name: 'Soporte de Pago', isHidden: true }); // Facturado/Pago usually hidden
+                    if (solicitudData.factura_url) newAdjuntos.push({ url: solicitudData.factura_url, name: 'Factura', isHidden: true });
+                    if (solicitudData.rut_url) newAdjuntos.push({ url: solicitudData.rut_url, name: 'RUT / Cédula', isHidden: true });
+                    if (newAdjuntos.length > 0) setAdjuntos(newAdjuntos);
                 }
             }
 
@@ -268,9 +275,17 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
         setAdjuntos(prev => prev.filter((_, i) => i !== index));
     };
 
-    const uploadFiles = async (items: { file: File; isHidden: boolean }[]) => {
+    const uploadFiles = async (items: { file?: File; url?: string; name?: string; isHidden: boolean }[]) => {
         const uploadPromises = items.map(async (item) => {
-            const { file, isHidden } = item;
+            const { file, url, isHidden } = item;
+            
+            // If it already has a URL, no need to upload
+            if (url) {
+                return { url, isHidden };
+            }
+
+            if (!file) return null;
+
             try {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -402,10 +417,48 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             const aprobacionMac = determineApproval(tipoServicio, facturado, 'mac');
             const aplicaTecnico = determineAplicaTecnico(tipoServicio);
 
-            // Determine Coordinator based on Zone (as requested)
             let finalCoordinadorId = null;
             let zoneId = clienteFinalSeleccionado?.zona_id || clienteSeleccionado?.zona_id;
 
+            // Auto-create Consumidor if it doesn't have an ID
+            let finalConsumidorId = llevaClienteFinal ? (clienteFinalSeleccionado?.id || null) : null;
+            if (llevaClienteFinal && clienteFinalSeleccionado && !clienteFinalSeleccionado.id) {
+                let ciudadId = null;
+                if (clienteFinalSeleccionado.ciudad) {
+                    const { data: cityData } = await supabase
+                        .from('ciudades')
+                        .select('id, zona_id')
+                        .ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`)
+                        .limit(1)
+                        .single();
+                    if (cityData) {
+                        ciudadId = cityData.id;
+                        if (!zoneId && cityData.zona_id) {
+                            zoneId = cityData.zona_id;
+                        }
+                    }
+                }
+
+                const { data: savedId, error: saveError } = await supabase
+                    .rpc('upsert_consumidor_with_return', {
+                        p_cedula: clienteFinalSeleccionado.cedula,
+                        p_contacto: clienteFinalSeleccionado.contacto,
+                        p_telefono: clienteFinalSeleccionado.telefono,
+                        p_direccion: clienteFinalSeleccionado.direccion,
+                        p_correo_electronico: clienteFinalSeleccionado.correo_electronico,
+                        p_ciudad_id: ciudadId,
+                        p_barrio: null,
+                        p_descripcion_direccion: null
+                    });
+
+                if (!saveError && savedId) {
+                    finalConsumidorId = savedId;
+                } else if (saveError) {
+                    console.error("Error al auto-crear consumidor:", saveError);
+                }
+            }
+
+            // Determine Coordinator based on Zone (as requested)
             // Fallback for Ecommerce if no client zone
             if (!zoneId && isEcommerce) {
                 zoneId = 985; // Antioquia/Firplak B2C
@@ -436,7 +489,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                     consecutivo: consecutivo,
                     numero_de_pedido: numeroPedido,
                     comercial_id: currentUser?.id,
-                    consumidor_id: llevaClienteFinal ? (clienteFinalSeleccionado?.id || null) : null,
+                    consumidor_id: finalConsumidorId,
                     estado: true,
                     ubicacion_id: canalVenta === 'canal_propio_ecommerce' ? 2126 : clienteSeleccionado?.id,
                     coordinador_id: finalCoordinadorId,
@@ -1014,9 +1067,12 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         {adjuntos.length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                 {adjuntos.map((item, idx) => {
-                                    const { file, isHidden } = item;
-                                    const isImage = file.type.startsWith('image/');
-                                    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+                                    const { file, url, name, isHidden } = item;
+                                    const isImage = file ? file.type.startsWith('image/') : url?.match(/\.(jpeg|jpg|gif|png|webp|jfif)(\?.*)?$/i) != null;
+                                    const isVideo = file ? file.type.startsWith('video/') : url?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) != null;
+                                    const previewUrl = file ? URL.createObjectURL(file) : url;
+                                    const displayName = file ? file.name : name;
+                                    const displaySize = file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Enlace adjunto';
 
                                     return (
                                         <div key={idx} className={`relative group bg-slate-50 rounded-xl border overflow-hidden transition-all ${isHidden ? 'border-amber-200 ring-2 ring-amber-500/20' : 'border-slate-200'}`}>
@@ -1028,7 +1084,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                                                         alt="preview"
                                                         className={`w-full h-full object-cover ${isHidden ? 'grayscale opacity-50' : ''}`}
                                                     />
-                                                ) : file.type.startsWith('video/') ? (
+                                                ) : isVideo ? (
                                                     <div className={`flex flex-col items-center gap-1 ${isHidden ? 'opacity-40' : ''}`}>
                                                         <Video className="w-10 h-10 text-brand" />
                                                         <span className="text-[8px] font-black uppercase text-brand/60">Video</span>
@@ -1062,7 +1118,8 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setPreviewFile(file);
+                                                            if (file) setPreviewFile(file);
+                                                            else window.open(url, '_blank');
                                                         }}
                                                         className="bg-white/20 backdrop-blur-md text-white p-2 rounded-full hover:bg-white/40 transition-colors shadow-lg"
                                                         title="Ver archivo"
@@ -1084,8 +1141,8 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
 
                                             {/* File Info */}
                                             <div className="p-2 bg-white">
-                                                <p className="text-[10px] font-bold text-slate-700 truncate" title={file.name}>{file.name}</p>
-                                                <p className="text-[9px] text-slate-400 font-medium">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                <p className="text-[10px] font-bold text-slate-700 truncate" title={displayName}>{displayName}</p>
+                                                <p className="text-[9px] text-slate-400 font-medium">{displaySize}</p>
                                             </div>
                                         </div>
                                     );
