@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import ServiceCard from '@/components/servicios-abiertos/ServiceCard';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
+import ModalExportarCSV from '@/components/servicios-abiertos/ModalExportarCSV';
 
 export default function ServiciosAbiertosPage() {
     const router = useRouter();
@@ -31,7 +32,8 @@ export default function ServiciosAbiertosPage() {
 
     // Filter States
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterDate, setFilterDate] = useState('');
+    const [filterDateStart, setFilterDateStart] = useState('');
+    const [filterDateEnd, setFilterDateEnd] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [filterTechnician, setFilterTechnician] = useState('');
     const [filterMacAdvisor, setFilterMacAdvisor] = useState('');
@@ -39,6 +41,7 @@ export default function ServiciosAbiertosPage() {
     const [assigningMacService, setAssigningMacService] = useState<any>(null);
     const [isUpdatingMac, setIsUpdatingMac] = useState(false);
     const [closingService, setClosingService] = useState<any>(null);
+    const [showExportModal, setShowExportModal] = useState(false);
 
     // Pagination States
     const [currentPage, setCurrentPage] = useState(1);
@@ -133,8 +136,12 @@ export default function ServiciosAbiertosPage() {
             );
         }
 
-        if (filterDate) {
-            result = result.filter(s => s.created_at?.startsWith(filterDate));
+        if (filterDateStart) {
+            result = result.filter(s => s.created_at && s.created_at >= filterDateStart);
+        }
+        if (filterDateEnd) {
+            // Include entire end day
+            result = result.filter(s => s.created_at && s.created_at <= filterDateEnd + 'T23:59:59.999Z');
         }
 
         if (filterStatus) {
@@ -174,11 +181,12 @@ export default function ServiciosAbiertosPage() {
 
         setFilteredServices(result);
         setCurrentPage(1); // Reset to first page on filter change
-    }, [searchTerm, filterDate, filterStatus, filterTechnician, filterMacAdvisor, showUnassignedOnly, services]);
+    }, [searchTerm, filterDateStart, filterDateEnd, filterStatus, filterTechnician, filterMacAdvisor, showUnassignedOnly, services]);
 
     const handleClearFilters = () => {
         setSearchTerm('');
-        setFilterDate('');
+        setFilterDateStart('');
+        setFilterDateEnd('');
         setFilterStatus('');
         setFilterTechnician('');
         setFilterMacAdvisor('');
@@ -208,28 +216,7 @@ export default function ServiciosAbiertosPage() {
     };
 
     const handleExportCSV = () => {
-        // Simple CSV export
-        const headers = ["Consecutivo", "Tipo", "Estado", "Cliente", "Ciudad", "Fecha", "Tecnico"];
-        const rows = filteredServices.map(s => [
-            s.consecutivo,
-            s.tipoDeServicio,
-            s.estadoAgendamiento,
-            s.ubicacionNombre || s.consumidorNombre,
-            s.ubicacionCiudad || s.consumidorCiudad,
-            s.created_at,
-            s.tecnicoNombre
-        ]);
-
-        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `servicios_abiertos_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        setShowExportModal(true);
     };
 
     const handleAssignMac = async (advisorId: string, advisorName: string) => {
@@ -337,17 +324,31 @@ export default function ServiciosAbiertosPage() {
                             </div>
                         </div>
 
-                        {/* Date */}
+                        {/* Date Range */}
                         <div className="flex flex-col gap-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Fecha solicitud</label>
-                            <div className="relative group">
-                                <CalendarIcon className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    type="date"
-                                    className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-11 pr-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand/20 transition-all"
-                                    value={filterDate}
-                                    onChange={(e) => setFilterDate(e.target.value)}
-                                />
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Fecha de creación</label>
+                            <div className="flex items-center gap-2">
+                                <div className="relative group flex-1">
+                                    <CalendarIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="date"
+                                        className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-9 pr-2 text-[11px] font-bold text-slate-700 focus:ring-2 focus:ring-brand/20 transition-all"
+                                        value={filterDateStart}
+                                        onChange={(e) => setFilterDateStart(e.target.value)}
+                                        title="Fecha de inicio"
+                                    />
+                                </div>
+                                <span className="text-slate-300 font-bold">-</span>
+                                <div className="relative group flex-1">
+                                    <CalendarIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="date"
+                                        className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-9 pr-2 text-[11px] font-bold text-slate-700 focus:ring-2 focus:ring-brand/20 transition-all"
+                                        value={filterDateEnd}
+                                        onChange={(e) => setFilterDateEnd(e.target.value)}
+                                        title="Fecha fin"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -587,6 +588,12 @@ export default function ServiciosAbiertosPage() {
                 }}
                 service={closingService}
                 currentUser={profile}
+            />
+
+            <ModalExportarCSV 
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                services={filteredServices}
             />
         </div>
     );

@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Settings,
   Link,
-  AlertTriangle
+  AlertTriangle,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -174,6 +175,7 @@ export default function Home() {
     'Base de datos': '/base-de-datos',
     'Inventario Almacenes': '/inventario',
     'Agenda Tecnicos': '/agenda-tecnicos',
+    'Solicitudes Clientes': '/solicitudes-clientes',
     'BI': '/bi',
     'Indicador quejas': '/indicador-quejas',
     'Configuración': '/configuracion',
@@ -191,6 +193,7 @@ export default function Home() {
     { title: 'Base de datos', icon: Database, color: 'bg-brand' },
     { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-600' },
     { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-600' },
+    { title: 'Solicitudes Clientes', icon: Users, color: 'bg-blue-600' },
     { title: 'BI', icon: BarChart3, color: 'bg-brand' },
     { title: 'Indicador quejas', icon: AlertTriangle, color: 'bg-rose-500' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
