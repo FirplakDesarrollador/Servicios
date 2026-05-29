@@ -77,7 +77,7 @@ export default function ServiceHistoryCard({ service }: ServiceHistoryCardProps)
                         De {formatTime(service.fecha_hora_inicio)} a {formatTime(service.fecha_hora_fin)}
                     </span>
                     <button
-                        onClick={() => router.push(`/servicios/${service.servicio_id}`)}
+                        onClick={() => router.push(`/ver-servicio/${service.servicio_id}`)}
                         className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                         aria-label="Ver detalles"
                     >
