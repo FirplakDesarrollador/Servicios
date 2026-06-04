@@ -161,8 +161,10 @@ const buildServiceReportHtml = ({
     ]);
 
     const distributorRows = buildReportRows([
-        ['Nombre', service.ubicacion_nombre],
-        ['NIT', service.ubicacion_nit],
+        ['Cliente', service.cliente_nombre || '---'],
+        ['NIT Cliente', service.cliente_nit || '---'],
+        ['Obra / Ubicacion', service.ubicacion_nombre],
+        ['NIT Obra', service.ubicacion_nit],
         ['Departamento', service.ubicacion_departamento],
         ['Ciudad', service.ubicacion_ciudad],
         ['Direccion', service.ubicacion_direccion],
@@ -791,8 +793,10 @@ function InformacionTab({
 
                     {/* Canal Data Section */}
                     <InfoSection title="Datos del Canal / Distribuidor">
-                        <InfoField label="Nombre" value={service.ubicacion_nombre} />
-                        <InfoField label="NIT" value={service.ubicacion_nit} />
+                        <InfoField label="Cliente" value={service.cliente_nombre || '---'} />
+                        <InfoField label="NIT Cliente" value={service.cliente_nit || '---'} />
+                        <InfoField label="Obra / Ubicación" value={service.ubicacion_nombre} />
+                        <InfoField label="NIT Obra" value={service.ubicacion_nit} />
                         <InfoField label="Departamento" value={service.ubicacion_departamento} />
                         <InfoField label="Ciudad" value={service.ubicacion_ciudad} />
                         <InfoField label="Dirección" value={service.ubicacion_direccion} fullWidth />
