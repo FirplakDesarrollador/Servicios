@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Save, ShoppingCart, Image as ImageIcon, Camera, Share2, Briefcase } from 'lucide-react'
+import { ArrowLeft, Save, ShoppingCart, Image as ImageIcon, Camera, Share2, Briefcase, Trash2 } from 'lucide-react'
+import BuscadorProductos from '@/components/solicitar-servicio/BuscadorProductos'
 
 // Main component wrapped in Suspense
 export default function SalaDetailsPage() {
@@ -24,6 +25,7 @@ function SalaDetailsContent() {
     const [sala, setSala] = useState<any>(null)
     const [productos, setProductos] = useState<any[]>([])
     const [asesores, setAsesores] = useState<any[]>([])
+    const [showBuscadorProductos, setShowBuscadorProductos] = useState(false)
 
     // Form state
     const [formData, setFormData] = useState({
@@ -148,6 +150,52 @@ function SalaDetailsContent() {
             alert('Hubo un error al guardar los datos.')
         } finally {
             setSaving(false)
+        }
+    }
+
+    const handleAddProduct = async (productoItem: any) => {
+        if (!id) return;
+        try {
+            const { data: userData } = await supabase.auth.getUser();
+            const userId = userData.user?.id;
+
+            const { error } = await supabase.from('exhibiciones').insert({
+                producto_id: productoItem.id,
+                ubicacion_id: id,
+                created_by: userId,
+                comentario: productoItem.nombre,
+                mueble_marcado: false
+            });
+
+            if (error) throw error;
+            
+            // Reload productos
+            const { data: productosData } = await supabase
+                .from('query_exhibiciones')
+                .select('*')
+                .eq('ubicacion_id', id);
+
+            if (productosData) setProductos(productosData);
+            setShowBuscadorProductos(false);
+            alert('Producto agregado correctamente');
+        } catch (error: any) {
+            console.error('Error adding product:', error);
+            alert('Hubo un error al agregar el producto: ' + error.message);
+        }
+    }
+
+    const handleRemoveProduct = async (exhibicionId: number) => {
+        try {
+            const { error } = await supabase
+                .from('exhibiciones')
+                .delete()
+                .eq('id', exhibicionId);
+            if (error) throw error;
+
+            setProductos(prev => prev.filter(p => p.id !== exhibicionId));
+        } catch (error: any) {
+            console.error('Error deleting product:', error);
+            alert('Error al eliminar producto');
         }
     }
 
@@ -345,7 +393,10 @@ function SalaDetailsContent() {
                         <div className="lg:col-span-5 space-y-3">
                             <div className="flex justify-between items-center">
                                 <span className="font-semibold text-gray-700 text-sm">Productos: {productos.length}</span>
-                                <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                                <button 
+                                    onClick={() => setShowBuscadorProductos(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                                >
                                     <ShoppingCart className="w-4 h-4" />
                                     Agregar producto
                                 </button>
@@ -357,9 +408,17 @@ function SalaDetailsContent() {
                                     </div>
                                 ) : (
                                     productos.map(p => (
-                                        <div key={p.id} className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm text-xs">
-                                            <div className="font-medium text-gray-800">{p.producto_descripcion || p.producto_sku || 'Producto'}</div>
-                                            <div className="text-gray-500 mt-1">{p.producto_grupo}</div>
+                                        <div key={p.id} className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm text-xs flex justify-between items-center">
+                                            <div>
+                                                <div className="font-medium text-gray-800">{p.producto_descripcion || p.producto_sku || 'Producto'}</div>
+                                                <div className="text-gray-500 mt-1">{p.producto_grupo}</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleRemoveProduct(p.id)}
+                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     ))
                                 )}
@@ -387,7 +446,19 @@ function SalaDetailsContent() {
                                         <ImageIcon className="w-5 h-5" />
                                     </button>
                                 </div>
-                                <button className="flex items-center gap-2 px-5 py-2 border border-gray-300 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-all">
+                                <button 
+                                    onClick={() => {
+                                        const hasInvalidSku = productos.some(p => !p.producto_sku || p.producto_sku === '');
+                                        if (hasInvalidSku) {
+                                            alert('Algunos productos no tienen el sku bien definido, debes eliminar los que estan nulos y seleccionarlos correctamente');
+                                            return;
+                                        }
+                                        if (confirm('¿Desea abrir un nuevo servicio para este cliente?')) {
+                                            router.push('/solicitar-servicio?ubicacion_id=' + id);
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-5 py-2 border border-gray-300 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-all"
+                                >
                                     <Briefcase className="w-4 h-4" />
                                     Crear servicio
                                 </button>
@@ -410,6 +481,15 @@ function SalaDetailsContent() {
                     </button>
                 </div>
             </div>
+
+            {showBuscadorProductos && (
+                <BuscadorProductos
+                    productosSeleccionados={[]} // In FF it shows nothing or the ones already there. We just want to add one.
+                    onAdd={(item) => handleAddProduct(item)}
+                    onRemove={() => {}}
+                    onClose={() => setShowBuscadorProductos(false)}
+                />
+            )}
         </div>
     )
 }

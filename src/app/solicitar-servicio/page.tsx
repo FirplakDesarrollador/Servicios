@@ -202,6 +202,44 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 }
             }
 
+            // Handle ubicacion_id pre-fill (from sala-details)
+            const ubicacionId = searchParams.get('ubicacion_id');
+            if (ubicacionId) {
+                const { data: ubicacionData } = await supabase
+                    .from('Ubicaciones')
+                    .select('*')
+                    .eq('id', ubicacionId)
+                    .single();
+
+                if (ubicacionData) {
+                    setClienteSeleccionado(ubicacionData);
+                    // Decide canalVenta based on ubicacionData or default to canal_ditribuidor
+                    if (ubicacionData.id === 515 || ubicacionData.id === 516) {
+                        setCanalVenta('canal_propio_ecommerce');
+                        setLlevaClienteFinal(true);
+                    } else {
+                        setCanalVenta('canal_ditribuidor');
+                    }
+                    
+                    // Fetch products of this ubicacion as default? 
+                    // Wait, in FF it auto-populates products from exhibiciones.
+                    const { data: exhibicionesData } = await supabase
+                        .from('query_exhibiciones')
+                        .select('*')
+                        .eq('ubicacion_id', ubicacionId);
+
+                    if (exhibicionesData) {
+                        const formattedProducts = exhibicionesData.map(ps => ({
+                            id: ps.producto_id,
+                            sku: ps.producto_sku,
+                            nombre: ps.producto_descripcion,
+                            cantidad: 1
+                        }));
+                        setProductosSeleccionados(formattedProducts);
+                    }
+                }
+            }
+
             setLoading(false);
         };
 
