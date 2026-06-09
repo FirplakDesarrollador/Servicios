@@ -45,94 +45,37 @@ export default function ExhibicionesPage() {
         }
     }, [])
 
-    // Load user data and salas (only on mount)
+    // Load user data
     useEffect(() => {
         isMountedRef.current = true
 
-        async function loadData() {
+        async function loadProfile() {
             if (!isMountedRef.current) return
-
-            console.log('[Exhibiciones] Starting data load...')
-            if (isMountedRef.current) setLoading(true)
-
             try {
-                // Get session
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-                console.log('[Exhibiciones] Session check:', { hasSession: !!session, error: sessionError })
-
+                const { data: { session } } = await supabase.auth.getSession()
                 if (!session) {
-                    console.log('[Exhibiciones] No session, redirecting to login')
                     router.push('/login')
                     return
                 }
 
-                if (!isMountedRef.current) return
-
-                // Get user profile
-                console.log('[Exhibiciones] Fetching profile for uid:', session.user.id)
                 const { data: profile, error: profileError } = await supabase
                     .from('Usuarios')
                     .select('id, rol, id_colaboradores')
                     .eq('user_id', session.user.id)
                     .maybeSingle()
 
-                console.log('[Exhibiciones] Profile query result:', { profile, error: profileError })
-
-                if (profileError) {
-                    console.error('[Exhibiciones] Profile error details:', {
-                        message: profileError.message,
-                        details: profileError.details,
-                        hint: profileError.hint,
-                        code: profileError.code
-                    })
-                    if (isMountedRef.current) setLoading(false)
+                if (profileError || !profile) {
+                    console.error('[Exhibiciones] Profile error:', profileError)
                     return
                 }
 
-                if (!profile) {
-                    console.error('[Exhibiciones] No profile found for user')
-                    if (isMountedRef.current) setLoading(false)
-                    return
+                if (isMountedRef.current) {
+                    setUserId(profile.id)
+                    setUserRole(profile.rol)
+                    setUserColaboradores(profile.id_colaboradores || [])
                 }
-
-                if (!isMountedRef.current) return
-
-                console.log('[Exhibiciones] Profile loaded successfully:', { id: profile.id, rol: profile.rol })
-                setUserId(profile.id)
-                setUserRole(profile.rol)
-                setUserColaboradores(profile.id_colaboradores || [])
-
-                // Load ALL salas (we'll filter by estadoActivo in the UI)
-                console.log('[Exhibiciones] Loading all salas for userId:', profile.id, 'rol:', profile.rol)
-
-                // No role-based filtering: show all salas to everyone
-                let query = supabase
-                    .from('query_ubicaciones')
-                    .select('*')
-
-
-                const { data: salasData, error: salasError } = await query
-
-                if (salasError) {
-                    console.error('[Exhibiciones] Error loading salas:', {
-                        message: salasError.message,
-                        details: salasError.details,
-                        hint: salasError.hint,
-                        code: salasError.code
-                    })
-                    if (isMountedRef.current) setLoading(false)
-                    return
-                }
-
-                if (!isMountedRef.current) return
-
-                console.log('[Exhibiciones] Salas loaded:', salasData?.length || 0)
-                if (salasData && salasData.length > 0) {
-                    console.log('[Exhibiciones] First sala sample:', salasData[0])
-                }
-                setSalas(salasData || [])
-
-                // Always load all advisors for everyone
+                
+                // Always load all advisors for everyone once
                 const { data: asesoresData } = await supabase
                     .from('Usuarios')
                     .select('id, display_name')
@@ -143,33 +86,65 @@ export default function ExhibicionesPage() {
                     setAsesores(asesoresData)
                 }
 
-
             } catch (error) {
-                console.error('[Exhibiciones] Unexpected error:', error)
-                if (isMountedRef.current) setLoading(false)
-            } finally {
-                if (isMountedRef.current) {
-                    console.log('[Exhibiciones] Setting loading to false')
-                    setLoading(false)
-                }
+                console.error('[Exhibiciones] Unexpected profile error:', error)
             }
         }
 
-        loadData()
+        loadProfile()
 
-        // Cleanup function
         return () => {
             isMountedRef.current = false
         }
-    }, []) // Only run on mount, not when estadoActivo changes
+    }, [router])
+
+    // Load salas when user or estadoActivo changes
+    useEffect(() => {
+        if (!userId || !userRole) return
+
+        let isActive = true
+        async function loadSalas() {
+            setLoading(true)
+            try {
+                let query = supabase
+                    .from('query_ubicaciones')
+                    .select('*')
+                    .eq('activo', estadoActivo)
+                    .in('cliente_tipo', ['Distribuidor', 'Propio'])
+
+                if (['comercial', 'promotor', 'asesor_tecnico'].includes(userRole)) {
+                    const validIds = [userId!, ...(userColaboradores || [])]
+                    query = query.in('asesor_id', validIds)
+                }
+
+                const { data: salasData, error: salasError } = await query.limit(3000)
+
+                if (salasError) {
+                    console.error('[Exhibiciones] Error loading salas:', salasError)
+                    if (isActive) setLoading(false)
+                    return
+                }
+
+                if (isActive) {
+                    setSalas(salasData || [])
+                }
+            } catch (error) {
+                console.error('[Exhibiciones] Unexpected salas error:', error)
+            } finally {
+                if (isActive) setLoading(false)
+            }
+        }
+
+        loadSalas()
+
+        return () => {
+            isActive = false
+        }
+    }, [userId, userRole, userColaboradores, estadoActivo])
 
     // Filter salas (now includes estadoActivo filter)
     const filteredSalas = useMemo(() => {
         return salas.filter(sala => {
-            // Filter by estadoActivo
-            if (sala.activo !== estadoActivo) {
-                return false
-            }
 
             // Búsqueda avanzada
             if (busqueda) {
