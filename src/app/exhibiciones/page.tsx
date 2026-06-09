@@ -1,8 +1,5 @@
 'use client'
 
-// Disable caching for this page to prevent loading state issues
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
