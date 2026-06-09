@@ -73,7 +73,7 @@ export default function ExhibicionesPage() {
                 const { data: profile, error: profileError } = await supabase
                     .from('Usuarios')
                     .select('id, rol, id_colaboradores')
-                    .eq('uid', session.user.id)
+                    .eq('user_id', session.user.id)
                     .maybeSingle()
 
                 console.log('[Exhibiciones] Profile query result:', { profile, error: profileError })
