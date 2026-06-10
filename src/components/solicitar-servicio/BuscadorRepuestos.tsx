@@ -128,7 +128,7 @@ export default function BuscadorRepuestos({ repuestosSeleccionados, onAdd, onRem
                                                         {item.sku}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm font-medium text-slate-700 truncate" title={item.nombre}>
+                                                <p className="text-sm font-medium text-slate-700 line-clamp-2 leading-tight" title={item.nombre}>
                                                     {item.nombre}
                                                 </p>
                                                 <p className="text-[10px] text-slate-400 font-medium mt-0.5">

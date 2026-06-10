@@ -8,61 +8,49 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Outfit", var(--font-geist-sans);
+  --font-sans: "Inter", "Outfit", var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-brand: #254153;
-  --color-brand-light: #3a5d73;
-  --color-brand-dark: #1a2e3b;
-
-  /* Glassmorphism primitives */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.3);
-  --glass-blur: 12px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand: #0F172A;
+  --color-brand-light: #334155;
+  --color-brand-dark: #020617;
+  --color-accent: #3B82F6;
+  --color-success: #10B981;
+  --color-border: #E2E8F0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Outfit", Arial, Helvetica, sans-serif;
+  background: #F8FAFC;
+  color: #1E293B;
+  font-family: "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+.enterprise-card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .premium-shadow {
-  box-shadow: 0 10px 30px -5px rgba(37, 65, 83, 0.1),
-    0 4px 12px -2px rgba(37, 65, 83, 0.05);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-radius: 10px;
+  background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-  border: 2px solid #f8fafc;
+  background: #CBD5E1;
+  border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #94A3B8;
 }
