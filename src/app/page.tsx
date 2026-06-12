@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Settings,
   Link,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -79,7 +80,7 @@ export default function Home() {
           setProfile(userData);
 
           // Grant all permissions to all users
-          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración']);
+          setPermissions(['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado', 'Aprobaciones', 'Mi agenda', 'Historial de servicios', 'Ayuda', 'Exhibiciones', 'Base de datos', 'Inventario Almacenes', 'Agenda Tecnicos', 'BI', 'Configuración', 'Registro solicitud']);
         }
       } catch (error) {
         console.error('Auth verification failed:', error);
@@ -172,6 +173,7 @@ export default function Home() {
     'BI': '/bi',
     'Indicador quejas': '/indicador-quejas',
     'Configuración': '/configuracion',
+    'Registro solicitud': '/registro-solicitud',
   };
 
   const allMenuItems = [
@@ -189,6 +191,7 @@ export default function Home() {
     { title: 'BI', icon: BarChart3, color: 'bg-brand' },
     { title: 'Indicador quejas', icon: AlertTriangle, color: 'bg-rose-500' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
+    { title: 'Registro solicitud', icon: FileText, color: 'bg-cyan-600' },
   ];
 
   const CLIENT_ITEMS = ['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado'];
@@ -224,12 +227,12 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="pt-20 pb-10 px-4 max-w-6xl mx-auto flex flex-col items-center">
+      <main className="pt-20 pb-10 px-6 w-full max-w-[1600px] xl:max-w-[1750px] mx-auto flex flex-col items-center">
         {/* Compact Profile Card */}
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-2xl bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white mb-10 flex items-center gap-6 relative overflow-hidden"
+          className="w-full max-w-3xl bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white mb-10 flex items-center gap-6 relative overflow-hidden"
         >
           {/* Decorative Background Blob */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl" />
@@ -268,7 +271,7 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={copyFormLink}
-            className="w-full max-w-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all mb-10 flex items-center justify-center gap-3 group"
+            className="w-full max-w-3xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all mb-10 flex items-center justify-center gap-3 group"
           >
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
               <Link className="w-5 h-5" />
@@ -281,7 +284,7 @@ export default function Home() {
         )}
 
         {/* Compact Action Grid */}
-        <div className={`grid gap-6 w-full justify-center ${isCliente ? 'grid-cols-1 sm:grid-cols-3 max-w-2xl' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7'}`}>
+        <div className={`grid gap-6 w-full justify-center ${isCliente ? 'grid-cols-1 sm:grid-cols-3 max-w-2xl' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10'}`}>
           {filteredItems.map((item, index) => (
             <motion.button
               key={item.title}

@@ -24,13 +24,14 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [totalCount, setTotalCount] = useState<number>(0);
 
     useEffect(() => {
         const search = async () => {
             setLoading(true);
             setSearchError(null);
             try {
-                let query = supabase.from('Productos').select('*');
+                let query = supabase.from('Productos').select('*', { count: 'exact' });
 
                 if (grupo) {
                     query = query.eq('grupo', grupo);
@@ -40,12 +41,13 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                     query = query.or(`nombre.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,color_base.ilike.%${searchTerm}%,color_mueble.ilike.%${searchTerm}%`);
                 }
 
-                const { data, error } = await query
+                const { data, error, count } = await query
                     .order('nombre', { ascending: true })
                     .limit(50);
 
                 if (error) throw error;
                 setResults(data || []);
+                setTotalCount(count || 0);
             } catch (err: any) {
                 console.error('Error searching products:', err);
                 setSearchError(err.message || 'Error al buscar productos');
@@ -128,9 +130,9 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                             <div className="w-full max-w-[450px] flex flex-col gap-2">
                                 <div className="flex items-center gap-1">
                                     <span className="text-sm text-slate-700">Productos encontrados:</span>
-                                    <span className="text-sm text-slate-400 font-light">{results.length}</span>
+                                    <span className="text-sm text-slate-400 font-light">{totalCount}</span>
                                 </div>
-                                <div className="bg-white rounded-lg border border-slate-200 min-h-[300px] flex flex-col p-1 gap-1.5">
+                                <div className="bg-white rounded-lg border border-slate-200 h-[380px] overflow-y-auto custom-scrollbar flex flex-col p-1 gap-1.5">
                                     {loading ? (
                                         <div className="flex items-center justify-center h-40">
                                             <Loader2 className="w-6 h-6 animate-spin text-brand" />
@@ -174,7 +176,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                                     <span className="text-sm text-slate-700">Productos seleccionados:</span>
                                     <span className="text-sm text-slate-400 font-light">{productosSeleccionados.length}</span>
                                 </div>
-                                <div className="bg-white rounded-lg border border-slate-200 min-h-[300px] flex flex-col p-1 gap-1.5">
+                                <div className="bg-white rounded-lg border border-slate-200 h-[380px] overflow-y-auto custom-scrollbar flex flex-col p-1 gap-1.5">
                                     {productosSeleccionados.length > 0 ? (
                                         productosSeleccionados.map((item, idx) => (
                                             <div key={`sel-${idx}`} className="bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-2">
