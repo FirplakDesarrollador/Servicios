@@ -32,6 +32,7 @@ const ALL_MODULES = [
     'Agenda Tecnicos',
     'BI',
     'Indicador quejas',
+    'Registro Solicitudes',
     'Configuración'
 ];
 

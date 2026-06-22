@@ -24,7 +24,8 @@ import {
   Settings,
   Link,
   AlertTriangle,
-  Users
+  Users,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -178,6 +179,7 @@ export default function Home() {
     'Solicitudes Clientes': '/solicitudes-clientes',
     'BI': '/bi',
     'Indicador quejas': '/indicador-quejas',
+    'Registro Solicitudes': '/registro-solicitudes',
     'Configuración': '/configuracion',
   };
 
@@ -196,6 +198,7 @@ export default function Home() {
     { title: 'Solicitudes Clientes', icon: Users, color: 'bg-blue-600' },
     { title: 'BI', icon: BarChart3, color: 'bg-brand' },
     { title: 'Indicador quejas', icon: AlertTriangle, color: 'bg-rose-500' },
+    { title: 'Registro Solicitudes', icon: FileText, color: 'bg-sky-500' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];
 
