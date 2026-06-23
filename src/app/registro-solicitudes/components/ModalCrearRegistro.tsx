@@ -56,9 +56,15 @@ export default function ModalCrearRegistro({
             const userId = userRes.data?.user?.id;
 
             let tratadoPorId = null;
+            let asesorMacId = null;
             if (userId) {
-                const { data: userData } = await supabase.from('Usuarios').select('id').eq('user_id', userId).single();
-                if (userData) tratadoPorId = userData.id;
+                const { data: userData } = await supabase.from('Usuarios').select('id, rol').eq('user_id', userId).single();
+                if (userData) {
+                    tratadoPorId = userData.id;
+                    if (userData.rol && userData.rol.toLowerCase() === 'mac') {
+                        asesorMacId = userData.id;
+                    }
+                }
             }
 
             // Mapeamos los arrays eliminando información innecesaria y guardando id, sku, nombre, cantidad
@@ -84,6 +90,7 @@ export default function ModalCrearRegistro({
                     productos_novedad: formatProducts(productosNovedad),
                     comentarios: comentarios,
                     tratado_por_id: tratadoPorId,
+                    asesor_mac_id: asesorMacId,
                     estado: 'Abierto',
                     prioridad: 'Media'
                 });
