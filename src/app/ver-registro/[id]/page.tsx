@@ -203,13 +203,6 @@ export default function VerRegistroPage() {
                             <Package className="w-4 h-4" />
                             Productos
                         </button>
-                        <button
-                            onClick={() => setActiveTab('clasificacion')}
-                            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200 bg-brand text-white hover:bg-brand/90 shadow-sm transition-colors"
-                        >
-                            <Tag className="w-4 h-4" />
-                            Clasificación
-                        </button>
                         <span className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border ${status === 'Abierto' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
                             {status}
                         </span>

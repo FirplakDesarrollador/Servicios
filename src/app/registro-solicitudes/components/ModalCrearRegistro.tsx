@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Search, Plus, Trash2, Package, Sparkles, Receipt, Tags, Store, Users, MessageSquare } from 'lucide-react';
+import { X, Save, Search, Plus, Trash2, Package, Sparkles, Receipt, Tags, Store, Users, MessageSquare, Paperclip, File as FileIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
@@ -23,6 +23,7 @@ export default function ModalCrearRegistro({
     const [tipoSolicitud, setTipoSolicitud] = useState('');
     const [canalVenta, setCanalVenta] = useState('');
     const [comentarios, setComentarios] = useState('');
+    const [archivos, setArchivos] = useState<File[]>([]);
     
     // Clients & Products
     const [cliente, setCliente] = useState<any>(null);
@@ -97,6 +98,51 @@ export default function ModalCrearRegistro({
 
             if (error) throw error;
             
+            const hasComentario = comentarios.trim().length > 0;
+            const hasArchivos = archivos.length > 0;
+
+            if (hasComentario || hasArchivos) {
+                const uploadedUrls = [];
+                if (hasArchivos) {
+                    for (const file of archivos) {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                        
+                        const sanitizePath = (path: string) => {
+                            return path
+                                .normalize("NFD")
+                                .replace(/[\u0300-\u036f]/g, "")
+                                .replace(/ñ/g, "n")
+                                .replace(/Ñ/g, "N")
+                                .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
+                        };
+
+                        const folderPath = sanitizePath(consecutivoStr);
+                        const filePath = `registrosMAC/${folderPath}/comentarios/${fileName}`;
+
+                        const { error: uploadError } = await supabase.storage
+                            .from('servicios')
+                            .upload(filePath, file);
+
+                        if (!uploadError) {
+                            const { data: { publicUrl } } = supabase.storage
+                                .from('servicios')
+                                .getPublicUrl(filePath);
+                            uploadedUrls.push({ url: publicUrl, name: file.name, type: file.type });
+                        }
+                    }
+                }
+
+                await supabase
+                    .from('Comentarios_RegistroMAC')
+                    .insert({
+                        numero_radicado: consecutivoStr,
+                        autor: tratadoPorId,
+                        comentario: hasComentario ? comentarios.trim() : "Archivos adjuntos iniciales",
+                        adjuntos: uploadedUrls.length > 0 ? uploadedUrls : null
+                    });
+            }
+
             onSuccess();
         } catch (error: any) {
             console.error('Error saving:', error);
@@ -415,15 +461,51 @@ export default function ModalCrearRegistro({
 
                             {/* Comentarios */}
                             <div className="md:col-span-2 space-y-2 mt-2">
-                                <label className="flex items-center gap-1.5 text-sm font-bold text-slate-700 ml-1">
-                                    <MessageSquare className="w-4 h-4 text-slate-400" /> Comentarios
-                                </label>
+                                <div className="flex items-center justify-between ml-1">
+                                    <label className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+                                        <MessageSquare className="w-4 h-4 text-slate-400" /> Comentarios
+                                    </label>
+                                    <label className="flex items-center gap-1.5 text-xs font-bold text-brand cursor-pointer hover:text-brand/80 transition-colors">
+                                        <Paperclip className="w-3.5 h-3.5" /> Adjuntar archivos
+                                        <input 
+                                            type="file" 
+                                            multiple 
+                                            className="hidden" 
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files.length > 0) {
+                                                    const newFiles = Array.from(e.target.files);
+                                                    setArchivos(prev => [...prev, ...newFiles]);
+                                                }
+                                                // Retrasamos el reset para evitar problemas de compatibilidad
+                                                setTimeout(() => {
+                                                    if (e.target) e.target.value = '';
+                                                }, 100);
+                                            }} 
+                                        />
+                                    </label>
+                                </div>
                                 <textarea
                                     value={comentarios}
                                     onChange={(e) => setComentarios(e.target.value)}
                                     placeholder="Detalles adicionales de la solicitud..."
-                                    className="w-full p-3.5 bg-white border border-slate-300 hover:border-slate-400 focus:bg-white rounded-xl text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all min-h-[100px] resize-none"
+                                    className="w-full p-3.5 bg-white border border-slate-300 hover:border-slate-400 focus:bg-white rounded-xl text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all min-h-[100px] resize-none custom-scrollbar"
                                 />
+                                {archivos.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {archivos.map((file, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 bg-slate-100 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-medium">
+                                                <FileIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                <span className="truncate max-w-[150px]">{file.name}</span>
+                                                <button
+                                                    onClick={() => setArchivos(archivos.filter((_, i) => i !== idx))}
+                                                    className="text-slate-400 hover:text-red-500 transition-colors ml-1"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                         </div>
