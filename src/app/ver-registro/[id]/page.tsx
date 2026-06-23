@@ -196,6 +196,28 @@ export default function VerRegistroPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        <select
+                            value={registro.prioridad || 'Media'}
+                            onChange={async (e) => {
+                                const newPrioridad = e.target.value;
+                                try {
+                                    const { error } = await supabase.from('registro_solicitudes').update({ prioridad: newPrioridad }).eq('id', registro.id);
+                                    if (error) throw error;
+                                    setRegistro((prev: any) => ({ ...prev, prioridad: newPrioridad }));
+                                } catch (error) {
+                                    console.error('Error updating prioridad:', error);
+                                    alert('Error al actualizar la prioridad');
+                                }
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest border outline-none cursor-pointer transition-colors shadow-sm text-center appearance-none
+                                ${registro.prioridad === 'Alta' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : 
+                                  registro.prioridad === 'Baja' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 
+                                  'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                        >
+                            <option value="Alta">Prioridad: Alta</option>
+                            <option value="Media">Prioridad: Media</option>
+                            <option value="Baja">Prioridad: Baja</option>
+                        </select>
                         <button
                             onClick={() => setIsProductosModalOpen(true)}
                             className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-sm transition-colors"
@@ -203,8 +225,28 @@ export default function VerRegistroPage() {
                             <Package className="w-4 h-4" />
                             Productos
                         </button>
-                        <span className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border ${status === 'Abierto' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                            {status}
+                        <button
+                            onClick={async () => {
+                                const isCurrentlyClosed = registro.cerrada || registro.estado === 'Cerrado';
+                                const newCerrada = !isCurrentlyClosed;
+                                const newEstado = newCerrada ? 'Cerrado' : 'Abierto';
+                                try {
+                                    const { error } = await supabase.from('registro_solicitudes').update({ cerrada: newCerrada, estado: newEstado }).eq('id', registro.id);
+                                    if (error) throw error;
+                                    setRegistro((prev: any) => ({ ...prev, cerrada: newCerrada, estado: newEstado }));
+                                } catch (error) {
+                                    console.error('Error toggling state:', error);
+                                    alert('Error al cambiar el estado de la solicitud');
+                                }
+                            }}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border transition-colors shadow-sm
+                                ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-slate-800 text-white border-slate-700 hover:bg-slate-700'}`}
+                        >
+                            {registro.cerrada || registro.estado === 'Cerrado' ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                            {registro.cerrada || registro.estado === 'Cerrado' ? 'Reabrir' : 'Cerrar'}
+                        </button>
+                        <span className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                            {registro.cerrada || registro.estado === 'Cerrado' ? 'Cerrado' : 'Abierto'}
                         </span>
                     </div>
                 </div>
