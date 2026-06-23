@@ -228,6 +228,56 @@ export default function VerRegistroPage() {
                         <button
                             onClick={async () => {
                                 const isCurrentlyClosed = registro.cerrada || registro.estado === 'Cerrado';
+                                
+                                if (!isCurrentlyClosed) {
+                                    const missingFields = [];
+                                    if (!registro.orden_venta || String(registro.orden_venta).trim() === '') missingFields.push('Orden de Venta (OV)');
+                                    if (!registro.asesor_mac_id) missingFields.push('Asesor MAC');
+                                    if (!registro.cliente_id && !registro.cliente_final_id) missingFields.push('Datos de Cliente');
+                                    if (!registro.vendedor_id) missingFields.push('Vendedor');
+                                    if (!registro.fecha_verificacion) missingFields.push('Fecha de Verificación');
+                                    if (registro.valor_servicio === null || registro.valor_servicio === undefined || String(registro.valor_servicio).trim() === '') missingFields.push('Valor Servicio');
+                                    if (registro.valor_flete === null || registro.valor_flete === undefined || String(registro.valor_flete).trim() === '') missingFields.push('Valor Flete');
+                                    if (registro.valor_producto === null || registro.valor_producto === undefined || String(registro.valor_producto).trim() === '') missingFields.push('Valor Producto');
+
+                                    // Validar Comentarios
+                                    const { count, error: commentsError } = await supabase.from('Comentarios_RegistroMAC')
+                                        .select('*', { count: 'exact', head: true })
+                                        .eq('numero_radicado', registro.consecutivo || `REG-${registro.id}`);
+                                    
+                                    if (commentsError || count === 0) {
+                                        missingFields.push('Comentarios (debe tener al menos uno)');
+                                    }
+
+                                    // Validar Productos, Defectos y Responsables
+                                    const productos = registro.productos_novedad || [];
+                                    if (productos.length === 0) {
+                                        missingFields.push('Productos con Novedad (al menos uno)');
+                                    } else {
+                                        let hasProductError = false;
+                                        for (const prod of productos) {
+                                            if (!prod.defectos || prod.defectos.length === 0) {
+                                                hasProductError = true;
+                                                break;
+                                            }
+                                            for (const def of prod.defectos) {
+                                                if (!def.responsable_id && !def.responsable) {
+                                                    hasProductError = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        if (hasProductError) {
+                                            missingFields.push('Defecto y Responsable por cada Producto');
+                                        }
+                                    }
+
+                                    if (missingFields.length > 0) {
+                                        alert('No se puede cerrar la solicitud. Faltan los siguientes campos obligatorios:\n\n- ' + missingFields.join('\n- '));
+                                        return;
+                                    }
+                                }
+
                                 const newCerrada = !isCurrentlyClosed;
                                 const newEstado = newCerrada ? 'Cerrado' : 'Abierto';
                                 try {
