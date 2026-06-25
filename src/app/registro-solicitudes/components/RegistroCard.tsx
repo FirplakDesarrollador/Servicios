@@ -18,6 +18,9 @@ export default function RegistroCard({ registro, onClick }: { registro: any, onC
 
   const ubi = registro.Ubicaciones || {};
   const cons = registro.Consumidores || {};
+  
+  const ubiCiudad = ubi.ciudades?.ciudad || ubi.ciudad;
+  const consCiudad = cons.ciudades?.ciudad || cons.ciudad;
 
   const asignadoA = 'Sin asignar'; // Por ahora en blanco
 
@@ -91,13 +94,13 @@ export default function RegistroCard({ registro, onClick }: { registro: any, onC
                 {/* Info Adicional Principal */}
                 {registro.canal_venta !== 'canal_propio_ecommerce' && (ubi.direccion || ubi.telefono1 || ubi.telefono) && (
                     <div className="mt-1 space-y-0.5 text-xs text-slate-500 font-medium">
-                        {(ubi.ciudad || ubi.direccion) && <p>{ubi.ciudad ? `${ubi.ciudad} - ` : ''}{ubi.direccion}</p>}
+                        {(ubiCiudad || ubi.direccion) && <p>{ubiCiudad ? `${ubiCiudad} - ` : ''}{ubi.direccion}</p>}
                         <p>{ubi.telefono1 || ubi.telefono || ubi.celular}</p>
                     </div>
                 )}
                 {registro.canal_venta === 'canal_propio_ecommerce' && (cons.direccion || cons.celular || cons.telefono1) && (
                     <div className="mt-1 space-y-0.5 text-xs text-slate-500 font-medium">
-                        {(cons.ciudad || cons.direccion) && <p>{cons.ciudad ? `${cons.ciudad} - ` : ''}{cons.direccion}</p>}
+                        {(consCiudad || cons.direccion) && <p>{consCiudad ? `${consCiudad} - ` : ''}{cons.direccion}</p>}
                         <p>{cons.celular || cons.telefono1 || cons.telefono}</p>
                     </div>
                 )}
@@ -116,7 +119,7 @@ export default function RegistroCard({ registro, onClick }: { registro: any, onC
                   {/* Info Adicional Final */}
                   {(cons.direccion || cons.celular || cons.telefono1) && (
                       <div className="mt-1 space-y-0.5 text-xs text-slate-500 font-medium">
-                          {(cons.ciudad || cons.direccion) && <p>{cons.ciudad ? `${cons.ciudad} - ` : ''}{cons.direccion}</p>}
+                          {(consCiudad || cons.direccion) && <p>{consCiudad ? `${consCiudad} - ` : ''}{cons.direccion}</p>}
                           <p>{cons.celular || cons.telefono1 || cons.telefono}</p>
                       </div>
                   )}

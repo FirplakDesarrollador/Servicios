@@ -238,6 +238,7 @@ export default function ModalCrearRegistro({
     return (
         <AnimatePresence>
             <motion.div
+                key="modal-overlay"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}

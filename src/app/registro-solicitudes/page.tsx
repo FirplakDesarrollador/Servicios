@@ -13,11 +13,27 @@ export default function RegistroSolicitudesPage() {
   const [registros, setRegistros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterEstado, setFilterEstado] = useState('Abierto');
+  const [filterPrioridad, setFilterPrioridad] = useState('Todas');
+  const [filterAsesor, setFilterAsesor] = useState('Todos');
+  const [asesores, setAsesores] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     fetchRegistros();
+    fetchAsesores();
   }, []);
+
+  const fetchAsesores = async () => {
+    try {
+      const { data, error } = await supabase.from('Usuarios').select('id, nombres, apellidos, rol');
+      if (data) {
+        setAsesores(data.filter(u => u.rol && u.rol.toLowerCase() === 'mac'));
+      }
+    } catch (e) {
+      console.error('Error fetching asesores', e);
+    }
+  };
 
   const fetchRegistros = async () => {
     setLoading(true);
@@ -28,8 +44,8 @@ export default function RegistroSolicitudesPage() {
         .select(`
           *,
           Usuarios!registro_solicitudes_tratado_por_id_fkey(nombres, apellidos),
-          Ubicaciones:cliente_id(*),
-          Consumidores:cliente_final_id(*)
+          Ubicaciones:cliente_id(*, ciudades:ciudad_id(ciudad)),
+          Consumidores:cliente_final_id(*, ciudades:ciudad_id(ciudad))
         `)
         .order('created_at', { ascending: false });
 
@@ -43,11 +59,37 @@ export default function RegistroSolicitudesPage() {
   };
 
   const filteredRegistros = registros.filter(r => {
+    const estadoReal = r.estado || 'Abierto';
+    if (filterEstado !== 'Todos' && estadoReal !== filterEstado) return false;
+
+    const prioridadReal = r.prioridad || 'Media';
+    if (filterPrioridad !== 'Todas' && prioridadReal !== filterPrioridad) return false;
+
+    if (filterAsesor === 'Sin Asignar' && r.asesor_mac_id) return false;
+    if (filterAsesor !== 'Todos' && filterAsesor !== 'Sin Asignar' && String(r.asesor_mac_id) !== String(filterAsesor)) return false;
+
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
-    const title = (r.consecutivo || '').toLowerCase();
-    const desc = (r.comentarios || r.cliente_nombre || r.cliente_final_nombre || '').toLowerCase();
-    return title.includes(searchLower) || desc.includes(searchLower) || String(r.id).includes(searchLower);
+    const tratadoPor = r.Usuarios ? `${r.Usuarios.nombres || ''} ${r.Usuarios.apellidos || ''}` : '';
+    const ubi = r.Ubicaciones || {};
+    const cons = r.Consumidores || {};
+    const searchString = `
+      ${r.consecutivo || ''} 
+      ${r.comentarios || ''} 
+      ${r.cliente_nombre || ''} 
+      ${r.cliente_final_nombre || ''} 
+      ${r.id || ''}
+      ${r.tipo_solicitud || ''}
+      ${r.canal_venta || ''}
+      ${tratadoPor}
+      ${ubi.nit || ''}
+      ${ubi.cedula || ''}
+      ${cons.nit || ''}
+      ${cons.cedula || ''}
+      ${r.servicio_creado_consecutivo || ''}
+    `.toLowerCase();
+    
+    return searchString.includes(searchLower);
   });
 
   return (
@@ -69,8 +111,62 @@ export default function RegistroSolicitudesPage() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3">
+          <div className="bg-white border border-slate-200 rounded-xl p-1 flex items-center shadow-sm shrink-0">
+            <button
+              onClick={() => setFilterEstado('Todos')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Todos' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setFilterEstado('Abierto')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Abierto' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-slate-500 hover:text-amber-700 hover:bg-amber-50'}`}
+            >
+              Abiertos
+            </button>
+            <button
+              onClick={() => setFilterEstado('Cerrado')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Cerrado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'}`}
+            >
+              Cerrados
+            </button>
+          </div>
+          
           <div className="relative">
+            <select
+              value={filterPrioridad}
+              onChange={(e) => setFilterPrioridad(e.target.value)}
+              className="appearance-none bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-8 cursor-pointer hover:bg-slate-50 transition-colors"
+            >
+              <option value="Todas">Prioridad: Todas</option>
+              <option value="Alta">Prioridad: Alta</option>
+              <option value="Media">Prioridad: Media</option>
+              <option value="Baja">Prioridad: Baja</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          
+          <div className="relative flex-1 min-w-[200px]">
+            <select
+              value={filterAsesor}
+              onChange={(e) => setFilterAsesor(e.target.value)}
+              className="appearance-none bg-white border border-slate-200 rounded-xl px-4 py-3 w-full text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-8 cursor-pointer hover:bg-slate-50 transition-colors truncate"
+            >
+              <option value="Todos">Todos los Asesores</option>
+              <option value="Sin Asignar">Sin Asignar</option>
+              {asesores.map(a => (
+                <option key={a.id} value={String(a.id)}>{a.nombres} {a.apellidos}</option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"

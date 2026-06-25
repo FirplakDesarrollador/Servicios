@@ -407,11 +407,17 @@ export default function VerServicioPage() {
             .single();
         setCurrentUser(userData);
 
-        const { data, error } = await supabase
-            .from('query_servicios')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const decodedId = decodeURIComponent(id as string);
+        const isNumericId = !isNaN(Number(decodedId));
+        let query = supabase.from('query_servicios').select('*');
+        
+        if (isNumericId) {
+            query = query.eq('id', decodedId);
+        } else {
+            query = query.eq('consecutivo', decodedId);
+        }
+
+        const { data, error } = await query.single();
 
         if (error) {
             console.error('Error fetching service:', error);
