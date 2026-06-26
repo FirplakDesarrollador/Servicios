@@ -789,9 +789,6 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                                             <Pencil className="w-3.5 h-3.5" />
                                             Editar
                                         </button>
-                                        <button className="text-brand hover:scale-110 transition-transform">
-                                            <PlusCircle className="w-5 h-5" />
-                                        </button>
                                     </div>
                                 )}
                             </div>

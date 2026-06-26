@@ -39,6 +39,48 @@ export default function ServiciosCerradosPage() {
                 .single();
 
             setProfile(profileData);
+
+            if (profileData?.rol === 'comercial') {
+                // Auto-load their closed services
+                setSearching(true);
+                const { data: directSearchData, error: directSearchError } = await supabase
+                    .from('query_servicios')
+                    .select('*')
+                    .eq('estado', false)
+                    .eq('comercial_id', profileData.id)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (!directSearchError && directSearchData) {
+                    const mappedServices = directSearchData.map((s: any) => ({
+                        ...s,
+                        ubicacionNombre: s.ubicacion_nombre || s.ubicacionNombre,
+                        ubicacionCiudad: s.ubicacion_ciudad || s.ubicacionCiudad,
+                        consumidorNombre: s.consumidor_nombre || s.consumidorNombre,
+                        asesorNombre: s.asesor_nombre || s.asesorNombre,
+                        coordinadorNombre: s.coordinador_nombre || s.coordinadorNombre,
+                        macNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
+                        asesorMacNombre: s.mac_nombre || s.macNombre || s.asesor_mac_nombre,
+                        asesorMacId: s.asesor_mac_id || s.asesorMacId,
+                        tecnicoNombre: s.tecnico_nombre || s.tecnicoNombre,
+                        tipoDeServicio: s.tipo_de_servicio || s.tipoDeServicio,
+                        numeroDePedido: s.numero_de_pedido || s.numeroDePedido,
+                        estadoAgendamiento: s.estado_visita || s.estadoVisita || 'Sin agendar',
+                        fechaProgramada: s.visita_fecha_hora_inicio
+                            ? new Date(s.visita_fecha_hora_inicio).toLocaleString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
+                            : 'Null'
+                    }));
+                    setServices(mappedServices);
+                    setResultIds(mappedServices.map((s: any) => s.id));
+                }
+                setSearching(false);
+            }
         };
 
         init();
@@ -65,11 +107,18 @@ export default function ServiciosCerradosPage() {
 
             // Search directly in query_servicios view for closed services
             const lowerSearch = searchTerm.toLowerCase().trim();
-            const { data: directSearchData, error: directSearchError } = await supabase
+            
+            let query = supabase
                 .from('query_servicios')
                 .select('*')
                 .eq('estado', false) // Only closed services
-                .or(`consecutivo.ilike.%${lowerSearch}%,numero_de_pedido.ilike.%${lowerSearch}%,cliente_nombre.ilike.%${lowerSearch}%,consumidor_contacto.ilike.%${lowerSearch}%,consumidor_cedula.ilike.%${lowerSearch}%,ubicacion_nit.ilike.%${lowerSearch}%,ubicacion_telefono.ilike.%${lowerSearch}%,consumidor_telefono.ilike.%${lowerSearch}%,consecutivo_sap.ilike.%${lowerSearch}%`)
+                .or(`consecutivo.ilike.%${lowerSearch}%,numero_de_pedido.ilike.%${lowerSearch}%,cliente_nombre.ilike.%${lowerSearch}%,consumidor_contacto.ilike.%${lowerSearch}%,consumidor_cedula.ilike.%${lowerSearch}%,ubicacion_nit.ilike.%${lowerSearch}%,ubicacion_telefono.ilike.%${lowerSearch}%,consumidor_telefono.ilike.%${lowerSearch}%,consecutivo_sap.ilike.%${lowerSearch}%`);
+                
+            if (profile?.rol === 'comercial') {
+                query = query.eq('comercial_id', profile.id);
+            }
+
+            const { data: directSearchData, error: directSearchError } = await query
                 .order('created_at', { ascending: false })
                 .limit(50);
 

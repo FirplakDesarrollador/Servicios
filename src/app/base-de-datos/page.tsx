@@ -89,6 +89,7 @@ export default function BaseDatosPage() {
     });
 
     const isFetching = useRef(false);
+    const userProfileRef = useRef<any>(null);
     const dataRef = useRef(data);
 
     // Keep dataRef in sync
@@ -129,6 +130,9 @@ export default function BaseDatosPage() {
                     query = supabase.from('query_ubicaciones_fast').select('*', { count: 'exact' });
                     if (searchTerm) {
                         query = query.or(`nombre.ilike.%${searchTerm}%,cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`);
+                    }
+                    if (userProfileRef.current?.rol === 'comercial') {
+                        query = query.eq('asesor_id', userProfileRef.current.id);
                     }
                     query = query.order('cliente_nombre').range(from, to);
                     break;
@@ -177,7 +181,7 @@ export default function BaseDatosPage() {
 
             const { data: profile } = await supabase
                 .from('Usuarios')
-                .select('rol')
+                .select('id, rol')
                 .eq('user_id', session.user.id)
                 .single();
 
@@ -187,6 +191,7 @@ export default function BaseDatosPage() {
             }
 
             setUserRole(profile.rol);
+            userProfileRef.current = profile;
 
             // Fetch totals from view (lightweight)
             const { data: totalsData } = await supabase
@@ -312,23 +317,25 @@ export default function BaseDatosPage() {
                         >
                             <RefreshCw className={`w-5 h-5 ${fetching ? 'animate-spin text-brand' : ''}`} />
                         </button>
-                        <button 
-                            onClick={() => {
-                                if (activeTab === 'Ciudades') {
-                                    setIsModalCiudadOpen(true);
-                                } else if (activeTab === 'Clientes') {
-                                    setIsModalClienteOpen(true);
-                                } else if (activeTab === 'Salas / Obras') {
-                                    setIsModalSalaOpen(true);
-                                } else if (activeTab === 'Clientes Finales') {
-                                    setIsModalClienteFinalOpen(true);
-                                }
-                            }}
-                            className="flex-1 md:flex-none h-14 bg-brand text-white px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-brand/20 shadow-brand/40 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Crear {activeTab.slice(0, -1)}
-                        </button>
+                        {!(userRole === 'comercial' && activeTab !== 'Clientes Finales') && (
+                            <button 
+                                onClick={() => {
+                                    if (activeTab === 'Ciudades') {
+                                        setIsModalCiudadOpen(true);
+                                    } else if (activeTab === 'Clientes') {
+                                        setIsModalClienteOpen(true);
+                                    } else if (activeTab === 'Salas / Obras') {
+                                        setIsModalSalaOpen(true);
+                                    } else if (activeTab === 'Clientes Finales') {
+                                        setIsModalClienteFinalOpen(true);
+                                    }
+                                }}
+                                className="flex-1 md:flex-none h-14 bg-brand text-white px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-brand/20 shadow-brand/40 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Crear {activeTab.slice(0, -1)}
+                            </button>
+                        )}
                     </div>
                 </div>
 

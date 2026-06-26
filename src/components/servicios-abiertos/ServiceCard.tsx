@@ -127,7 +127,7 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, o
                     <button onClick={copyPublicLink} className="p-2 hover:bg-brand/10 rounded-xl transition-all text-slate-300 hover:text-brand" title="Copiar Link">
                         <Share2 className="w-4 h-4" />
                     </button>
-                    {onDelete && (
+                    {onDelete && currentUserRole !== 'comercial' && (
                         <button onClick={() => onDelete(service)} className="p-2 hover:bg-rose-50 rounded-xl transition-all text-slate-300 hover:text-rose-500">
                             <Trash2 className="w-4 h-4" />
                         </button>

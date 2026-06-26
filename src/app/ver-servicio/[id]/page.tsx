@@ -664,6 +664,7 @@ export default function VerServicioPage() {
                                 onCloseService={() => setShowCloseModal(true)}
                                 onDownloadReport={handleDownloadServiceReport}
                                 isDownloadingReport={downloadingReport}
+                                currentUser={currentUser}
                             />
                         )}
                         {activeTab === 'observaciones' && (
@@ -752,7 +753,8 @@ function InformacionTab({
     onEditCondebe,
     onCloseService,
     onDownloadReport,
-    isDownloadingReport
+    isDownloadingReport,
+    currentUser
 }: { 
     service: any, 
     onShowProducts: () => void,
@@ -760,7 +762,8 @@ function InformacionTab({
     onEditCondebe: () => void,
     onCloseService: () => void,
     onDownloadReport: () => void,
-    isDownloadingReport: boolean
+    isDownloadingReport: boolean,
+    currentUser?: any
 }) {
     const router = useRouter();
     return (
@@ -773,13 +776,15 @@ function InformacionTab({
                             value={service.consecutivo} 
                             icon={FileText} 
                             rightElement={
-                                <button
-                                    onClick={onEditCondebe}
-                                    className="p-1.5 hover:bg-slate-100 text-blue-600 rounded-md transition-colors"
-                                    title="Editar"
-                                >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                </button>
+                                currentUser?.rol !== 'comercial' ? (
+                                    <button
+                                        onClick={onEditCondebe}
+                                        className="p-1.5 hover:bg-slate-100 text-blue-600 rounded-md transition-colors"
+                                        title="Editar"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                ) : null
                             }
                         />
                         <InfoField

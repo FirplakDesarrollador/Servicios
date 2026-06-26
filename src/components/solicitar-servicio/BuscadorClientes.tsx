@@ -16,6 +16,18 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [userProfile, setUserProfile] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { data } = await supabase.from('Usuarios').select('id, rol').eq('user_id', session.user.id).single();
+                setUserProfile(data);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     useEffect(() => {
         const search = async () => {
@@ -30,32 +42,23 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                 const words = searchTerm.trim().split(/\s+/).filter(Boolean);
 
                 let uQuery = supabase.from('query_ubicaciones_fast').select('*');
-                let cQuery = supabase.from('query_consumidores').select('*');
 
                 words.forEach(word => {
                     uQuery = uQuery.or(`nombre.ilike.%${word}%,cliente_nombre.ilike.%${word}%,nit.ilike.%${word}%,direccion.ilike.%${word}%`);
-                    cQuery = cQuery.or(`contacto.ilike.%${word}%,cedula.ilike.%${word}%,direccion.ilike.%${word}%`);
                 });
 
-                const [ubicacionesRes, consumidoresRes] = await Promise.all([
-                    uQuery.limit(20),
-                    cQuery.limit(20)
-                ]);
+                if (userProfile?.rol === 'comercial') {
+                    uQuery = uQuery.eq('asesor_id', userProfile.id);
+                }
+
+                const ubicacionesRes = await uQuery.limit(40);
 
                 if (ubicacionesRes.error) throw ubicacionesRes.error;
-                if (consumidoresRes.error) throw consumidoresRes.error;
 
                 // Normalize results
                 const normUbicaciones = (ubicacionesRes.data || []).map(u => ({ ...u, _type: 'ubicacion' }));
-                const normConsumidores = (consumidoresRes.data || []).map(c => ({
-                    ...c,
-                    _type: 'consumidor',
-                    cliente_nombre: c.contacto, // Map for UI consistency
-                    nit: c.cedula,
-                    nombre_contacto: c.contacto
-                }));
 
-                setResults([...normUbicaciones, ...normConsumidores]);
+                setResults(normUbicaciones);
                 setSearchError(null);
             } catch (err: any) {
                 console.error('Error searching clients:', err);
@@ -67,7 +70,7 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
 
         const timer = setTimeout(search, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm]);
+    }, [searchTerm, userProfile]);
 
     return (
         <motion.div
@@ -205,15 +208,17 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                     </div>
 
                     {/* Footer / Create Link */}
-                    <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            ¿No encuentras el registro?
-                        </p>
-                        <button className="text-xs font-black text-brand uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2">
-                            <Building2 className="w-3 h-3" />
-                            Crear {canalVenta === 'canal_constructor' ? 'Nueva Obra' : 'Nuevo Distribuidor'}
-                        </button>
-                    </div>
+                    {userProfile?.rol !== 'comercial' && (
+                        <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                ¿No encuentras el registro?
+                            </p>
+                            <button className="text-xs font-black text-brand uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2">
+                                <Building2 className="w-3 h-3" />
+                                Crear {canalVenta === 'canal_constructor' ? 'Nueva Obra' : 'Nuevo Distribuidor'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </motion.div>
         </motion.div>

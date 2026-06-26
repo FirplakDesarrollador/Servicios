@@ -520,11 +520,6 @@ export default function SolicitarServicioPage() {
                                 <User className="w-4 h-4" />
                                 {canalVenta === 'canal_constructor' ? 'Cliente Constructor' : 'Cliente Distribuidor'}
                             </h3>
-                            {clienteSeleccionado && (
-                                <button className="text-brand hover:scale-110 transition-transform">
-                                    <PlusCircle className="w-5 h-5" />
-                                </button>
-                            )}
                         </div>
 
                         <button

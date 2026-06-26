@@ -174,6 +174,15 @@ export default function ModalCrearClienteFinal({ isOpen = true, isInline = false
         }
 
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            let creador_id = null;
+            if (session) {
+                const { data: userData } = await supabase.from('Usuarios').select('id').eq('user_id', session.user.id).single();
+                if (userData) {
+                    creador_id = userData.id;
+                }
+            }
+
             const payload = {
                 cedula: formData.cedula,
                 contacto: formData.contacto.toUpperCase(),
@@ -182,6 +191,7 @@ export default function ModalCrearClienteFinal({ isOpen = true, isInline = false
                 descripcion_direccion: formData.descripcion_direccion.toUpperCase(),
                 ciudad_id: parseInt(formData.ciudad_id),
                 correo_electronico: formData.correo_electronico.toLowerCase(),
+                creado_por: creador_id
             };
 
             let savedId = null;

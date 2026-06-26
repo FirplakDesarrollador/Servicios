@@ -49,12 +49,22 @@ export default function ModalCrearCliente({ isOpen, onClose, onSuccess }: ModalC
         }
 
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            let creador_id = null;
+            if (session) {
+                const { data: userData } = await supabase.from('Usuarios').select('id').eq('user_id', session.user.id).single();
+                if (userData) {
+                    creador_id = userData.id;
+                }
+            }
+
             const { error: insertError } = await supabase
                 .from('Clientes')
                 .insert([{
                     tipo_de_cliente: formData.tipo_de_cliente,
                     nit: formData.nit,
                     nombre: formData.nombre,
+                    creado_por: creador_id,
                     created_at: new Date().toISOString()
                 }]);
 

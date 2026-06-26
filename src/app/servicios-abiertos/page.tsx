@@ -62,10 +62,18 @@ export default function ServiciosAbiertosPage() {
                     return;
                 }
 
-                // Parallel fetch for profile, services, techs and macs for efficiency
-                const [profileRes, servicesRes, techRes, macRes] = await Promise.all([
-                    supabase.from('Usuarios').select('*').eq('user_id', session.user.id).single(),
-                    supabase.from('query_servicios').select('*').eq('estado', true).order('created_at', { ascending: false }),
+                // Fetch profile first to know the role
+                const profileRes = await supabase.from('Usuarios').select('*').eq('user_id', session.user.id).single();
+                
+                let servicesQuery = supabase.from('query_servicios').select('*').eq('estado', true).order('created_at', { ascending: false });
+                
+                if (profileRes.data && profileRes.data.rol === 'comercial') {
+                    servicesQuery = servicesQuery.eq('comercial_id', profileRes.data.id);
+                }
+
+                // Parallel fetch for services, techs and macs
+                const [servicesRes, techRes, macRes] = await Promise.all([
+                    servicesQuery,
                     supabase.from('Usuarios').select('*').in('rol', ['tecnico', 'coordinador_tecnico', 'asesor_tecnico', 'promotor_tecnico', 'promotor_tecnico_exhibiciones', 'promotor_tecnico_comercial']).order('display_name'),
                     supabase.from('Usuarios').select('*').eq('rol', 'mac').not('user_id', 'is', null).order('display_name')
                 ]);
