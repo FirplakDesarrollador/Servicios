@@ -7,10 +7,7 @@ const SUPABASE_KEY = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(.*)/)[1];
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function main() {
-    const { data: d1 } = await supabase.from('Ubicaciones').select('*').limit(1);
-    if (d1 && d1.length) console.log("Ubicaciones keys:", Object.keys(d1[0]));
-    
-    const { data: d2 } = await supabase.from('Consumidores').select('*').limit(1);
-    if (d2 && d2.length) console.log("Consumidores keys:", Object.keys(d2[0]));
+    const { data: d1 } = await supabase.from('registro_solicitudes').select('*').limit(1);
+    if (d1 && d1.length) console.log("registro_solicitudes keys:", Object.keys(d1[0]));
 }
 main();

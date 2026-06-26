@@ -9,8 +9,12 @@ import {
     Calendar, User, Building2, UserCog, CheckCircle, Hash, Package, ShieldCheck, X, Pencil, Save, Plus, Trash2, Send, Paperclip, ExternalLink
 } from 'lucide-react';
 import BuscadorProductos from '@/components/solicitar-servicio/BuscadorProductos';
+import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
+import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
+import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
+import ModalEditarUbicacion from '@/components/solicitar-servicio/ModalEditarUbicacion';
 
-type TabType = 'informacion' | 'comentarios' | 'clasificacion';
+type TabType = 'informacion' | 'comentarios' | 'clasificacion' | 'servicios';
 
 export default function VerRegistroPage() {
     const params = useParams();
@@ -165,14 +169,13 @@ export default function VerRegistroPage() {
                 
             if (servicioError) throw servicioError;
             
-            if (registro.comentarios) {
-                await supabase.from('Comentarios').insert({
-                    servicio_id: servicioData.id,
-                    contenido: registro.comentarios,
-                    usuario_id: currentUser?.id,
-                    tipo: 'solicitud_servicio'
-                });
-            }
+            const primerComentario = `Viene desde la solicitud ${registro.consecutivo || 'REG-' + registro.id}`;
+            await supabase.from('Comentarios').insert({
+                servicio_id: servicioData.id,
+                contenido: primerComentario,
+                usuario_id: currentUser?.id,
+                tipo: 'solicitud_servicio'
+            });
             
             if (registro.productos_novedad && Array.isArray(registro.productos_novedad) && registro.productos_novedad.length > 0) {
                 const productosToInsert = registro.productos_novedad.map((p: any) => ({
@@ -183,14 +186,17 @@ export default function VerRegistroPage() {
                 await supabase.from('productos_servicios').insert(productosToInsert);
             }
             
+            const existing = registro.servicio_creado_consecutivo || '';
+            const newConsecutivos = existing ? `${existing}, ${servicioData.consecutivo}` : servicioData.consecutivo;
+
             const { error: updateError } = await supabase
                 .from('registro_solicitudes')
-                .update({ servicio_creado_consecutivo: servicioData.consecutivo })
+                .update({ servicio_creado_consecutivo: newConsecutivos })
                 .eq('id', registro.id);
                 
             if (updateError) {
                 console.error("No se pudo guardar el consecutivo en registro_solicitudes:", updateError);
-                alert(`Servicio creado con consecutivo ${servicioData.consecutivo}, pero no se pudo vincular al registro (verifica que exista la columna 'servicio_creado_consecutivo' en la BD).`);
+                alert(`Servicio creado con consecutivo ${servicioData.consecutivo}, pero no se pudo vincular al registro.`);
             } else {
                 alert(`Servicio ${servicioData.consecutivo} creado correctamente.`);
             }
@@ -266,6 +272,7 @@ export default function VerRegistroPage() {
         { id: 'informacion' as TabType, label: 'Información general', icon: Info },
         { id: 'comentarios' as TabType, label: 'Comentarios', icon: MessageSquare },
         { id: 'clasificacion' as TabType, label: 'Clasificación', icon: Tag },
+        { id: 'servicios' as TabType, label: 'Servicios Enlazados', icon: FileText },
     ], []);
 
     if (loading) {
@@ -345,13 +352,13 @@ export default function VerRegistroPage() {
                         </select>
                         <button
                             onClick={handleSolicitarServicio}
-                            disabled={isCreatingService || !!registro.servicio_creado_consecutivo}
+                            disabled={isCreatingService}
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-brand bg-brand text-white shadow-sm transition-colors ${
-                                isCreatingService || !!registro.servicio_creado_consecutivo ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-600'
+                                isCreatingService ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-600'
                             }`}
                         >
-                            <ExternalLink className="w-4 h-4" />
-                            {isCreatingService ? 'CREANDO...' : registro.servicio_creado_consecutivo ? 'SERVICIO CREADO' : 'SOLICITAR SERVICIO'}
+                            {isCreatingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            {isCreatingService ? 'CREANDO...' : 'SOLICITAR SERVICIO'}
                         </button>
                         <button
                             onClick={() => setIsProductosModalOpen(true)}
@@ -482,6 +489,7 @@ export default function VerRegistroPage() {
                             onRefresh={() => fetchRegistro()} 
                         />
                     )}
+                    {activeTab === 'servicios' && <ServiciosEnlazadosTab registro={registro} />}
                 </motion.div>
             </main>
 
@@ -1280,6 +1288,13 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
     const [isSavingAsesor, setIsSavingAsesor] = useState(false);
     const [ordenVentaLocal, setOrdenVentaLocal] = useState(registro.orden_venta || '');
     const [isSavingOrdenVenta, setIsSavingOrdenVenta] = useState(false);
+    const [isSavingTipoSolicitud, setIsSavingTipoSolicitud] = useState(false);
+
+    const ubi = registro.Ubicaciones || {};
+    const cons = registro.Consumidores || {};
+
+    const [showModalEditarCanal, setShowModalEditarCanal] = useState(false);
+    const [showModalEditarClienteFinal, setShowModalEditarClienteFinal] = useState(false);
 
     useEffect(() => {
         setOrdenVentaLocal(registro.orden_venta || '');
@@ -1297,9 +1312,6 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
         } catch(e) {}
     }
 
-    const ubi = registro.Ubicaciones || {};
-    const cons = registro.Consumidores || {};
-
     const canalVentaFormat = registro.canal_venta ? registro.canal_venta.replace(/_/g, ' ').toUpperCase() : 'N/A';
 
     const handleOrdenVentaBlur = async () => {
@@ -1314,6 +1326,24 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
             alert("Error actualizando Orden de Venta: " + err.message);
         } finally {
             setIsSavingOrdenVenta(false);
+        }
+    };
+
+    const handleTipoSolicitudChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newValue = e.target.value;
+        setIsSavingTipoSolicitud(true);
+        try {
+            const { error } = await supabase
+                .from('registro_solicitudes')
+                .update({ tipo_solicitud: newValue })
+                .eq('id', registro.id);
+            if (error) throw error;
+            onRefresh();
+        } catch (error) {
+            console.error('Error al actualizar tipo de solicitud:', error);
+            alert("Error al actualizar el tipo de solicitud");
+        } finally {
+            setIsSavingTipoSolicitud(false);
         }
     };
 
@@ -1347,25 +1377,32 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <InfoField label="Consecutivo" value={registro.consecutivo || 'N/A'} icon={Hash} />
                     
-                    <div className="flex gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 transition-colors">
-                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
-                            <ExternalLink className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Servicio Creado</p>
-                            {registro.servicio_creado_consecutivo ? (
-                                <button onClick={() => router.push(`/ver-servicio/${registro.servicio_creado_consecutivo}`)} className="text-sm font-semibold text-brand truncate hover:underline text-left">
-                                    {registro.servicio_creado_consecutivo}
-                                </button>
-                            ) : (
-                                <p className="text-sm font-semibold text-slate-900 truncate">N/A</p>
-                            )}
-                        </div>
-                    </div>
+
                     
                     <InfoField label="Fecha de Solicitud" value={dateStr} icon={Calendar} />
                     <InfoField label="Tratado Por" value={tratadoPor} icon={UserCog} />
-                    <InfoField label="Tipo de Solicitud" value={registro.tipo_solicitud || 'N/A'} icon={Tag} />
+                    
+                    <div className="flex gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 transition-colors">
+                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                            <Tag className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1 relative">
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Tipo de Solicitud</p>
+                            <select 
+                                value={registro.tipo_solicitud || ''} 
+                                onChange={handleTipoSolicitudChange}
+                                disabled={isSavingTipoSolicitud}
+                                className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none cursor-pointer truncate appearance-none"
+                            >
+                                <option value="">Seleccionar opción...</option>
+                                <option value="Garantía">Garantía</option>
+                                <option value="Documento Sagrilaft">Documento Sagrilaft</option>
+                                <option value="Reclamo">Reclamo</option>
+                                <option value="Atención">Atención</option>
+                            </select>
+                            {isSavingTipoSolicitud && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-brand" />}
+                        </div>
+                    </div>
                     <InfoField label="Canal de Venta" value={canalVentaFormat} icon={Building2} />
                     <div className="flex gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 transition-colors">
                         <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
@@ -1411,10 +1448,21 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
 
             {/* Datos del Canal de Venta / Distribuidor */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 hover:border-slate-300 transition-colors">
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <Building2 className="w-3.5 h-3.5" />
-                    {registro.canal_venta === 'canal_propio_ecommerce' ? 'Datos del Canal (Propio)' : 'Datos del Canal de Venta'}
-                </h3>
+                <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5" />
+                        {registro.canal_venta === 'canal_propio_ecommerce' ? 'Datos del Canal (Propio)' : 'Datos del Canal de Venta'}
+                    </h3>
+                    {registro.canal_venta !== 'canal_propio_ecommerce' && (
+                        <button 
+                            onClick={() => setShowModalEditarCanal(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand bg-brand/5 hover:bg-brand/10 rounded-lg transition-colors"
+                        >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Editar Datos
+                        </button>
+                    )}
+                </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                     <div>
@@ -1447,10 +1495,19 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
             {/* Datos del Cliente Final */}
             {registro.cliente_final_id && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 hover:border-slate-300 transition-colors">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                        <User className="w-3.5 h-3.5" />
-                        Datos del Cliente Final
-                    </h3>
+                    <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                            <User className="w-3.5 h-3.5" />
+                            Datos del Cliente Final
+                        </h3>
+                        <button 
+                            onClick={() => setShowModalEditarClienteFinal(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand bg-brand/5 hover:bg-brand/10 rounded-lg transition-colors"
+                        >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Editar Datos
+                        </button>
+                    </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                         <div>
@@ -1472,6 +1529,41 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                     </div>
                 </div>
             )}
+
+            {/* Modals for Editing Clients */}
+            {showModalEditarCanal && (
+                <ModalEditarUbicacion
+                    isOpen={true}
+                    initialData={ubi}
+                    onClose={() => setShowModalEditarCanal(false)}
+                    onSuccess={async (updatedUbi) => {
+                        setShowModalEditarCanal(false);
+                        try {
+                            await supabase.from('registro_solicitudes').update({
+                                cliente_nombre: updatedUbi.nombre || updatedUbi.cliente_nombre
+                            }).eq('id', registro.id);
+                        } catch(e) {}
+                        onRefresh();
+                    }}
+                />
+            )}
+            
+            {showModalEditarClienteFinal && (
+                <ModalCrearClienteFinal
+                    isOpen={true}
+                    initialData={{ ...cons, consumidor_id: cons.id }}
+                    onClose={() => setShowModalEditarClienteFinal(false)}
+                    onSuccess={async (updatedCons) => {
+                        setShowModalEditarClienteFinal(false);
+                        try {
+                            await supabase.from('registro_solicitudes').update({
+                                cliente_final_nombre: updatedCons.contacto || updatedCons.nombre_contacto || updatedCons.cedula
+                            }).eq('id', registro.id);
+                        } catch(e) {}
+                        onRefresh();
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -1479,6 +1571,94 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
 // ----------------------------------------------------------------------
 // Componentes Auxiliares
 // ----------------------------------------------------------------------
+
+function ServiciosEnlazadosTab({ registro }: { registro: any }) {
+    const [servicios, setServicios] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (registro?.servicio_creado_consecutivo) {
+            fetchServicios();
+        } else {
+            setLoading(false);
+        }
+    }, [registro?.servicio_creado_consecutivo]);
+
+    const fetchServicios = async () => {
+        try {
+            const consecutivos = registro.servicio_creado_consecutivo.split(',').map((s: string) => s.trim()).filter(Boolean);
+            if(consecutivos.length === 0) {
+                setLoading(false); return;
+            }
+            
+            const { data, error } = await supabase
+                .from('query_servicios')
+                .select('*')
+                .in('consecutivo', consecutivos);
+                
+            if (error) throw error;
+            setServicios(data || []);
+        } catch (error) {
+            console.error('Error fetching servicios enlazados:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) return <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
+
+    if (servicios.length === 0) return (
+        <div className="bg-white rounded-2xl p-12 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                <FileText className="w-8 h-8 text-slate-300" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-700 mb-2">No hay servicios enlazados</h3>
+            <p className="text-slate-500 max-w-md">Esta solicitud aún no tiene servicios asociados. Puedes crearlos usando el botón "Solicitar Servicio" en la parte superior.</p>
+        </div>
+    );
+
+    return (
+        <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-600 mb-4 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-slate-400" /> Servicios Enlazados ({servicios.length})
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {servicios.map((svc: any) => (
+                    <div key={svc.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-slate-300 transition-colors flex flex-col">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">{(svc.tipo_de_servicio || 'Servicio').replace(/_/g, ' ')}</p>
+                                <h4 className="text-lg font-black text-slate-800 leading-none">{svc.consecutivo}</h4>
+                            </div>
+                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm ${svc.estado ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
+                                {svc.estado ? 'Abierto' : 'Cerrado'}
+                            </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 mb-5 flex-1">
+                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User className="w-3 h-3" /> Técnico</p>
+                                <p className="text-xs font-semibold text-slate-700 truncate" title={svc.tecnico_nombre || svc.tecnicoNombre || 'Sin asignar'}>{svc.tecnico_nombre || svc.tecnicoNombre || 'Sin asignar'}</p>
+                            </div>
+                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Calendar className="w-3 h-3" /> Agendamiento</p>
+                                <p className="text-xs font-semibold text-slate-700 truncate" title={svc.estado_visita || svc.estadoVisita || 'Sin agendar'}>{svc.estado_visita || svc.estadoVisita || 'Sin agendar'}</p>
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={() => router.push(`/ver-servicio/${svc.consecutivo}`)}
+                            className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm mt-auto"
+                        >
+                            Ver Detalles del Servicio <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 function InfoField({ label, value, icon: Icon }: { label: string, value: string, icon: any }) {
     return (
