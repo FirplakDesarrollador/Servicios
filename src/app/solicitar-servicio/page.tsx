@@ -520,6 +520,13 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                                      clienteSeleccionado?.coordinador_id || clienteSeleccionado?.coordinadorId;
             }
 
+            // --- FIX POWER AUTOMATE ERROR ---
+            // Si después de todo el coordinador sigue siendo null, asignamos un coordinador por defecto 
+            // (ej: 26) para evitar que el flujo de Power Automate falle esperando un string.
+            if (!finalCoordinadorId) {
+                finalCoordinadorId = 26; // Coordinador MAC por defecto
+            }
+
             // 3. Insert Servicio
             const { data: servicioData, error: servicioError } = await supabase
                 .from('Servicios')
