@@ -32,6 +32,9 @@ export default function VerRegistroPage() {
     
     // Estado de Creacion de Servicio
     const [isCreatingService, setIsCreatingService] = useState(false);
+    const [showSolicitarModal, setShowSolicitarModal] = useState(false);
+    const [modalTipoServicio, setModalTipoServicio] = useState('garantia_sin_pedido');
+    const [modalFacturado, setModalFacturado] = useState(false);
     
     // Estados de edición Clasificación
     
@@ -108,23 +111,13 @@ export default function VerRegistroPage() {
             const nom = (currentUser?.nombres || '').substring(0, 3);
             const ape = (currentUser?.apellidos || '').substring(0, 3);
             
-            let mappedTipoServicio = 'garantia_sin_pedido';
-            if (registro.tipo_solicitud) {
-                const reqType = registro.tipo_solicitud.toLowerCase();
-                if (reqType.includes('garantia') || reqType.includes('reclamo')) {
-                    mappedTipoServicio = 'garantia_sin_pedido';
-                } else if (reqType.includes('instalacion') || reqType.includes('visita')) {
-                    mappedTipoServicio = 'instalacion';
-                }
-            }
-            
-            const tipoShort = mappedTipoServicio.substring(0, 4);
+            const tipoShort = modalTipoServicio.substring(0, 4);
             const tipoFormatted = tipoShort.charAt(0).toUpperCase() + tipoShort.slice(1).toLowerCase();
             const randomSuffix = Math.floor(10000 + Math.random() * 90000).toString();
             
             let consecutivo = `${nom}${ape}${tipoFormatted}${randomSuffix}`;
             
-            if (mappedTipoServicio === 'reparacion_y_mantenimiento_(facturado)') {
+            if (modalTipoServicio === 'reparacion_y_mantenimiento_(facturado)' || modalFacturado) {
                 consecutivo = `F${consecutivo}`;
             }
 
@@ -157,7 +150,7 @@ export default function VerRegistroPage() {
                     estado: true,
                     ubicacion_id: registro.cliente_id,
                     coordinador_id: finalCoordinadorId,
-                    tipo_de_servicio: mappedTipoServicio,
+                    tipo_de_servicio: modalTipoServicio,
                     canal_de_venta: registro.canal_venta || 'retail',
                     creado_desde: 'supabase',
                     asesor_mac_id: registro.asesor_mac_id || currentUser?.id,
@@ -165,7 +158,7 @@ export default function VerRegistroPage() {
                     sharepoint_uid: crypto.randomUUID(),
                     decision_cliente: 'No aplica',
                     aplica_tecnico: true,
-                    facturado: false
+                    facturado: modalFacturado
                 })
                 .select()
                 .single();
@@ -212,6 +205,7 @@ export default function VerRegistroPage() {
             alert("Error al crear servicio: " + error.message);
         } finally {
             setIsCreatingService(false);
+            setShowSolicitarModal(false);
         }
     };
 
@@ -355,7 +349,20 @@ export default function VerRegistroPage() {
                             <option value="Baja">Prioridad: Baja</option>
                         </select>
                         <button
-                            onClick={handleSolicitarServicio}
+                            onClick={() => {
+                                let mappedTipoServicio = 'garantia_sin_pedido';
+                                if (registro?.tipo_solicitud) {
+                                    const reqType = registro.tipo_solicitud.toLowerCase();
+                                    if (reqType.includes('garantia') || reqType.includes('reclamo')) {
+                                        mappedTipoServicio = 'garantia_sin_pedido';
+                                    } else if (reqType.includes('instalacion') || reqType.includes('visita')) {
+                                        mappedTipoServicio = 'instalacion';
+                                    }
+                                }
+                                setModalTipoServicio(mappedTipoServicio);
+                                setModalFacturado(false);
+                                setShowSolicitarModal(true);
+                            }}
                             disabled={isCreatingService}
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-brand bg-brand text-white shadow-sm transition-colors ${
                                 isCreatingService ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-600'
@@ -708,6 +715,78 @@ export default function VerRegistroPage() {
                         setEditProductosNovedad(arr);
                     }}
                 />
+            )}
+
+            {showSolicitarModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                    >
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+                            <div>
+                                <h3 className="font-bold text-slate-800">Solicitar Servicio</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">Configure los detalles del servicio a crear</p>
+                            </div>
+                            <button
+                                onClick={() => setShowSolicitarModal(false)}
+                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-xl transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                    Tipo de Servicio <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={modalTipoServicio}
+                                    onChange={(e) => setModalTipoServicio(e.target.value)}
+                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all appearance-none font-medium"
+                                >
+                                    <option value="garantia_sin_pedido">Garantía sin pedido</option>
+                                    <option value="garantia_con_pedido">Garantía con pedido</option>
+                                    <option value="instalacion">Instalación</option>
+                                    <option value="visita_instalacion">Visita instalación</option>
+                                    <option value="mantenimiento">Mantenimiento</option>
+                                    <option value="mantenimiento_con_kit">Mantenimiento con kit</option>
+                                    <option value="desarme_modificacion">Desarme y modificación</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                <input
+                                    type="checkbox"
+                                    id="modalFacturado"
+                                    checked={modalFacturado}
+                                    onChange={(e) => setModalFacturado(e.target.checked)}
+                                    className="w-5 h-5 rounded border-slate-300 text-brand focus:ring-brand"
+                                />
+                                <label htmlFor="modalFacturado" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                                    ¿Es un servicio facturado?
+                                </label>
+                            </div>
+                        </div>
+                        <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setShowSolicitarModal(false)}
+                                className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSolicitarServicio}
+                                disabled={isCreatingService}
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-600 transition-colors disabled:opacity-50"
+                            >
+                                {isCreatingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                {isCreatingService ? 'Creando...' : 'Confirmar Creación'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
             )}
         </div>
     );
