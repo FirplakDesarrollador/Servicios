@@ -497,7 +497,6 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             }
 
             // Determine Coordinator based on Zone (as requested)
-            let zoneId = clienteFinalSeleccionado?.zona_id || clienteSeleccionado?.zona_id;
 
             if (!zoneId && clienteSeleccionado?.ciudad_id) {
                 const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).single();
@@ -525,6 +524,13 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             if (!finalCoordinadorId) {
                 finalCoordinadorId = clienteFinalSeleccionado?.coordinador_id || clienteFinalSeleccionado?.coordinadorId || 
                                      clienteSeleccionado?.coordinador_id || clienteSeleccionado?.coordinadorId;
+            }
+
+            // --- FIX POWER AUTOMATE ERROR ---
+            // Si el coordinador sigue siendo null, asignamos un coordinador por defecto (ej: 26)
+            // para que Power Automate no reviente esperando un string.
+            if (!finalCoordinadorId) {
+                finalCoordinadorId = 26; 
             }
 
             // --- FIX POWER AUTOMATE ERROR ---
