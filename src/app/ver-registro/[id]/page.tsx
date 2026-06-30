@@ -162,7 +162,10 @@ export default function VerRegistroPage() {
                     creado_desde: 'supabase',
                     asesor_mac_id: registro.asesor_mac_id || currentUser?.id,
                     numero_de_pedido: registro.orden_venta || '',
-                    sharepoint_uid: crypto.randomUUID()
+                    sharepoint_uid: crypto.randomUUID(),
+                    decision_cliente: 'No aplica',
+                    aplica_tecnico: true,
+                    facturado: false
                 })
                 .select()
                 .single();
