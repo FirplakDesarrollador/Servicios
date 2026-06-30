@@ -177,7 +177,8 @@ export default function VerRegistroPage() {
                 servicio_id: servicioData.id,
                 contenido: primerComentario,
                 usuario_id: currentUser?.id,
-                tipo: 'solicitud_servicio'
+                tipo: 'solicitud_servicio',
+                documentos: []
             });
             
             if (registro.productos_novedad && Array.isArray(registro.productos_novedad) && registro.productos_novedad.length > 0) {
