@@ -497,6 +497,13 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             }
 
             // Determine Coordinator based on Zone (as requested)
+            let zoneId = clienteFinalSeleccionado?.zona_id || clienteSeleccionado?.zona_id;
+
+            if (!zoneId && clienteSeleccionado?.ciudad_id) {
+                const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).single();
+                if (cityData?.zona_id) zoneId = cityData.zona_id;
+            }
+
             // Fallback for Ecommerce if no client zone
             if (!zoneId && isEcommerce) {
                 zoneId = 985; // Antioquia/Firplak B2C
