@@ -456,47 +456,13 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             const aplicaTecnico = determineAplicaTecnico(tipoServicio);
 
             let finalCoordinadorId = null;
-            let zoneId = clienteFinalSeleccionado?.zona_id || clienteSeleccionado?.zona_id;
+            let zoneId = clienteFinalSeleccionado?.zona_id || clienteFinalSeleccionado?.ciudades?.zona_id || clienteSeleccionado?.zona_id || clienteSeleccionado?.ciudades?.zona_id;
 
-            // Auto-create Consumidor if it doesn't have an ID
-            let finalConsumidorId = llevaClienteFinal ? (clienteFinalSeleccionado?.id || null) : null;
-            if (llevaClienteFinal && clienteFinalSeleccionado && !clienteFinalSeleccionado.id) {
-                let ciudadId = null;
-                if (clienteFinalSeleccionado.ciudad) {
-                    const { data: cityData } = await supabase
-                        .from('ciudades')
-                        .select('id, zona_id')
-                        .ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`)
-                        .limit(1)
-                        .single();
-                    if (cityData) {
-                        ciudadId = cityData.id;
-                        if (!zoneId && cityData.zona_id) {
-                            zoneId = cityData.zona_id;
-                        }
-                    }
-                }
-
-                const { data: savedId, error: saveError } = await supabase
-                    .rpc('upsert_consumidor_with_return', {
-                        p_cedula: clienteFinalSeleccionado.cedula,
-                        p_contacto: clienteFinalSeleccionado.contacto,
-                        p_telefono: clienteFinalSeleccionado.telefono,
-                        p_direccion: clienteFinalSeleccionado.direccion,
-                        p_correo_electronico: clienteFinalSeleccionado.correo_electronico,
-                        p_ciudad_id: ciudadId,
-                        p_barrio: null,
-                        p_descripcion_direccion: null
-                    });
-
-                if (!saveError && savedId) {
-                    finalConsumidorId = savedId;
-                } else if (saveError) {
-                    console.error("Error al auto-crear consumidor:", saveError);
-                }
+            if (!zoneId && clienteSeleccionado?.ciudad_id) {
+                const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).single();
+                if (cityData?.zona_id) zoneId = cityData.zona_id;
             }
 
-            // Determine Coordinator based on Zone (as requested)
             // Fallback for Ecommerce if no client zone
             if (!zoneId && isEcommerce) {
                 zoneId = 985; // Antioquia/Firplak B2C
