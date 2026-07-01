@@ -111,7 +111,13 @@ export default function SolicitudCard({ solicitud, onClick }: SolicitudCardProps
                         <div className="flex flex-col">
                             <span className="text-[10px] text-brand/60 font-bold uppercase tracking-widest text-brand">Servicio</span>
                             <span className="text-xs font-black text-slate-700 uppercase">{solicitud.tipodeservicio}</span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">{solicitud.grupo_producto} {solicitud.medidas && `• ${solicitud.medidas}`}</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">
+                                {solicitud.productos && solicitud.productos.length > 0
+                                    ? (solicitud.productos.length > 1
+                                        ? `${solicitud.productos.length} Productos Diferentes`
+                                        : `${solicitud.productos[0].grupo} ${solicitud.productos[0].medida ? `• ${solicitud.productos[0].medida}` : ''}`)
+                                    : `${solicitud.grupo_producto || ''} ${solicitud.medidas ? `• ${solicitud.medidas}` : ''}`}
+                            </span>
                         </div>
                     </div>
 

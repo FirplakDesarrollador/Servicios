@@ -225,10 +225,34 @@ export default function DetalleSolicitudClientePage() {
                                 <InfoSection title="Información General">
                                     <InfoField label="Fecha de Registro" value={formatDate(solicitud.created_at)} icon={Calendar} />
                                     <InfoField label="Tipo de Servicio" value={solicitud.tipodeservicio} icon={Package} />
-                                    <InfoField label="Grupo de Producto" value={solicitud.grupo_producto} />
-                                    <InfoField label="Medidas" value={solicitud.medidas} />
                                     <InfoField label="Valor Pagado" value={formatCurrency(solicitud.valor_pagar)} icon={DollarSign} />
                                 </InfoSection>
+
+                                {/* Productos Information */}
+                                {solicitud.productos && solicitud.productos.length > 0 ? (
+                                    <div className="space-y-4">
+                                        <h2 className="text-xs font-bold text-brand uppercase tracking-widest pl-1 mt-6">Productos ({solicitud.productos.length})</h2>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {solicitud.productos.map((prod: any, idx: number) => (
+                                                <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                    <h3 className="font-bold text-slate-800 text-sm mb-3">Producto {idx + 1}</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <InfoField label="Grupo de Producto" value={prod.grupo} />
+                                                        <InfoField label="Medidas" value={prod.medida} />
+                                                        {prod.cantidadPersonas && <InfoField label="Cantidad Personas" value={prod.cantidadPersonas} />}
+                                                        {prod.tieneCalentadorGas !== undefined && <InfoField label="Calentador a Gas" value={prod.tieneCalentadorGas ? 'Sí' : 'No'} />}
+                                                        {prod.observaciones && <InfoField label="Observaciones" value={prod.observaciones} fullWidth />}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <InfoSection title="Información del Producto">
+                                        <InfoField label="Grupo de Producto" value={solicitud.grupo_producto} />
+                                        <InfoField label="Medidas" value={solicitud.medidas} />
+                                    </InfoSection>
+                                )}
 
                                 {/* Client Information */}
                                 <InfoSection title="Datos del Cliente">
