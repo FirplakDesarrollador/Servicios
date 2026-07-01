@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft,
@@ -23,6 +23,7 @@ import ModalExportarCSV from '@/components/servicios-abiertos/ModalExportarCSV';
 
 export default function ServiciosAbiertosPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [services, setServices] = useState<any[]>([]);
     const [filteredServices, setFilteredServices] = useState<any[]>([]);
@@ -30,23 +31,38 @@ export default function ServiciosAbiertosPage() {
     const [macAdvisors, setMacAdvisors] = useState<any[]>([]);
     const [profile, setProfile] = useState<any>(null);
 
-    // Filter States
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterDateStart, setFilterDateStart] = useState('');
-    const [filterDateEnd, setFilterDateEnd] = useState('');
-    const [filterStatus, setFilterStatus] = useState('');
-    const [filterTechnician, setFilterTechnician] = useState('');
-    const [filterMacAdvisor, setFilterMacAdvisor] = useState('');
-    const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+    // Filter States initialized from URL
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+    const [filterDateStart, setFilterDateStart] = useState(searchParams.get('ds') || '');
+    const [filterDateEnd, setFilterDateEnd] = useState(searchParams.get('de') || '');
+    const [filterStatus, setFilterStatus] = useState(searchParams.get('st') || '');
+    const [filterTechnician, setFilterTechnician] = useState(searchParams.get('tech') || '');
+    const [filterMacAdvisor, setFilterMacAdvisor] = useState(searchParams.get('mac') || '');
+    const [showUnassignedOnly, setShowUnassignedOnly] = useState(searchParams.get('unassigned') === 'true');
     const [assigningMacService, setAssigningMacService] = useState<any>(null);
     const [isUpdatingMac, setIsUpdatingMac] = useState(false);
     const [closingService, setClosingService] = useState<any>(null);
     const [showExportModal, setShowExportModal] = useState(false);
     const [filterKey, setFilterKey] = useState(0);
 
-    // Pagination States
-    const [currentPage, setCurrentPage] = useState(1);
+    // Pagination States initialized from URL
+    const [currentPage, setCurrentPage] = useState(Number(searchParams.get('p')) || 1);
     const itemsPerPage = 50;
+
+    // Sync filters to URL
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (searchTerm) params.set('q', searchTerm);
+        if (filterDateStart) params.set('ds', filterDateStart);
+        if (filterDateEnd) params.set('de', filterDateEnd);
+        if (filterStatus) params.set('st', filterStatus);
+        if (filterTechnician) params.set('tech', filterTechnician);
+        if (filterMacAdvisor) params.set('mac', filterMacAdvisor);
+        if (showUnassignedOnly) params.set('unassigned', 'true');
+        if (currentPage > 1) params.set('p', currentPage.toString());
+
+        router.replace(`?${params.toString()}`, { scroll: false });
+    }, [searchTerm, filterDateStart, filterDateEnd, filterStatus, filterTechnician, filterMacAdvisor, showUnassignedOnly, currentPage, router]);
 
     useEffect(() => {
         const init = async () => {
