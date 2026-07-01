@@ -275,8 +275,8 @@ export default function VerRegistroPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center">
-                <Loader2 className="w-10 h-10 text-brand animate-spin mb-4" />
+            <div className="min-h-screen bg-[#f5f1ea] flex flex-col items-center justify-center">
+                <Loader2 className="w-10 h-10 text-[#254153] animate-spin mb-4" />
                 <p className="text-slate-500 font-medium">Cargando registro...</p>
             </div>
         );
@@ -284,13 +284,13 @@ export default function VerRegistroPage() {
 
     if (!registro) {
         return (
-            <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-4">
+            <div className="min-h-screen bg-[#f5f1ea] flex flex-col items-center justify-center p-4">
                 <FileText className="w-16 h-16 text-slate-300 mb-4" />
                 <h2 className="text-2xl font-bold text-slate-700 mb-2">Registro no encontrado</h2>
                 <p className="text-slate-500 mb-6">El registro solicitado no existe o fue eliminado.</p>
                 <button
                     onClick={() => router.push('/registro-solicitudes')}
-                    className="px-6 py-2.5 bg-brand text-white font-bold rounded-xl shadow-lg shadow-brand/20 hover:scale-105 transition-all"
+                    className="px-6 py-2.5 bg-[#254153] text-white font-bold rounded-xl shadow-lg shadow-[#254153]/20 hover:scale-105 transition-all"
                 >
                     Volver al listado
                 </button>
@@ -302,160 +302,34 @@ export default function VerRegistroPage() {
     const status = registro.estado || 'Abierto';
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-20">
+        <div className="min-h-screen bg-[#f5f1ea] text-[#1d1d1b] font-sans pb-20">
             {/* Header Sticky */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <header className="bg-white border-b border-[#e8e2d5] sticky top-0 z-30 shadow-sm">
+                <div className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-5">
                         <button
                             onClick={() => router.push('/registro-solicitudes')}
-                            className="p-2.5 bg-white border border-slate-200 shadow-sm -ml-2 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all text-slate-500 group"
+                            className="p-2.5 bg-white border border-[#749094]/20 shadow-sm -ml-2 rounded-xl hover:bg-[#f5f1ea]/50 hover:text-[#254153] transition-all text-[#254153] group"
                         >
                             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
                         </button>
                         <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 bg-slate-800 rounded-xl flex items-center justify-center text-white shadow-md hidden sm:flex">
+                            <div className="w-11 h-11 bg-[#254153] rounded-xl flex items-center justify-center text-white shadow-md hidden sm:flex">
                                 <FileText className="w-5 h-5" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Registro de Servicio</p>
-                                <h1 className="text-xl font-black text-slate-900 leading-none">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Registro de Servicio</p>
+                                <h1 className="text-xl font-black text-[#1d1d1b] leading-none">
                                     {consecutivo}
                                 </h1>
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <select
-                            value={registro.prioridad || 'Media'}
-                            onChange={async (e) => {
-                                const newPrioridad = e.target.value;
-                                try {
-                                    const { error } = await supabase.from('registro_solicitudes').update({ prioridad: newPrioridad }).eq('id', registro.id);
-                                    if (error) throw error;
-                                    setRegistro((prev: any) => ({ ...prev, prioridad: newPrioridad }));
-                                } catch (error) {
-                                    console.error('Error updating prioridad:', error);
-                                    alert('Error al actualizar la prioridad');
-                                }
-                            }}
-                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest border outline-none cursor-pointer transition-colors shadow-sm text-center appearance-none
-                                ${registro.prioridad === 'Alta' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : 
-                                  registro.prioridad === 'Baja' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 
-                                  'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
-                        >
-                            <option value="Alta">Prioridad: Alta</option>
-                            <option value="Media">Prioridad: Media</option>
-                            <option value="Baja">Prioridad: Baja</option>
-                        </select>
-                        <button
-                            onClick={() => {
-                                let mappedTipoServicio = 'garantia_sin_pedido';
-                                if (registro?.tipo_solicitud) {
-                                    const reqType = registro.tipo_solicitud.toLowerCase();
-                                    if (reqType.includes('garantia') || reqType.includes('reclamo')) {
-                                        mappedTipoServicio = 'garantia_sin_pedido';
-                                    } else if (reqType.includes('instalacion') || reqType.includes('visita')) {
-                                        mappedTipoServicio = 'instalacion';
-                                    }
-                                }
-                                setModalTipoServicio(mappedTipoServicio);
-                                setModalFacturado(false);
-                                setShowSolicitarModal(true);
-                            }}
-                            disabled={isCreatingService}
-                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-brand bg-brand text-white shadow-sm transition-colors ${
-                                isCreatingService ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-600'
-                            }`}
-                        >
-                            {isCreatingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            {isCreatingService ? 'CREANDO...' : 'SOLICITAR SERVICIO'}
-                        </button>
-                        <button
-                            onClick={() => setIsProductosModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-sm transition-colors"
-                        >
-                            <Package className="w-4 h-4" />
-                            Productos
-                        </button>
-                        <button
-                            onClick={async () => {
-                                const isCurrentlyClosed = registro.cerrada || registro.estado === 'Cerrado';
-                                
-                                if (!isCurrentlyClosed) {
-                                    const missingFields = [];
-                                    if (!registro.orden_venta || String(registro.orden_venta).trim() === '') missingFields.push('Orden de Venta (OV)');
-                                    if (!registro.asesor_mac_id) missingFields.push('Asesor MAC');
-                                    if (!registro.cliente_id && !registro.cliente_final_id) missingFields.push('Datos de Cliente');
-                                    if (!registro.vendedor_id) missingFields.push('Vendedor');
-                                    if (!registro.fecha_verificacion) missingFields.push('Fecha de Verificación');
-                                    if (registro.valor_servicio === null || registro.valor_servicio === undefined || String(registro.valor_servicio).trim() === '') missingFields.push('Valor Servicio');
-                                    if (registro.valor_flete === null || registro.valor_flete === undefined || String(registro.valor_flete).trim() === '') missingFields.push('Valor Flete');
-                                    if (registro.valor_producto === null || registro.valor_producto === undefined || String(registro.valor_producto).trim() === '') missingFields.push('Valor Producto');
-
-                                    // Validar Comentarios
-                                    const { count, error: commentsError } = await supabase.from('Comentarios_RegistroMAC')
-                                        .select('*', { count: 'exact', head: true })
-                                        .eq('numero_radicado', registro.consecutivo || `REG-${registro.id}`);
-                                    
-                                    if (commentsError || count === 0) {
-                                        missingFields.push('Comentarios (debe tener al menos uno)');
-                                    }
-
-                                    // Validar Productos, Defectos y Responsables
-                                    const productos = registro.productos_novedad || [];
-                                    if (productos.length === 0) {
-                                        missingFields.push('Productos con Novedad (al menos uno)');
-                                    } else {
-                                        let hasProductError = false;
-                                        for (const prod of productos) {
-                                            if (!prod.problemas || prod.problemas.length === 0) {
-                                                hasProductError = true;
-                                                break;
-                                            }
-                                            for (const prob of prod.problemas) {
-                                                if (!prob.tipo_problema_id || !prob.responsable_problema_id) {
-                                                    hasProductError = true;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        if (hasProductError) {
-                                            missingFields.push('Defecto y Responsable por cada Producto');
-                                        }
-                                    }
-
-                                    if (missingFields.length > 0) {
-                                        alert('No se puede cerrar la solicitud. Faltan los siguientes campos obligatorios:\n\n- ' + missingFields.join('\n- '));
-                                        return;
-                                    }
-                                }
-
-                                const newCerrada = !isCurrentlyClosed;
-                                const newEstado = newCerrada ? 'Cerrado' : 'Abierto';
-                                try {
-                                    const { error } = await supabase.from('registro_solicitudes').update({ cerrada: newCerrada, estado: newEstado }).eq('id', registro.id);
-                                    if (error) throw error;
-                                    setRegistro((prev: any) => ({ ...prev, cerrada: newCerrada, estado: newEstado }));
-                                } catch (error) {
-                                    console.error('Error toggling state:', error);
-                                    alert('Error al cambiar el estado de la solicitud');
-                                }
-                            }}
-                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border transition-colors shadow-sm
-                                ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-slate-800 text-white border-slate-700 hover:bg-slate-700'}`}
-                        >
-                            {registro.cerrada || registro.estado === 'Cerrado' ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                            {registro.cerrada || registro.estado === 'Cerrado' ? 'Reabrir' : 'Cerrar'}
-                        </button>
-                        <span className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                            {registro.cerrada || registro.estado === 'Cerrado' ? 'Cerrado' : 'Abierto'}
-                        </span>
-                    </div>
+                    {/* The right side of the h-20 header is now empty */}
                 </div>
 
                 {/* Tabs Navigation */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4">
                     <div className="flex items-center gap-4 overflow-x-auto hide-scrollbar -mb-px pt-4">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
@@ -467,12 +341,12 @@ export default function VerRegistroPage() {
                                     className={`
                                         flex items-center gap-2 px-1 py-3 border-b-2 text-sm font-bold whitespace-nowrap transition-colors outline-none
                                         ${isActive 
-                                            ? 'border-slate-800 text-slate-900' 
-                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                            ? 'border-[#254153] text-[#254153]' 
+                                            : 'border-transparent text-[#749094] hover:text-[#254153] hover:border-[#254153]/30'
                                         }
                                     `}
                                 >
-                                    <Icon className={`w-4 h-4 ${isActive ? 'text-slate-800' : 'text-slate-400'}`} />
+                                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#254153]' : 'text-[#749094]'}`} />
                                     {tab.label}
                                 </button>
                             );
@@ -482,26 +356,181 @@ export default function VerRegistroPage() {
             </header>
 
             {/* Main Content Area */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    {activeTab === 'informacion' && <InformacionTab registro={registro} usuariosList={usuariosList} onRefresh={() => fetchRegistro()} router={router} />}
-                    {activeTab === 'comentarios' && <ComentariosTab registro={registro} />}
-                    {activeTab === 'clasificacion' && (
-                        <ClasificacionTab 
-                            registro={registro} 
-                            usuariosList={usuariosList} 
-                            razonesQueja={razonesQueja} 
-                            responsableQueja={responsableQueja} 
-                            onRefresh={() => fetchRegistro()} 
-                        />
-                    )}
-                    {activeTab === 'servicios' && <ServiciosEnlazadosTab registro={registro} />}
-                </motion.div>
+            <main className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+                    {/* Columna Izquierda: Contenido Principal */}
+                    <div className="lg:col-span-3">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {activeTab === 'informacion' && <InformacionTab registro={registro} usuariosList={usuariosList} onRefresh={() => fetchRegistro()} router={router} />}
+                            {activeTab === 'comentarios' && <ComentariosTab registro={registro} />}
+                            {activeTab === 'clasificacion' && (
+                                <ClasificacionTab 
+                                    registro={registro} 
+                                    usuariosList={usuariosList} 
+                                    razonesQueja={razonesQueja} 
+                                    responsableQueja={responsableQueja} 
+                                    onRefresh={() => fetchRegistro()} 
+                                />
+                            )}
+                            {activeTab === 'servicios' && <ServiciosEnlazadosTab registro={registro} />}
+                        </motion.div>
+                    </div>
+
+                    {/* Columna Derecha: Acciones Rápidas */}
+                    <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24">
+                        <div className="bg-white border border-[#e8e2d5] rounded-[2rem] p-6 shadow-sm flex flex-col gap-4">
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#749094] border-b border-[#e8e2d5]/60 pb-3 flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-[#749094]" />
+                                Acciones Rápidas
+                            </h3>
+
+                            {/* Estado Badge Block */}
+                            <div className="flex items-center justify-between p-3 rounded-xl border border-[#e8e2d5]/60 bg-[#f5f1ea]/15">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-[#749094]">Estado</span>
+                                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                    {registro.cerrada || registro.estado === 'Cerrado' ? 'Cerrado' : 'Abierto'}
+                                </span>
+                            </div>
+
+                            {/* Prioridad Select Dropdown */}
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Prioridad</span>
+                                <select
+                                    value={registro.prioridad || 'Media'}
+                                    onChange={async (e) => {
+                                        const newPrioridad = e.target.value;
+                                        try {
+                                            const { error } = await supabase.from('registro_solicitudes').update({ prioridad: newPrioridad }).eq('id', registro.id);
+                                            if (error) throw error;
+                                            setRegistro((prev: any) => ({ ...prev, prioridad: newPrioridad }));
+                                        } catch (error) {
+                                            console.error('Error updating prioridad:', error);
+                                            alert('Error al actualizar la prioridad');
+                                        }
+                                    }}
+                                    className={`w-full px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest border outline-none cursor-pointer transition-colors shadow-sm text-center appearance-none
+                                        ${registro.prioridad === 'Alta' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : 
+                                          registro.prioridad === 'Baja' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 
+                                          'bg-[#f5f1ea]/50 text-[#1d1d1b]/80 border-[#e8e2d5] hover:bg-[#f5f1ea]'}`}
+                                >
+                                    <option value="Alta">Prioridad: Alta</option>
+                                    <option value="Media">Prioridad: Media</option>
+                                    <option value="Baja">Prioridad: Baja</option>
+                                </select>
+                            </div>
+
+                            <div className="flex flex-col gap-2 mt-2">
+                                <button
+                                    onClick={() => {
+                                        let mappedTipoServicio = 'garantia_sin_pedido';
+                                        if (registro?.tipo_solicitud) {
+                                            const reqType = registro.tipo_solicitud.toLowerCase();
+                                            if (reqType.includes('garantia') || reqType.includes('reclamo')) {
+                                                mappedTipoServicio = 'garantia_sin_pedido';
+                                            } else if (reqType.includes('instalacion') || reqType.includes('visita')) {
+                                                mappedTipoServicio = 'instalacion';
+                                            }
+                                        }
+                                        setModalTipoServicio(mappedTipoServicio);
+                                        setModalFacturado(false);
+                                        setShowSolicitarModal(true);
+                                    }}
+                                    disabled={isCreatingService}
+                                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest border border-[#254153] bg-[#254153] text-white shadow-sm transition-colors ${
+                                        isCreatingService ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#254153]/90'
+                                    }`}
+                                >
+                                    {isCreatingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                    {isCreatingService ? 'CREANDO...' : 'SOLICITAR SERVICIO'}
+                                </button>
+
+                                <button
+                                    onClick={() => setIsProductosModalOpen(true)}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest border border-[#e8e2d5] bg-white hover:bg-[#f5f1ea]/50 text-[#1d1d1b]/80 shadow-sm transition-colors"
+                                >
+                                    <Package className="w-4 h-4" />
+                                    Productos
+                                </button>
+
+                                <button
+                                    onClick={async () => {
+                                        const isCurrentlyClosed = registro.cerrada || registro.estado === 'Cerrado';
+                                        
+                                        if (!isCurrentlyClosed) {
+                                            const missingFields = [];
+                                            if (!registro.orden_venta || String(registro.orden_venta).trim() === '') missingFields.push('Orden de Venta (OV)');
+                                            if (!registro.asesor_mac_id) missingFields.push('Asesor MAC');
+                                            if (!registro.cliente_id && !registro.cliente_final_id) missingFields.push('Datos de Cliente');
+                                            if (!registro.vendedor_id) missingFields.push('Vendedor');
+                                            if (!registro.fecha_verificacion) missingFields.push('Fecha de Verificación');
+                                            if (registro.valor_servicio === null || registro.valor_servicio === undefined || String(registro.valor_servicio).trim() === '') missingFields.push('Valor Servicio');
+                                            if (registro.valor_flete === null || registro.valor_flete === undefined || String(registro.valor_flete).trim() === '') missingFields.push('Valor Flete');
+                                            if (registro.valor_producto === null || registro.valor_producto === undefined || String(registro.valor_producto).trim() === '') missingFields.push('Valor Producto');
+
+                                            // Validar Comentarios
+                                            const { count, error: commentsError } = await supabase.from('Comentarios_RegistroMAC')
+                                                .select('*', { count: 'exact', head: true })
+                                                .eq('numero_radicado', registro.consecutivo || `REG-${registro.id}`);
+                                            
+                                            if (commentsError || count === 0) {
+                                                missingFields.push('Comentarios (debe tener al menos uno)');
+                                            }
+
+                                            // Validar Productos, Defectos y Responsables
+                                            const productos = registro.productos_novedad || [];
+                                            if (productos.length === 0) {
+                                                missingFields.push('Productos con Novedad (al menos uno)');
+                                            } else {
+                                                let hasProductError = false;
+                                                for (const prod of productos) {
+                                                    if (!prod.problemas || prod.problemas.length === 0) {
+                                                        hasProductError = true;
+                                                        break;
+                                                    }
+                                                    for (const prob of prod.problemas) {
+                                                        if (!prob.tipo_problema_id || !prob.responsable_problema_id) {
+                                                            hasProductError = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                if (hasProductError) {
+                                                    missingFields.push('Defecto y Responsable por cada Producto');
+                                                }
+                                            }
+
+                                            if (missingFields.length > 0) {
+                                                alert('No se puede cerrar la solicitud. Faltan los siguientes campos obligatorios:\n\n- ' + missingFields.join('\n- '));
+                                                return;
+                                            }
+                                        }
+
+                                        const newCerrada = !isCurrentlyClosed;
+                                        const newEstado = newCerrada ? 'Cerrado' : 'Abierto';
+                                        try {
+                                            const { error } = await supabase.from('registro_solicitudes').update({ cerrada: newCerrada, estado: newEstado }).eq('id', registro.id);
+                                            if (error) throw error;
+                                            setRegistro((prev: any) => ({ ...prev, cerrada: newCerrada, estado: newEstado }));
+                                        } catch (error) {
+                                            console.error('Error toggling state:', error);
+                                            alert('Error al cambiar el estado de la solicitud');
+                                        }
+                                    }}
+                                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors shadow-sm
+                                        ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-[#1d1d1b] text-white border-[#1d1d1b] hover:bg-[#1d1d1b]/95'}`}
+                                >
+                                    {registro.cerrada || registro.estado === 'Cerrado' ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                                    {registro.cerrada || registro.estado === 'Cerrado' ? 'Reabrir' : 'Cerrar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
 
             {/* Modal de Productos */}
@@ -519,7 +548,7 @@ export default function VerRegistroPage() {
                             <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
                                 <Package className="w-5 h-5 text-slate-400" />
                                 Registro de Productos
-                                {isEditingProductos && <span className="text-brand ml-2 text-xs font-bold">(Modo Edición)</span>}
+                                {isEditingProductos && <span className="text-[#254153] ml-2 text-xs font-bold">(Modo Edición)</span>}
                             </h3>
                             <div className="flex items-center gap-2">
                                 {!isEditingProductos ? (
@@ -547,13 +576,13 @@ export default function VerRegistroPage() {
                         <div className="p-6 overflow-y-auto bg-slate-50">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Productos de Compra */}
-                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                                    <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                <div className="bg-white rounded-[1.5rem] border border-[#e8e2d5] p-5 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4 border-b border-[#e8e2d5]/60 pb-3">
                                         <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
                                             Productos de Compra
                                         </h4>
                                         {isEditingProductos && (
-                                            <button onClick={() => setShowBuscadorProductoCompra(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-brand hover:text-brand/80">
+                                            <button onClick={() => setShowBuscadorProductoCompra(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#254153] hover:text-[#254153]/80">
                                                 <Plus className="w-3 h-3" /> Añadir
                                             </button>
                                         )}
@@ -611,13 +640,13 @@ export default function VerRegistroPage() {
                                 </div>
 
                                 {/* Productos Novedad */}
-                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                                    <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                <div className="bg-white rounded-[1.5rem] border border-[#e8e2d5] p-5 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4 border-b border-[#e8e2d5]/60 pb-3">
                                         <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
                                             Productos con Novedad
                                         </h4>
                                         {isEditingProductos && (
-                                            <button onClick={() => setShowBuscadorProductoNovedad(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-brand hover:text-brand/80">
+                                            <button onClick={() => setShowBuscadorProductoNovedad(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#254153] hover:text-[#254153]/80">
                                                 <Plus className="w-3 h-3" /> Añadir
                                             </button>
                                         )}
@@ -657,7 +686,7 @@ export default function VerRegistroPage() {
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-start gap-4">
-                                                            <div className="w-10 h-10 bg-slate-800 text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
+                                                            <div className="w-10 h-10 bg-[#1d1d1b] text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
                                                                 <span className="text-[9px] font-bold uppercase leading-none opacity-70 mb-0.5">CANT</span>
                                                                 <span className="font-bold text-sm leading-none">{prod.cantidad || 1}</span>
                                                             </div>
@@ -745,7 +774,7 @@ export default function VerRegistroPage() {
                                 <select
                                     value={modalTipoServicio}
                                     onChange={(e) => setModalTipoServicio(e.target.value)}
-                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all appearance-none font-medium"
+                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] transition-all appearance-none font-medium"
                                 >
                                     <option value="garantia_sin_pedido">Garantía sin pedido</option>
                                     <option value="garantia_con_pedido">Garantía con pedido</option>
@@ -762,7 +791,7 @@ export default function VerRegistroPage() {
                                     id="modalFacturado"
                                     checked={modalFacturado}
                                     onChange={(e) => setModalFacturado(e.target.checked)}
-                                    className="w-5 h-5 rounded border-slate-300 text-brand focus:ring-brand"
+                                    className="w-5 h-5 rounded border-slate-300 text-[#254153] focus:ring-[#254153]"
                                 />
                                 <label htmlFor="modalFacturado" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
                                     ¿Es un servicio facturado?
@@ -779,7 +808,7 @@ export default function VerRegistroPage() {
                             <button
                                 onClick={handleSolicitarServicio}
                                 disabled={isCreatingService}
-                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-600 transition-colors disabled:opacity-50"
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#254153] hover:bg-[#254153]/90 transition-colors disabled:opacity-50"
                             >
                                 {isCreatingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                 {isCreatingService ? 'Creando...' : 'Confirmar Creación'}
@@ -802,11 +831,32 @@ function ComentariosTab({ registro }: { registro: any }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    // Estados del Lightbox / Carrusel
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxItems, setLightboxItems] = useState<any[]>([]);
+    const [lightboxIndex, setLightboxIndex] = useState<number>(0);
+
     useEffect(() => {
         if (registro?.consecutivo) {
             fetchComentarios();
         }
     }, [registro?.consecutivo]);
+
+    // Listener para navegación por teclado del carrusel
+    useEffect(() => {
+        if (!lightboxOpen || lightboxItems.length === 0) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setLightboxOpen(false);
+            if (e.key === 'ArrowLeft') {
+                setLightboxIndex((prev) => (prev === 0 ? lightboxItems.length - 1 : prev - 1));
+            }
+            if (e.key === 'ArrowRight') {
+                setLightboxIndex((prev) => (prev === lightboxItems.length - 1 ? 0 : prev + 1));
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxOpen, lightboxItems]);
 
     const fetchComentarios = async () => {
         setLoading(true);
@@ -897,28 +947,28 @@ function ComentariosTab({ registro }: { registro: any }) {
     };
 
     return (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+        <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] overflow-hidden flex flex-col h-[600px] relative">
             {/* Cabecera */}
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="p-6 border-b border-[#e8e2d5]/60 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600">
+                    <div className="w-10 h-10 bg-[#f5f1ea]/50 rounded-xl flex items-center justify-center text-[#749094]">
                         <MessageSquare className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-slate-900">Historial de Comentarios</h3>
-                        <p className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mt-0.5">Discusión del caso</p>
+                        <h3 className="text-sm font-bold text-[#1d1d1b]">Historial de Comentarios</h3>
+                        <p className="text-[11px] font-medium text-[#749094] uppercase tracking-widest mt-0.5">Discusión del caso</p>
                     </div>
                 </div>
-                <div className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                <div className="text-xs font-bold text-[#1d1d1b]/70 bg-[#f5f1ea]/30 px-3 py-1.5 rounded-lg border border-[#e8e2d5]">
                     {comentarios.length} {comentarios.length === 1 ? 'Mensaje' : 'Mensajes'}
                 </div>
             </div>
 
             {/* Lista de Comentarios */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 custom-scrollbar space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 bg-[#f5f1ea]/10 custom-scrollbar space-y-6">
                 {loading ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                        <Loader2 className="w-8 h-8 animate-spin mb-3 text-brand" />
+                        <Loader2 className="w-8 h-8 animate-spin mb-3 text-[#254153]" />
                         <p className="text-sm font-medium">Cargando comentarios...</p>
                     </div>
                 ) : comentarios.length === 0 ? (
@@ -935,48 +985,70 @@ function ComentariosTab({ registro }: { registro: any }) {
                         
                         return (
                             <div key={comentario.id || index} className="flex gap-4">
-                                <div className="w-10 h-10 bg-gradient-to-br from-brand to-blue-800 rounded-full flex items-center justify-center shrink-0 shadow-md">
+                                <div className="w-10 h-10 bg-gradient-to-br from-[#254153] to-[#749094] rounded-full flex items-center justify-center shrink-0 shadow-md">
                                     <span className="text-white font-black text-xs">
                                         {autorNombre.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
                                 <div className="flex-1 space-y-1.5">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm font-black text-slate-800">{autorNombre}</span>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                        <span className="text-sm font-black text-[#1d1d1b]">{autorNombre}</span>
+                                        <span className="text-[10px] font-bold text-[#749094] uppercase tracking-wider">
                                             {new Date(comentario.created_at).toLocaleString('es-CO', { 
                                                 day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                                             })}
                                         </span>
                                     </div>
-                                    <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                    <div className="bg-white border border-[#e8e2d5] p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-[#1d1d1b] leading-relaxed whitespace-pre-wrap">
                                         {comentario.comentario || ''}
                                         {comentario.adjuntos && comentario.adjuntos.length > 0 && (
-                                            <div className={`flex flex-wrap gap-2 ${comentario.comentario ? 'mt-3 pt-3 border-t border-slate-100' : ''}`}>
+                                            <div className={`flex flex-wrap gap-2 ${comentario.comentario ? 'mt-3 pt-3 border-t border-[#e8e2d5]/60' : ''}`}>
                                                 {comentario.adjuntos.map((adjunto: any, i: number) => {
                                                     const isImage = adjunto.type?.startsWith('image/');
                                                     const isVideo = adjunto.type?.startsWith('video/');
+                                                    
+                                                    const mediaAttachments = comentario.adjuntos.filter((a: any) => a.type?.startsWith('image/') || a.type?.startsWith('video/'));
+                                                    const mediaIndex = mediaAttachments.findIndex((a: any) => a.url === adjunto.url);
+
                                                     if (isImage) {
                                                         return (
-                                                            <a key={i} href={adjunto.url} target="_blank" rel="noreferrer" className="block w-24 h-24 rounded-lg overflow-hidden border border-slate-200 hover:opacity-80 transition-opacity shrink-0">
+                                                            <button 
+                                                                key={i} 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setLightboxItems(mediaAttachments);
+                                                                    setLightboxIndex(mediaIndex);
+                                                                    setLightboxOpen(true);
+                                                                }}
+                                                                className="block w-24 h-24 rounded-lg overflow-hidden border border-slate-200 hover:opacity-85 transition-opacity shrink-0 cursor-zoom-in relative"
+                                                            >
                                                                 <img src={adjunto.url} alt={adjunto.name} className="w-full h-full object-cover bg-slate-50" />
-                                                            </a>
+                                                            </button>
                                                         );
                                                     }
                                                     if (isVideo) {
                                                         return (
-                                                            <a key={i} href={adjunto.url} target="_blank" rel="noreferrer" className="block w-24 h-24 rounded-lg overflow-hidden border border-slate-200 bg-black flex items-center justify-center hover:opacity-80 transition-opacity shrink-0 relative group">
-                                                                <video src={adjunto.url} className="w-full h-full object-cover opacity-80" />
-                                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                                    <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                            <button 
+                                                                key={i} 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setLightboxItems(mediaAttachments);
+                                                                    setLightboxIndex(mediaIndex);
+                                                                    setLightboxOpen(true);
+                                                                }}
+                                                                className="block w-24 h-24 rounded-lg overflow-hidden border border-slate-200 bg-black flex items-center justify-center hover:opacity-85 transition-opacity shrink-0 relative group cursor-zoom-in"
+                                                            >
+                                                                <video src={adjunto.url} className="w-full h-full object-cover opacity-75" />
+                                                                <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors">
+                                                                    <div className="w-8 h-8 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                                                                         <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-white border-b-4 border-b-transparent ml-1"></div>
                                                                     </div>
                                                                 </div>
-                                                            </a>
+                                                            </button>
                                                         );
                                                     }
                                                     return (
-                                                        <a key={i} href={adjunto.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors w-full sm:w-auto shrink-0">
+                                                        <a key={i} href={adjunto.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 bg-[#f5f1ea]/30 border border-[#e8e2d5] rounded-lg text-xs font-medium text-[#1d1d1b]/80 hover:bg-[#f5f1ea]/50 transition-colors w-full sm:w-auto shrink-0">
                                                             <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
                                                             <span className="truncate max-w-[150px]">{adjunto.name}</span>
                                                         </a>
@@ -994,21 +1066,21 @@ function ComentariosTab({ registro }: { registro: any }) {
             </div>
 
             {/* Input para Nuevo Comentario */}
-            <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+            <div className="p-4 bg-white border-t border-[#e8e2d5] shrink-0">
                 {archivos.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
                         {archivos.map((file, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-brand/5 border border-brand/20 text-brand px-3 py-1.5 rounded-lg text-xs font-medium">
+                            <div key={i} className="flex items-center gap-2 bg-brand/5 border border-brand/20 text-[#254153] px-3 py-1.5 rounded-lg text-xs font-medium">
                                 <span className="truncate max-w-[150px]">{file.name}</span>
-                                <button onClick={() => setArchivos(prev => prev.filter((_, idx) => idx !== i))} className="p-0.5 hover:bg-brand/10 rounded-md transition-colors">
+                                <button onClick={() => setArchivos(prev => prev.filter((_, idx) => idx !== i))} className="p-0.5 hover:bg-[#254153]/10 rounded-md transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         ))}
                     </div>
                 )}
-                <div className="flex items-end gap-3 bg-slate-50 border border-slate-200 p-2 rounded-2xl focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
-                    <label className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-brand hover:bg-brand/5 rounded-xl cursor-pointer transition-colors shrink-0">
+                <div className="flex items-end gap-3 bg-slate-50 border border-[#e8e2d5] p-2 rounded-2xl focus-within:border-[#254153] focus-within:ring-1 focus-within:ring-[#254153] transition-all">
+                    <label className="w-11 h-11 flex items-center justify-center text-[#749094] hover:text-[#254153] hover:bg-[#254153]/5 rounded-xl cursor-pointer transition-colors shrink-0">
                         <Paperclip className="w-5 h-5" />
                         <input type="file" multiple className="hidden" onChange={(e) => {
                             if (e.target.files) {
@@ -1022,7 +1094,7 @@ function ComentariosTab({ registro }: { registro: any }) {
                         value={nuevoComentario}
                         onChange={(e) => setNuevoComentario(e.target.value)}
                         placeholder="Escribe un comentario..."
-                        className="flex-1 bg-transparent p-2 text-sm text-slate-800 focus:outline-none resize-none min-h-[44px] max-h-32 custom-scrollbar"
+                        className="flex-1 bg-transparent p-2 text-sm text-[#1d1d1b] focus:outline-none resize-none min-h-[44px] max-h-32 custom-scrollbar"
                         rows={1}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -1034,16 +1106,90 @@ function ComentariosTab({ registro }: { registro: any }) {
                     <button 
                         onClick={handleAddComentario}
                         disabled={(!nuevoComentario.trim() && archivos.length === 0) || isSubmitting}
-                        className="w-11 h-11 flex items-center justify-center bg-brand text-white rounded-xl shadow-md hover:bg-brand/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className="w-11 h-11 flex items-center justify-center bg-[#254153] text-white rounded-xl shadow-md hover:bg-[#254153]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                     >
                         {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-1" />}
                     </button>
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium text-center mt-2 uppercase tracking-widest">
+                <p className="text-[10px] text-[#749094] font-medium text-center mt-2 uppercase tracking-widest">
                     Presiona Enter para enviar, Shift + Enter para salto de línea
                 </p>
             </div>
 
+            {/* Modal Lightbox / Carrusel de Adjuntos */}
+            {lightboxOpen && lightboxItems.length > 0 && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#1d1d1b]/95 backdrop-blur-md transition-all select-none animate-in fade-in duration-200">
+                    {/* Backdrop / Cierre al hacer click fuera */}
+                    <div className="absolute inset-0 cursor-zoom-out" onClick={() => setLightboxOpen(false)} />
+
+                    {/* Botón Cerrar */}
+                    <button 
+                        onClick={() => setLightboxOpen(false)}
+                        className="absolute top-6 right-6 z-20 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all shadow-md focus:outline-none hover:scale-105 active:scale-95"
+                        title="Cerrar (Esc)"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+
+                    {/* Contenido del Carrusel */}
+                    <div className="relative z-10 w-full max-w-[95vw] h-[90vh] flex flex-col items-center justify-between py-6">
+                        {/* Contenedor Media */}
+                        <div className="relative w-full flex-1 flex items-center justify-center">
+                            {/* Flecha Izquierda */}
+                            {lightboxItems.length > 1 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxIndex((prev) => (prev === 0 ? lightboxItems.length - 1 : prev - 1));
+                                    }}
+                                    className="absolute left-2 sm:left-6 z-25 p-4 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all shadow-md focus:outline-none hover:scale-110 active:scale-90"
+                                >
+                                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+                            )}
+
+                            {/* Elemento Activo */}
+                            <div className="max-w-[85vw] max-h-[78vh] flex items-center justify-center">
+                                {lightboxItems[lightboxIndex].type?.startsWith('image/') ? (
+                                    <img 
+                                        src={lightboxItems[lightboxIndex].url} 
+                                        alt={lightboxItems[lightboxIndex].name}
+                                        className="max-w-full max-h-[78vh] rounded-xl object-contain shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200"
+                                    />
+                                ) : (
+                                    <video 
+                                        src={lightboxItems[lightboxIndex].url} 
+                                        controls
+                                        autoPlay
+                                        className="max-w-full max-h-[78vh] rounded-xl object-contain shadow-2xl border border-white/10"
+                                    />
+                                )}
+                            </div>
+
+                            {/* Flecha Derecha */}
+                            {lightboxItems.length > 1 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxIndex((prev) => (prev === lightboxItems.length - 1 ? 0 : prev + 1));
+                                    }}
+                                    className="absolute right-2 sm:right-6 z-25 p-4 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all shadow-md focus:outline-none hover:scale-110 active:scale-90"
+                                >
+                                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Barra de estado */}
+                        <div className="text-center text-white/90 shrink-0 mt-4">
+                            <p className="text-xs sm:text-sm font-bold truncate max-w-[80vw]">{lightboxItems[lightboxIndex].name}</p>
+                            <p className="text-[10px] sm:text-xs text-white/50 mt-1 uppercase tracking-widest font-semibold">
+                                {lightboxIndex + 1} de {lightboxItems.length}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -1200,66 +1346,66 @@ function ClasificacionTab({
     };
 
     return (
-        <div className="bg-white rounded-2xl w-full shadow-sm border border-slate-200 flex flex-col relative z-10 overflow-hidden">
+        <div className="bg-white rounded-[2rem] w-full shadow-sm border border-[#e8e2d5] flex flex-col relative z-10 overflow-hidden">
             {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+            <div className="p-4 sm:p-5 border-b border-[#e8e2d5]/60 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-brand/10 text-brand rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[#254153]/10 text-[#254153] rounded-xl flex items-center justify-center">
                         <Tag className="w-5 h-5" />
                     </div>
                     <div>
-                        <h2 className="text-base font-bold text-slate-800">Clasificación de Productos</h2>
-                        <p className="text-[11px] text-slate-500 font-medium">Asigna la clasificación detallada para cada novedad</p>
+                        <h2 className="text-base font-bold text-[#1d1d1b]">Clasificación de Productos</h2>
+                        <p className="text-[11px] text-[#749094] font-medium">Asigna la clasificación detallada para cada novedad</p>
                     </div>
                 </div>
             </div>
             
             {/* Global Classification Fields */}
-            <div className="p-4 sm:p-6 bg-slate-50 border-b border-slate-100 pb-0">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+            <div className="p-4 sm:p-6 bg-[#f5f1ea]/15 border-b border-[#e8e2d5] pb-0">
+                <div className="bg-white rounded-[1.5rem] shadow-sm border border-[#e8e2d5] p-5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-[#749094] mb-4 flex items-center gap-2">
                         <Info className="w-4 h-4" /> Datos Generales de la Solicitud
                     </h3>
                     
                     <div className="space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Vendedor</label>
-                                <select value={globalClasificacion.vendedor_id} onChange={(e) => handleGlobalClasificacionChange('vendedor_id', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Vendedor</label>
+                                <select value={globalClasificacion.vendedor_id} onChange={(e) => handleGlobalClasificacionChange('vendedor_id', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]">
                                     <option value="">Seleccione Vendedor</option>
                                     {usuariosList.map(v => <option key={v.id} value={v.id}>{v.display_name || `${v.nombres||''} ${v.apellidos||''}`}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Responsable Atraso</label>
-                                <input type="text" value={globalClasificacion.responsable_atraso} onChange={(e) => handleGlobalClasificacionChange('responsable_atraso', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Responsable Atraso</label>
+                                <input type="text" value={globalClasificacion.responsable_atraso} onChange={(e) => handleGlobalClasificacionChange('responsable_atraso', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Área Responsable</label>
-                                <input type="text" value={globalClasificacion.area_responsable} onChange={(e) => handleGlobalClasificacionChange('area_responsable', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Área Responsable</label>
+                                <input type="text" value={globalClasificacion.area_responsable} onChange={(e) => handleGlobalClasificacionChange('area_responsable', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Fecha Verificación</label>
-                                <input type="date" value={globalClasificacion.fecha_verificacion} onChange={(e) => handleGlobalClasificacionChange('fecha_verificacion', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha Verificación</label>
+                                <input type="date" value={globalClasificacion.fecha_verificacion} onChange={(e) => handleGlobalClasificacionChange('fecha_verificacion', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-100 pt-5">
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Valor Servicio</label>
-                                <input type="number" value={globalClasificacion.valor_servicio} onChange={(e) => handleGlobalClasificacionChange('valor_servicio', Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Servicio</label>
+                                <input type="number" value={globalClasificacion.valor_servicio} onChange={(e) => handleGlobalClasificacionChange('valor_servicio', Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Valor Flete</label>
-                                <input type="number" value={globalClasificacion.valor_flete} onChange={(e) => handleGlobalClasificacionChange('valor_flete', Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Flete</label>
+                                <input type="number" value={globalClasificacion.valor_flete} onChange={(e) => handleGlobalClasificacionChange('valor_flete', Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Valor Producto</label>
-                                <input type="number" value={globalClasificacion.valor_producto} onChange={(e) => handleGlobalClasificacionChange('valor_producto', Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Producto</label>
+                                <input type="number" value={globalClasificacion.valor_producto} onChange={(e) => handleGlobalClasificacionChange('valor_producto', Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Valor Total</label>
-                                <div className="w-full bg-brand/5 border border-brand/20 rounded-lg p-2.5 text-sm font-bold text-brand">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Total</label>
+                                <div className="w-full bg-[#254153]/5 border border-[#254153]/20 rounded-lg p-2.5 text-sm font-bold text-[#254153]">
                                     ${((Number(globalClasificacion.valor_servicio)||0) + (Number(globalClasificacion.valor_flete)||0) + (Number(globalClasificacion.valor_producto)||0)).toLocaleString()}
                                 </div>
                             </div>
@@ -1275,16 +1421,16 @@ function ClasificacionTab({
                 ) : (
                     <ul className="space-y-6">
                         {editClasificacionProductos.map((prod: any, idx: number) => (
-                            <li key={idx} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                            <li key={idx} className="bg-white rounded-[1.5rem] border border-[#e8e2d5] p-5 shadow-sm">
                                 {/* Header del Producto */}
                                 <div className="flex items-start gap-4 mb-5 border-b border-slate-100 pb-4">
-                                    <div className="w-10 h-10 bg-slate-800 text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
+                                    <div className="w-10 h-10 bg-[#1d1d1b] text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
                                         <span className="text-[9px] font-bold uppercase leading-none opacity-70 mb-0.5">CANT</span>
                                         <span className="font-bold text-sm leading-none">{prod.cantidad || 1}</span>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-bold text-slate-900 truncate">{prod.referencia || prod.codigo || prod.sku || 'Sin Referencia'}</p>
-                                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{prod.descripcion || prod.nombre || 'Producto Genérico'}</p>
+                                        <p className="text-sm font-bold text-[#1d1d1b] truncate">{prod.referencia || prod.codigo || prod.sku || 'Sin Referencia'}</p>
+                                        <p className="text-xs text-[#1d1d1b]/70 mt-0.5 line-clamp-2">{prod.descripcion || prod.nombre || 'Producto Genérico'}</p>
                                     </div>
                                 </div>
 
@@ -1292,41 +1438,41 @@ function ClasificacionTab({
                                 <div className="space-y-5">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Fecha de Compra</label>
-                                            <input type="date" value={prod.fecha_compra || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_compra', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha de Compra</label>
+                                            <input type="date" value={prod.fecha_compra || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_compra', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Fecha Fabricación</label>
-                                            <input type="date" value={prod.fecha_fabricacion || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_fabricacion', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha Fabricación</label>
+                                            <input type="date" value={prod.fecha_fabricacion || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_fabricacion', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                                         </div>
                                     </div>
 
-                                    <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 mt-4">
+                                    <div className="border border-[#e8e2d5] rounded-xl p-4 bg-[#f5f1ea]/10 mt-4">
                                         <div className="flex items-center justify-between mb-3">
-                                            <label className="text-[11px] font-bold uppercase tracking-widest text-brand">Defectos / Responsables</label>
-                                            <button onClick={() => addProductProblema(idx)} className="text-[10px] font-bold uppercase tracking-widest text-brand hover:underline flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-brand/10">
+                                            <label className="text-[11px] font-bold uppercase tracking-widest text-[#254153]">Defectos / Responsables</label>
+                                            <button onClick={() => addProductProblema(idx)} className="text-[10px] font-bold uppercase tracking-widest text-[#254153] hover:underline flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-[#254153]/10">
                                                 <Plus className="w-3 h-3" /> Añadir Defecto
                                             </button>
                                         </div>
                                         {(prod.problemas || []).length > 0 ? (
                                             <div className="space-y-3">
                                                 {(prod.problemas || []).map((prob: any, pIdx: number) => (
-                                                    <div key={pIdx} className="flex items-start sm:items-center gap-2 flex-col sm:flex-row bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                                    <div key={pIdx} className="flex items-start sm:items-center gap-2 flex-col sm:flex-row bg-white p-3 rounded-lg border border-[#e8e2d5] shadow-sm">
                                                         <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                             <div>
                                                                 <span className="text-[9px] text-slate-400 block mb-1">Defecto</span>
-                                                                <select value={prob.tipo_problema_id || ''} onChange={(e) => handleDefectoChange(idx, pIdx, e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-md p-2 text-xs outline-none focus:border-brand">
+                                                                <select value={prob.tipo_problema_id || ''} onChange={(e) => handleDefectoChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-md p-2 text-xs outline-none focus:border-[#254153]">
                                                                     <option value="">Seleccione...</option>
                                                                     {localRazones.map(r => <option key={r.id} value={r.id}>{r.razon}</option>)}
-                                                                    <option value="NEW" className="font-bold text-brand">+ Crear Nuevo Defecto...</option>
+                                                                    <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Defecto...</option>
                                                                 </select>
                                                             </div>
                                                             <div>
                                                                 <span className="text-[9px] text-slate-400 block mb-1">Responsable</span>
-                                                                <select value={prob.responsable_problema_id || ''} onChange={(e) => handleResponsableChange(idx, pIdx, e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-md p-2 text-xs outline-none focus:border-brand">
+                                                                <select value={prob.responsable_problema_id || ''} onChange={(e) => handleResponsableChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-md p-2 text-xs outline-none focus:border-[#254153]">
                                                                     <option value="">Seleccione...</option>
                                                                     {localResponsables.map(r => <option key={r.id} value={r.id}>{r.responsable}</option>)}
-                                                                    <option value="NEW" className="font-bold text-brand">+ Crear Nuevo Responsable...</option>
+                                                                    <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Responsable...</option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -1354,7 +1500,7 @@ function ClasificacionTab({
                 <button
                     onClick={handleSaveClasificacion}
                     disabled={isSavingClasificacion}
-                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-white shadow-lg shadow-brand/20 hover:scale-105 transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#254153] text-white shadow-lg shadow-[#254153]/20 hover:scale-105 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
                     {isSavingClasificacion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Guardar Clasificación
@@ -1372,6 +1518,25 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
     const [ordenVentaLocal, setOrdenVentaLocal] = useState(registro.orden_venta || '');
     const [isSavingOrdenVenta, setIsSavingOrdenVenta] = useState(false);
     const [isSavingTipoSolicitud, setIsSavingTipoSolicitud] = useState(false);
+    const [tiposSolicitud, setTiposSolicitud] = useState<string[]>([
+        'Garantía',
+        'Documento Sagrilaft',
+        'Reclamo',
+        'Atención'
+    ]);
+
+    useEffect(() => {
+        const fetchTipos = async () => {
+            try {
+                const { data } = await supabase.from('registro_solicitudes').select('tipo_solicitud');
+                if (data) {
+                    const unique = Array.from(new Set(data.map(d => d.tipo_solicitud).filter((t): t is string => typeof t === 'string' && t.trim() !== '')));
+                    setTiposSolicitud(prev => Array.from(new Set([...prev, ...unique])));
+                }
+            } catch(e) {}
+        };
+        fetchTipos();
+    }, []);
 
     const ubi = registro.Ubicaciones || {};
     const cons = registro.Consumidores || {};
@@ -1413,7 +1578,16 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
     };
 
     const handleTipoSolicitudChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newValue = e.target.value;
+        let newValue = e.target.value;
+        if (newValue === 'NEW') {
+            const newName = window.prompt("Ingrese el nombre del nuevo tipo de solicitud:");
+            if (!newName?.trim()) {
+                e.target.value = registro.tipo_solicitud || '';
+                return;
+            }
+            newValue = newName.trim();
+            setTiposSolicitud(prev => Array.from(new Set([...prev, newValue])));
+        }
         setIsSavingTipoSolicitud(true);
         try {
             const { error } = await supabase
@@ -1451,48 +1625,45 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
         <div className="space-y-6">
             
             {/* Datos Básicos */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
-                    <Info className="w-4 h-4 text-slate-500" />
+            <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] p-6 sm:p-8">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#749094] mb-6 flex items-center gap-2 border-b border-[#e8e2d5]/60 pb-4">
+                    <Info className="w-4 h-4 text-[#749094]" />
                     Detalles Principales
                 </h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <InfoField label="Consecutivo" value={registro.consecutivo || 'N/A'} icon={Hash} />
-                    
-
-                    
                     <InfoField label="Fecha de Solicitud" value={dateStr} icon={Calendar} />
-                    <InfoField label="Tratado Por" value={tratadoPor} icon={UserCog} />
+                    <InfoField label="Solicitado Por" value={tratadoPor} icon={UserCog} />
                     
-                    <div className="flex gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 transition-colors">
-                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
-                            <Tag className="w-4 h-4" />
+                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
+                        <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+                            <Tag className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0 flex-1 relative">
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Tipo de Solicitud</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Tipo de Solicitud</p>
                             <select 
                                 value={registro.tipo_solicitud || ''} 
                                 onChange={handleTipoSolicitudChange}
                                 disabled={isSavingTipoSolicitud}
-                                className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none cursor-pointer truncate appearance-none"
+                                className="w-full text-xs font-semibold text-[#1d1d1b] bg-transparent outline-none cursor-pointer truncate appearance-none"
                             >
                                 <option value="">Seleccionar opción...</option>
-                                <option value="Garantía">Garantía</option>
-                                <option value="Documento Sagrilaft">Documento Sagrilaft</option>
-                                <option value="Reclamo">Reclamo</option>
-                                <option value="Atención">Atención</option>
+                                {tiposSolicitud.map(tipo => (
+                                    <option key={tipo} value={tipo}>{tipo}</option>
+                                ))}
+                                <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Tipo...</option>
                             </select>
-                            {isSavingTipoSolicitud && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-brand" />}
+                            {isSavingTipoSolicitud && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[#254153]" />}
                         </div>
                     </div>
                     <InfoField label="Canal de Venta" value={canalVentaFormat} icon={Building2} />
-                    <div className="flex gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 transition-colors">
-                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
-                            <FileText className="w-4 h-4" />
+                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
+                        <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+                            <FileText className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0 flex-1 relative">
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Orden de Venta</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Orden de Venta</p>
                             <input 
                                 type="text"
                                 placeholder="N/A"
@@ -1501,45 +1672,45 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                                 onBlur={handleOrdenVentaBlur}
                                 onKeyDown={(e) => { if (e.key === 'Enter') handleOrdenVentaBlur(); }}
                                 disabled={isSavingOrdenVenta}
-                                className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none truncate placeholder:text-slate-400"
+                                className="w-full text-xs font-semibold text-[#1d1d1b] bg-transparent outline-none truncate placeholder:text-[#749094]/40"
                             />
-                            {isSavingOrdenVenta && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-brand" />}
+                            {isSavingOrdenVenta && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[#254153]" />}
                         </div>
                     </div>
-                    <div className="flex gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 transition-colors">
-                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
-                            <UserCog className="w-4 h-4" />
+                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
+                        <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+                            <UserCog className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0 flex-1 relative">
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Asesor MAC</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Asesor MAC</p>
                             <select 
                                 value={registro.asesor_mac_id || ''} 
                                 onChange={handleAsesorChange}
                                 disabled={isSavingAsesor}
-                                className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none cursor-pointer truncate appearance-none"
+                                className="w-full text-xs font-semibold text-[#1d1d1b] bg-transparent outline-none cursor-pointer truncate appearance-none"
                             >
                                 <option value="">Sin Asignar</option>
                                 {asesoresMac.map(u => (
                                     <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
                                 ))}
                             </select>
-                            {isSavingAsesor && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-brand" />}
+                            {isSavingAsesor && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[#254153]" />}
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Datos del Canal de Venta / Distribuidor */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 hover:border-slate-300 transition-colors">
-                <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] p-6 sm:p-8 hover:border-[#749094]/30 transition-colors">
+                <div className="flex items-center justify-between mb-6 border-b border-[#e8e2d5]/60 pb-3">
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#749094] flex items-center gap-2">
                         <Building2 className="w-3.5 h-3.5" />
                         {registro.canal_venta === 'canal_propio_ecommerce' ? 'Datos del Canal (Propio)' : 'Datos del Canal de Venta'}
                     </h3>
                     {registro.canal_venta !== 'canal_propio_ecommerce' && (
                         <button 
                             onClick={() => setShowModalEditarCanal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand bg-brand/5 hover:bg-brand/10 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#254153] bg-[#254153]/5 hover:bg-[#254153]/10 rounded-lg transition-colors"
                         >
                             <Pencil className="w-3.5 h-3.5" />
                             Editar Datos
@@ -1549,8 +1720,8 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                     <div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nombre</span>
-                        <span className="text-sm font-semibold text-slate-900">
+                        <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Nombre</span>
+                        <span className="text-sm font-semibold text-[#1d1d1b]">
                             {registro.canal_venta === 'canal_propio_ecommerce' 
                                 ? 'Firplak / Ecommerce'
                                 : registro.cliente_nombre || 'N/A'}
@@ -1559,16 +1730,16 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                     {registro.canal_venta !== 'canal_propio_ecommerce' && (
                         <>
                             <div>
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Ciudad</span>
-                                <span className="text-xs font-medium text-slate-600">{ubi.ciudades?.ciudad || ubi.ciudad || '---'}</span>
+                                <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Ciudad</span>
+                                <span className="text-xs font-medium text-[#1d1d1b]/80">{ubi.ciudades?.ciudad || ubi.ciudad || '---'}</span>
                             </div>
                             <div>
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Teléfono</span>
-                                <span className="text-xs font-medium text-slate-600">{ubi.telefono1 || ubi.telefono || ubi.celular || '---'}</span>
+                                <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Teléfono</span>
+                                <span className="text-xs font-medium text-[#1d1d1b]/80">{ubi.telefono1 || ubi.telefono || ubi.celular || '---'}</span>
                             </div>
-                            <div className="lg:col-span-2 xl:col-span-1">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dirección</span>
-                                <span className="text-xs font-medium text-slate-600">{ubi.direccion || '---'}</span>
+                            <div>
+                                <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Dirección</span>
+                                <span className="text-xs font-medium text-[#1d1d1b]/80">{ubi.direccion || '---'}</span>
                             </div>
                         </>
                     )}
@@ -1577,15 +1748,15 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
 
             {/* Datos del Cliente Final */}
             {registro.cliente_final_id && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 hover:border-slate-300 transition-colors">
-                    <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] p-6 sm:p-8 hover:border-[#749094]/30 transition-colors">
+                    <div className="flex items-center justify-between mb-6 border-b border-[#e8e2d5]/60 pb-3">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#749094] flex items-center gap-2">
                             <User className="w-3.5 h-3.5" />
                             Datos del Cliente Final
                         </h3>
                         <button 
                             onClick={() => setShowModalEditarClienteFinal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand bg-brand/5 hover:bg-brand/10 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#254153] bg-[#254153]/5 hover:bg-[#254153]/10 rounded-lg transition-colors"
                         >
                             <Pencil className="w-3.5 h-3.5" />
                             Editar Datos
@@ -1594,20 +1765,20 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                         <div>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nombre</span>
-                            <span className="text-sm font-semibold text-slate-900">{registro.cliente_final_nombre || 'N/A'}</span>
+                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Nombre</span>
+                            <span className="text-sm font-semibold text-[#1d1d1b]">{registro.cliente_final_nombre || 'N/A'}</span>
                         </div>
                         <div>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Ciudad</span>
-                            <span className="text-xs font-medium text-slate-600">{cons.ciudades?.ciudad || cons.ciudad || '---'}</span>
+                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Ciudad</span>
+                            <span className="text-xs font-medium text-[#1d1d1b]/80">{cons.ciudades?.ciudad || cons.ciudad || '---'}</span>
                         </div>
                         <div>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Teléfono</span>
-                            <span className="text-xs font-medium text-slate-600">{cons.celular || cons.telefono1 || cons.telefono || '---'}</span>
+                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Teléfono</span>
+                            <span className="text-xs font-medium text-[#1d1d1b]/80">{cons.celular || cons.telefono1 || cons.telefono || '---'}</span>
                         </div>
-                        <div className="lg:col-span-2 xl:col-span-1">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dirección</span>
-                            <span className="text-xs font-medium text-slate-600">{cons.direccion || '---'}</span>
+                        <div>
+                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Dirección</span>
+                            <span className="text-xs font-medium text-[#1d1d1b]/80">{cons.direccion || '---'}</span>
                         </div>
                     </div>
                 </div>
@@ -1745,13 +1916,13 @@ function ServiciosEnlazadosTab({ registro }: { registro: any }) {
 
 function InfoField({ label, value, icon: Icon }: { label: string, value: string, icon: any }) {
     return (
-        <div className="flex gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 transition-colors">
-            <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
-                <Icon className="w-4 h-4" />
+        <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
+            <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+                <Icon className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">{label}</p>
-                <p className="text-sm font-semibold text-slate-900 truncate" title={value}>{value}</p>
+                <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">{label}</p>
+                <p className="text-xs font-semibold text-[#1d1d1b] truncate" title={value}>{value}</p>
             </div>
         </div>
     );
@@ -1765,7 +1936,7 @@ function PlaceholderTab({ title, description, icon: Icon }: { title: string, des
             </div>
             <h3 className="text-lg font-bold text-slate-700 mb-2">Pestaña de {title}</h3>
             <p className="text-slate-500 max-w-md">{description}</p>
-            <span className="mt-6 px-4 py-1.5 bg-brand/10 text-brand rounded-full text-xs font-black uppercase tracking-widest">
+            <span className="mt-6 px-4 py-1.5 bg-brand/10 text-[#254153] rounded-full text-xs font-black uppercase tracking-widest">
                 Próximamente
             </span>
         </div>

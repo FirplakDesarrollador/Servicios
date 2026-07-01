@@ -209,7 +209,7 @@ export default function Home() {
 
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans">
+    <div className="min-h-screen bg-[#f5f1ea] text-[#1d1d1b] font-sans">
       <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 justify-between shadow-lg">
         <div className="flex items-center">
           <img src="/logo-firplak.png" alt="FIRPLAK" className="h-8 w-auto invert brightness-0 underline-offset-4" style={{ filter: 'brightness(0) invert(1)' }} />
@@ -235,12 +235,12 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="pt-20 pb-10 px-4 max-w-6xl mx-auto flex flex-col items-center">
+      <main className="pt-20 pb-10 px-4 sm:px-8 w-full max-w-[95%] xl:max-w-[1800px] mx-auto flex flex-col items-center">
         {/* Compact Profile Card */}
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-2xl bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white mb-10 flex items-center gap-6 relative overflow-hidden"
+          className="w-full max-w-3xl bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white mb-10 flex items-center gap-6 relative overflow-hidden"
         >
           {/* Decorative Background Blob */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl" />
@@ -279,7 +279,7 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={copyFormLink}
-            className="w-full max-w-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all mb-10 flex items-center justify-center gap-3 group"
+            className="w-full max-w-3xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all mb-10 flex items-center justify-center gap-3 group"
           >
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
               <Link className="w-5 h-5" />
@@ -292,7 +292,7 @@ export default function Home() {
         )}
 
         {/* Compact Action Grid */}
-        <div className={`grid gap-6 w-full justify-center ${isCliente ? 'grid-cols-1 sm:grid-cols-3 max-w-2xl' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7'}`}>
+        <div className={`grid gap-4 w-fit mx-auto justify-center ${isCliente ? 'grid-cols-1 sm:grid-cols-3 max-w-2xl' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 min-[1700px]:grid-cols-12'}`}>
           {filteredItems.map((item, index) => (
             <motion.button
               key={item.title}
@@ -305,7 +305,7 @@ export default function Home() {
                 const route = routeMap[item.title];
                 if (route) router.push(route);
               }}
-              className={`group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden ${portalType === 'cliente' ? 'max-w-[200px] w-full mx-auto' : ''}`}
+              className={`group flex flex-col items-center p-3 bg-white border border-white rounded-3xl shadow-lg shadow-slate-200/30 hover:shadow-2xl hover:shadow-brand/20 transition-all aspect-[5/6] relative overflow-hidden w-full ${isCliente ? 'max-w-[180px]' : 'max-w-[140px]'} mx-auto`}
             >
               {/* Decorative Corner Circle */}
               <div className="absolute top-[-20px] right-[-20px] w-16 h-16 bg-slate-50 rounded-full group-hover:bg-brand/5 transition-colors" />
@@ -314,7 +314,7 @@ export default function Home() {
                 <item.icon className="w-6 h-6" strokeWidth={2.5} />
               </div>
               <div className="flex flex-col items-center">
-                <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest text-center group-hover:text-brand transition-colors">
+                <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest text-center group-hover:text-brand transition-colors">
                   {isCliente && item.title === 'Buscar servicio cerrado' ? 'Servicios Cerrados' : item.title}
                 </span>
               </div>

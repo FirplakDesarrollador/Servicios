@@ -93,41 +93,41 @@ export default function RegistroSolicitudesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans p-4 md:p-8 pb-20">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#f5f1ea] text-[#1d1d1b] font-sans p-4 md:p-8 pb-20">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 w-full max-w-[96%] xl:max-w-[1800px] mx-auto">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/')}
-            className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors shrink-0"
+            className="p-2.5 bg-white rounded-xl shadow-sm border border-[#749094]/20 hover:bg-[#f5f1ea]/50 transition-colors shrink-0"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
+            <ArrowLeft className="w-5 h-5 text-[#254153]" />
           </button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-brand tracking-tight flex items-center gap-3">
-              <FileText className="w-7 h-7 md:w-8 md:h-8 text-sky-500 hidden sm:block" />
+            <h1 className="text-2xl md:text-3xl font-black text-[#254153] tracking-tight flex items-center gap-3">
+              <FileText className="w-7 h-7 md:w-8 md:h-8 text-[#749094] hidden sm:block" />
               Registro Solicitudes
             </h1>
-            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1">Gestión y listado de solicitudes</p>
+            <p className="text-xs md:text-sm font-medium text-[#1d1d1b]/60 mt-1">Gestión y listado de solicitudes</p>
           </div>
         </div>
 
         <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3">
-          <div className="bg-white border border-slate-200 rounded-xl p-1 flex items-center shadow-sm shrink-0">
+          <div className="bg-white border border-[#e8e2d5] rounded-xl p-1 flex items-center shadow-sm shrink-0">
             <button
               onClick={() => setFilterEstado('Todos')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Todos' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Todos' ? 'bg-[#254153] text-white shadow-sm' : 'text-[#749094] hover:text-[#254153] hover:bg-[#f5f1ea]/50'}`}
             >
               Todos
             </button>
             <button
               onClick={() => setFilterEstado('Abierto')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Abierto' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-slate-500 hover:text-amber-700 hover:bg-amber-50'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Abierto' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-[#749094] hover:text-amber-800 hover:bg-[#f5f1ea]/50'}`}
             >
               Abiertos
             </button>
             <button
               onClick={() => setFilterEstado('Cerrado')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Cerrado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Cerrado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-[#749094] hover:text-emerald-800 hover:bg-[#f5f1ea]/50'}`}
             >
               Cerrados
             </button>
@@ -137,7 +137,7 @@ export default function RegistroSolicitudesPage() {
             <select
               value={filterPrioridad}
               onChange={(e) => setFilterPrioridad(e.target.value)}
-              className="appearance-none bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-8 cursor-pointer hover:bg-slate-50 transition-colors"
+              className="appearance-none bg-white border border-[#e8e2d5] rounded-xl px-4 py-3 text-sm font-medium text-[#1d1d1b]/80 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] shadow-sm pr-8 cursor-pointer hover:bg-[#f5f1ea]/50 transition-colors"
             >
               <option value="Todas">Prioridad: Todas</option>
               <option value="Alta">Prioridad: Alta</option>
@@ -153,7 +153,7 @@ export default function RegistroSolicitudesPage() {
             <select
               value={filterAsesor}
               onChange={(e) => setFilterAsesor(e.target.value)}
-              className="appearance-none bg-white border border-slate-200 rounded-xl px-4 py-3 w-full text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-8 cursor-pointer hover:bg-slate-50 transition-colors truncate"
+              className="appearance-none bg-white border border-[#e8e2d5] rounded-xl px-4 py-3 w-full text-sm font-medium text-[#1d1d1b]/80 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] shadow-sm pr-8 cursor-pointer hover:bg-[#f5f1ea]/50 transition-colors truncate"
             >
               <option value="Todos">Todos los Asesores</option>
               <option value="Sin Asignar">Sin Asignar</option>
@@ -173,7 +173,7 @@ export default function RegistroSolicitudesPage() {
               placeholder="Buscar registros..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-64 pl-9 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm"
+              className="w-full sm:w-64 pl-9 pr-4 py-3 bg-white border border-[#e8e2d5] rounded-xl text-sm font-medium text-[#1d1d1b] focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] transition-all shadow-sm"
             />
           </div>
           <button
@@ -186,7 +186,7 @@ export default function RegistroSolicitudesPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto">
+      <main className="w-full max-w-[96%] xl:max-w-[1800px] mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-brand animate-spin mb-4" />
