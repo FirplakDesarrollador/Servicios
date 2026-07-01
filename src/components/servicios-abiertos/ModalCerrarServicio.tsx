@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eraser, CheckCircle, AlertCircle, Loader2, Camera, FileText, ChevronLeft, ChevronRight, PenTool, Upload, Trash2, Video, ImageIcon, Eye, EyeOff } from 'lucide-react';
+import { X, Eraser, CheckCircle, AlertCircle, Loader2, Camera, FileText, ChevronLeft, ChevronRight, PenTool, } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface ModalCerrarServicioProps {
@@ -16,9 +16,7 @@ interface ModalCerrarServicioProps {
 export default function ModalCerrarServicio({ isOpen, onClose, service, onSuccess, currentUser }: ModalCerrarServicioProps) {
     const [step, setStep] = useState(1);
     const [razonCierre, setRazonCierre] = useState('');
-    const [files, setFiles] = useState<{ file: File; isHidden: boolean }[]>([]);
-    const [entregaParcial, setEntregaParcial] = useState(false);
-    
+            
     const [isSaving, setIsSaving] = useState(false);
     const [hasSignature, setHasSignature] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -31,31 +29,9 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
             setStep(1);
             setError(null);
             setHasSignature(false);
-            setFiles([]);
             setRazonCierre('');
         }
     }, [isOpen]);
-
-    // File handling
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files).map(file => ({
-                file,
-                isHidden: false
-            }));
-            setFiles([...files, ...newFiles]);
-        }
-    };
-
-    const toggleVisibility = (index: number) => {
-        setFiles(prev => prev.map((item, i) => 
-            i === index ? { ...item, isHidden: !item.isHidden } : item
-        ));
-    };
-
-    const removeFile = (index: number) => {
-        setFiles(files.filter((_, i) => i !== index));
-    };
 
     // Canvas Logic
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
@@ -153,7 +129,7 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                 .from('Comentarios')
                 .insert([{
                     servicio_id: service.id,
-                    contenido: `SERVICIO CERRADO - Observaciones: ${razonCierre}. ${entregaParcial ? '(Entrega Parcial)' : ''}`,
+                    contenido: `SERVICIO CERRADO - Observaciones: ${razonCierre}.`,
                     tipo: 'cierre',
                     usuario_id: currentUser?.id
                 }])
@@ -161,67 +137,6 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                 .single();
 
             if (commentError) throw commentError;
-
-            // 4. Subir archivos si existen
-            if (files.length > 0 && commentData) {
-                const uploadedUrls = [];
-                const hiddenUrls = [];
-
-                for (const item of files) {
-                    const { file, isHidden } = item;
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${crypto.randomUUID()}.${fileExt}`;
-                    
-                    const sanitizePath = (path: string) => {
-                        return path
-                            .normalize("NFD")
-                            .replace(/[\u0300-\u036f]/g, "")
-                            .replace(/ñ/g, "n")
-                            .replace(/Ñ/g, "N")
-                            .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
-                    };
-
-                    const folderPath = sanitizePath(service?.consecutivo || service?.id?.toString() || 'cierre');
-                    const filePath = `${folderPath}/cierre/${fileName}`;
-
-                    const { error: uploadError } = await supabase.storage
-                        .from('servicios')
-                        .upload(filePath, file);
-
-                    if (uploadError) throw uploadError;
-
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('servicios')
-                        .getPublicUrl(filePath);
-
-                    uploadedUrls.push(publicUrl);
-                    if (isHidden) {
-                        hiddenUrls.push(publicUrl);
-                    }
-                }
-
-                await supabase
-                    .from('Comentarios')
-                    .update({ documentos: uploadedUrls })
-                    .eq('id', commentData.id);
-
-                // Si hay archivos ocultos, actualizar soportes_pago en la tabla Servicios
-                if (hiddenUrls.length > 0) {
-                    const { data: servData } = await supabase
-                        .from('Servicios')
-                        .select('soportes_pago')
-                        .eq('id', service.id)
-                        .single();
-
-                    const currentSoportes = servData?.soportes_pago || [];
-                    await supabase
-                        .from('Servicios')
-                        .update({ 
-                            soportes_pago: [...currentSoportes, ...hiddenUrls] 
-                        })
-                        .eq('id', service.id);
-                }
-            }
 
             onSuccess?.();
             onClose();
@@ -292,88 +207,7 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                                 />
                             </div>
 
-                            {/* Archivos Section */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Evidencias / Adjuntos</label>
-                                
-                                <label className="flex flex-col items-center justify-center p-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] hover:border-brand/30 hover:bg-brand/5 cursor-pointer transition-all group">
-                                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                        <Upload className="w-7 h-7 text-brand" />
-                                    </div>
-                                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em] text-center">Tocar para adjuntar archivos</span>
-                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-2">Fotos, Videos o Documentos</p>
-                                    <input type="file" className="hidden" onChange={handleFileChange} multiple />
-                                </label>
-
-                                {/* List of files */}
-                                <AnimatePresence>
-                                    {files.length > 0 && (
-                                        <motion.div 
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2"
-                                        >
-                                            {files.map((item, index) => {
-                                                const { file, isHidden } = item;
-                                                const isImage = file.type.startsWith('image/');
-                                                const isVideo = file.type.startsWith('video/');
-                                                
-                                                return (
-                                                    <motion.div 
-                                                        key={index} 
-                                                        initial={{ scale: 0.9, opacity: 0 }}
-                                                        animate={{ scale: 1, opacity: 1 }}
-                                                        className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl border transition-all ${isHidden ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100'}`}
-                                                    >
-                                                        <div className="flex items-center gap-3 overflow-hidden">
-                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isHidden ? 'bg-amber-100 text-amber-600' : 'bg-white text-brand border border-slate-100'}`}>
-                                                                {isImage ? <ImageIcon className="w-4 h-4" /> : isVideo ? <Video className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-                                                            </div>
-                                                            <div className="flex flex-col min-w-0">
-                                                                <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
-                                                                <span className="text-[8px] font-medium text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <button
-                                                                onClick={() => toggleVisibility(index)}
-                                                                className={`p-2 rounded-xl transition-all ${isHidden ? 'bg-amber-500 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-100'}`}
-                                                                title={isHidden ? "Visible para técnicos" : "Ocultar para técnicos"}
-                                                            >
-                                                                {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => removeFile(index)}
-                                                                className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </motion.div>
-                                                );
-                                            })}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
                             </div>
-
-                            {/* Toggle Entrega Parcial */}
-                            <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[24px] border border-slate-100">
-                                <div>
-                                    <p className="text-sm font-black text-slate-700">Entrega Parcial</p>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">¿Quedan pendientes por resolver?</p>
-                                </div>
-                                <button 
-                                    onClick={() => setEntregaParcial(!entregaParcial)}
-                                    className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${entregaParcial ? 'bg-brand' : 'bg-slate-200'}`}
-                                >
-                                    <motion.div 
-                                        animate={{ x: entregaParcial ? 24 : 0 }}
-                                        className="w-6 h-6 bg-white rounded-full shadow-sm"
-                                    />
-                                </button>
-                            </div>
-                        </div>
                     ) : (
                         <div className="space-y-8">
                             <div className="p-8 bg-brand/5 rounded-[32px] border border-brand/10">
