@@ -737,6 +737,7 @@ export default function VerServicioPage() {
                 onClose={() => setShowCloseModal(false)}
                 onSuccess={() => {
                     fetchService(); // Refresh service data to reflect closed status
+                    setRefreshComments(prev => prev + 1); // Refresh comments to show closure note
                     setShowCloseModal(false);
                 }}
                 service={service}
