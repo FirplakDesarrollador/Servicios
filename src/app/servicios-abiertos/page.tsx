@@ -42,6 +42,7 @@ export default function ServiciosAbiertosPage() {
     const [isUpdatingMac, setIsUpdatingMac] = useState(false);
     const [closingService, setClosingService] = useState<any>(null);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [filterKey, setFilterKey] = useState(0);
 
     // Pagination States
     const [currentPage, setCurrentPage] = useState(1);
@@ -200,6 +201,7 @@ export default function ServiciosAbiertosPage() {
         setFilterMacAdvisor('');
         setShowUnassignedOnly(false);
         setCurrentPage(1);
+        setFilterKey(prev => prev + 1); // Forzar re-render de los inputs
     };
 
     const handleDeleteService = async (service: any) => {
@@ -315,7 +317,7 @@ export default function ServiciosAbiertosPage() {
 
             <main className="max-w-7xl mx-auto p-4 md:p-8">
                 {/* Filters Section */}
-                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-8">
+                <div key={filterKey} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {/* Search */}
                         <div className="flex flex-col gap-2">
