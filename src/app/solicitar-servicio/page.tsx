@@ -497,6 +497,12 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             }
 
             // Determine Coordinator based on Zone (as requested)
+
+            if (!zoneId && clienteSeleccionado?.ciudad_id) {
+                const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).single();
+                if (cityData?.zona_id) zoneId = cityData.zona_id;
+            }
+
             // Fallback for Ecommerce if no client zone
             if (!zoneId && isEcommerce) {
                 zoneId = 985; // Antioquia/Firplak B2C
@@ -518,6 +524,20 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             if (!finalCoordinadorId) {
                 finalCoordinadorId = clienteFinalSeleccionado?.coordinador_id || clienteFinalSeleccionado?.coordinadorId || 
                                      clienteSeleccionado?.coordinador_id || clienteSeleccionado?.coordinadorId;
+            }
+
+            // --- FIX POWER AUTOMATE ERROR ---
+            // Si el coordinador sigue siendo null, asignamos un coordinador por defecto (ej: 26)
+            // para que Power Automate no reviente esperando un string.
+            if (!finalCoordinadorId) {
+                finalCoordinadorId = 26; 
+            }
+
+            // --- FIX POWER AUTOMATE ERROR ---
+            // Si después de todo el coordinador sigue siendo null, asignamos un coordinador por defecto 
+            // (ej: 26) para evitar que el flujo de Power Automate falle esperando un string.
+            if (!finalCoordinadorId) {
+                finalCoordinadorId = 26; // Coordinador MAC por defecto
             }
 
             // 3. Insert Servicio
