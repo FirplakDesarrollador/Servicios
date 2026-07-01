@@ -54,7 +54,7 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                 .insert([{
                     servicio_id: service.id,
                     contenido: `SERVICIO CERRADO - Observaciones: ${razonCierre}.`,
-                    tipo: 'cierre',
+                    tipo: 'observacion_general',
                     usuario_id: currentUser?.id
                 }]);
 
