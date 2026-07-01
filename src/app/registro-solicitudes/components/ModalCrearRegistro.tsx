@@ -21,22 +21,19 @@ export default function ModalCrearRegistro({
     // Form fields
     const [ordenVenta, setOrdenVenta] = useState('');
     const [tipoSolicitud, setTipoSolicitud] = useState('');
-    const [tiposSolicitud, setTiposSolicitud] = useState<string[]>([
-        'Garantía',
-        'Documento Sagrilaft',
-        'Reclamo',
-        'Atención'
-    ]);
+    const [tiposSolicitud, setTiposSolicitud] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchTipos = async () => {
             try {
-                const { data } = await supabase.from('registro_solicitudes').select('tipo_solicitud');
+                const { data } = await supabase.from('Tipo_Solicitud').select('TipoSolicitud').eq('activo', true);
                 if (data) {
-                    const unique = Array.from(new Set(data.map(d => d.tipo_solicitud).filter((t): t is string => typeof t === 'string' && t.trim() !== '')));
-                    setTiposSolicitud(prev => Array.from(new Set([...prev, ...unique])));
+                    const fromTable = data.map(d => d.TipoSolicitud).filter((t): t is string => typeof t === 'string' && t.trim() !== '');
+                    setTiposSolicitud(fromTable);
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.error("Error fetching tipos de solicitud:", e);
+            }
         };
         fetchTipos();
     }, []);
@@ -340,7 +337,7 @@ export default function ModalCrearRegistro({
                                 </label>
                                 <select
                                     value={tipoSolicitud}
-                                    onChange={(e) => {
+                                    onChange={async (e) => {
                                         const val = e.target.value;
                                         if (val === 'NEW') {
                                             const newName = window.prompt("Ingrese el nombre del nuevo tipo de solicitud:");
@@ -349,8 +346,17 @@ export default function ModalCrearRegistro({
                                                 return;
                                             }
                                             const cleanName = newName.trim();
-                                            setTiposSolicitud(prev => Array.from(new Set([...prev, cleanName])));
-                                            setTipoSolicitud(cleanName);
+                                            try {
+                                                const { error: insertError } = await supabase.from('Tipo_Solicitud').insert({ TipoSolicitud: cleanName });
+                                                if (insertError && insertError.code !== '23505') throw insertError; // 23505 is unique_violation
+                                                
+                                                setTiposSolicitud(prev => Array.from(new Set([...prev, cleanName])));
+                                                setTipoSolicitud(cleanName);
+                                            } catch (err: any) {
+                                                console.error("Error creando nuevo tipo de solicitud:", err);
+                                                alert("Error creando nuevo tipo: " + err.message);
+                                                e.target.value = tipoSolicitud;
+                                            }
                                         } else {
                                             setTipoSolicitud(val);
                                         }

@@ -1518,22 +1518,23 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
     const [ordenVentaLocal, setOrdenVentaLocal] = useState(registro.orden_venta || '');
     const [isSavingOrdenVenta, setIsSavingOrdenVenta] = useState(false);
     const [isSavingTipoSolicitud, setIsSavingTipoSolicitud] = useState(false);
-    const [tiposSolicitud, setTiposSolicitud] = useState<string[]>([
-        'Garantía',
-        'Documento Sagrilaft',
-        'Reclamo',
-        'Atención'
-    ]);
+    const [tiposSolicitud, setTiposSolicitud] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchTipos = async () => {
             try {
-                const { data } = await supabase.from('registro_solicitudes').select('tipo_solicitud');
-                if (data) {
-                    const unique = Array.from(new Set(data.map(d => d.tipo_solicitud).filter((t): t is string => typeof t === 'string' && t.trim() !== '')));
-                    setTiposSolicitud(prev => Array.from(new Set([...prev, ...unique])));
+                const { data, error } = await supabase.from('Tipo_Solicitud').select('TipoSolicitud').eq('activo', true);
+                if (error) {
+                    console.error("Supabase Error fetching tipos:", error);
                 }
-            } catch(e) {}
+                if (data) {
+                    console.log("Fetched data:", data);
+                    const fromTable = data.map(d => d.TipoSolicitud).filter((t): t is string => typeof t === 'string' && t.trim() !== '');
+                    setTiposSolicitud(fromTable);
+                }
+            } catch(e) {
+                console.error("Error fetching tipos de solicitud:", e);
+            }
         };
         fetchTipos();
     }, []);
@@ -1586,7 +1587,19 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                 return;
             }
             newValue = newName.trim();
-            setTiposSolicitud(prev => Array.from(new Set([...prev, newValue])));
+            setIsSavingTipoSolicitud(true);
+            try {
+                const { error: insertError } = await supabase.from('Tipo_Solicitud').insert({ TipoSolicitud: newValue });
+                if (insertError && insertError.code !== '23505') throw insertError; // 23505 is unique_violation
+                
+                setTiposSolicitud(prev => Array.from(new Set([...prev, newValue])));
+            } catch (err: any) {
+                console.error("Error creando nuevo tipo de solicitud:", err);
+                alert("Error creando nuevo tipo: " + err.message);
+                setIsSavingTipoSolicitud(false);
+                e.target.value = registro.tipo_solicitud || '';
+                return;
+            }
         }
         setIsSavingTipoSolicitud(true);
         try {
