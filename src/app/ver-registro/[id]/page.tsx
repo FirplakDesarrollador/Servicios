@@ -1320,6 +1320,18 @@ function ClasificacionTab({
     const handleSaveClasificacion = async () => {
         setIsSavingClasificacion(true);
         try {
+            let primerTipoProblemaId = null;
+            let primerResponsableProblemaId = null;
+            
+            for (const prod of editClasificacionProductos) {
+                if (prod.problemas && prod.problemas.length > 0) {
+                    const prob = prod.problemas[0];
+                    if (prob.tipo_problema_id) primerTipoProblemaId = Number(prob.tipo_problema_id);
+                    if (prob.responsable_problema_id) primerResponsableProblemaId = Number(prob.responsable_problema_id);
+                    if (primerTipoProblemaId || primerResponsableProblemaId) break;
+                }
+            }
+
             const { error } = await supabase
                 .from('registro_solicitudes')
                 .update({
@@ -1331,6 +1343,8 @@ function ClasificacionTab({
                     responsable_atraso: globalClasificacion.responsable_atraso || null,
                     area_responsable: globalClasificacion.area_responsable || null,
                     fecha_verificacion: globalClasificacion.fecha_verificacion || null,
+                    tipo_problema_id: primerTipoProblemaId,
+                    responsable_problema_id: primerResponsableProblemaId,
                 })
                 .eq('id', registro.id);
             if (error) throw error;

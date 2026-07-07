@@ -25,7 +25,8 @@ import {
   Link,
   AlertTriangle,
   Users,
-  FileText
+  FileText,
+  PieChart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -178,7 +179,7 @@ export default function Home() {
     'Agenda Tecnicos': '/agenda-tecnicos',
     'Solicitudes Clientes': '/solicitudes-clientes',
     'BI': '/bi',
-    'Indicador quejas': '/indicador-quejas',
+    'Indicadores MAC': '/indicadores-mac',
     'Registro Solicitudes': '/registro-solicitudes',
     'Configuración': '/configuracion',
   };
@@ -197,7 +198,7 @@ export default function Home() {
     { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-600' },
     { title: 'Solicitudes Clientes', icon: Users, color: 'bg-blue-600' },
     { title: 'BI', icon: BarChart3, color: 'bg-brand' },
-    { title: 'Indicador quejas', icon: AlertTriangle, color: 'bg-rose-500' },
+    { title: 'Indicadores MAC', icon: PieChart, color: 'bg-brand' },
     { title: 'Registro Solicitudes', icon: FileText, color: 'bg-sky-500' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-700' },
   ];

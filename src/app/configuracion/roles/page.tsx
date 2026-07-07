@@ -31,7 +31,7 @@ const ALL_MODULES = [
     'Inventario Almacenes',
     'Agenda Tecnicos',
     'BI',
-    'Indicador quejas',
+    'Indicadores MAC',
     'Registro Solicitudes',
     'Configuración'
 ];
