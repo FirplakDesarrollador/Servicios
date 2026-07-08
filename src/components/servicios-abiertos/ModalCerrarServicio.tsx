@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -17,21 +17,26 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
     const [razonCierre, setRazonCierre] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const isSavingRef = useRef(false);
 
     // Reset when opening
     useEffect(() => {
         if (isOpen) {
             setError(null);
             setRazonCierre('');
+            isSavingRef.current = false;
         }
     }, [isOpen]);
 
     const handleSave = async () => {
+        if (isSavingRef.current) return;
+
         if (!razonCierre.trim()) {
             setError('Las observaciones son obligatorias');
             return;
         }
 
+        isSavingRef.current = true;
         setIsSaving(true);
         setError(null);
 
@@ -67,6 +72,7 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
             setError(err.message || 'Error al procesar el cierre');
         } finally {
             setIsSaving(false);
+            isSavingRef.current = false;
         }
     };
 

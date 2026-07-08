@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Upload, Trash2, Loader2, Video, ImageIcon, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
     const [files, setFiles] = useState<{ file: File; isHidden: boolean }[]>([]);
     const [uploading, setUploading] = useState(false);
     const [showError, setShowError] = useState(false);
+    const isUploadingRef = useRef(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -41,11 +42,14 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
     };
 
     const handleSubmit = async () => {
+        if (isUploadingRef.current) return;
+
         if (!content.trim()) {
             setShowError(true);
             return;
         }
 
+        isUploadingRef.current = true;
         setUploading(true);
         try {
             // 1. Crear el comentario
@@ -134,6 +138,7 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
             alert('Error al guardar el comentario');
         } finally {
             setUploading(false);
+            isUploadingRef.current = false;
         }
     };
 
