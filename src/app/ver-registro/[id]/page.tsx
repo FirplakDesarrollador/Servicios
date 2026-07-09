@@ -302,35 +302,34 @@ export default function VerRegistroPage() {
     const status = registro.estado || 'Abierto';
 
     return (
-        <div className="min-h-screen bg-[#f5f1ea] text-[#1d1d1b] font-sans pb-20">
+        <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans pb-20">
             {/* Header Sticky */}
-            <header className="bg-white border-b border-[#e8e2d5] sticky top-0 z-30 shadow-sm">
-                <div className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-5">
+            <header className="bg-white border-b border-gray-200/80 sticky top-0 z-30 shadow-sm">
+                <div className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
                         <button
                             onClick={() => router.push('/registro-solicitudes')}
-                            className="p-2.5 bg-white border border-[#749094]/20 shadow-sm -ml-2 rounded-xl hover:bg-[#f5f1ea]/50 hover:text-[#254153] transition-all text-[#254153] group"
+                            className="p-2 bg-white border border-gray-200 shadow-sm rounded-full hover:bg-gray-50 text-slate-600 hover:text-slate-800 transition-all shrink-0"
                         >
-                            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+                            <ArrowLeft className="w-4 h-4" />
                         </button>
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 bg-[#254153] rounded-xl flex items-center justify-center text-white shadow-md hidden sm:flex">
-                                <FileText className="w-5 h-5" />
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-500 hidden sm:flex">
+                                <FileText className="w-4 h-4" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Registro de Servicio</p>
-                                <h1 className="text-xl font-black text-[#1d1d1b] leading-none">
+                                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Registro de Servicio</p>
+                                <h1 className="text-lg font-black text-slate-800 leading-none">
                                     {consecutivo}
                                 </h1>
                             </div>
                         </div>
                     </div>
-                    {/* The right side of the h-20 header is now empty */}
                 </div>
 
                 {/* Tabs Navigation */}
                 <div className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4">
-                    <div className="flex items-center gap-4 overflow-x-auto hide-scrollbar -mb-px pt-4">
+                    <div className="flex items-center gap-4 overflow-x-auto hide-scrollbar -mb-px pt-2">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -339,14 +338,14 @@ export default function VerRegistroPage() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`
-                                        flex items-center gap-2 px-1 py-3 border-b-2 text-sm font-bold whitespace-nowrap transition-colors outline-none
+                                        flex items-center gap-2 px-1 py-3 border-b-2 text-xs font-bold whitespace-nowrap transition-colors outline-none
                                         ${isActive 
-                                            ? 'border-[#254153] text-[#254153]' 
-                                            : 'border-transparent text-[#749094] hover:text-[#254153] hover:border-[#254153]/30'
+                                            ? 'border-brand text-brand' 
+                                            : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
                                         }
                                     `}
                                 >
-                                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#254153]' : 'text-[#749094]'}`} />
+                                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-brand' : 'text-slate-400'}`} />
                                     {tab.label}
                                 </button>
                             );
@@ -383,23 +382,23 @@ export default function VerRegistroPage() {
 
                     {/* Columna Derecha: Acciones Rápidas */}
                     <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24">
-                        <div className="bg-white border border-[#e8e2d5] rounded-[2rem] p-6 shadow-sm flex flex-col gap-4">
-                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#749094] border-b border-[#e8e2d5]/60 pb-3 flex items-center gap-1.5">
-                                <ShieldCheck className="w-4 h-4 text-[#749094]" />
+                        <div className="bg-white border border-gray-200/80 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+                            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-gray-100 pb-2.5 flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-slate-400" />
                                 Acciones Rápidas
                             </h3>
 
                             {/* Estado Badge Block */}
-                            <div className="flex items-center justify-between p-3 rounded-xl border border-[#e8e2d5]/60 bg-[#f5f1ea]/15">
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-[#749094]">Estado</span>
-                                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-gray-150 bg-slate-50">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Estado</span>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' : 'bg-amber-50 text-amber-700 border-amber-200/60'}`}>
                                     {registro.cerrada || registro.estado === 'Cerrado' ? 'Cerrado' : 'Abierto'}
                                 </span>
                             </div>
 
                             {/* Prioridad Select Dropdown */}
                             <div className="flex flex-col gap-1.5">
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Prioridad</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Prioridad</span>
                                 <select
                                     value={registro.prioridad || 'Media'}
                                     onChange={async (e) => {
@@ -413,10 +412,10 @@ export default function VerRegistroPage() {
                                             alert('Error al actualizar la prioridad');
                                         }
                                     }}
-                                    className={`w-full px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest border outline-none cursor-pointer transition-colors shadow-sm text-center appearance-none
-                                        ${registro.prioridad === 'Alta' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : 
-                                          registro.prioridad === 'Baja' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 
-                                          'bg-[#f5f1ea]/50 text-[#1d1d1b]/80 border-[#e8e2d5] hover:bg-[#f5f1ea]'}`}
+                                    className={`w-full px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border outline-none cursor-pointer transition-colors shadow-sm text-center appearance-none
+                                        ${registro.prioridad === 'Alta' ? 'bg-red-50 text-red-700 border-red-200/60 hover:bg-red-100/50' : 
+                                          registro.prioridad === 'Baja' ? 'bg-blue-50 text-blue-700 border-blue-200/60 hover:bg-blue-100/50' : 
+                                          'bg-slate-50 text-slate-655 border-gray-200 hover:bg-slate-100'}`}
                                 >
                                     <option value="Alta">Prioridad: Alta</option>
                                     <option value="Media">Prioridad: Media</option>
@@ -441,19 +440,19 @@ export default function VerRegistroPage() {
                                         setShowSolicitarModal(true);
                                     }}
                                     disabled={isCreatingService}
-                                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest border border-[#254153] bg-[#254153] text-white shadow-sm transition-colors ${
-                                        isCreatingService ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#254153]/90'
+                                    className={`w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-brand bg-brand text-white shadow-sm transition-colors ${
+                                        isCreatingService ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#1d3342]'
                                     }`}
                                 >
-                                    {isCreatingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                    {isCreatingService ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                                     {isCreatingService ? 'CREANDO...' : 'SOLICITAR SERVICIO'}
                                 </button>
 
                                 <button
                                     onClick={() => setIsProductosModalOpen(true)}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest border border-[#e8e2d5] bg-white hover:bg-[#f5f1ea]/50 text-[#1d1d1b]/80 shadow-sm transition-colors"
+                                    className="w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-gray-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-sm"
                                 >
-                                    <Package className="w-4 h-4" />
+                                    <Package className="w-3.5 h-3.5" />
                                     Productos
                                 </button>
 
@@ -521,10 +520,10 @@ export default function VerRegistroPage() {
                                             alert('Error al cambiar el estado de la solicitud');
                                         }
                                     }}
-                                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors shadow-sm
-                                        ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-[#1d1d1b] text-white border-[#1d1d1b] hover:bg-[#1d1d1b]/95'}`}
+                                    className={`w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-colors shadow-sm
+                                        ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-amber-50 text-amber-700 border-amber-200/60 hover:bg-amber-100/50' : 'bg-slate-800 text-white border-slate-850 hover:bg-slate-900'}`}
                                 >
-                                    {registro.cerrada || registro.estado === 'Cerrado' ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                                    {registro.cerrada || registro.estado === 'Cerrado' ? <CheckCircle className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                                     {registro.cerrada || registro.estado === 'Cerrado' ? 'Reabrir' : 'Cerrar'}
                                 </button>
                             </div>
