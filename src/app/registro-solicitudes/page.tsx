@@ -38,7 +38,20 @@ export default function RegistroSolicitudesPage() {
   const fetchRegistros = async () => {
     setLoading(true);
     try {
-      // Intentamos cargar de la tabla registro_solicitudes
+      // 1. Get logged in user from supabase auth and match in Usuarios table
+      const userRes = await supabase.auth.getUser();
+      const authId = userRes.data?.user?.id;
+      let currentUserProfile = null;
+      if (authId) {
+        try {
+          const { data: ud } = await supabase.from('Usuarios').select('id, nombres, apellidos').eq('user_id', authId).single();
+          if (ud) currentUserProfile = ud;
+        } catch (e) {
+          console.warn("Could not fetch current user profile from Usuarios table", e);
+        }
+      }
+
+      // 2. Load registrations
       const { data, error } = await supabase
         .from('registro_solicitudes')
         .select(`
@@ -50,7 +63,93 @@ export default function RegistroSolicitudesPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRegistros(data || []);
+      const registrosList = data || [];
+
+      // 3. Fetch comments in parallel with authors
+      const radicados = registrosList.map(r => r.consecutivo).filter(Boolean);
+      let commentsGrouped: Record<string, any[]> = {};
+      if (radicados.length > 0) {
+        const { data: commentsData } = await supabase
+          .from('Comentarios_RegistroMAC')
+          .select('*, Usuarios!fk_autor(id, nombres, apellidos)')
+          .in('numero_radicado', radicados)
+          .order('created_at', { ascending: false });
+        
+        if (commentsData) {
+          commentsData.forEach(c => {
+            if (!commentsGrouped[c.numero_radicado]) {
+              commentsGrouped[c.numero_radicado] = [];
+            }
+            commentsGrouped[c.numero_radicado].push(c);
+          });
+        }
+      }
+
+      // 4. Fetch services in parallel
+      const serviceCodes = registrosList
+        .flatMap(r => (r.servicio_creado_consecutivo || '').split(','))
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      let servicesMap: Record<string, any> = {};
+      if (serviceCodes.length > 0) {
+        const { data: svcs } = await supabase
+          .from('query_servicios')
+          .select('consecutivo, estado_visita, estadoVisita')
+          .in('consecutivo', serviceCodes);
+        
+        if (svcs) {
+          svcs.forEach(s => {
+            servicesMap[s.consecutivo] = s;
+          });
+        }
+      }
+
+      // 5. Enrich records with new comment alert and service agendado alert
+      const enriched = registrosList.map(r => {
+        const rComments = commentsGrouped[r.consecutivo] || [];
+        
+        // Show alert ONLY when there is actually follow-up comments
+        // AND the author of the last comment is different from the current logged-in user
+        let hasNewCommentAlert = false;
+        if (rComments.length > 0) {
+          const lastComment = rComments[0]; // latest comment
+          
+          if (currentUserProfile) {
+            // Compare author ID with current user ID
+            if (lastComment.autor_id && String(lastComment.autor_id) !== String(currentUserProfile.id)) {
+              hasNewCommentAlert = true;
+            }
+          } else {
+            // Fallback to comparing with registration creator
+            if (lastComment.autor_id && r.tratado_por_id && String(lastComment.autor_id) !== String(r.tratado_por_id)) {
+              hasNewCommentAlert = true;
+            }
+          }
+        }
+
+        // Check if any of the linked services is agendado
+        const rServiceCodes = (r.servicio_creado_consecutivo || '')
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+        
+        const hasServiceAgendadoAlert = rServiceCodes.some(code => {
+          const svc = servicesMap[code];
+          if (!svc) return false;
+          const status = svc.estado_visita || svc.estadoVisita;
+          return status && status.toLowerCase() !== 'sin agendar';
+        });
+
+        return {
+          ...r,
+          _newCommentAlert: hasNewCommentAlert,
+          _serviceAgendadoAlert: hasServiceAgendadoAlert,
+          _commentsCount: rComments.length
+        };
+      });
+
+      setRegistros(enriched);
     } catch (error) {
       console.error('Error fetching registros:', error);
     } finally {
@@ -84,8 +183,16 @@ export default function RegistroSolicitudesPage() {
       ${tratadoPor}
       ${ubi.nit || ''}
       ${ubi.cedula || ''}
+      ${ubi.direccion || ''}
+      ${ubi.telefono || ''}
+      ${ubi.telefono1 || ''}
+      ${ubi.celular || ''}
       ${cons.nit || ''}
       ${cons.cedula || ''}
+      ${cons.direccion || ''}
+      ${cons.telefono || ''}
+      ${cons.telefono1 || ''}
+      ${cons.celular || ''}
       ${r.servicio_creado_consecutivo || ''}
     `.toLowerCase();
     

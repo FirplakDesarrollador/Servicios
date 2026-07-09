@@ -67,6 +67,20 @@ export default function RegistroCard({ registro, onClick }: { registro: any, onC
                 Prioridad Alta
               </span>
             )}
+            {/* Alerta de nuevo comentario de otra persona */}
+            {registro._newCommentAlert && (
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 animate-pulse border border-blue-200 shrink-0" title="Nueva actividad o comentarios de otro usuario">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                Actividad
+              </span>
+            )}
+            {/* Alerta de servicio enlazado agendado */}
+            {registro._serviceAgendadoAlert && (
+              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 border border-indigo-200 shrink-0" title="Servicio enlazado ya agendado">
+                <Calendar className="w-3 h-3 text-indigo-600" />
+                Agendado
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1.5 mb-2 text-[#749094]">
             <Tag className="w-3.5 h-3.5" />
