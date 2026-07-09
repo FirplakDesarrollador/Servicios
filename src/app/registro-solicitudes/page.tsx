@@ -200,51 +200,54 @@ export default function RegistroSolicitudesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#f5f1ea] text-[#1d1d1b] font-sans p-4 md:p-8 pb-20">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 w-full max-w-[96%] xl:max-w-[1800px] mx-auto">
+    <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans p-4 md:p-8 pb-20">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-gray-100 pb-5">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/')}
-            className="p-2.5 bg-white rounded-xl shadow-sm border border-[#749094]/20 hover:bg-[#f5f1ea]/50 transition-colors shrink-0"
+            className="p-2.5 bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors shrink-0 text-slate-600 hover:text-slate-800"
+            title="Volver al inicio"
           >
-            <ArrowLeft className="w-5 h-5 text-[#254153]" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-[#254153] tracking-tight flex items-center gap-3">
-              <FileText className="w-7 h-7 md:w-8 md:h-8 text-[#749094] hidden sm:block" />
+            <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+              <FileText className="w-5 h-5 text-brand hidden sm:block" />
               Registro Solicitudes
             </h1>
-            <p className="text-xs md:text-sm font-medium text-[#1d1d1b]/60 mt-1">Gestión y listado de solicitudes</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Gestión y listado de solicitudes</p>
           </div>
         </div>
 
-        <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3">
-          <div className="bg-white border border-[#e8e2d5] rounded-xl p-1 flex items-center shadow-sm shrink-0">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Segmented control for status */}
+          <div className="bg-slate-100 border border-slate-200 rounded-lg p-0.5 flex items-center shadow-sm shrink-0">
             <button
               onClick={() => setFilterEstado('Todos')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Todos' ? 'bg-[#254153] text-white shadow-sm' : 'text-[#749094] hover:text-[#254153] hover:bg-[#f5f1ea]/50'}`}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Todos' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Todos
             </button>
             <button
               onClick={() => setFilterEstado('Abierto')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Abierto' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-[#749094] hover:text-amber-800 hover:bg-[#f5f1ea]/50'}`}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Abierto' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-slate-500 hover:text-amber-800'}`}
             >
               Abiertos
             </button>
             <button
               onClick={() => setFilterEstado('Cerrado')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Cerrado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-[#749094] hover:text-emerald-800 hover:bg-[#f5f1ea]/50'}`}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Cerrado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-emerald-800'}`}
             >
               Cerrados
             </button>
           </div>
           
+          {/* Priority filter */}
           <div className="relative">
             <select
               value={filterPrioridad}
               onChange={(e) => setFilterPrioridad(e.target.value)}
-              className="appearance-none bg-white border border-[#e8e2d5] rounded-xl px-4 py-3 text-sm font-medium text-[#1d1d1b]/80 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] shadow-sm pr-8 cursor-pointer hover:bg-[#f5f1ea]/50 transition-colors"
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-xs font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-8 cursor-pointer hover:bg-slate-50 transition-colors"
             >
               <option value="Todas">Prioridad: Todas</option>
               <option value="Alta">Prioridad: Alta</option>
@@ -252,15 +255,16 @@ export default function RegistroSolicitudesPage() {
               <option value="Baja">Prioridad: Baja</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
           
-          <div className="relative flex-1 min-w-[200px]">
+          {/* Advisor filter */}
+          <div className="relative min-w-[180px]">
             <select
               value={filterAsesor}
               onChange={(e) => setFilterAsesor(e.target.value)}
-              className="appearance-none bg-white border border-[#e8e2d5] rounded-xl px-4 py-3 w-full text-sm font-medium text-[#1d1d1b]/80 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] shadow-sm pr-8 cursor-pointer hover:bg-[#f5f1ea]/50 transition-colors truncate"
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2.5 w-full text-xs font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-8 cursor-pointer hover:bg-slate-50 transition-colors truncate"
             >
               <option value="Todos">Todos los Asesores</option>
               <option value="Sin Asignar">Sin Asignar</option>
@@ -269,25 +273,28 @@ export default function RegistroSolicitudesPage() {
               ))}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
 
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          {/* Search input */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar registros..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-64 pl-9 pr-4 py-3 bg-white border border-[#e8e2d5] rounded-xl text-sm font-medium text-[#1d1d1b] focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] transition-all shadow-sm"
+              className="w-full sm:w-56 pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm"
             />
           </div>
+
+          {/* Add button */}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center justify-center gap-2 bg-brand text-white px-5 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-brand/20 whitespace-nowrap"
+            className="flex items-center justify-center gap-2 bg-brand hover:bg-[#1d3342] text-white px-4 py-2.5 rounded-lg font-bold uppercase text-[10px] tracking-wider transition-all shadow-md shadow-brand/10 hover:shadow-lg whitespace-nowrap active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             Nuevo Registro
           </button>
         </div>
@@ -319,10 +326,10 @@ export default function RegistroSolicitudesPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-[2rem] p-8 md:p-16 shadow-xl shadow-slate-200/50 border border-white flex flex-col items-center justify-center text-center mt-4"
+                className="bg-white rounded-xl p-8 md:p-16 shadow-sm border border-gray-200/80 flex flex-col items-center justify-center text-center mt-4"
               >
-                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                  <Database className="w-10 h-10 text-slate-300" />
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                  <Database className="w-8 h-8 text-slate-300" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-800 mb-2">No hay registros</h3>
                 <p className="text-slate-500 max-w-md">
