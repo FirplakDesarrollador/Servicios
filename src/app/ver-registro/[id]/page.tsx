@@ -305,7 +305,7 @@ export default function VerRegistroPage() {
         <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans pb-20">
             {/* Header Sticky */}
             <header className="bg-white border-b border-gray-200/80 sticky top-0 z-30 shadow-sm">
-                <div className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => router.push('/registro-solicitudes')}
@@ -328,7 +328,7 @@ export default function VerRegistroPage() {
                 </div>
 
                 {/* Tabs Navigation */}
-                <div className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4">
+                <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center gap-4 overflow-x-auto hide-scrollbar -mb-px pt-2">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
@@ -355,7 +355,7 @@ export default function VerRegistroPage() {
             </header>
 
             {/* Main Content Area */}
-            <main className="max-w-[96%] xl:max-w-[1700px] mx-auto px-4 py-8">
+            <main className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                     {/* Columna Izquierda: Contenido Principal */}
                     <div className="lg:col-span-3">
