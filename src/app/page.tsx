@@ -241,12 +241,12 @@ export default function Home() {
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-white p-5 rounded-xl border border-gray-200/80 shadow-sm mb-6 flex items-center gap-5 relative overflow-hidden"
+          className="w-full max-w-4xl mx-auto bg-white p-6 rounded-xl border border-gray-200/80 shadow-sm mb-6 flex flex-col items-center text-center relative overflow-hidden"
         >
           {/* Decorative Background Blob */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl animate-pulse" />
 
-          <div className="relative group shrink-0">
+          <div className="relative group mb-3">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-100 shadow-sm overflow-hidden">
               <img
                 src={userPhoto || defaultPhoto}
@@ -260,12 +260,12 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1">
+          <div className="flex flex-col items-center">
             <h1 className="text-xl font-black text-[#254153] tracking-tight leading-none mb-1">
               {isCliente ? '¡Bienvenido Cliente Firplak!' : '¡Bienvenido!'}
             </h1>
             <p className="text-sm font-semibold text-slate-700 leading-tight mb-0.5">{fullName}</p>
-            <p className="text-xs font-semibold text-slate-400 mb-2">{user.email}</p>
+            <p className="text-xs font-semibold text-slate-400 mb-2.5">{user.email}</p>
             <span className="inline-block px-3 py-0.5 bg-brand/10 border border-brand/20 text-brand text-[9px] font-black uppercase tracking-[0.12em] rounded-full shadow-none">
               {userRole}
             </span>
@@ -279,10 +279,10 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ y: -1 }}
             onClick={copyFormLink}
-            className="w-full bg-white border border-gray-200/80 p-4 rounded-xl shadow-sm hover:border-brand/40 hover:shadow-md hover:shadow-brand/5 transition-all mb-8 flex items-center justify-between gap-4 group cursor-pointer"
+            className="w-full max-w-4xl mx-auto bg-white border border-gray-200/80 p-4 rounded-xl shadow-sm hover:border-brand/40 hover:shadow-md hover:shadow-brand/5 transition-all mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 group cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform mx-auto sm:mx-0">
                 <Link className="w-4 h-4" />
               </div>
               <div className="text-left">
@@ -290,7 +290,7 @@ export default function Home() {
                 <div className="text-xs text-slate-400 font-medium">Copiar enlace para enviar a clientes</div>
               </div>
             </div>
-            <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] uppercase tracking-wider transition-colors">
+            <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] uppercase tracking-wider transition-colors shrink-0">
               Copiar enlace
             </button>
           </motion.div>
