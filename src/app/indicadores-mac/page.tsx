@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState } from './types';
 import Filters from './components/Filters';
 import GeneralMac from './tabs/GeneralMac';
@@ -34,10 +34,6 @@ export default function IndicadoresMacPage() {
 
     const fetchData = async () => {
         try {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-            );
 
             const { data: registrosData, error } = await supabase
                 .from('registro_solicitudes')
