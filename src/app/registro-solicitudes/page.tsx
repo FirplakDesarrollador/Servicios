@@ -201,7 +201,7 @@ export default function RegistroSolicitudesPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans p-4 md:p-8 pb-20">
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-gray-100 pb-5">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-4 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-gray-100 pb-3">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/')}
