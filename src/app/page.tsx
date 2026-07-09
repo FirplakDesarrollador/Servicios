@@ -211,25 +211,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans flex flex-col">
-      <header className="fixed top-0 left-0 w-full bg-white border-b border-slate-200/80 text-slate-800 z-50 h-14 flex items-center px-6 justify-between shadow-sm">
+      <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-14 flex items-center px-6 justify-between shadow-md">
         <div className="flex items-center">
-          <img src="/logo-firplak.png" alt="FIRPLAK" className="h-6 w-auto" />
+          <img src="/logo-firplak.png" alt="FIRPLAK" className="h-6 w-auto invert brightness-0" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
-          <span className="text-xs font-bold text-slate-500 tabular-nums tracking-wide">{currentTime}</span>
+          <span className="text-xs font-bold text-white/90 tabular-nums tracking-wide">{currentTime}</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-150 hover:bg-slate-100 text-slate-600 transition-all shadow-none">
+          <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all shadow-none">
             <BellPlus className="w-4 h-4" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-150 hover:bg-slate-100 text-slate-600 transition-all shadow-none">
+          <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all shadow-none">
             <Bell className="w-4 h-4" />
           </button>
           <button
             onClick={handleSignOut}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-150 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all shadow-none"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-red-500 text-white transition-all shadow-none"
           >
             <LogOutIcon className="w-4 h-4" />
           </button>
