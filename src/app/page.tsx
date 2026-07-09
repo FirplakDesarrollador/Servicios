@@ -236,12 +236,12 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="pt-24 pb-10 px-4 sm:px-8 w-full max-w-[95%] xl:max-w-[1800px] mx-auto flex flex-col items-center">
+      <main className="pt-24 pb-10 px-4 sm:px-8 w-full max-w-[96%] xl:max-w-[1800px] mx-auto flex flex-col items-stretch">
         {/* Compact Profile Card */}
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-3xl bg-white p-5 rounded-xl border border-gray-200/80 shadow-sm mb-6 flex items-center gap-5 relative overflow-hidden"
+          className="w-full bg-white p-5 rounded-xl border border-gray-200/80 shadow-sm mb-6 flex items-center gap-5 relative overflow-hidden"
         >
           {/* Decorative Background Blob */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl animate-pulse" />
@@ -279,7 +279,7 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ y: -1 }}
             onClick={copyFormLink}
-            className="w-full max-w-3xl bg-white border border-gray-200/80 p-4 rounded-xl shadow-sm hover:border-brand/40 hover:shadow-md hover:shadow-brand/5 transition-all mb-8 flex items-center justify-between gap-4 group cursor-pointer"
+            className="w-full bg-white border border-gray-200/80 p-4 rounded-xl shadow-sm hover:border-brand/40 hover:shadow-md hover:shadow-brand/5 transition-all mb-8 flex items-center justify-between gap-4 group cursor-pointer"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -297,7 +297,7 @@ export default function Home() {
         )}
 
         {/* Compact Action Grid */}
-        <div className="grid gap-4 w-full max-w-5xl justify-center grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid gap-4 w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 min-[1700px]:grid-cols-12 justify-center">
           {filteredItems.map((item, index) => (
             <motion.button
               key={item.title}
