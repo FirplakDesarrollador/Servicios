@@ -241,7 +241,7 @@ export default function Home() {
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-xl mx-auto bg-white p-4 py-4 rounded-xl border border-gray-200/80 shadow-sm mb-4 flex flex-row items-center text-left gap-4.5 relative overflow-hidden"
+          className="w-full max-w-xl mx-auto bg-white p-4 py-4 rounded-xl border border-gray-200/80 shadow-sm mb-4 flex flex-row items-center justify-center text-left gap-4.5 relative overflow-hidden"
         >
           {/* Decorative Background Blob */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl animate-pulse" />
