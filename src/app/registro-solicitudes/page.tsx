@@ -134,7 +134,7 @@ export default function RegistroSolicitudesPage() {
           .map((s: string) => s.trim())
           .filter(Boolean);
         
-        const hasServiceAgendadoAlert = rServiceCodes.some(code => {
+        const hasServiceAgendadoAlert = rServiceCodes.some((code: string) => {
           const svc = servicesMap[code];
           if (!svc) return false;
           const status = svc.estado_visita || svc.estadoVisita;
