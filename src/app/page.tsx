@@ -241,12 +241,12 @@ export default function Home() {
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-xl mx-auto bg-white p-4 pb-5 rounded-xl border border-gray-200/80 shadow-sm mb-4 flex flex-col items-center text-center relative overflow-hidden"
+          className="w-full max-w-xl mx-auto bg-white p-4 py-4 rounded-xl border border-gray-200/80 shadow-sm mb-4 flex flex-row items-center text-left gap-4.5 relative overflow-hidden"
         >
           {/* Decorative Background Blob */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl animate-pulse" />
 
-          <div className="relative group mb-2.5">
+          <div className="relative group shrink-0">
             <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-100 shadow-sm overflow-hidden">
               <img
                 src={userPhoto || defaultPhoto}
@@ -260,12 +260,12 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex flex-col items-center">
-            <h1 className="text-lg font-black text-[#254153] tracking-tight leading-none mb-1">
+          <div className="flex flex-col items-start min-w-0">
+            <h1 className="text-base font-black text-[#254153] tracking-tight leading-none mb-1">
               {isCliente ? '¡Bienvenido Cliente Firplak!' : '¡Bienvenido!'}
             </h1>
             <p className="text-xs font-semibold text-slate-700 leading-tight mb-0.5">{fullName}</p>
-            <p className="text-[11px] font-semibold text-slate-400 mb-2">{user.email}</p>
+            <p className="text-[11px] font-semibold text-slate-400 mb-2 truncate w-full">{user.email}</p>
             <span className="inline-block px-2.5 py-0.5 bg-brand/10 border border-brand/20 text-brand text-[8px] font-black uppercase tracking-[0.12em] rounded-full shadow-none">
               {userRole}
             </span>
