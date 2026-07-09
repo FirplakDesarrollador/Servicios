@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState } from './types';
 import Filters from './components/Filters';
 import GeneralMac from './tabs/GeneralMac';
 import DetalleMac from './tabs/DetalleMac';
 import AgentesMac from './tabs/AgentesMac';
 import { getBusinessDaysDifference, isBusinessDay } from './utils/businessDays';
+import * as XLSX from 'xlsx';
+import { DownloadIcon } from 'lucide-react';
 
 export default function IndicadoresMacPage() {
     const [data, setData] = useState<RegistroMAC[]>([]);
@@ -32,18 +34,11 @@ export default function IndicadoresMacPage() {
 
     const fetchData = async () => {
         try {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-            );
 
-            // Obtenemos los registros con sus relaciones necesarias para el módulo
             const { data: registrosData, error } = await supabase
                 .from('registro_solicitudes')
                 .select(`
-                    id, created_at, consecutivo, tipo_solicitud, canal_venta, estado, cerrada, prioridad, valor_total,
-                    cliente_id, cliente_nombre, cliente_final_id, cliente_final_nombre,
-                    productos_compra, productos_novedad, comentarios, tratado_por_id, asesor_mac_id,
+                    *,
                     Usuarios!registro_solicitudes_tratado_por_id_fkey(nombres, apellidos, rol),
                     AsesorMAC:Usuarios!registro_solicitudes_asesor_mac_id_fkey(nombres, apellidos),
                     Ubicaciones:cliente_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona))),
@@ -144,6 +139,44 @@ export default function IndicadoresMacPage() {
         });
     }, [data, filters]);
 
+    const exportToExcel = () => {
+        const rows = filteredData.map(d => {
+            const row: Record<string, any> = {};
+            
+            // Loop through all properties of the record
+            Object.entries(d).forEach(([key, val]) => {
+                if (key.startsWith('_')) return; // Ignore frontend internal temporary properties
+                
+                if (val && typeof val === 'object') {
+                    // Stringify arrays/objects (like productos_compra) to be spreadsheet friendly
+                    if (Array.isArray(val) || (val.constructor && val.constructor.name === 'Object')) {
+                        row[key] = JSON.stringify(val);
+                    }
+                    // Skip nested objects that represent Supabase relations (e.g. Usuarios, Ubicaciones, Consumidores)
+                    return;
+                }
+                row[key] = val;
+            });
+
+            // Append helper calculated variables at the end
+            row['_Agente_MAC_Calculado'] = d._agenteNombre || 'Sin Asignar';
+            row['_Ciudad_Calculada'] = d._ciudad || 'No definida';
+            row['_Zona_Calculada'] = d._zona || 'No definida';
+            row['_Estado_Riesgo_Calculado'] = d._estadoRiesgo || 'Excelente';
+            row['_Dias_Abierta_Calculado'] = d._diasHabilesAbierta || 0;
+            if (d._fechaCierre) {
+                row['_Fecha_Cierre_Calculada'] = new Date(d._fechaCierre).toLocaleDateString();
+            }
+
+            return row;
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Base de Datos MAC");
+        XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0,10)}.xlsx`);
+    };
+
     const tabs = ['General MAC', 'Detalle MAC', 'Agentes MAC'];
 
     if (loading) {
@@ -152,10 +185,39 @@ export default function IndicadoresMacPage() {
 
     return (
         <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans">
-            <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-                <div>
+            <header className="bg-white border-b border-gray-200 px-6 pt-4 flex flex-col md:flex-row md:items-center justify-between sticky top-0 z-20 shadow-sm gap-4">
+                <div className="pb-2 md:pb-4">
                     <h1 className="text-xl font-black text-gray-800 tracking-tight">Indicadores MAC</h1>
                     <p className="text-xs text-gray-500 font-medium mt-1">Módulo de inteligencia de negocios para Mesa de Atención al Cliente</p>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-4 pb-3 md:pb-0">
+                    <button
+                        onClick={exportToExcel}
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg shadow-sm transition-all whitespace-nowrap"
+                    >
+                        <DownloadIcon className="w-3.5 h-3.5" />
+                        Exportar Excel
+                    </button>
+
+                    {/* Tabs */}
+                    <div className="flex border-b border-transparent md:-mb-[1px] overflow-x-auto pb-1 md:pb-0">
+                        {tabs.map((tab, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => setActiveTab(idx)}
+                                className={`
+                                    px-5 py-3 text-xs font-bold whitespace-nowrap transition-colors border-b-2
+                                    ${activeTab === idx 
+                                        ? 'border-brand text-brand bg-gray-50/50' 
+                                        : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50/30'
+                                    }
+                                `}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </header>
 
@@ -168,25 +230,6 @@ export default function IndicadoresMacPage() {
                     {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} />}
                 </div>
             </main>
-
-            {/* Pestañas estilo Excel en la parte inferior */}
-            <div className="bg-[#f0f2f5] border-t border-gray-300 flex overflow-x-auto">
-                {tabs.map((tab, idx) => (
-                    <button
-                        key={idx}
-                        onClick={() => setActiveTab(idx)}
-                        className={`
-                            px-6 py-2.5 text-xs font-bold whitespace-nowrap border-r border-gray-300 transition-colors
-                            ${activeTab === idx 
-                                ? 'bg-white text-brand border-b-2 border-b-brand' 
-                                : 'bg-transparent text-gray-600 hover:bg-gray-200 border-b-2 border-b-transparent'
-                            }
-                        `}
-                    >
-                        {tab}
-                    </button>
-                ))}
-            </div>
         </div>
     );
 }
