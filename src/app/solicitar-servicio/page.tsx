@@ -498,6 +498,11 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
 
             // Determine Coordinator based on Zone (as requested)
 
+            if (!zoneId && clienteFinalSeleccionado?.ciudad_id) {
+                const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).single();
+                if (cityData?.zona_id) zoneId = cityData.zona_id;
+            }
+
             if (!zoneId && clienteSeleccionado?.ciudad_id) {
                 const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).single();
                 if (cityData?.zona_id) zoneId = cityData.zona_id;
@@ -518,6 +523,11 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 if (zonaData) {
                     finalCoordinadorId = zonaData.coordinador_id;
                 }
+            }
+
+            // Explicitly enforce Favio (40) for Zona Centro (981)
+            if (zoneId === 981 || zoneId === '981') {
+                finalCoordinadorId = 40;
             }
 
             // Last resort fallback to the ID present in the view if lookup failed

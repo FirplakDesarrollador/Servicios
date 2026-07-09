@@ -136,6 +136,10 @@ export default function VerRegistroPage() {
                     finalCoordinadorId = zonaData.coordinador_id;
                 }
             }
+
+            if (zoneId === 981 || zoneId === '981') {
+                finalCoordinadorId = 40;
+            }
             
             if (!finalCoordinadorId) {
                 finalCoordinadorId = cons?.coordinador_id || cons?.coordinadorId || ubi?.coordinador_id || ubi?.coordinadorId || null;
