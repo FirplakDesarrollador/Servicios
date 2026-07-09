@@ -1715,18 +1715,18 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
             </div>
 
             {/* Datos del Canal de Venta / Distribuidor */}
-            <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] p-6 sm:p-8 hover:border-[#749094]/30 transition-colors">
-                <div className="flex items-center justify-between mb-6 border-b border-[#e8e2d5]/60 pb-3">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#749094] flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5 sm:p-6 transition-colors">
+                <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                         <Building2 className="w-3.5 h-3.5" />
                         {registro.canal_venta === 'canal_propio_ecommerce' ? 'Datos del Canal (Propio)' : 'Datos del Canal de Venta'}
                     </h3>
                     {registro.canal_venta !== 'canal_propio_ecommerce' && (
                         <button 
                             onClick={() => setShowModalEditarCanal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#254153] bg-[#254153]/5 hover:bg-[#254153]/10 rounded-lg transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/5 border border-brand/10 hover:bg-brand/10 rounded-md transition-colors"
                         >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-3 h-3" />
                             Editar Datos
                         </button>
                     )}
@@ -1734,8 +1734,8 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                     <div>
-                        <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Nombre</span>
-                        <span className="text-sm font-semibold text-[#1d1d1b]">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Nombre</span>
+                        <span className="text-xs font-semibold text-slate-700">
                             {registro.canal_venta === 'canal_propio_ecommerce' 
                                 ? 'Firplak / Ecommerce'
                                 : registro.cliente_nombre || 'N/A'}
@@ -1744,16 +1744,16 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                     {registro.canal_venta !== 'canal_propio_ecommerce' && (
                         <>
                             <div>
-                                <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Ciudad</span>
-                                <span className="text-xs font-medium text-[#1d1d1b]/80">{ubi.ciudades?.ciudad || ubi.ciudad || '---'}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Ciudad</span>
+                                <span className="text-xs font-medium text-slate-600">{ubi.ciudades?.ciudad || ubi.ciudad || '---'}</span>
                             </div>
                             <div>
-                                <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Teléfono</span>
-                                <span className="text-xs font-medium text-[#1d1d1b]/80">{ubi.telefono1 || ubi.telefono || ubi.celular || '---'}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Teléfono</span>
+                                <span className="text-xs font-medium text-slate-600">{ubi.telefono1 || ubi.telefono || ubi.celular || '---'}</span>
                             </div>
                             <div>
-                                <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Dirección</span>
-                                <span className="text-xs font-medium text-[#1d1d1b]/80">{ubi.direccion || '---'}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Dirección</span>
+                                <span className="text-xs font-medium text-slate-600">{ubi.direccion || '---'}</span>
                             </div>
                         </>
                     )}
@@ -1762,37 +1762,37 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
 
             {/* Datos del Cliente Final */}
             {registro.cliente_final_id && (
-                <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] p-6 sm:p-8 hover:border-[#749094]/30 transition-colors">
-                    <div className="flex items-center justify-between mb-6 border-b border-[#e8e2d5]/60 pb-3">
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#749094] flex items-center gap-2">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5 sm:p-6 transition-colors">
+                    <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
+                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                             <User className="w-3.5 h-3.5" />
                             Datos del Cliente Final
                         </h3>
                         <button 
                             onClick={() => setShowModalEditarClienteFinal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#254153] bg-[#254153]/5 hover:bg-[#254153]/10 rounded-lg transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/5 border border-brand/10 hover:bg-brand/10 rounded-md transition-colors"
                         >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-3 h-3" />
                             Editar Datos
                         </button>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                         <div>
-                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Nombre</span>
-                            <span className="text-sm font-semibold text-[#1d1d1b]">{registro.cliente_final_nombre || 'N/A'}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Nombre</span>
+                            <span className="text-xs font-semibold text-slate-700">{registro.cliente_final_nombre || 'N/A'}</span>
                         </div>
                         <div>
-                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Ciudad</span>
-                            <span className="text-xs font-medium text-[#1d1d1b]/80">{cons.ciudades?.ciudad || cons.ciudad || '---'}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Ciudad</span>
+                            <span className="text-xs font-medium text-slate-600">{cons.ciudades?.ciudad || cons.ciudad || '---'}</span>
                         </div>
                         <div>
-                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Teléfono</span>
-                            <span className="text-xs font-medium text-[#1d1d1b]/80">{cons.celular || cons.telefono1 || cons.telefono || '---'}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Teléfono</span>
+                            <span className="text-xs font-medium text-slate-600">{cons.celular || cons.telefono1 || cons.telefono || '---'}</span>
                         </div>
                         <div>
-                            <span className="text-[9px] font-bold text-[#749094] uppercase tracking-widest block mb-1">Dirección</span>
-                            <span className="text-xs font-medium text-[#1d1d1b]/80">{cons.direccion || '---'}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Dirección</span>
+                            <span className="text-xs font-medium text-slate-600">{cons.direccion || '---'}</span>
                         </div>
                     </div>
                 </div>
