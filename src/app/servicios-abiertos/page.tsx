@@ -252,8 +252,7 @@ export default function ServiciosAbiertosPage() {
             const { error } = await supabase
                 .from('Servicios')
                 .update({ 
-                    asesor_mac_id: advisorId,
-                    asesor_mac_nombre: advisorName 
+                    asesor_mac_id: advisorId
                 })
                 .eq('id', assigningMacService.id);
 
