@@ -73,11 +73,11 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
 
                 for (const item of files) {
                     const { file, isHidden } = item;
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                    const fileExt = file.name.split('.').pop() || '';
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
                     
                     const sanitizePath = (path: string) => {
-                        return path
+                        return String(path)
                             .normalize("NFD")
                             .replace(/[\u0300-\u036f]/g, "")
                             .replace(/ñ/g, "n")
@@ -105,26 +105,32 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
                 }
 
                 // Actualizar el comentario con las URLs de los documentos
-                await supabase
+                const { error: updateCommentError } = await supabase
                     .from('Comentarios')
                     .update({ documentos: uploadedUrls })
                     .eq('id', commentData.id);
+                
+                if (updateCommentError) throw updateCommentError;
 
                 // Si hay archivos ocultos, actualizar soportes_pago en la tabla Servicios
                 if (hiddenUrls.length > 0) {
-                    const { data: serviceData } = await supabase
+                    const { data: serviceData, error: selectServiceError } = await supabase
                         .from('Servicios')
                         .select('soportes_pago')
                         .eq('id', serviceId)
                         .single();
 
-                    const currentSoportes = serviceData?.soportes_pago || [];
-                    await supabase
-                        .from('Servicios')
-                        .update({ 
-                            soportes_pago: [...currentSoportes, ...hiddenUrls] 
-                        })
-                        .eq('id', serviceId);
+                    if (!selectServiceError) {
+                        const currentSoportes = serviceData?.soportes_pago || [];
+                        const { error: updateServiceError } = await supabase
+                            .from('Servicios')
+                            .update({ 
+                                soportes_pago: [...currentSoportes, ...hiddenUrls] 
+                            })
+                            .eq('id', serviceId);
+                            
+                        if (updateServiceError) throw updateServiceError;
+                    }
                 }
             }
 
@@ -133,9 +139,9 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
             setContent('');
             setFiles([]);
             setShowError(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error al guardar comentario:', error);
-            alert('Error al guardar el comentario');
+            alert(`Error al guardar el comentario: ${error?.message || JSON.stringify(error)}`);
         } finally {
             setUploading(false);
             isUploadingRef.current = false;
