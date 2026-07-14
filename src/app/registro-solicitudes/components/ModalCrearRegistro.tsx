@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Search, Plus, Trash2, Package, Sparkles, Receipt, Tags, Store, Users, MessageSquare, Paperclip, File as FileIcon } from 'lucide-react';
+import { X, Save, Search, Plus, Trash2, Package, Sparkles, Receipt, Tags, Store, Users, MessageSquare, Paperclip, File as FileIcon, MapPin, Phone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
@@ -8,10 +8,14 @@ import BuscadorProductos from '@/components/solicitar-servicio/BuscadorProductos
 
 export default function ModalCrearRegistro({ 
     onClose, 
-    onSuccess 
+    onSuccess,
+    servicioPreEnlazado,
+    initialData
 }: { 
     onClose: () => void; 
     onSuccess: () => void; 
+    servicioPreEnlazado?: string;
+    initialData?: any;
 }) {
     const [isSaving, setIsSaving] = useState(false);
     
@@ -53,6 +57,41 @@ export default function ModalCrearRegistro({
     const [showBuscadorClienteFinal, setShowBuscadorClienteFinal] = useState(false);
     const [showBuscadorProductoCompra, setShowBuscadorProductoCompra] = useState(false);
     const [showBuscadorProductoNovedad, setShowBuscadorProductoNovedad] = useState(false);
+
+    useEffect(() => {
+        if (initialData) {
+            if (initialData.canal_de_venta) {
+                setCanalVenta(initialData.canal_de_venta);
+            }
+            if (initialData.cliente_id || initialData.ubicacion_id) {
+                setCliente({
+                    id: initialData.cliente_id || initialData.ubicacion_id,
+                    cliente_nombre: initialData.cliente_nombre || initialData.ubicacion_nombre,
+                    nombre: initialData.ubicacion_nombre || initialData.cliente_nombre,
+                    nit: initialData.cliente_nit || initialData.ubicacion_nit,
+                    direccion: initialData.ubicacion_direccion || initialData.direccion,
+                    ciudad: initialData.ubicacion_ciudad || initialData.ciudad,
+                    telefono: initialData.ubicacion_telefono || initialData.telefono
+                });
+            }
+            if (initialData.consumidor_id || initialData.consumidor_contacto) {
+                setClienteFinal({
+                    id: initialData.consumidor_id,
+                    contacto: initialData.consumidor_contacto,
+                    nombre_contacto: initialData.consumidor_contacto,
+                    cedula: initialData.consumidor_cedula,
+                    direccion: initialData.consumidor_direccion,
+                    ciudad: initialData.consumidor_ciudad,
+                    telefono: initialData.consumidor_telefono
+                });
+                if (['canal_propio_ecommerce', 'canal_propio_firplakhome'].includes(initialData.canal_de_venta || '')) {
+                    setLlevaClienteFinal(false); // In own channels, it's the main client
+                } else {
+                    setLlevaClienteFinal(true); // External channels need final client
+                }
+            }
+        }
+    }, [initialData]);
 
     const getClientLabel = () => {
         if (!canalVenta) return 'Cliente';
@@ -109,7 +148,8 @@ export default function ModalCrearRegistro({
                     tratado_por_id: tratadoPorId,
                     asesor_mac_id: asesorMacId,
                     estado: 'Abierto',
-                    prioridad: 'Media'
+                    prioridad: 'Media',
+                    servicio_creado_consecutivo: servicioPreEnlazado || null
                 });
 
             if (error) throw error;
@@ -402,15 +442,37 @@ export default function ModalCrearRegistro({
                                         {getClientLabel()}
                                     </label>
                                     {cliente ? (
-                                        <div className="flex items-center justify-between w-full p-3.5 bg-[#f5f1ea]/30 border border-[#e8e2d5] rounded-xl">
-                                            <span className="text-sm font-bold text-slate-700 truncate">{cliente.cliente_nombre || cliente.nombre}</span>
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => setShowBuscadorCliente(true)} className="text-[#254153] hover:underline text-xs font-bold transition-colors">
-                                                    Cambiar
-                                                </button>
-                                                <button onClick={() => setCliente(null)} className="p-1 hover:bg-[#f5f1ea]/50 text-[#749094] rounded-md transition-colors">
-                                                    <X className="w-4 h-4" />
-                                                </button>
+                                        <div className="flex flex-col w-full bg-[#f5f1ea]/30 border border-[#e8e2d5] rounded-xl overflow-hidden">
+                                            <div className="flex items-center justify-between p-3.5 border-b border-[#e8e2d5]">
+                                                <span className="text-sm font-bold text-slate-700 truncate">{cliente.cliente_nombre || cliente.nombre}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => setShowBuscadorCliente(true)} className="text-[#254153] hover:underline text-xs font-bold transition-colors">
+                                                        Cambiar
+                                                    </button>
+                                                    <button onClick={() => setCliente(null)} className="p-1 hover:bg-[#f5f1ea]/50 text-[#749094] rounded-md transition-colors">
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-white flex flex-col gap-1 text-xs">
+                                                {cliente.nombre && cliente.nombre !== cliente.cliente_nombre && (
+                                                    <div className="flex items-start gap-2 text-slate-600">
+                                                        <Store className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                                        <span className="font-medium"><span className="text-slate-400">Obra/Sala:</span> {cliente.nombre}</span>
+                                                    </div>
+                                                )}
+                                                {cliente.direccion && (
+                                                    <div className="flex items-start gap-2 text-slate-600">
+                                                        <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                                        <span className="font-medium">{cliente.direccion} {cliente.ciudad ? `- ${cliente.ciudad}` : ''}</span>
+                                                    </div>
+                                                )}
+                                                {cliente.telefono && (
+                                                    <div className="flex items-start gap-2 text-slate-600">
+                                                        <Phone className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                                        <span className="font-medium">{cliente.telefono}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ) : (
@@ -453,16 +515,34 @@ export default function ModalCrearRegistro({
                                         Cliente Final
                                     </label>
                                     {clienteFinal ? (
-                                        <div className="flex items-center justify-between w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
-                                            <span className="text-sm font-bold text-slate-700 truncate">{clienteFinal.contacto || clienteFinal.nombre_contacto || clienteFinal.cedula}</span>
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => setShowBuscadorClienteFinal(true)} className="text-brand hover:underline text-xs font-bold transition-colors">
-                                                    Cambiar
-                                                </button>
-                                                <button onClick={() => setClienteFinal(null)} className="p-1 hover:bg-slate-200 text-slate-500 rounded-md transition-colors">
-                                                    <X className="w-4 h-4" />
-                                                </button>
+                                        <div className="flex flex-col w-full bg-[#f5f1ea]/30 border border-[#e8e2d5] rounded-xl overflow-hidden">
+                                            <div className="flex items-center justify-between p-3.5 border-b border-[#e8e2d5]">
+                                                <span className="text-sm font-bold text-slate-700 truncate">{clienteFinal.contacto || clienteFinal.nombre_contacto || clienteFinal.cedula}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => setShowBuscadorClienteFinal(true)} className="text-brand hover:underline text-xs font-bold transition-colors">
+                                                        Cambiar
+                                                    </button>
+                                                    <button onClick={() => setClienteFinal(null)} className="p-1 hover:bg-slate-200 text-slate-500 rounded-md transition-colors">
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
+                                            {(clienteFinal.direccion || clienteFinal.telefono) && (
+                                                <div className="p-3 bg-white flex flex-col gap-1 text-xs">
+                                                    {clienteFinal.direccion && (
+                                                        <div className="flex items-start gap-2 text-slate-600">
+                                                            <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                                            <span className="font-medium">{clienteFinal.direccion} {clienteFinal.ciudad ? `- ${clienteFinal.ciudad}` : ''}</span>
+                                                        </div>
+                                                    )}
+                                                    {clienteFinal.telefono && (
+                                                        <div className="flex items-start gap-2 text-slate-600">
+                                                            <Phone className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                                            <span className="font-medium">{clienteFinal.telefono}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <button
