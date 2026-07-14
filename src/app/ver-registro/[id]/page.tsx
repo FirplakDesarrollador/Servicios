@@ -33,7 +33,7 @@ export default function VerRegistroPage() {
     // Estado de Creacion de Servicio
     const [isCreatingService, setIsCreatingService] = useState(false);
     const [showSolicitarModal, setShowSolicitarModal] = useState(false);
-    const [modalTipoServicio, setModalTipoServicio] = useState('garantia_sin_pedido');
+    const [modalTipoServicio, setModalTipoServicio] = useState('');
     const [modalFacturado, setModalFacturado] = useState(false);
     
     // Estados de edición Clasificación
@@ -430,13 +430,13 @@ export default function VerRegistroPage() {
                             <div className="flex flex-col gap-2 mt-2">
                                 <button
                                     onClick={() => {
-                                        let mappedTipoServicio = 'garantia_sin_pedido';
+                                        let mappedTipoServicio = 'mantenimiento';
                                         if (registro?.tipo_solicitud) {
                                             const reqType = registro.tipo_solicitud.toLowerCase();
-                                            if (reqType.includes('garantia') || reqType.includes('reclamo')) {
-                                                mappedTipoServicio = 'garantia_sin_pedido';
-                                            } else if (reqType.includes('instalacion') || reqType.includes('visita')) {
+                                            if (reqType.includes('instalacion')) {
                                                 mappedTipoServicio = 'instalacion';
+                                            } else if (reqType.includes('visita')) {
+                                                mappedTipoServicio = 'visita_instalacion';
                                             }
                                         }
                                         setModalTipoServicio(mappedTipoServicio);
@@ -779,13 +779,21 @@ export default function VerRegistroPage() {
                                     onChange={(e) => setModalTipoServicio(e.target.value)}
                                     className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] transition-all appearance-none font-medium"
                                 >
-                                    <option value="garantia_sin_pedido">Garantía sin pedido</option>
-                                    <option value="garantia_con_pedido">Garantía con pedido</option>
-                                    <option value="instalacion">Instalación</option>
-                                    <option value="visita_instalacion">Visita instalación</option>
+                                    <option value="">Seleccione una opción...</option>
                                     <option value="mantenimiento">Mantenimiento</option>
                                     <option value="mantenimiento_con_kit">Mantenimiento con kit</option>
-                                    <option value="desarme_modificacion">Desarme y modificación</option>
+                                    <option value="instalacion">Instalación</option>
+                                    <option value="visita_instalacion">Visita instalación</option>
+                                    <option value="entrega">Entrega</option>
+                                    <option value="garantia_sin_pedido">Garantía sin pedido</option>
+                                    <option value="garantia_con_repuesto_kit">Garantía con repuesto kit</option>
+                                    <option value="reparacion_atencion">Reparación atención</option>
+                                    <option value="reparacion_atencion_con_repuesto_kit">Reparación atención con repuesto kit</option>
+                                    <option value="error_en_pedido_referencia">Error en pedido referencia</option>
+                                    <option value="quebrados_logistica">Quebrados logística</option>
+                                    <option value="garantia_con_pedido_de_reposicion">Garantía con pedido de reposición</option>
+                                    <option value="atencion_con_pedido_de_reposicion">Atención con pedido de reposición</option>
+                                    <option value="reparacion_y_mantenimiento_(facturado)">Reparación y mantenimiento (Facturado)</option>
                                 </select>
                             </div>
                             <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
