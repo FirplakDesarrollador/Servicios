@@ -140,8 +140,10 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
             setFiles([]);
             setShowError(false);
         } catch (error: any) {
-            console.error('Error al guardar comentario:', error);
-            alert(`Error al guardar el comentario: ${error?.message || JSON.stringify(error)}`);
+            console.error('Error al guardar comentario DETALLE COMPLETO:', error);
+            const props = Object.getOwnPropertyNames(error);
+            const errorDetails = props.length > 0 ? props.map(p => `${p}: ${error[p]}`).join(', ') : String(error);
+            alert(`Error al guardar el comentario: ${error?.message || JSON.stringify(error)} | Detalles: ${errorDetails}`);
         } finally {
             setUploading(false);
             isUploadingRef.current = false;
