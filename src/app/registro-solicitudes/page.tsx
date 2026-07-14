@@ -87,7 +87,7 @@ export default function RegistroSolicitudesPage() {
 
       // 4. Fetch services in parallel
       const serviceCodes = registrosList
-        .flatMap(r => (r.servicio_creado_consecutivo || '').split(','))
+        .flatMap(r => String(r.servicio_creado_consecutivo || '').split(','))
         .map(s => s.trim())
         .filter(Boolean);
 
@@ -129,7 +129,7 @@ export default function RegistroSolicitudesPage() {
         }
 
         // Check if any of the linked services is agendado
-        const rServiceCodes = (r.servicio_creado_consecutivo || '')
+        const rServiceCodes = String(r.servicio_creado_consecutivo || '')
           .split(',')
           .map((s: string) => s.trim())
           .filter(Boolean);
