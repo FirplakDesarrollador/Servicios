@@ -59,7 +59,7 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
                     servicio_id: serviceId,
                     contenido: content,
                     usuario_id: currentUser?.id,
-                    tipo: 'seguimiento'
+                    tipo: 'observacion_general'
                 }])
                 .select()
                 .single();
