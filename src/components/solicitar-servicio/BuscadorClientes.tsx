@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, X, Loader2, MapPin, Phone, User as UserIcon, Building2, CreditCard, UserCheck, Eraser } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import ModalCrearSala from '@/components/base-de-datos/ModalCrearSala';
 
 interface BuscadorClientesProps {
     canalVenta: string;
@@ -17,6 +18,7 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
     const [loading, setLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState<any>(null);
+    const [showCrearSala, setShowCrearSala] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -213,7 +215,10 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                 ¿No encuentras el registro?
                             </p>
-                            <button className="text-xs font-black text-brand uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2">
+                            <button 
+                                onClick={() => setShowCrearSala(true)}
+                                className="text-xs font-black text-brand uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2"
+                            >
                                 <Building2 className="w-3 h-3" />
                                 Crear {canalVenta === 'canal_constructor' ? 'Nueva Obra' : 'Nuevo Distribuidor'}
                             </button>
@@ -221,6 +226,17 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                     )}
                 </div>
             </motion.div>
+            
+            {showCrearSala && (
+                <ModalCrearSala
+                    isOpen={showCrearSala}
+                    onClose={() => setShowCrearSala(false)}
+                    onSuccess={() => {
+                        setShowCrearSala(false);
+                        // Opcional: podrías recargar o auto-seleccionar el cliente creado, pero por ahora solo cerrar.
+                    }}
+                />
+            )}
         </motion.div>
     );
 }

@@ -63,6 +63,7 @@ import CommentModal from '@/components/CommentModal';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
 import ModalEditCondebe from '@/components/ModalEditCondebe';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
+import ModalCrearRegistro from '@/app/registro-solicitudes/components/ModalCrearRegistro';
 
 type TabType = 'informacion' | 'observaciones' | 'agendamiento' | 'aprobaciones' | 'servicios_relacionados' | 'solicitud_repuesto';
 
@@ -767,6 +768,30 @@ function InformacionTab({
     currentUser?: any
 }) {
     const router = useRouter();
+    const [showCrearRadicadoModal, setShowCrearRadicadoModal] = useState(false);
+    const [radicados, setRadicados] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchRadicados = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('registro_solicitudes')
+                    .select('id, consecutivo, estado, tipo_solicitud, created_at')
+                    .ilike('servicio_creado_consecutivo', `%${service.consecutivo}%`)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                setRadicados(data || []);
+            } catch (error) {
+                console.error('Error fetching radicados:', error);
+            }
+        };
+
+        if (service?.consecutivo) {
+            fetchRadicados();
+        }
+    }, [service?.consecutivo]);
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -876,6 +901,14 @@ function InformacionTab({
                             </button>
                         )}
 
+                        <button
+                            onClick={() => setShowCrearRadicadoModal(true)}
+                            className="w-full h-12 flex items-center justify-center gap-3 bg-amber-500 text-white rounded-md text-sm font-semibold hover:bg-amber-600 transition-colors mt-3"
+                        >
+                            <FileText className="w-4 h-4" />
+                            Crear Radicado Enlazado
+                        </button>
+
                         {service.estado === true && (
                             <button
                                 onClick={onCloseService}
@@ -887,9 +920,76 @@ function InformacionTab({
                         )}
                     </div>
 
+                    {/* Radicados Enlazados */}
+                    {radicados.length > 0 && (
+                        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm mt-6">
+                            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center justify-between">
+                                <span>Radicados Enlazados</span>
+                                <span className="bg-amber-100 text-amber-700 py-0.5 px-2 rounded-full text-[10px]">{radicados.length}</span>
+                            </h4>
+                            <div className="space-y-3">
+                                {radicados.map(rad => (
+                                    <a
+                                        key={rad.id}
+                                        href={`/ver-registro/${rad.id}`} 
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block p-4 border border-slate-200 hover:border-amber-400 hover:shadow-md rounded-xl transition-all group bg-slate-50 hover:bg-white"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-sm font-black text-slate-800 group-hover:text-amber-600 transition-colors flex items-center gap-1.5">
+                                                <FileText className="w-4 h-4 text-amber-500" />
+                                                {rad.consecutivo}
+                                            </span>
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                                rad.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                                            }`}>
+                                                {rad.estado || 'Abierto'}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-slate-500 mb-1">{rad.tipo_solicitud || 'Sin tipo'}</div>
+                                        <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                                            <span>{new Date(rad.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                            <span className="text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 font-bold">Ver Radicado <LinkIcon className="w-3 h-3"/></span>
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
 
                 </div>
             </div>
+
+            {/* Modal Crear Radicado */}
+            {showCrearRadicadoModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-[90vw] h-[90vh] overflow-hidden flex flex-col relative">
+                        <ModalCrearRegistro
+                            onClose={() => setShowCrearRadicadoModal(false)}
+                            onSuccess={() => {
+                                setShowCrearRadicadoModal(false);
+                                // Fetch radicados again manually or force a re-render
+                                const fetchRadicados = async () => {
+                                    try {
+                                        const { data, error } = await supabase
+                                            .from('registro_solicitudes')
+                                            .select('id, consecutivo, estado, tipo_solicitud, created_at')
+                                            .ilike('servicio_creado_consecutivo', `%${service.consecutivo}%`)
+                                            .order('created_at', { ascending: false });
+                                        if (!error && data) setRadicados(data);
+                                    } catch (e) { }
+                                };
+                                fetchRadicados();
+                                alert(`Radicado creado y enlazado al servicio ${service.consecutivo} exitosamente`);
+                            }}
+                            servicioPreEnlazado={service.consecutivo}
+                            initialData={service}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
