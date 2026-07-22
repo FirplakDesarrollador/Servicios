@@ -16,6 +16,35 @@ import ModalEditarUbicacion from '@/components/solicitar-servicio/ModalEditarUbi
 
 type TabType = 'informacion' | 'comentarios' | 'clasificacion' | 'servicios';
 
+const handleDatePaste = (e: React.ClipboardEvent<HTMLInputElement>, onValidDate: (date: string) => void) => {
+    const text = e.clipboardData.getData('text');
+    if (!text) return;
+    
+    let parsedDate = '';
+    const cleanText = text.trim();
+    // Match DD/MM/YYYY or DD-MM-YYYY
+    const m1 = cleanText.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m1) {
+        parsedDate = `${m1[3]}-${m1[2].padStart(2, '0')}-${m1[1].padStart(2, '0')}`;
+    } else {
+        // Match YYYY/MM/DD or YYYY-MM-DD
+        const m2 = cleanText.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+        if (m2) {
+            parsedDate = `${m2[1]}-${m2[2].padStart(2, '0')}-${m2[3].padStart(2, '0')}`;
+        } else {
+            const d = new Date(cleanText);
+            if (!isNaN(d.getTime())) {
+                parsedDate = d.toISOString().split('T')[0];
+            }
+        }
+    }
+    
+    if (parsedDate) {
+        e.preventDefault();
+        onValidDate(parsedDate);
+    }
+};
+
 export default function VerRegistroPage() {
     const params = useParams();
     const router = useRouter();
@@ -35,6 +64,8 @@ export default function VerRegistroPage() {
     const [showSolicitarModal, setShowSolicitarModal] = useState(false);
     const [modalTipoServicio, setModalTipoServicio] = useState('');
     const [modalFacturado, setModalFacturado] = useState(false);
+    const [modalComentario, setModalComentario] = useState('');
+    const [modalArchivos, setModalArchivos] = useState<File[]>([]);
     
     // Estados de edición Clasificación
     
@@ -169,13 +200,46 @@ export default function VerRegistroPage() {
                 
             if (servicioError) throw servicioError;
             
-            const primerComentario = `Viene desde la solicitud ${registro.consecutivo || 'REG-' + registro.id}`;
+            // Subir archivos adjuntos si existen
+            const uploadedDocs: string[] = [];
+            if (modalArchivos.length > 0) {
+                for (const file of modalArchivos) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                    const sanitizePath = (path: string) => {
+                        return path
+                            .normalize("NFD")
+                            .replace(/[\u0300-\u036f]/g, "")
+                            .replace(/ñ/g, "n")
+                            .replace(/Ñ/g, "N")
+                            .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
+                    };
+                    const folderPath = sanitizePath(String(servicioData.consecutivo));
+                    const filePath = `${folderPath}/documentos/${fileName}`;
+                    const { error: uploadError } = await supabase.storage
+                        .from('servicios')
+                        .upload(filePath, file);
+                    if (uploadError) {
+                        console.error('Error subiendo archivo:', uploadError);
+                        continue;
+                    }
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('servicios')
+                        .getPublicUrl(filePath);
+                    uploadedDocs.push(publicUrl);
+                }
+            }
+
+            const textoBase = `Viene desde la solicitud ${registro.consecutivo || 'REG-' + registro.id}`;
+            const primerComentario = modalComentario.trim()
+                ? `${textoBase}\n\n${modalComentario.trim()}`
+                : textoBase;
             await supabase.from('Comentarios').insert({
                 servicio_id: servicioData.id,
                 contenido: primerComentario,
                 usuario_id: currentUser?.id,
                 tipo: 'solicitud_servicio',
-                documentos: []
+                documentos: uploadedDocs
             });
             
             if (registro.productos_novedad && Array.isArray(registro.productos_novedad) && registro.productos_novedad.length > 0) {
@@ -210,6 +274,8 @@ export default function VerRegistroPage() {
         } finally {
             setIsCreatingService(false);
             setShowSolicitarModal(false);
+            setModalComentario('');
+            setModalArchivos([]);
         }
     };
 
@@ -755,7 +821,7 @@ export default function VerRegistroPage() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
                     >
                         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
                             <div>
@@ -769,7 +835,7 @@ export default function VerRegistroPage() {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="p-5 space-y-4">
+                        <div className="p-5 space-y-4 overflow-y-auto">
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                                     Tipo de Servicio <span className="text-red-500">*</span>
@@ -807,6 +873,57 @@ export default function VerRegistroPage() {
                                 <label htmlFor="modalFacturado" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
                                     ¿Es un servicio facturado?
                                 </label>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                    Comentario
+                                </label>
+                                <textarea
+                                    value={modalComentario}
+                                    onChange={(e) => setModalComentario(e.target.value)}
+                                    placeholder="Escriba un comentario para el servicio..."
+                                    rows={3}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] transition-all font-medium text-sm resize-none placeholder:text-slate-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                    Adjuntar Archivos
+                                </label>
+                                <label className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-[#254153] hover:text-[#254153] hover:bg-slate-100 transition-all cursor-pointer">
+                                    <Paperclip className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Seleccionar archivos</span>
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*,video/*,.pdf,.xlsx,.xls,.csv"
+                                        onChange={(e) => {
+                                            if (e.target.files) {
+                                                setModalArchivos(prev => [...prev, ...Array.from(e.target.files!)]);
+                                            }
+                                        }}
+                                        className="hidden"
+                                    />
+                                </label>
+                                {modalArchivos.length > 0 && (
+                                    <div className="mt-2 space-y-1.5">
+                                        {modalArchivos.map((file, idx) => (
+                                            <div key={idx} className="flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                    <span className="text-xs font-medium text-slate-700 truncate">{file.name}</span>
+                                                    <span className="text-[10px] text-slate-400 shrink-0">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => setModalArchivos(prev => prev.filter((_, i) => i !== idx))}
+                                                    className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors shrink-0"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
@@ -1450,11 +1567,11 @@ function ClasificacionTab({
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha de Compra</label>
-                                            <input type="date" value={prod.fecha_compra || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_compra', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                            <input type="date" value={prod.fecha_compra || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_compra', e.target.value)} onPaste={(e) => handleDatePaste(e, (d) => updateClasificacionProduct(idx, 'fecha_compra', d))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha Fabricación</label>
-                                            <input type="date" value={prod.fecha_fabricacion || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_fabricacion', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                            <input type="date" value={prod.fecha_fabricacion || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_fabricacion', e.target.value)} onPaste={(e) => handleDatePaste(e, (d) => updateClasificacionProduct(idx, 'fecha_fabricacion', d))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                                         </div>
                                     </div>
 
@@ -1555,6 +1672,7 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
 
     const [showModalEditarCanal, setShowModalEditarCanal] = useState(false);
     const [showModalEditarClienteFinal, setShowModalEditarClienteFinal] = useState(false);
+    const [showBuscadorClienteFinal, setShowBuscadorClienteFinal] = useState(false);
 
     useEffect(() => {
         setOrdenVentaLocal(registro.orden_venta || '');
@@ -1745,11 +1863,18 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                     <div>
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Nombre</span>
-                        <span className="text-xs font-semibold text-slate-700">
-                            {registro.canal_venta === 'canal_propio_ecommerce' 
-                                ? 'Firplak / Ecommerce'
-                                : registro.cliente_nombre || 'N/A'}
-                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-semibold text-slate-700">
+                                {registro.canal_venta === 'canal_propio_ecommerce' 
+                                    ? 'Firplak / Ecommerce'
+                                    : registro.cliente_nombre || 'N/A'}
+                            </span>
+                            {ubi.nombre && ubi.nombre !== registro.cliente_nombre && registro.canal_venta !== 'canal_propio_ecommerce' && (
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                                    {ubi.nombre}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     {registro.canal_venta !== 'canal_propio_ecommerce' && (
                         <>
@@ -1771,13 +1896,13 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
             </div>
 
             {/* Datos del Cliente Final */}
-            {registro.cliente_final_id && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5 sm:p-6 transition-colors">
-                    <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
-                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                            <User className="w-3.5 h-3.5" />
-                            Datos del Cliente Final
-                        </h3>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5 sm:p-6 transition-colors">
+                <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <User className="w-3.5 h-3.5" />
+                        Datos del Cliente Final
+                    </h3>
+                    {registro.cliente_final_id ? (
                         <button 
                             onClick={() => setShowModalEditarClienteFinal(true)}
                             className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/5 border border-brand/10 hover:bg-brand/10 rounded-md transition-colors"
@@ -1785,8 +1910,18 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                             <Pencil className="w-3 h-3" />
                             Editar Datos
                         </button>
-                    </div>
-                    
+                    ) : (
+                        <button 
+                            onClick={() => setShowBuscadorClienteFinal(true)}
+                            className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 rounded-md transition-colors shadow-sm"
+                        >
+                            <Plus className="w-3 h-3" />
+                            Añadir Cliente Final
+                        </button>
+                    )}
+                </div>
+                
+                {registro.cliente_final_id ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                         <div>
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Nombre</span>
@@ -1805,8 +1940,13 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                             <span className="text-xs font-medium text-slate-600">{cons.direccion || '---'}</span>
                         </div>
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-6 bg-slate-50/50 rounded-xl border border-slate-100 border-dashed">
+                        <User className="w-8 h-8 text-slate-300 mb-2" />
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">No hay cliente final asignado a esta solicitud.</p>
+                    </div>
+                )}
+            </div>
 
             {/* Modals for Editing Clients */}
             {showModalEditarCanal && (
@@ -1841,6 +1981,27 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                         onRefresh();
                     }}
                 />
+            )}
+
+            {showBuscadorClienteFinal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="w-full max-w-4xl relative">
+                        <BuscadorClienteFinal
+                            onClose={() => setShowBuscadorClienteFinal(false)}
+                            onSelect={async (cliente) => {
+                                setShowBuscadorClienteFinal(false);
+                                try {
+                                    const { error } = await supabase.from('registro_solicitudes').update({
+                                        cliente_final_id: cliente.id,
+                                        cliente_final_nombre: cliente.contacto || cliente.nombre_contacto || cliente.cedula
+                                    }).eq('id', registro.id);
+                                    if (error) throw error;
+                                } catch(e) {}
+                                onRefresh();
+                            }}
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );
