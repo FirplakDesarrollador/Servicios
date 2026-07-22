@@ -159,10 +159,14 @@ export default function HistorialServiciosPage() {
                 .order('display_name', { ascending: true })
 
             // Filtrar según rol del usuario
-            if (user.rol === 'tecnico' || user.rol === 'tecnico_externo') {
-                query = query.eq('id', user.id)
-            } else if (user.rol === 'supervisor_externo') {
-                query = query.eq('rol', 'tecnico_externo')
+            const isCotizaciones = user.correo?.toLowerCase().trim() === 'cotizaciones@firplak.co' || user.correo?.toLowerCase().trim() === 'cotizaciones@firplak.com'
+            
+            if (!isCotizaciones) {
+                if (user.rol === 'tecnico' || user.rol === 'tecnico_externo') {
+                    query = query.eq('id', user.id)
+                } else if (user.rol === 'supervisor_externo') {
+                    query = query.eq('rol', 'tecnico_externo')
+                }
             }
 
             const { data, error } = await query
@@ -204,7 +208,7 @@ export default function HistorialServiciosPage() {
                 .eq('reagendado', false)
                 .neq('nombre', 'Preagendado')
                 .not('fecha_hora_inicio', 'is', null)
-                .order('created_at', { ascending: false })
+                .order('fecha_hora_inicio', { ascending: false })
                 .limit(100)
 
             if (error) throw error

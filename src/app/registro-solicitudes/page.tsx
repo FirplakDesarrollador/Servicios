@@ -289,6 +289,14 @@ export default function RegistroSolicitudesPage() {
             />
           </div>
 
+          {/* WP Button */}
+          <button
+            onClick={() => router.push('/whatsapp')}
+            className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold uppercase text-[10px] tracking-wider transition-all shadow-md shadow-green-500/20 hover:shadow-lg whitespace-nowrap active:scale-95"
+          >
+            WP
+          </button>
+
           {/* Add button */}
           <button
             onClick={() => setShowCreateModal(true)}
