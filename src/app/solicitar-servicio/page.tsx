@@ -465,6 +465,9 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 } else if (clienteFinalSeleccionado.ciudad_id) {
                     const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
+                } else if (clienteFinalSeleccionado.ciudad) {
+                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`).limit(1).maybeSingle();
+                    if (cityData?.zona_id) zoneId = cityData.zona_id;
                 }
             }
 
@@ -512,6 +515,9 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                     zoneId = clienteSeleccionado.zona_id;
                 } else if (clienteSeleccionado.ciudad_id) {
                     const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).maybeSingle();
+                    if (cityData?.zona_id) zoneId = cityData.zona_id;
+                } else if (clienteSeleccionado.ciudad) {
+                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').ilike('ciudad', `%${clienteSeleccionado.ciudad}%`).limit(1).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 }
             }
