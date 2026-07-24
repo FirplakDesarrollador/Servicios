@@ -62,10 +62,13 @@ export default function IndicadoresMacPage() {
             // Procesar y enriquecer datos en cliente
             const processed = (registrosData as any[]).map(r => {
                 const createdAt = new Date(r.created_at);
-                const fechaCierre = r.cerrada ? new Date(r.created_at) : null;
-                const diasHabilesAbierta = fechaCierre 
-                    ? getBusinessDaysDifference(createdAt, fechaCierre) 
-                    : getBusinessDaysDifference(createdAt, new Date());
+                // Fecha de cierre: usar fecha_verificacion si existe, si no la fecha actual
+                const fechaCierre = r.fecha_verificacion 
+                    ? new Date(r.fecha_verificacion) 
+                    : (r.cerrada ? new Date() : null);
+                // Días hábiles: desde fecha de creación hasta fecha_verificacion (o fecha actual si vacío)
+                const fechaReferencia = r.fecha_verificacion ? new Date(r.fecha_verificacion) : new Date();
+                const diasHabilesAbierta = getBusinessDaysDifference(createdAt, fechaReferencia);
 
                 let estadoRiesgo: 'Excelente' | 'Regular' | 'Riesgo de demanda' | 'Demandante' = 'Excelente';
                 if (diasHabilesAbierta > 20) estadoRiesgo = 'Demandante';
@@ -140,38 +143,99 @@ export default function IndicadoresMacPage() {
     }, [data, filters]);
 
     const exportToExcel = () => {
-        const rows = filteredData.map(d => {
-            const row: Record<string, any> = {};
-            
-            // Loop through all properties of the record
+        const allRows: Record<string, any>[] = [];
+
+        // Crear mapas de lookup para resolver IDs a nombres
+        const razonesMap = new Map(razones.map(r => [String(r.id), r.razon]));
+        const responsablesMap = new Map(responsablesRef.map(r => [String(r.id), r.responsable]));
+
+        filteredData.forEach(d => {
+            // Construir fila base con todos los campos escalares
+            const baseRow: Record<string, any> = {};
             Object.entries(d).forEach(([key, val]) => {
-                if (key.startsWith('_')) return; // Ignore frontend internal temporary properties
-                
-                if (val && typeof val === 'object') {
-                    // Stringify arrays/objects (like productos_compra) to be spreadsheet friendly
-                    if (Array.isArray(val) || (val.constructor && val.constructor.name === 'Object')) {
-                        row[key] = JSON.stringify(val);
-                    }
-                    // Skip nested objects that represent Supabase relations (e.g. Usuarios, Ubicaciones, Consumidores)
-                    return;
-                }
-                row[key] = val;
+                if (key.startsWith('_')) return;
+                if (key === 'productos_compra' || key === 'productos_novedad') return;
+                // Omitir IDs crudos y campos que formateamos manualmente
+                if (['cliente_id', 'cliente_final_id', 'cliente_nombre', 'cliente_final_nombre', 'canal_venta'].includes(key)) return; 
+                if (val && typeof val === 'object') return; // Skip relaciones Supabase
+                baseRow[key] = val;
             });
 
-            // Append helper calculated variables at the end
-            row['_Agente_MAC_Calculado'] = d._agenteNombre || 'Sin Asignar';
-            row['_Ciudad_Calculada'] = d._ciudad || 'No definida';
-            row['_Zona_Calculada'] = d._zona || 'No definida';
-            row['_Estado_Riesgo_Calculado'] = d._estadoRiesgo || 'Excelente';
-            row['_Dias_Abierta_Calculado'] = d._diasHabilesAbierta || 0;
+            // Asegurar que nombre y canal de venta sean legibles
+            baseRow['Cliente_Principal'] = d.cliente_nombre || 'No definido';
+            baseRow['Cliente_Final'] = d.cliente_final_nombre || 'No definido';
+            baseRow['Canal_Venta'] = d.canal_venta || 'No definido';
+
+            // Agregar campos calculados
+            baseRow['Agente_MAC'] = d._agenteNombre || 'Sin Asignar';
+            baseRow['Ciudad'] = d._ciudad || 'No definida';
+            baseRow['Zona'] = d._zona || 'No definida';
+            baseRow['Estado_Riesgo'] = d._estadoRiesgo || 'Excelente';
+            baseRow['Dias_Habiles'] = d._diasHabilesAbierta || 0;
             if (d._fechaCierre) {
-                row['_Fecha_Cierre_Calculada'] = new Date(d._fechaCierre).toLocaleDateString();
+                baseRow['Fecha_Cierre'] = new Date(d._fechaCierre).toLocaleDateString();
             }
 
-            return row;
+            const productosCompra = Array.isArray(d.productos_compra) ? d.productos_compra : [];
+            const productosNovedad = Array.isArray(d.productos_novedad) ? d.productos_novedad : [];
+
+            // Aplanar productos novedad incluyendo sus problemas
+            // Cada problema dentro de un producto genera una fila separada
+            const novedadRows: Record<string, any>[] = [];
+            productosNovedad.forEach(pn => {
+                const problemas = Array.isArray(pn.problemas) && pn.problemas.length > 0 
+                    ? pn.problemas 
+                    : [{ tipo_problema_id: '', responsable_problema_id: '' }];
+
+                problemas.forEach((prob: any) => {
+                    novedadRows.push({
+                        'Novedad_Cantidad': pn.cantidad || 1,
+                        'Novedad_SKU': pn.sku || pn.codigo || '',
+                        'Novedad_Referencia': pn.referencia || pn.sku || '',
+                        'Novedad_Descripcion': pn.descripcion || pn.nombre || '',
+                        'Novedad_Tipo_Problema': prob.tipo_problema_id ? (razonesMap.get(String(prob.tipo_problema_id)) || prob.tipo_problema_id) : '',
+                        'Novedad_Responsable_Problema': prob.responsable_problema_id ? (responsablesMap.get(String(prob.responsable_problema_id)) || prob.responsable_problema_id) : '',
+                    });
+                });
+            });
+
+            // Determinar el máximo de filas necesarias
+            const maxRows = Math.max(1, productosCompra.length, novedadRows.length);
+
+            for (let i = 0; i < maxRows; i++) {
+                const row = { ...baseRow };
+
+                // Producto Compra
+                if (i < productosCompra.length) {
+                    const pc = productosCompra[i];
+                    row['Compra_Cantidad'] = pc.cantidad || 1;
+                    row['Compra_SKU'] = pc.sku || pc.codigo || '';
+                    row['Compra_Referencia'] = pc.referencia || pc.sku || '';
+                    row['Compra_Descripcion'] = pc.descripcion || pc.nombre || '';
+                } else {
+                    row['Compra_Cantidad'] = '';
+                    row['Compra_SKU'] = '';
+                    row['Compra_Referencia'] = '';
+                    row['Compra_Descripcion'] = '';
+                }
+
+                // Producto Novedad (ya aplanado con problemas)
+                if (i < novedadRows.length) {
+                    Object.assign(row, novedadRows[i]);
+                } else {
+                    row['Novedad_Cantidad'] = '';
+                    row['Novedad_SKU'] = '';
+                    row['Novedad_Referencia'] = '';
+                    row['Novedad_Descripcion'] = '';
+                    row['Novedad_Tipo_Problema'] = '';
+                    row['Novedad_Responsable_Problema'] = '';
+                }
+
+                allRows.push(row);
+            }
         });
 
-        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const worksheet = XLSX.utils.json_to_sheet(allRows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Base de Datos MAC");
         XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0,10)}.xlsx`);
