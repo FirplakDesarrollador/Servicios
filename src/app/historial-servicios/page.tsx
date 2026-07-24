@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import ServiceHistoryCard from '@/components/historial/ServiceHistoryCard'
+import { parseLocalTimestamp } from '@/lib/dateUtils'
 
 interface User {
     id: number
@@ -55,9 +56,31 @@ export default function HistorialServiciosPage() {
     const [searchQuery, setSearchQuery] = useState('')
 
     useEffect(() => {
+        // Load saved filters on mount
+        const savedTech = sessionStorage.getItem('hs_tech')
+        if (savedTech) setSelectedTechnician(Number(savedTech))
+        const savedStatus = sessionStorage.getItem('hs_status')
+        if (savedStatus !== null) setServiceStatus(savedStatus === 'true')
+        const savedDate = sessionStorage.getItem('hs_date')
+        if (savedDate) setSelectedDate(savedDate)
+        const savedText = sessionStorage.getItem('hs_searchText')
+        if (savedText) setSearchText(savedText)
+        const savedQuery = sessionStorage.getItem('hs_searchQuery')
+        if (savedQuery) setSearchQuery(savedQuery)
+
         console.log('🔵 Component mounted, loading user and technicians...')
         loadUserAndTechnicians()
     }, [])
+
+    useEffect(() => {
+        if (!loading) {
+            if (selectedTechnician) sessionStorage.setItem('hs_tech', selectedTechnician.toString())
+            sessionStorage.setItem('hs_status', serviceStatus.toString())
+            sessionStorage.setItem('hs_date', selectedDate)
+            sessionStorage.setItem('hs_searchText', searchText)
+            sessionStorage.setItem('hs_searchQuery', searchQuery)
+        }
+    }, [selectedTechnician, serviceStatus, selectedDate, searchText, searchQuery, loading])
 
     useEffect(() => {
         if (selectedTechnician) {
@@ -136,10 +159,14 @@ export default function HistorialServiciosPage() {
                 .order('display_name', { ascending: true })
 
             // Filtrar según rol del usuario
-            if (user.rol === 'tecnico' || user.rol === 'tecnico_externo') {
-                query = query.eq('id', user.id)
-            } else if (user.rol === 'supervisor_externo') {
-                query = query.eq('rol', 'tecnico_externo')
+            const isCotizaciones = user.correo?.toLowerCase().trim() === 'cotizaciones@firplak.co' || user.correo?.toLowerCase().trim() === 'cotizaciones@firplak.com'
+            
+            if (!isCotizaciones) {
+                if (user.rol === 'tecnico' || user.rol === 'tecnico_externo') {
+                    query = query.eq('id', user.id)
+                } else if (user.rol === 'supervisor_externo') {
+                    query = query.eq('rol', 'tecnico_externo')
+                }
             }
 
             const { data, error } = await query
@@ -181,7 +208,7 @@ export default function HistorialServiciosPage() {
                 .eq('reagendado', false)
                 .neq('nombre', 'Preagendado')
                 .not('fecha_hora_inicio', 'is', null)
-                .order('created_at', { ascending: false })
+                .order('fecha_hora_inicio', { ascending: false })
                 .limit(100)
 
             if (error) throw error
@@ -196,7 +223,8 @@ export default function HistorialServiciosPage() {
         return services.filter(service => {
             // Filtro por fecha
             if (selectedDate) {
-                const serviceDate = format(new Date(service.fecha_hora_inicio), 'yyyy-MM-dd')
+                const parsed = parseLocalTimestamp(service.fecha_hora_inicio)
+                const serviceDate = parsed ? format(parsed, 'yyyy-MM-dd') : ''
                 if (serviceDate !== selectedDate) return false
             }
 
@@ -224,6 +252,9 @@ export default function HistorialServiciosPage() {
         setSelectedDate('')
         setSearchText('')
         setSearchQuery('')
+        sessionStorage.removeItem('hs_date')
+        sessionStorage.removeItem('hs_searchText')
+        sessionStorage.removeItem('hs_searchQuery')
     }
 
     if (loading) {

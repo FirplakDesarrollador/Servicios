@@ -34,9 +34,7 @@ export default function FormularioClientePage() {
         direccion: '',
         puntoReferencia: '',
         tipoServicio: 'Instalación',
-        grupo: '',
-        medida: '',
-        observaciones: '',
+        productos: [{ grupo: '', medida: '', observaciones: '' }],
         confirmaRecepcion: true, // Default to true as requested
         valorPagar: 0,
     });
@@ -46,7 +44,6 @@ export default function FormularioClientePage() {
     const [preciosZonas, setPreciosZonas] = useState<any[]>([]);
     const [grupos, setGrupos] = useState<string[]>([]);
     const [zonasMedidas, setZonasMedidas] = useState<any[]>([]); // All records from zonas_medidas
-    const [medidas, setMedidas] = useState<any[]>([]); // Filtered medidas based on selected grupo
 
 
     // File uploads
@@ -59,18 +56,28 @@ export default function FormularioClientePage() {
     // Consecutivo
     const [consecutivo, setConsecutivo] = useState<string>('');
 
+    // Pre-calculated file URLs
+    const [rutUrl, setRutUrl] = useState<string | null>(null);
+    const [facturaUrl, setFacturaUrl] = useState<string | null>(null);
+
+    // Random suffix for consecutivo (consistent during session)
+    const [randomSuffix] = useState(() => Math.floor(10000 + Math.random() * 90000).toString());
+
     useEffect(() => {
         loadInitialData();
-        generateConsecutivo();
     }, []);
 
-    const generateConsecutivo = () => {
-        const random = Math.floor(10000 + Math.random() * 90000);
-        setConsecutivo(`Fpagina${random}`);
-    };
+    useEffect(() => {
+        const typePrefix = formData.tipoServicio === 'Instalación' ? 'Inst' : 'Visi';
+        setConsecutivo(`Fpagina${typePrefix}${randomSuffix}`);
+    }, [formData.tipoServicio, randomSuffix]);
 
     const loadInitialData = async () => {
         setLoading(true);
+        const timeoutId = setTimeout(() => {
+            setLoading(false);
+        }, 7000); // 7 seconds timeout
+
         try {
             console.log('Fetching initial data...');
             // Load precios zonas
@@ -111,6 +118,7 @@ export default function FormularioClientePage() {
         } catch (err) {
             console.error('Error loading data:', err);
         } finally {
+            clearTimeout(timeoutId);
             setLoading(false);
         }
     };
@@ -148,90 +156,81 @@ export default function FormularioClientePage() {
 
 
 
-    // Filter medidas when grupo or cantidadPersonas changes
-    useEffect(() => {
-        if (formData.grupo && zonasMedidas.length > 0) {
-            let medidasFiltradas = zonasMedidas.filter((zm: any) => (zm.descripcion || zm.Descripcion) === formData.grupo);
+    // Helper to get medidas for a specific product
+    const getMedidasForProduct = (producto: any) => {
+        if (!producto.grupo || zonasMedidas.length === 0) return [];
+        let medidasFiltradas = zonasMedidas.filter((zm: any) => (zm.descripcion || zm.Descripcion) === producto.grupo);
 
-            // For Hidromasajes, also filter by cantidad_personas
-            if (formData.grupo === 'Hidromasajes' && formData.cantidadPersonas) {
-                medidasFiltradas = medidasFiltradas.filter((zm: any) => (zm.cantidad_personas || zm.cantidadPersonas) === formData.cantidadPersonas);
-            }
-
-            setMedidas(medidasFiltradas.map((zm: any) => ({
-                medida: zm.medida || zm.Medida,
-                precio: zm.precio || zm.Precio
-            })));
-            // Reset medida when grupo or cantidadPersonas changes
-            setFormData(prev => ({ ...prev, medida: '' }));
-        } else {
-            setMedidas([]);
+        // For Hidromasajes, also filter by cantidad_personas
+        if (producto.grupo === 'Hidromasajes' && producto.cantidadPersonas) {
+            medidasFiltradas = medidasFiltradas.filter((zm: any) => (zm.cantidad_personas || zm.cantidadPersonas) === producto.cantidadPersonas);
         }
-    }, [formData.grupo, formData.cantidadPersonas, zonasMedidas]);
+
+        return medidasFiltradas.map((zm: any) => ({
+            medida: zm.medida || zm.Medida,
+            precio: zm.precio || zm.Precio
+        }));
+    };
 
     // Calculate price when dependencies change
     useEffect(() => {
         // Guard: Don't calculate if data isn't loaded yet
         if (preciosZonas.length === 0 && zonasMedidas.length === 0) return;
 
-        console.log('Calculating price...', {
-            ciudad: formData.ciudad,
-            medida: formData.medida,
-            tipo: formData.tipoServicio,
-            preciosLoaded: preciosZonas.length,
-            medidasLoaded: zonasMedidas.length
-        });
+        if (formData.ciudad || formData.tipoServicio || formData.productos?.length) {
+            let precioTotal = 0;
 
-        if (formData.ciudad || formData.medida || formData.tipoServicio) {
-            let precio = 0;
-
-            // Get precio from ciudad using the Ciudad column from precioszonas
+            // Get city tariff
             const ciudadPrecio = preciosZonas.find((p: any) => (p.Ciudad || p.ciudad) === formData.ciudad);
             const tarifaRaw = ciudadPrecio ? (ciudadPrecio.Tarifa || ciudadPrecio.tarifa) : 0;
             let tarifaCiudad = tarifaRaw ? (parseFloat(tarifaRaw) || 0) : 0;
 
-            // Rule: Double surcharge for Tubs and Whirlpools
-            if (formData.grupo === 'Hidromasajes' || formData.grupo === 'Tinas') {
-                tarifaCiudad = tarifaCiudad * 2;
-            }
-
-            // Get medida price from zonas_medidas
-            let precioProducto = 0;
-            if (formData.grupo && formData.medida) {
-                const medidaData = zonasMedidas.find(
-                    (zm: any) => (zm.descripcion || zm.Descripcion) === formData.grupo && (zm.medida || zm.Medida) === formData.medida
-                );
-                // Check possible price keys
-                const precioVal = medidaData ? (medidaData.precio || medidaData.Precio) : 0;
-                if (precioVal) {
-                    precioProducto = precioVal;
-                }
-            }
-
-            // Apply logic based on service type
             if (formData.tipoServicio === 'Visita de Asesoría') {
-                // Rule: 60000 + City Surcharge
-                precio = 60000 + tarifaCiudad;
-            } else if (formData.tipoServicio === 'Instalación') {
-                // Rule: Product Price + City Surcharge
-                precio = precioProducto + tarifaCiudad;
-
-                // Rule: Add 175,000 if Hidromasaje has gas heater
-                if (formData.grupo === 'Hidromasajes' && formData.tieneCalentadorGas) {
-                    precio += 175000;
-                }
+                // Rule: 60000 + City Surcharge (Fixed for the whole visit)
+                precioTotal = 60000 + tarifaCiudad;
             } else {
-                // Default fallback
-                precio = tarifaCiudad + precioProducto;
+                // Instalación or other (Fallback to installation logic)
+                // We sum up the prices for all products
+                
+                let sumProductos = 0;
+                const productos = formData.productos || [];
+                
+                productos.forEach((prod) => {
+                    let precioProducto = 0;
+                    let tarifaProducto = tarifaCiudad; // Surcharge per product
+                    
+                    // Rule: Double surcharge for Tubs and Whirlpools (Only applies to Installation)
+                    if (prod.grupo === 'Hidromasajes' || prod.grupo === 'Tinas') {
+                        tarifaProducto = tarifaCiudad * 2;
+                    }
+
+                    if (prod.grupo && prod.medida) {
+                        const medidaData = zonasMedidas.find(
+                            (zm: any) => (zm.descripcion || zm.Descripcion) === prod.grupo && (zm.medida || zm.Medida) === prod.medida
+                        );
+                        const precioVal = medidaData ? (medidaData.precio || medidaData.Precio) : 0;
+                        if (precioVal) {
+                            precioProducto = precioVal;
+                        }
+                    }
+
+                    // Rule: Add 175,000 if Hidromasaje has gas heater
+                    if (prod.grupo === 'Hidromasajes' && prod.tieneCalentadorGas) {
+                        precioProducto += 175000;
+                    }
+
+                    sumProductos += (precioProducto + tarifaProducto);
+                });
+
+                precioTotal = sumProductos;
             }
 
             setFormData(prev => {
-                // Avoid infinite loop if price is same
-                if (prev.valorPagar === precio) return prev;
-                return { ...prev, valorPagar: precio };
+                if (prev.valorPagar === precioTotal) return prev;
+                return { ...prev, valorPagar: precioTotal };
             });
         }
-    }, [formData.ciudad, formData.medida, formData.tipoServicio, formData.grupo, preciosZonas, zonasMedidas]);
+    }, [formData.ciudad, formData.tipoServicio, formData.productos, preciosZonas, zonasMedidas]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -246,6 +245,15 @@ export default function FormularioClientePage() {
 
             if (!formData.ciudad || !formData.direccion) {
                 throw new Error('Por favor complete la información del servicio');
+            }
+
+            if (!formData.productos || formData.productos.length === 0) {
+                throw new Error('Por favor agregue al menos un producto');
+            }
+
+            const incompletedProduct = formData.productos.find(p => !p.grupo || !p.medida);
+            if (incompletedProduct) {
+                throw new Error('Por favor complete el grupo y la medida para todos los productos agregados');
             }
 
             /*
@@ -265,43 +273,19 @@ export default function FormularioClientePage() {
             }
 
             // Upload files
-            let rutUrl = null;
-            let facturaUrl = null;
+            let uploadedRutUrl = null;
+            let uploadedFacturaUrl = null;
 
             if (rutFile) {
-                rutUrl = await handleFileUpload(rutFile, 'rut');
+                uploadedRutUrl = await handleFileUpload(rutFile, 'rut');
+                setRutUrl(uploadedRutUrl);
             }
 
             if (facturaFile) {
-                facturaUrl = await handleFileUpload(facturaFile, 'factura');
-                if (!facturaUrl) throw new Error('Error al subir la factura');
+                uploadedFacturaUrl = await handleFileUpload(facturaFile, 'factura');
+                if (!uploadedFacturaUrl) throw new Error('Error al subir la factura');
+                setFacturaUrl(uploadedFacturaUrl);
             }
-
-            // Save to database
-            const { error: dbError } = await supabase
-                .from('solicitudes_clientes')
-                .insert({
-                    consecutivo,
-                    tipo_persona: formData.tipoPersona,
-                    numeroid: parseInt(formData.numeroId), // Table expects bigint
-                    nombre_razon_social: formData.razonSocial,
-                    persona_contacto: formData.personaContacto,
-                    correo_electronico: formData.correo_electronico,
-                    telefono: parseInt(formData.telefono), // Table expects bigint
-                    ciudad: formData.ciudad,
-                    direccion: formData.direccion,
-                    punto_referencia: formData.puntoReferencia,
-                    tipodeservicio: formData.tipoServicio,
-                    grupo_producto: formData.grupo,
-                    medidas: formData.medida,
-                    observaciones: formData.observaciones,
-                    rut_url: rutUrl,
-                    factura_url: facturaUrl,
-                    recibio_producto: formData.confirmaRecepcion,
-                    valor_pagar: formData.valorPagar,
-                });
-
-            if (dbError) throw dbError;
 
             // Open Payment Modal instead of direct success
             setSubmitting(false);
@@ -313,24 +297,88 @@ export default function FormularioClientePage() {
         }
     };
 
-    const handlePaymentSuccess = async (url: string) => {
+    const handlePaymentSuccess = async (soportePagoUrl: string) => {
         try {
-            // Update the record with the payment proof URL
-            const { error } = await supabase
+            // Save everything to database now that we have the payment proof
+            const { error: dbError } = await supabase
                 .from('solicitudes_clientes')
-                .update({ soporte_pago_url: url })
-                .eq('consecutivo', consecutivo);
+                .insert({
+                    consecutivo,
+                    tipo_persona: formData.tipoPersona,
+                    numeroid: parseInt(formData.numeroId),
+                    nombre_razon_social: formData.razonSocial,
+                    persona_contacto: formData.personaContacto,
+                    correo_electronico: formData.correo_electronico,
+                    telefono: parseInt(formData.telefono),
+                    ciudad: formData.ciudad,
+                    direccion: formData.direccion,
+                    punto_referencia: formData.puntoReferencia,
+                    tipodeservicio: formData.tipoServicio,
+                    productos: formData.productos,
+                    rut_url: rutUrl,
+                    factura_url: facturaUrl,
+                    soporte_pago_url: soportePagoUrl,
+                    recibio_producto: formData.confirmaRecepcion,
+                    valor_pagar: formData.valorPagar,
+                });
 
-            if (error) throw error;
+            if (dbError) throw dbError;
 
             setShowPaymentModal(false);
             setSuccess(true);
         } catch (err: any) {
-            console.error('Error updating payment proof:', err);
-            setError('Error al guardar el soporte de pago, pero su solicitud fue creada.');
+            console.error('Error saving solicitud:', err);
+            setError('Error al guardar la solicitud. Por favor contacte a soporte.');
             setShowPaymentModal(false);
-            setSuccess(true); // Still show success as the main request was created
         }
+    };
+
+    const handleAddProduct = () => {
+        setFormData(prev => ({
+            ...prev,
+            productos: [...(prev.productos || []), { grupo: '', medida: '', observaciones: '' }]
+        }));
+    };
+
+    const handleRemoveProduct = (index: number) => {
+        setFormData(prev => {
+            const newProductos = [...(prev.productos || [])];
+            if (newProductos.length > 1) {
+                newProductos.splice(index, 1);
+            }
+            return { ...prev, productos: newProductos };
+        });
+    };
+
+    const handleUpdateProduct = (index: number, field: string, value: any) => {
+        setFormData(prev => {
+            const newProductos = [...(prev.productos || [])];
+            
+            // If changing "grupo", reset "medida", "cantidadPersonas" and "tieneCalentadorGas"
+            if (field === 'grupo') {
+                newProductos[index] = {
+                    ...newProductos[index],
+                    grupo: value,
+                    medida: '',
+                    cantidadPersonas: undefined,
+                    tieneCalentadorGas: undefined
+                };
+            } else if (field === 'cantidadPersonas') {
+                newProductos[index] = {
+                    ...newProductos[index],
+                    cantidadPersonas: value,
+                    medida: '', // reset medida
+                    tieneCalentadorGas: value === 2 ? undefined : newProductos[index].tieneCalentadorGas
+                };
+            } else {
+                newProductos[index] = {
+                    ...newProductos[index],
+                    [field]: value
+                };
+            }
+            
+            return { ...prev, productos: newProductos };
+        });
     };
 
     if (success) {
@@ -400,7 +448,7 @@ export default function FormularioClientePage() {
                         className="bg-white p-6 rounded-2xl shadow-lg border-2 border-slate-200"
                     >
                         <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-100">
-                            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
+                            <div className="w-12 h-12 bg-brand rounded-xl flex items-center justify-center shadow-md">
                                 <User className="w-6 h-6 text-white" />
                             </div>
                             <h2 className="text-xl font-bold text-slate-900">Información Personal</h2>
@@ -514,7 +562,7 @@ export default function FormularioClientePage() {
 
                         {/* RUT Upload (solo para Jurídica) */}
                         {formData.tipoPersona === 'Persona Jurídica' && (
-                            <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-xl">
+                            <div className="p-4 bg-brand/5 border-2 border-brand/20 rounded-xl">
                                 <div className="flex items-center gap-2 mb-2">
                                     <FileText className="w-5 h-5 text-brand" />
                                     <label className="text-sm font-bold text-slate-800">
@@ -525,9 +573,9 @@ export default function FormularioClientePage() {
 
                                 <label className="block">
                                     <div className="relative cursor-pointer">
-                                        <div className="flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-blue-400 rounded-xl hover:bg-blue-100 hover:border-blue-500 transition-all shadow-sm hover:shadow-md">
-                                            <FileText className="w-5 h-5 text-blue-600" />
-                                            <span className="font-bold text-blue-700 text-sm">
+                                        <div className="flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-brand/30 rounded-xl hover:bg-brand/10 hover:border-brand/50 transition-all shadow-sm hover:shadow-md">
+                                            <FileText className="w-5 h-5 text-brand" />
+                                            <span className="font-bold text-brand text-sm">
                                                 {rutFile ? 'Cambiar archivo' : 'Haz clic aquí para seleccionar archivo'}
                                             </span>
                                         </div>
@@ -651,128 +699,154 @@ export default function FormularioClientePage() {
                             <h2 className="text-2xl font-bold text-slate-900">Información del Producto</h2>
                         </div>
 
-                        {/* Grupo */}
-                        <div className="mb-6">
-                            <label className="block text-base font-bold text-slate-800 mb-3">
-                                Grupo de Producto
-                            </label>
-                            <select
-                                value={formData.grupo}
-                                onChange={(e) => setFormData(prev => ({ ...prev, grupo: e.target.value }))}
-                                className="w-full px-5 py-4 text-base text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all"
-                            >
-                                <option value="">Seleccione un grupo</option>
-                                {grupos.map((grupo) => (
-                                    <option key={grupo} value={grupo}>
-                                        {grupo}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        
+                        {formData.productos?.map((producto, index) => {
+                            const productMedidas = getMedidasForProduct(producto);
+                            return (
+                                <div key={index} className="mb-8 p-6 bg-slate-50 border-2 border-slate-200 rounded-2xl relative">
+                                    {/* Header for Product Item */}
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold text-lg text-brand">Producto {index + 1}</h3>
+                                        {formData.productos && formData.productos.length > 1 && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemoveProduct(index)}
+                                                className="text-red-500 hover:text-red-700 text-sm font-bold bg-red-50 px-3 py-1 rounded-lg"
+                                            >
+                                                Quitar
+                                            </button>
+                                        )}
+                                    </div>
 
-                        {/* Hidromasajes - Cantidad de Personas (ANTES de medidas) */}
-                        {formData.grupo === 'Hidromasajes' && (
-                            <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
-                                <label className="block text-base font-bold text-slate-800 mb-3">
-                                    ¿Cuántas personas es el hidromasaje? *
-                                </label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {[2, 4].map((cantidad) => (
-                                        <button
-                                            key={cantidad}
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({
-                                                ...prev,
-                                                cantidadPersonas: cantidad,
-                                                medida: '', // Reset medida when changing cantidad
-                                                // Reset calentador if changing from 4 to 2
-                                                tieneCalentadorGas: cantidad === 2 ? undefined : prev.tieneCalentadorGas
-                                            }))}
-                                            className={`py-3 px-4 rounded-xl font-bold text-sm transition-all ${formData.cantidadPersonas === cantidad
-                                                ? 'bg-brand text-white shadow-lg scale-105'
-                                                : 'bg-white text-slate-700 hover:bg-slate-100 hover:shadow-md border-2 border-slate-300'
-                                                }`}
+                                    {/* Grupo */}
+                                    <div className="mb-6">
+                                        <label className="block text-base font-bold text-slate-800 mb-3">
+                                            Grupo de Producto
+                                        </label>
+                                        <select
+                                            value={producto.grupo}
+                                            onChange={(e) => handleUpdateProduct(index, 'grupo', e.target.value)}
+                                            className="w-full px-5 py-4 text-base text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all"
                                         >
-                                            {cantidad} Personas
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                            <option value="">Seleccione un grupo</option>
+                                            {grupos.map((grupo) => (
+                                                <option key={grupo} value={grupo}>
+                                                    {grupo}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                        {/* Hidromasajes - Calentador a Gas (ANTES de medidas, solo para 4 personas) */}
-                        {formData.grupo === 'Hidromasajes' && formData.cantidadPersonas === 4 && (
-                            <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-xl">
-                                <label className="block text-base font-bold text-slate-800 mb-3">
-                                    ¿Tiene calentador a gas? *
-                                </label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {[
-                                        { value: true, label: 'Sí' },
-                                        { value: false, label: 'No' }
-                                    ].map((option) => (
-                                        <button
-                                            key={option.label}
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, tieneCalentadorGas: option.value, medida: '' }))}
-                                            className={`py-3 px-4 rounded-xl font-bold text-sm transition-all ${formData.tieneCalentadorGas === option.value
-                                                ? 'bg-brand text-white shadow-lg scale-105'
-                                                : 'bg-white text-slate-700 hover:bg-slate-100 hover:shadow-md border-2 border-slate-300'
-                                                }`}
+                                    {/* Hidromasajes - Cantidad de Personas */}
+                                    {producto.grupo === 'Hidromasajes' && (
+                                        <div className="mb-6 p-4 bg-brand/5 border-2 border-brand/20 rounded-xl">
+                                            <label className="block text-base font-bold text-slate-800 mb-3">
+                                                ¿Cuántas personas es el hidromasaje? *
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[2, 4].map((cantidad) => (
+                                                    <button
+                                                        key={cantidad}
+                                                        type="button"
+                                                        onClick={() => handleUpdateProduct(index, 'cantidadPersonas', cantidad)}
+                                                        className={`py-3 px-4 rounded-xl font-bold text-sm transition-all ${producto.cantidadPersonas === cantidad
+                                                            ? 'bg-brand text-white shadow-lg scale-105'
+                                                            : 'bg-white text-slate-700 hover:bg-slate-100 hover:shadow-md border-2 border-slate-300'
+                                                            }`}
+                                                    >
+                                                        {cantidad} Personas
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Hidromasajes - Calentador a Gas */}
+                                    {producto.grupo === 'Hidromasajes' && producto.cantidadPersonas === 4 && (
+                                        <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-xl">
+                                            <label className="block text-base font-bold text-slate-800 mb-3">
+                                                ¿Tiene calentador a gas? *
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[
+                                                    { value: true, label: 'Sí' },
+                                                    { value: false, label: 'No' }
+                                                ].map((option) => (
+                                                    <button
+                                                        key={option.label}
+                                                        type="button"
+                                                        onClick={() => handleUpdateProduct(index, 'tieneCalentadorGas', option.value)}
+                                                        className={`py-3 px-4 rounded-xl font-bold text-sm transition-all ${producto.tieneCalentadorGas === option.value
+                                                            ? 'bg-brand text-white shadow-lg scale-105'
+                                                            : 'bg-white text-slate-700 hover:bg-slate-100 hover:shadow-md border-2 border-slate-300'
+                                                            }`}
+                                                    >
+                                                        {option.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Medidas */}
+                                    <div className="mb-6">
+                                        <label className="block text-base font-bold text-slate-800 mb-3">
+                                            Medidas del Producto
+                                        </label>
+                                        <select
+                                            value={producto.medida}
+                                            onChange={(e) => handleUpdateProduct(index, 'medida', e.target.value)}
+                                            className="w-full px-5 py-4 text-base text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all"
+                                            disabled={
+                                                !producto.grupo ||
+                                                productMedidas.length === 0 ||
+                                                (producto.grupo === 'Hidromasajes' && !producto.cantidadPersonas) ||
+                                                (producto.grupo === 'Hidromasajes' && producto.cantidadPersonas === 4 && producto.tieneCalentadorGas === undefined)
+                                            }
                                         >
-                                            {option.label}
-                                        </button>
-                                    ))}
+                                            <option value="">Seleccione una medida</option>
+                                            {productMedidas.map((m: any, idx: number) => (
+                                                <option key={idx} value={m.medida}>
+                                                    {m.medida}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {!producto.grupo && (
+                                            <p className="text-xs text-slate-600 mt-2">Primero seleccione un grupo de producto</p>
+                                        )}
+                                        {producto.grupo === 'Hidromasajes' && !producto.cantidadPersonas && (
+                                            <p className="text-xs text-slate-600 mt-2">Primero seleccione la cantidad de personas</p>
+                                        )}
+                                        {producto.grupo === 'Hidromasajes' && producto.cantidadPersonas === 4 && producto.tieneCalentadorGas === undefined && (
+                                            <p className="text-xs text-slate-600 mt-2">Primero indique si tiene calentador a gas</p>
+                                        )}
+                                    </div>
+
+                                    {/* Observaciones */}
+                                    <div className="mb-2">
+                                        <label className="block text-base font-bold text-slate-800 mb-3">
+                                            Observaciones
+                                        </label>
+                                        <textarea
+                                            value={producto.observaciones}
+                                            onChange={(e) => handleUpdateProduct(index, 'observaciones', e.target.value)}
+                                            placeholder="Información adicional..."
+                                            rows={3}
+                                            className="w-full px-5 py-4 text-base text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all resize-none"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })}
 
-                        {/* Medidas - Moved after gas heater for 4-person Hidromasajes */}
-                        <div className="mb-6">
-                            <label className="block text-base font-bold text-slate-800 mb-3">
-                                Medidas del Producto
-                            </label>
-                            <select
-                                value={formData.medida}
-                                onChange={(e) => setFormData(prev => ({ ...prev, medida: e.target.value }))}
-                                className="w-full px-5 py-4 text-base text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all"
-                                disabled={
-                                    !formData.grupo ||
-                                    medidas.length === 0 ||
-                                    (formData.grupo === 'Hidromasajes' && !formData.cantidadPersonas) ||
-                                    (formData.grupo === 'Hidromasajes' && formData.cantidadPersonas === 4 && formData.tieneCalentadorGas === undefined)
-                                }
+                        <div className="mb-8 flex justify-center">
+                            <button 
+                                type="button"
+                                onClick={handleAddProduct}
+                                className="px-6 py-3 bg-brand/10 text-brand font-bold rounded-xl border-2 border-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
                             >
-                                <option value="">Seleccione una medida</option>
-                                {medidas.map((m, index) => (
-                                    <option key={index} value={m.medida}>
-                                        {m.medida}
-                                    </option>
-                                ))}
-                            </select>
-                            {!formData.grupo && (
-                                <p className="text-xs text-slate-600 mt-2">Primero seleccione un grupo de producto</p>
-                            )}
-                            {formData.grupo === 'Hidromasajes' && !formData.cantidadPersonas && (
-                                <p className="text-xs text-slate-600 mt-2">Primero seleccione la cantidad de personas</p>
-                            )}
-                            {formData.grupo === 'Hidromasajes' && formData.cantidadPersonas === 4 && formData.tieneCalentadorGas === undefined && (
-                                <p className="text-xs text-slate-600 mt-2">Primero indique si tiene calentador a gas</p>
-                            )}
-                        </div>
-
-                        {/* Observaciones */}
-                        <div className="mb-6">
-                            <label className="block text-base font-bold text-slate-800 mb-3">
-                                Observaciones
-                            </label>
-                            <textarea
-                                value={formData.observaciones}
-                                onChange={(e) => setFormData(prev => ({ ...prev, observaciones: e.target.value }))}
-                                placeholder="Información adicional..."
-                                rows={4}
-                                className="w-full px-5 py-4 text-base text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all resize-none"
-                            />
+                                + Agregar otro producto
+                            </button>
                         </div>
 
                         {/* Factura Upload */}
@@ -861,7 +935,7 @@ export default function FormularioClientePage() {
                         ) : (
                             <>
                                 <CheckCircle2 className="w-6 h-6" />
-                                <span className="text-lg">Enviar Solicitud</span>
+                                <span className="text-lg">Continuar con proceso de pago</span>
                             </>
                         )}
                     </motion.button>
