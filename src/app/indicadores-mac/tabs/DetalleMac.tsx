@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { RegistroMAC, FilterState } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, DownloadIcon, SearchIcon } from 'lucide-react';
-import { addBusinessDays } from '../utils/businessDays';
+import { addBusinessDays, getBusinessDaysDifference } from '../utils/businessDays';
 
 interface Props {
     data: RegistroMAC[];
@@ -20,13 +20,48 @@ const COLORS = {
     brandLight: '#749094'
 };
 
+// Parsear fecha segura: para strings tipo "2026-07-15" (solo fecha) se crea en hora local
+// para evitar desfase por zona horaria UTC
+function parseDateSafe(dateStr: string | null | undefined): Date | null {
+    if (!dateStr) return null;
+    // Si es solo fecha (YYYY-MM-DD) sin hora, parsear manualmente en hora local
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+}
+
+// Calcular días hábiles y estado de riesgo para un registro
+function calcularRiesgo(d: RegistroMAC): { diasHabiles: number; estadoRiesgo: 'Excelente' | 'Regular' | 'Riesgo de demanda' | 'Demandante' } {
+    const createdAt = new Date(d.created_at);
+    const fechaVerif = parseDateSafe((d as any).fecha_verificacion);
+    const fechaReferencia = fechaVerif || new Date();
+    const diasHabiles = getBusinessDaysDifference(createdAt, fechaReferencia);
+    
+    let estadoRiesgo: 'Excelente' | 'Regular' | 'Riesgo de demanda' | 'Demandante' = 'Excelente';
+    if (diasHabiles > 20) estadoRiesgo = 'Demandante';
+    else if (diasHabiles >= 16) estadoRiesgo = 'Riesgo de demanda';
+    else if (diasHabiles >= 11) estadoRiesgo = 'Regular';
+    
+    return { diasHabiles, estadoRiesgo };
+}
+
 export default function DetalleMac({ data, prevData, filters }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Datos enriquecidos con cálculo dinámico de riesgo
+    const dataConRiesgo = useMemo(() => {
+        return data.map(d => {
+            const { diasHabiles, estadoRiesgo } = calcularRiesgo(d);
+            return { ...d, _diasHabilesAbierta: diasHabiles, _estadoRiesgo: estadoRiesgo, _tiempoCierre: d.estado === 'Cerrado' ? diasHabiles : null };
+        });
+    }, [data]);
+
     // KPIs Base
-    const total = data.length;
-    const abiertas = data.filter(d => d.estado === 'Abierto');
-    const cerradas = data.filter(d => d.estado === 'Cerrado');
+    const total = dataConRiesgo.length;
+    const abiertas = dataConRiesgo.filter(d => d.estado === 'Abierto');
+    const cerradas = dataConRiesgo.filter(d => d.estado === 'Cerrado');
     const porcCierre = total > 0 ? (cerradas.length / total) * 100 : 0;
     const valorInvertidoTotal = cerradas.reduce((acc, curr) => acc + (curr._valorInvertido || 0), 0);
     const costoPromedio = cerradas.length > 0 ? valorInvertidoTotal / cerradas.length : 0;
@@ -69,56 +104,59 @@ export default function DetalleMac({ data, prevData, filters }: Props) {
         ];
     }, [abiertas]);
 
-    // Chart: Cumplimiento
-    const cumplimientoData = [
-        { name: 'Dentro del Objetivo', value: cumplieronObjetivo, color: COLORS.excelente },
-        { name: 'Fuera del Objetivo', value: cerradas.length - cumplieronObjetivo, color: COLORS.demandante }
-    ];
-
     // Presupuesto de Cierre
+    // Presupuesto = mes donde se espera cerrar (created_at + 15 días hábiles)
+    // Cerradas = mes donde realmente se cerró (fecha_verificacion, o fecha actual si vacío)
     const presupuestoData = useMemo(() => {
-        const meses: Record<string, { pres: number, cerr: number, pend: number }> = {};
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         
-        data.forEach(d => {
-            const created = new Date(d.created_at);
-            const objDate = addBusinessDays(created, 15);
-            const mesObj = `${objDate.getFullYear()}-${String(objDate.getMonth() + 1).padStart(2, '0')}`;
-            
-            if (!meses[mesObj]) meses[mesObj] = { pres: 0, cerr: 0, pend: 0 };
-            
-            meses[mesObj].pres += 1;
+        const meses: Record<string, { pres: number, cerr: number }> = {};
 
+        // Generar todos los meses del rango del filtro para que el eje siempre esté completo
+        const fechaIni = filters.fechaInicial ? new Date(filters.fechaInicial) : null;
+        const fechaFin = filters.fechaFinal ? new Date(filters.fechaFinal) : null;
+        if (fechaIni && fechaFin) {
+            // Incluir también el mes siguiente al fin por si el presupuesto cae ahí
+            const endWithBuffer = new Date(fechaFin.getFullYear(), fechaFin.getMonth() + 1, 1);
+            const current = new Date(fechaIni.getFullYear(), fechaIni.getMonth(), 1);
+            while (current <= endWithBuffer) {
+                const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                meses[key] = { pres: 0, cerr: 0 };
+                current.setMonth(current.getMonth() + 1);
+            }
+        }
+
+        dataConRiesgo.forEach(d => {
+            const created = new Date(d.created_at);
+
+            // Presupuesto: mes en el que se espera cerrar (created_at + 15 días hábiles)
+            const fechaObjetivo = addBusinessDays(created, 15);
+            const mesPresupuesto = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
+            if (!meses[mesPresupuesto]) meses[mesPresupuesto] = { pres: 0, cerr: 0 };
+            meses[mesPresupuesto].pres += 1;
+
+            // Cerradas: mes real de cierre basado en fecha_verificacion
+            // Si fecha_verificacion está vacía → usar fecha actual
+            const fechaVerif = parseDateSafe((d as any).fecha_verificacion) || new Date();
+            
             if (d.estado === 'Cerrado') {
-                const mesCierre = d._fechaCierre ? `${d._fechaCierre.getFullYear()}-${String(d._fechaCierre.getMonth() + 1).padStart(2, '0')}` : mesObj;
-                if (mesCierre === mesObj) {
-                    meses[mesObj].cerr += 1;
-                } else if (mesCierre < mesObj) {
-                    // Cerrado anticipadamente
-                    const mesReal = `${d._fechaCierre!.getFullYear()}-${String(d._fechaCierre!.getMonth() + 1).padStart(2, '0')}`;
-                    if (!meses[mesReal]) meses[mesReal] = { pres: 0, cerr: 0, pend: 0 };
-                    meses[mesReal].cerr += 1;
-                    meses[mesObj].pres -= 1; // Ajuste
-                }
-            } else {
-                meses[mesObj].pend += 1;
+                const mesCierre = `${fechaVerif.getFullYear()}-${String(fechaVerif.getMonth() + 1).padStart(2, '0')}`;
+                if (!meses[mesCierre]) meses[mesCierre] = { pres: 0, cerr: 0 };
+                meses[mesCierre].cerr += 1;
             }
         });
 
-        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-        return Object.entries(meses).sort().map(([mesKey, vals]) => {
+        return Object.entries(meses).sort().filter(([, vals]) => vals.pres > 0 || vals.cerr > 0).map(([mesKey, vals]) => {
             const [year, monthStr] = mesKey.split('-');
             const monthIdx = parseInt(monthStr, 10) - 1;
             const mesLabel = monthNames[monthIdx] || mesKey;
             return {
                 mes: mesLabel, 
-                'Presupuesto': Math.max(0, vals.pres), 
-                'Cerradas': vals.cerr, 
-                'Pendientes': vals.pend,
-                Cumplimiento: vals.pres > 0 ? ((vals.cerr / vals.pres) * 100).toFixed(1) : 0
+                'Presupuesto': vals.pres, 
+                'Cerradas': vals.cerr,
             };
         });
-    }, [data]);
+    }, [dataConRiesgo, filters.fechaInicial, filters.fechaFinal]);
 
     // Export Excel
     const exportToExcel = () => {
@@ -144,13 +182,13 @@ export default function DetalleMac({ data, prevData, filters }: Props) {
     };
 
     const exportData = useMemo(() => {
-        if (!searchTerm) return data;
-        return data.filter(d => 
+        if (!searchTerm) return dataConRiesgo;
+        return dataConRiesgo.filter(d => 
             d.consecutivo.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (d.cliente_final_nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (d.cliente_nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [data, searchTerm]);
+    }, [dataConRiesgo, searchTerm]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
         <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -210,22 +248,7 @@ export default function DetalleMac({ data, prevData, filters }: Props) {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Cumplimiento (≤ 15 días)</h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={cumplimientoData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value">
-                                    {cumplimientoData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                                </Pie>
-                                <RechartsTooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 xl:col-span-2">
                     <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Presupuesto de Cierre</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
