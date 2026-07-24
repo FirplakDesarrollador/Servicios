@@ -456,7 +456,17 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             const aplicaTecnico = determineAplicaTecnico(tipoServicio);
 
             let finalCoordinadorId = null;
-            let zoneId = clienteFinalSeleccionado?.zona_id || clienteSeleccionado?.zona_id;
+            let zoneId = null;
+
+            // 1. Prioridad: Cliente Final
+            if (llevaClienteFinal && clienteFinalSeleccionado) {
+                if (clienteFinalSeleccionado.zona_id) {
+                    zoneId = clienteFinalSeleccionado.zona_id;
+                } else if (clienteFinalSeleccionado.ciudad_id) {
+                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).maybeSingle();
+                    if (cityData?.zona_id) zoneId = cityData.zona_id;
+                }
+            }
 
             // Auto-create Consumidor if it doesn't have an ID
             let finalConsumidorId = llevaClienteFinal ? (clienteFinalSeleccionado?.id || null) : null;
@@ -468,7 +478,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         .select('id, zona_id')
                         .ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`)
                         .limit(1)
-                        .single();
+                        .maybeSingle();
                     if (cityData) {
                         ciudadId = cityData.id;
                         if (!zoneId && cityData.zona_id) {
@@ -496,16 +506,14 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 }
             }
 
-            // Determine Coordinator based on Zone (as requested)
-
-            if (!zoneId && clienteFinalSeleccionado?.ciudad_id) {
-                const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).single();
-                if (cityData?.zona_id) zoneId = cityData.zona_id;
-            }
-
-            if (!zoneId && clienteSeleccionado?.ciudad_id) {
-                const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).single();
-                if (cityData?.zona_id) zoneId = cityData.zona_id;
+            // 2. Prioridad: Distribuidor (Solo si NO se encontró zona con el Cliente Final o si no lleva Cliente Final)
+            if (!zoneId && clienteSeleccionado) {
+                if (clienteSeleccionado.zona_id) {
+                    zoneId = clienteSeleccionado.zona_id;
+                } else if (clienteSeleccionado.ciudad_id) {
+                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).maybeSingle();
+                    if (cityData?.zona_id) zoneId = cityData.zona_id;
+                }
             }
 
             // Fallback for Ecommerce if no client zone
@@ -518,7 +526,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                     .from('Zonas')
                     .select('coordinador_id')
                     .eq('id', zoneId)
-                    .single();
+                    .maybeSingle();
                 
                 if (zonaData) {
                     finalCoordinadorId = zonaData.coordinador_id;
@@ -537,14 +545,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
             }
 
             // --- FIX POWER AUTOMATE ERROR ---
-            // Si el coordinador sigue siendo null, asignamos un coordinador por defecto (ej: 26)
-            // para que Power Automate no reviente esperando un string.
-            if (!finalCoordinadorId) {
-                finalCoordinadorId = 26; 
-            }
-
-            // --- FIX POWER AUTOMATE ERROR ---
-            // Si después de todo el coordinador sigue siendo null, asignamos un coordinador por defecto 
+            // Si el coordinador sigue siendo null, asignamos un coordinador por defecto 
             // (ej: 26) para evitar que el flujo de Power Automate falle esperando un string.
             if (!finalCoordinadorId) {
                 finalCoordinadorId = 26; // Coordinador MAC por defecto
