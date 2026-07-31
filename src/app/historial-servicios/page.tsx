@@ -51,7 +51,8 @@ export default function HistorialServiciosPage() {
     // Filtros
     const [selectedTechnician, setSelectedTechnician] = useState<number | null>(null)
     const [serviceStatus, setServiceStatus] = useState<boolean>(true) // true = pendientes, false = terminados
-    const [selectedDate, setSelectedDate] = useState<string>('')
+    const [startDate, setStartDate] = useState<string>('')
+    const [endDate, setEndDate] = useState<string>('')
     const [searchText, setSearchText] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
 
@@ -61,8 +62,10 @@ export default function HistorialServiciosPage() {
         if (savedTech) setSelectedTechnician(Number(savedTech))
         const savedStatus = sessionStorage.getItem('hs_status')
         if (savedStatus !== null) setServiceStatus(savedStatus === 'true')
-        const savedDate = sessionStorage.getItem('hs_date')
-        if (savedDate) setSelectedDate(savedDate)
+        const savedStartDate = sessionStorage.getItem('hs_startDate')
+        if (savedStartDate) setStartDate(savedStartDate)
+        const savedEndDate = sessionStorage.getItem('hs_endDate')
+        if (savedEndDate) setEndDate(savedEndDate)
         const savedText = sessionStorage.getItem('hs_searchText')
         if (savedText) setSearchText(savedText)
         const savedQuery = sessionStorage.getItem('hs_searchQuery')
@@ -76,11 +79,12 @@ export default function HistorialServiciosPage() {
         if (!loading) {
             if (selectedTechnician) sessionStorage.setItem('hs_tech', selectedTechnician.toString())
             sessionStorage.setItem('hs_status', serviceStatus.toString())
-            sessionStorage.setItem('hs_date', selectedDate)
+            sessionStorage.setItem('hs_startDate', startDate)
+            sessionStorage.setItem('hs_endDate', endDate)
             sessionStorage.setItem('hs_searchText', searchText)
             sessionStorage.setItem('hs_searchQuery', searchQuery)
         }
-    }, [selectedTechnician, serviceStatus, selectedDate, searchText, searchQuery, loading])
+    }, [selectedTechnician, serviceStatus, startDate, endDate, searchText, searchQuery, loading])
 
     useEffect(() => {
         if (selectedTechnician) {
@@ -216,12 +220,14 @@ export default function HistorialServiciosPage() {
 
     // Filtrado de servicios
     const filteredServices = useMemo(() => {
-        return services.filter(service => {
-            // Filtro por fecha
-            if (selectedDate) {
+        let filtered = services.filter(service => {
+            // Filtro por fecha (rango)
+            if (startDate || endDate) {
                 const parsed = parseLocalTimestamp(service.fecha_hora_inicio)
-                const serviceDate = parsed ? format(parsed, 'yyyy-MM-dd') : ''
-                if (serviceDate !== selectedDate) return false
+                if (!parsed) return false
+                const serviceDateStr = format(parsed, 'yyyy-MM-dd')
+                if (startDate && serviceDateStr < startDate) return false
+                if (endDate && serviceDateStr > endDate) return false
             }
 
             // Filtro por búsqueda
@@ -238,17 +244,28 @@ export default function HistorialServiciosPage() {
 
             return true
         })
-    }, [services, selectedDate, searchQuery])
+
+        // Ordenar de más nuevo a más viejo por fecha_hora_inicio
+        filtered.sort((a, b) => {
+            const dateA = a.fecha_hora_inicio ? new Date(a.fecha_hora_inicio).getTime() : 0
+            const dateB = b.fecha_hora_inicio ? new Date(b.fecha_hora_inicio).getTime() : 0
+            return dateB - dateA
+        })
+
+        return filtered
+    }, [services, startDate, endDate, searchQuery])
 
     const handleSearch = () => {
         setSearchQuery(searchText)
     }
 
     const handleClearFilters = () => {
-        setSelectedDate('')
+        setStartDate('')
+        setEndDate('')
         setSearchText('')
         setSearchQuery('')
-        sessionStorage.removeItem('hs_date')
+        sessionStorage.removeItem('hs_startDate')
+        sessionStorage.removeItem('hs_endDate')
         sessionStorage.removeItem('hs_searchText')
         sessionStorage.removeItem('hs_searchQuery')
     }
@@ -324,15 +341,28 @@ export default function HistorialServiciosPage() {
                             </select>
                         </div>
 
-                        {/* Fecha del servicio */}
-                        <div className="w-[180px]">
+                        {/* Fecha Desde */}
+                        <div className="w-[160px]">
                             <label className="block text-sm font-semibold text-[#254153] mb-2">
-                                Fecha del servicio
+                                Desde (Fecha)
                             </label>
                             <input
                                 type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                            />
+                        </div>
+
+                        {/* Fecha Hasta */}
+                        <div className="w-[160px]">
+                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                                Hasta (Fecha)
+                            </label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
                                 className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
                             />
                         </div>
