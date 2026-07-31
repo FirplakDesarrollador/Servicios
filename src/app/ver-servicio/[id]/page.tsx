@@ -61,7 +61,9 @@ import { InfoField, InfoSection } from '@/components/InfoField';
 import ProductsModal from '@/components/ProductsModal';
 import CommentModal from '@/components/CommentModal';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
+import ModalEditConsumer from '@/components/ModalEditConsumer';
 import ModalEditCondebe from '@/components/ModalEditCondebe';
+import ModalEditPedido from '@/components/ModalEditPedido';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 import ModalCrearRegistro from '@/app/registro-solicitudes/components/ModalCrearRegistro';
 
@@ -385,6 +387,7 @@ export default function VerServicioPage() {
     const [showCommentModal, setShowCommentModal] = useState(false);
     const [showEditConsumerModal, setShowEditConsumerModal] = useState(false);
     const [showEditCondebeModal, setShowEditCondebeModal] = useState(false);
+    const [showEditPedidoModal, setShowEditPedidoModal] = useState(false);
     const [showCloseModal, setShowCloseModal] = useState(false);
     const [loadingInvoice, setLoadingInvoice] = useState(false);
     const [refreshComments, setRefreshComments] = useState(0);
@@ -662,6 +665,7 @@ export default function VerServicioPage() {
                                 onShowProducts={() => setShowProductsModal(true)}
                                 onEditConsumer={() => setShowEditConsumerModal(true)}
                                 onEditCondebe={() => setShowEditCondebeModal(true)}
+                                onEditFactura={() => setShowEditPedidoModal(true)}
                                 onCloseService={() => setShowCloseModal(true)}
                                 onDownloadReport={handleDownloadServiceReport}
                                 isDownloadingReport={downloadingReport}
@@ -733,6 +737,17 @@ export default function VerServicioPage() {
                     facturado: service.facturado
                 }}
             />
+            <ModalEditPedido
+                isOpen={showEditPedidoModal}
+                onClose={() => setShowEditPedidoModal(false)}
+                onSuccess={() => {
+                    fetchService(); // Actualizar datos después de editar
+                }}
+                serviceId={service.id}
+                initialData={{
+                    numero_de_pedido: service.numero_de_pedido
+                }}
+            />
             <ModalCerrarServicio
                 isOpen={showCloseModal}
                 onClose={() => setShowCloseModal(false)}
@@ -753,6 +768,7 @@ function InformacionTab({
     onShowProducts,
     onEditConsumer,
     onEditCondebe,
+    onEditFactura,
     onCloseService,
     onDownloadReport,
     isDownloadingReport,
@@ -762,6 +778,7 @@ function InformacionTab({
     onShowProducts: () => void,
     onEditConsumer: () => void,
     onEditCondebe: () => void,
+    onEditFactura: () => void,
     onCloseService: () => void,
     onDownloadReport: () => void,
     isDownloadingReport: boolean,
@@ -822,8 +839,29 @@ function InformacionTab({
                         />
                         <InfoField label="Asesor Comercial" value={service.asesor_nombre} icon={User} />
                         <InfoField label="Canal de Venta" value={service.canal_de_venta} icon={Briefcase} />
-                        <InfoField label="Tipo de Servicio" value={service.tipo_de_servicio} icon={Shield} editable />
-                        <InfoField label="Pedido / Factura" value={service.numero_de_pedido} icon={Zap} editable />
+                        <InfoField 
+                            label="Tipo de Servicio" 
+                            value={service.tipo_de_servicio} 
+                            icon={Shield} 
+                            editable 
+                        />
+                        <InfoField 
+                            label="Pedido / Factura" 
+                            value={service.numero_de_pedido} 
+                            icon={Zap} 
+                            editable 
+                            rightElement={
+                                currentUser?.rol !== 'comercial' ? (
+                                    <button
+                                        onClick={onEditFactura}
+                                        className="p-1.5 hover:bg-slate-100 text-blue-600 rounded-md transition-colors"
+                                        title="Editar"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                ) : null
+                            }
+                        />
                         <InfoField label="Coordinador" value={service.coordinador_nombre} icon={UserCheck} />
                         <InfoField label="Zona de Atención" value={service.consumidor_zona || service.ubicacion_zona || 'Sin asignar'} icon={MapPin} />
                     </InfoSection>
