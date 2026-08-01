@@ -61,7 +61,7 @@ import { InfoField, InfoSection } from '@/components/InfoField';
 import ProductsModal from '@/components/ProductsModal';
 import CommentModal from '@/components/CommentModal';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
-import ModalEditConsumer from '@/components/ModalEditConsumer';
+
 import ModalEditCondebe from '@/components/ModalEditCondebe';
 import ModalEditPedido from '@/components/ModalEditPedido';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
