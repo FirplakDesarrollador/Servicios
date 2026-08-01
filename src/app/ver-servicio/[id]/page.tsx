@@ -786,7 +786,53 @@ function InformacionTab({
 }) {
     const router = useRouter();
     const [showCrearRadicadoModal, setShowCrearRadicadoModal] = useState(false);
+    const [initialRadicadoData, setInitialRadicadoData] = useState<any>(null);
+    const [loadingRadicado, setLoadingRadicado] = useState(false);
     const [radicados, setRadicados] = useState<any[]>([]);
+
+    const handleOpenCrearRadicado = async () => {
+        setLoadingRadicado(true);
+        try {
+            // Fetch first comment
+            const { data: comments } = await supabase
+                .from('query_comentarios')
+                .select('*')
+                .eq('servicio_id', service.id)
+                .order('created_at', { ascending: true })
+                .limit(1);
+
+            // Fetch products
+            const { data: products } = await supabase
+                .from('query_servicio_productos')
+                .select('*')
+                .eq('servicio_id', service.id);
+
+            const initialComment = comments && comments.length > 0 ? comments[0].contenido : '';
+            const initialAttachments = comments && comments.length > 0 && Array.isArray(comments[0].documentos) 
+                ? comments[0].documentos.map((url: string) => ({ url, name: url.split('/').pop() || 'Archivo adjunto' })) 
+                : [];
+                
+            const initialProducts = products ? products.map(p => ({
+                id: p.producto_id || p.id,
+                sku: p.referencia || p.codigo,
+                nombre: p.descripcion || p.nombre || p.producto,
+                cantidad: p.cantidad || 1
+            })) : [];
+
+            setInitialRadicadoData({
+                ...service,
+                initial_comment: initialComment,
+                initial_attachments: initialAttachments,
+                initial_products: initialProducts
+            });
+        } catch (error) {
+            console.error("Error fetching radicado prep data:", error);
+            setInitialRadicadoData(service);
+        } finally {
+            setLoadingRadicado(false);
+            setShowCrearRadicadoModal(true);
+        }
+    };
 
     useEffect(() => {
         const fetchRadicados = async () => {
@@ -940,8 +986,9 @@ function InformacionTab({
                         )}
 
                         <button
-                            onClick={() => setShowCrearRadicadoModal(true)}
-                            className="w-full h-12 flex items-center justify-center gap-3 bg-amber-500 text-white rounded-md text-sm font-semibold hover:bg-amber-600 transition-colors mt-3"
+                            onClick={handleOpenCrearRadicado}
+                            disabled={loadingRadicado}
+                            className="w-full h-12 flex items-center justify-center gap-3 bg-amber-500 text-white rounded-md text-sm font-semibold hover:bg-amber-600 transition-colors mt-3 disabled:opacity-50"
                         >
                             <FileText className="w-4 h-4" />
                             Crear Radicado Enlazado
@@ -1023,7 +1070,7 @@ function InformacionTab({
                                 alert(`Radicado creado y enlazado al servicio ${service.consecutivo} exitosamente`);
                             }}
                             servicioPreEnlazado={service.consecutivo}
-                            initialData={service}
+                            initialData={initialRadicadoData || service}
                         />
                     </div>
                 </div>

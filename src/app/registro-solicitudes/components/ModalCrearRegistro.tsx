@@ -44,6 +44,7 @@ export default function ModalCrearRegistro({
     const [canalVenta, setCanalVenta] = useState('');
     const [comentarios, setComentarios] = useState('');
     const [archivos, setArchivos] = useState<File[]>([]);
+    const [adjuntosPrevios, setAdjuntosPrevios] = useState<any[]>([]);
     
     // Clients & Products
     const [cliente, setCliente] = useState<any>(null);
@@ -89,6 +90,15 @@ export default function ModalCrearRegistro({
                 } else {
                     setLlevaClienteFinal(true); // External channels need final client
                 }
+            }
+            if (initialData.initial_comment) {
+                setComentarios(initialData.initial_comment);
+            }
+            if (initialData.initial_products && initialData.initial_products.length > 0) {
+                setProductosCompra(initialData.initial_products);
+            }
+            if (initialData.initial_attachments && initialData.initial_attachments.length > 0) {
+                setAdjuntosPrevios(initialData.initial_attachments);
             }
         }
     }, [initialData]);
@@ -156,9 +166,10 @@ export default function ModalCrearRegistro({
             
             const hasComentario = comentarios.trim().length > 0;
             const hasArchivos = archivos.length > 0;
+            const hasAdjuntosPrevios = adjuntosPrevios.length > 0;
 
-            if (hasComentario || hasArchivos) {
-                const uploadedUrls = [];
+            if (hasComentario || hasArchivos || hasAdjuntosPrevios) {
+                const uploadedUrls = [...adjuntosPrevios];
                 if (hasArchivos) {
                     for (const file of archivos) {
                         const fileExt = file.name.split('.').pop();
