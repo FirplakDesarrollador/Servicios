@@ -1142,6 +1142,12 @@ function ComentariosTab({ registro }: { registro: any }) {
                                                     const mediaAttachments = comentario.adjuntos.filter((a: any) => {
                                                         const aExt = a.url.split('.').pop()?.toLowerCase() || a.name?.split('.').pop()?.toLowerCase();
                                                         return a.type?.startsWith('image/') || a.type?.startsWith('video/') || (aExt && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'ogg'].includes(aExt));
+                                                    }).map((a: any) => {
+                                                        if (a.type?.startsWith('image/') || a.type?.startsWith('video/')) return a;
+                                                        const aExt = a.url.split('.').pop()?.toLowerCase() || a.name?.split('.').pop()?.toLowerCase();
+                                                        if (aExt && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(aExt)) return { ...a, type: `image/${aExt}` };
+                                                        if (aExt && ['mp4', 'webm', 'ogg'].includes(aExt)) return { ...a, type: `video/${aExt}` };
+                                                        return a;
                                                     });
                                                     const mediaIndex = mediaAttachments.findIndex((a: any) => a.url === adjunto.url);
 
