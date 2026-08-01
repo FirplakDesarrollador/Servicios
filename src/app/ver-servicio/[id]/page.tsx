@@ -815,7 +815,19 @@ function InformacionTab({
 
             const initialComment = comments && comments.length > 0 ? comments[0].contenido : '';
             const initialAttachments = comments && comments.length > 0 && Array.isArray(comments[0].documentos) 
-                ? comments[0].documentos.map((url: string) => ({ url, name: url.split('/').pop() || 'Archivo adjunto' })) 
+                ? comments[0].documentos.map((url: string) => {
+                    const name = url.split('/').pop() || 'Archivo adjunto';
+                    const ext = name.split('.').pop()?.toLowerCase();
+                    let type = 'application/octet-stream';
+                    if (ext && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        type = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+                    } else if (ext && ['mp4', 'webm', 'ogg'].includes(ext)) {
+                        type = `video/${ext}`;
+                    } else if (ext === 'pdf') {
+                        type = 'application/pdf';
+                    }
+                    return { url, name, type };
+                }) 
                 : [];
                 
             const initialProducts = [
