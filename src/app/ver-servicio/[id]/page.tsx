@@ -803,8 +803,8 @@ function InformacionTab({
 
             // Fetch products
             const { data: products } = await supabase
-                .from('query_servicio_productos')
-                .select('*')
+                .from('productos_servicios')
+                .select('*, producto:producto_id(*)')
                 .eq('servicio_id', service.id);
 
             // Fetch repuestos
@@ -820,9 +820,9 @@ function InformacionTab({
                 
             const initialProducts = [
                 ...(products ? products.map(p => ({
-                    id: p.producto_id || p.id,
-                    sku: p.referencia || p.codigo,
-                    nombre: p.descripcion || p.nombre || p.producto,
+                    id: p.producto?.id || p.producto_id || p.id,
+                    sku: p.producto?.referencia || p.producto?.codigo || p.codigo,
+                    nombre: p.producto?.descripcion || p.producto?.nombre || p.producto?.producto || p.descripcion,
                     cantidad: p.cantidad || 1
                 })) : []),
                 ...(repuestos ? repuestos.map((r: any) => ({
