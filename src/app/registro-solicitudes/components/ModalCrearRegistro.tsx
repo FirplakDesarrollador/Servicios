@@ -100,6 +100,9 @@ export default function ModalCrearRegistro({
             if (initialData.initial_attachments && initialData.initial_attachments.length > 0) {
                 setAdjuntosPrevios(initialData.initial_attachments);
             }
+            if (initialData.numero_de_pedido) {
+                setOrdenVenta(initialData.numero_de_pedido.toString());
+            }
         }
     }, [initialData]);
 
