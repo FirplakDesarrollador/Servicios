@@ -640,6 +640,23 @@ export default function ModalCrearRegistro({
                                         ))}
                                     </div>
                                 )}
+                                {adjuntosPrevios.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {adjuntosPrevios.map((file, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 bg-brand/5 border border-brand/20 text-brand px-3 py-1.5 rounded-lg text-xs font-medium">
+                                                <FileIcon className="w-3.5 h-3.5 text-brand shrink-0" />
+                                                <span className="truncate max-w-[150px]">{file.name || 'Archivo adjunto'}</span>
+                                                <button
+                                                    onClick={() => setAdjuntosPrevios(adjuntosPrevios.filter((_, i) => i !== idx))}
+                                                    className="text-brand/50 hover:text-red-500 transition-colors ml-1"
+                                                    title="Eliminar adjunto previo"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                         </div>
