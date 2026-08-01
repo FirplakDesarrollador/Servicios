@@ -1132,10 +1132,17 @@ function ComentariosTab({ registro }: { registro: any }) {
                                         {comentario.adjuntos && comentario.adjuntos.length > 0 && (
                                             <div className={`flex flex-wrap gap-2 ${comentario.comentario ? 'mt-3 pt-3 border-t border-[#e8e2d5]/60' : ''}`}>
                                                 {comentario.adjuntos.map((adjunto: any, i: number) => {
-                                                    const isImage = adjunto.type?.startsWith('image/');
-                                                    const isVideo = adjunto.type?.startsWith('video/');
+                                                    const ext = adjunto.url.split('.').pop()?.toLowerCase() || adjunto.name?.split('.').pop()?.toLowerCase();
+                                                    const inferredIsImage = ext && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+                                                    const inferredIsVideo = ext && ['mp4', 'webm', 'ogg'].includes(ext);
                                                     
-                                                    const mediaAttachments = comentario.adjuntos.filter((a: any) => a.type?.startsWith('image/') || a.type?.startsWith('video/'));
+                                                    const isImage = adjunto.type?.startsWith('image/') || inferredIsImage;
+                                                    const isVideo = adjunto.type?.startsWith('video/') || inferredIsVideo;
+                                                    
+                                                    const mediaAttachments = comentario.adjuntos.filter((a: any) => {
+                                                        const aExt = a.url.split('.').pop()?.toLowerCase() || a.name?.split('.').pop()?.toLowerCase();
+                                                        return a.type?.startsWith('image/') || a.type?.startsWith('video/') || (aExt && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'ogg'].includes(aExt));
+                                                    });
                                                     const mediaIndex = mediaAttachments.findIndex((a: any) => a.url === adjunto.url);
 
                                                     if (isImage) {
