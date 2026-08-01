@@ -318,7 +318,6 @@ export default function RegistroSolicitudesPage() {
           <AnimatePresence mode="popLayout">
             {filteredRegistros.length > 0 ? (
               <motion.div 
-                layout
                 className="flex flex-col gap-4"
               >
                 {filteredRegistros.map((registro, index) => (

@@ -61,7 +61,9 @@ import { InfoField, InfoSection } from '@/components/InfoField';
 import ProductsModal from '@/components/ProductsModal';
 import CommentModal from '@/components/CommentModal';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
+import ModalEditConsumer from '@/components/ModalEditConsumer';
 import ModalEditCondebe from '@/components/ModalEditCondebe';
+import ModalEditPedido from '@/components/ModalEditPedido';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 import ModalCrearRegistro from '@/app/registro-solicitudes/components/ModalCrearRegistro';
 
@@ -385,6 +387,7 @@ export default function VerServicioPage() {
     const [showCommentModal, setShowCommentModal] = useState(false);
     const [showEditConsumerModal, setShowEditConsumerModal] = useState(false);
     const [showEditCondebeModal, setShowEditCondebeModal] = useState(false);
+    const [showEditPedidoModal, setShowEditPedidoModal] = useState(false);
     const [showCloseModal, setShowCloseModal] = useState(false);
     const [loadingInvoice, setLoadingInvoice] = useState(false);
     const [refreshComments, setRefreshComments] = useState(0);
@@ -662,6 +665,7 @@ export default function VerServicioPage() {
                                 onShowProducts={() => setShowProductsModal(true)}
                                 onEditConsumer={() => setShowEditConsumerModal(true)}
                                 onEditCondebe={() => setShowEditCondebeModal(true)}
+                                onEditFactura={() => setShowEditPedidoModal(true)}
                                 onCloseService={() => setShowCloseModal(true)}
                                 onDownloadReport={handleDownloadServiceReport}
                                 isDownloadingReport={downloadingReport}
@@ -733,6 +737,17 @@ export default function VerServicioPage() {
                     facturado: service.facturado
                 }}
             />
+            <ModalEditPedido
+                isOpen={showEditPedidoModal}
+                onClose={() => setShowEditPedidoModal(false)}
+                onSuccess={() => {
+                    fetchService(); // Actualizar datos después de editar
+                }}
+                serviceId={service.id}
+                initialData={{
+                    numero_de_pedido: service.numero_de_pedido
+                }}
+            />
             <ModalCerrarServicio
                 isOpen={showCloseModal}
                 onClose={() => setShowCloseModal(false)}
@@ -753,6 +768,7 @@ function InformacionTab({
     onShowProducts,
     onEditConsumer,
     onEditCondebe,
+    onEditFactura,
     onCloseService,
     onDownloadReport,
     isDownloadingReport,
@@ -762,6 +778,7 @@ function InformacionTab({
     onShowProducts: () => void,
     onEditConsumer: () => void,
     onEditCondebe: () => void,
+    onEditFactura: () => void,
     onCloseService: () => void,
     onDownloadReport: () => void,
     isDownloadingReport: boolean,
@@ -769,7 +786,79 @@ function InformacionTab({
 }) {
     const router = useRouter();
     const [showCrearRadicadoModal, setShowCrearRadicadoModal] = useState(false);
+    const [initialRadicadoData, setInitialRadicadoData] = useState<any>(null);
+    const [loadingRadicado, setLoadingRadicado] = useState(false);
     const [radicados, setRadicados] = useState<any[]>([]);
+
+    const handleOpenCrearRadicado = async () => {
+        setLoadingRadicado(true);
+        try {
+            // Fetch first comment
+            const { data: comments } = await supabase
+                .from('query_comentarios')
+                .select('*')
+                .eq('servicio_id', service.id)
+                .order('created_at', { ascending: true })
+                .limit(1);
+
+            // Fetch products
+            const { data: products } = await supabase
+                .from('productos_servicios')
+                .select('*, producto:producto_id(*)')
+                .eq('servicio_id', service.id);
+
+            // Fetch repuestos
+            const { data: repuestos } = await supabase
+                .from('Repuestos_Servicios')
+                .select('*, repuesto:repuesto_id(*)')
+                .eq('servicio_id', service.id);
+
+            const initialComment = comments && comments.length > 0 ? comments[0].contenido : '';
+            const initialAttachments = comments && comments.length > 0 && Array.isArray(comments[0].documentos) 
+                ? comments[0].documentos.map((url: string) => {
+                    const name = url.split('/').pop() || 'Archivo adjunto';
+                    const ext = name.split('.').pop()?.toLowerCase();
+                    let type = 'application/octet-stream';
+                    if (ext && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        type = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+                    } else if (ext && ['mp4', 'webm', 'ogg'].includes(ext)) {
+                        type = `video/${ext}`;
+                    } else if (ext === 'pdf') {
+                        type = 'application/pdf';
+                    }
+                    return { url, name, type };
+                }) 
+                : [];
+                
+            const initialProducts = [
+                ...(products ? products.map(p => ({
+                    id: p.producto?.id || p.producto_id || p.id,
+                    sku: p.producto?.sku || p.producto?.referencia || p.producto?.codigo || p.codigo,
+                    nombre: p.producto?.nombre || p.producto?.descripcion || p.producto?.producto || p.descripcion,
+                    cantidad: p.cantidad || 1
+                })) : []),
+                ...(repuestos ? repuestos.map((r: any) => ({
+                    id: r.repuesto?.id || r.id,
+                    sku: r.repuesto?.sku || r.repuesto?.referencia || r.repuesto?.codigo || r.repuesto?.id || r.repuesto_id,
+                    nombre: r.repuesto?.nombre || r.repuesto?.descripcion || r.repuesto?.repuesto || 'Repuesto',
+                    cantidad: r.cantidad || 1
+                })) : [])
+            ];
+
+            setInitialRadicadoData({
+                ...service,
+                initial_comment: initialComment,
+                initial_attachments: initialAttachments,
+                initial_products: initialProducts
+            });
+        } catch (error) {
+            console.error("Error fetching radicado prep data:", error);
+            setInitialRadicadoData(service);
+        } finally {
+            setLoadingRadicado(false);
+            setShowCrearRadicadoModal(true);
+        }
+    };
 
     useEffect(() => {
         const fetchRadicados = async () => {
@@ -822,8 +911,29 @@ function InformacionTab({
                         />
                         <InfoField label="Asesor Comercial" value={service.asesor_nombre} icon={User} />
                         <InfoField label="Canal de Venta" value={service.canal_de_venta} icon={Briefcase} />
-                        <InfoField label="Tipo de Servicio" value={service.tipo_de_servicio} icon={Shield} editable />
-                        <InfoField label="Pedido / Factura" value={service.numero_de_pedido} icon={Zap} editable />
+                        <InfoField 
+                            label="Tipo de Servicio" 
+                            value={service.tipo_de_servicio} 
+                            icon={Shield} 
+                            editable 
+                        />
+                        <InfoField 
+                            label="Pedido / Factura" 
+                            value={service.numero_de_pedido} 
+                            icon={Zap} 
+                            editable 
+                            rightElement={
+                                currentUser?.rol !== 'comercial' ? (
+                                    <button
+                                        onClick={onEditFactura}
+                                        className="p-1.5 hover:bg-slate-100 text-blue-600 rounded-md transition-colors"
+                                        title="Editar"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                ) : null
+                            }
+                        />
                         <InfoField label="Coordinador" value={service.coordinador_nombre} icon={UserCheck} />
                         <InfoField label="Zona de Atención" value={service.consumidor_zona || service.ubicacion_zona || 'Sin asignar'} icon={MapPin} />
                     </InfoSection>
@@ -902,8 +1012,9 @@ function InformacionTab({
                         )}
 
                         <button
-                            onClick={() => setShowCrearRadicadoModal(true)}
-                            className="w-full h-12 flex items-center justify-center gap-3 bg-amber-500 text-white rounded-md text-sm font-semibold hover:bg-amber-600 transition-colors mt-3"
+                            onClick={handleOpenCrearRadicado}
+                            disabled={loadingRadicado}
+                            className="w-full h-12 flex items-center justify-center gap-3 bg-amber-500 text-white rounded-md text-sm font-semibold hover:bg-amber-600 transition-colors mt-3 disabled:opacity-50"
                         >
                             <FileText className="w-4 h-4" />
                             Crear Radicado Enlazado
@@ -985,7 +1096,7 @@ function InformacionTab({
                                 alert(`Radicado creado y enlazado al servicio ${service.consecutivo} exitosamente`);
                             }}
                             servicioPreEnlazado={service.consecutivo}
-                            initialData={service}
+                            initialData={initialRadicadoData || service}
                         />
                     </div>
                 </div>

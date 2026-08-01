@@ -44,6 +44,7 @@ export default function ModalCrearRegistro({
     const [canalVenta, setCanalVenta] = useState('');
     const [comentarios, setComentarios] = useState('');
     const [archivos, setArchivos] = useState<File[]>([]);
+    const [adjuntosPrevios, setAdjuntosPrevios] = useState<any[]>([]);
     
     // Clients & Products
     const [cliente, setCliente] = useState<any>(null);
@@ -89,6 +90,18 @@ export default function ModalCrearRegistro({
                 } else {
                     setLlevaClienteFinal(true); // External channels need final client
                 }
+            }
+            if (initialData.initial_comment) {
+                setComentarios(initialData.initial_comment);
+            }
+            if (initialData.initial_products && initialData.initial_products.length > 0) {
+                setProductosCompra(initialData.initial_products);
+            }
+            if (initialData.initial_attachments && initialData.initial_attachments.length > 0) {
+                setAdjuntosPrevios(initialData.initial_attachments);
+            }
+            if (initialData.numero_de_pedido) {
+                setOrdenVenta(initialData.numero_de_pedido.toString());
             }
         }
     }, [initialData]);
@@ -156,9 +169,10 @@ export default function ModalCrearRegistro({
             
             const hasComentario = comentarios.trim().length > 0;
             const hasArchivos = archivos.length > 0;
+            const hasAdjuntosPrevios = adjuntosPrevios.length > 0;
 
-            if (hasComentario || hasArchivos) {
-                const uploadedUrls = [];
+            if (hasComentario || hasArchivos || hasAdjuntosPrevios) {
+                const uploadedUrls = [...adjuntosPrevios];
                 if (hasArchivos) {
                     for (const file of archivos) {
                         const fileExt = file.name.split('.').pop();
@@ -622,6 +636,23 @@ export default function ModalCrearRegistro({
                                                 <button
                                                     onClick={() => setArchivos(archivos.filter((_, i) => i !== idx))}
                                                     className="text-slate-400 hover:text-red-500 transition-colors ml-1"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {adjuntosPrevios.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {adjuntosPrevios.map((file, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 bg-brand/5 border border-brand/20 text-brand px-3 py-1.5 rounded-lg text-xs font-medium">
+                                                <FileIcon className="w-3.5 h-3.5 text-brand shrink-0" />
+                                                <span className="truncate max-w-[150px]">{file.name || 'Archivo adjunto'}</span>
+                                                <button
+                                                    onClick={() => setAdjuntosPrevios(adjuntosPrevios.filter((_, i) => i !== idx))}
+                                                    className="text-brand/50 hover:text-red-500 transition-colors ml-1"
+                                                    title="Eliminar adjunto previo"
                                                 >
                                                     <X className="w-3.5 h-3.5" />
                                                 </button>

@@ -156,7 +156,7 @@ export default function IndicadoresMacPage() {
                 if (key.startsWith('_')) return;
                 if (key === 'productos_compra' || key === 'productos_novedad') return;
                 // Omitir IDs crudos y campos que formateamos manualmente
-                if (['cliente_id', 'cliente_final_id', 'cliente_nombre', 'cliente_final_nombre', 'canal_venta'].includes(key)) return; 
+                if (['cliente_id', 'cliente_final_id', 'cliente_nombre', 'cliente_final_nombre', 'canal_venta', 'fecha_compra', 'fecha_fabricacion'].includes(key)) return; 
                 if (val && typeof val === 'object') return; // Skip relaciones Supabase
                 baseRow[key] = val;
             });
@@ -175,6 +175,8 @@ export default function IndicadoresMacPage() {
             if (d._fechaCierre) {
                 baseRow['Fecha_Cierre'] = new Date(d._fechaCierre).toLocaleDateString();
             }
+            // @ts-ignore
+            baseRow['Fecha_Verificacion'] = d.fecha_verificacion ? new Date(d.fecha_verificacion).toLocaleDateString() : '';
 
             const productosCompra = Array.isArray(d.productos_compra) ? d.productos_compra : [];
             const productosNovedad = Array.isArray(d.productos_novedad) ? d.productos_novedad : [];
@@ -195,6 +197,8 @@ export default function IndicadoresMacPage() {
                         'Novedad_Descripcion': pn.descripcion || pn.nombre || '',
                         'Novedad_Tipo_Problema': prob.tipo_problema_id ? (razonesMap.get(String(prob.tipo_problema_id)) || prob.tipo_problema_id) : '',
                         'Novedad_Responsable_Problema': prob.responsable_problema_id ? (responsablesMap.get(String(prob.responsable_problema_id)) || prob.responsable_problema_id) : '',
+                        'Novedad_Fecha_Compra': pn.fecha_compra || '',
+                        'Novedad_Fecha_Fabricacion': pn.fecha_fabricacion || '',
                     });
                 });
             });
@@ -212,16 +216,26 @@ export default function IndicadoresMacPage() {
                     row['Compra_SKU'] = pc.sku || pc.codigo || '';
                     row['Compra_Referencia'] = pc.referencia || pc.sku || '';
                     row['Compra_Descripcion'] = pc.descripcion || pc.nombre || '';
+                    row['Fecha_Compra'] = pc.fecha_compra || (i < novedadRows.length ? novedadRows[i].Novedad_Fecha_Compra : '') || '';
+                    row['Fecha_Fabricacion'] = pc.fecha_fabricacion || (i < novedadRows.length ? novedadRows[i].Novedad_Fecha_Fabricacion : '') || '';
                 } else {
                     row['Compra_Cantidad'] = '';
                     row['Compra_SKU'] = '';
                     row['Compra_Referencia'] = '';
                     row['Compra_Descripcion'] = '';
+                    row['Fecha_Compra'] = (i < novedadRows.length ? novedadRows[i].Novedad_Fecha_Compra : '') || '';
+                    row['Fecha_Fabricacion'] = (i < novedadRows.length ? novedadRows[i].Novedad_Fecha_Fabricacion : '') || '';
                 }
 
                 // Producto Novedad (ya aplanado con problemas)
                 if (i < novedadRows.length) {
-                    Object.assign(row, novedadRows[i]);
+                    // Mantenemos solo las columnas de Novedad principales (sin repetir fechas)
+                    row['Novedad_Cantidad'] = novedadRows[i].Novedad_Cantidad;
+                    row['Novedad_SKU'] = novedadRows[i].Novedad_SKU;
+                    row['Novedad_Referencia'] = novedadRows[i].Novedad_Referencia;
+                    row['Novedad_Descripcion'] = novedadRows[i].Novedad_Descripcion;
+                    row['Novedad_Tipo_Problema'] = novedadRows[i].Novedad_Tipo_Problema;
+                    row['Novedad_Responsable_Problema'] = novedadRows[i].Novedad_Responsable_Problema;
                 } else {
                     row['Novedad_Cantidad'] = '';
                     row['Novedad_SKU'] = '';
@@ -229,6 +243,8 @@ export default function IndicadoresMacPage() {
                     row['Novedad_Descripcion'] = '';
                     row['Novedad_Tipo_Problema'] = '';
                     row['Novedad_Responsable_Problema'] = '';
+                    row['Novedad_Fecha_Compra'] = '';
+                    row['Novedad_Fecha_Fabricacion'] = '';
                 }
 
                 allRows.push(row);
