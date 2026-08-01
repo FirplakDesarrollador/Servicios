@@ -807,17 +807,31 @@ function InformacionTab({
                 .select('*')
                 .eq('servicio_id', service.id);
 
+            // Fetch repuestos
+            const { data: repuestos } = await supabase
+                .from('Repuestos_Servicios')
+                .select('*, repuesto:repuesto_id(*)')
+                .eq('servicio_id', service.id);
+
             const initialComment = comments && comments.length > 0 ? comments[0].contenido : '';
             const initialAttachments = comments && comments.length > 0 && Array.isArray(comments[0].documentos) 
                 ? comments[0].documentos.map((url: string) => ({ url, name: url.split('/').pop() || 'Archivo adjunto' })) 
                 : [];
                 
-            const initialProducts = products ? products.map(p => ({
-                id: p.producto_id || p.id,
-                sku: p.referencia || p.codigo,
-                nombre: p.descripcion || p.nombre || p.producto,
-                cantidad: p.cantidad || 1
-            })) : [];
+            const initialProducts = [
+                ...(products ? products.map(p => ({
+                    id: p.producto_id || p.id,
+                    sku: p.referencia || p.codigo,
+                    nombre: p.descripcion || p.nombre || p.producto,
+                    cantidad: p.cantidad || 1
+                })) : []),
+                ...(repuestos ? repuestos.map((r: any) => ({
+                    id: r.repuesto?.id || r.id,
+                    sku: r.repuesto?.referencia || r.repuesto?.codigo || r.repuesto?.id || r.repuesto_id,
+                    nombre: r.repuesto?.descripcion || r.repuesto?.nombre || r.repuesto?.repuesto || 'Repuesto',
+                    cantidad: r.cantidad || 1
+                })) : [])
+            ];
 
             setInitialRadicadoData({
                 ...service,
