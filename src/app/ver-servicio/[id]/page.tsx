@@ -821,14 +821,14 @@ function InformacionTab({
             const initialProducts = [
                 ...(products ? products.map(p => ({
                     id: p.producto?.id || p.producto_id || p.id,
-                    sku: p.producto?.referencia || p.producto?.codigo || p.codigo,
-                    nombre: p.producto?.descripcion || p.producto?.nombre || p.producto?.producto || p.descripcion,
+                    sku: p.producto?.sku || p.producto?.referencia || p.producto?.codigo || p.codigo,
+                    nombre: p.producto?.nombre || p.producto?.descripcion || p.producto?.producto || p.descripcion,
                     cantidad: p.cantidad || 1
                 })) : []),
                 ...(repuestos ? repuestos.map((r: any) => ({
                     id: r.repuesto?.id || r.id,
-                    sku: r.repuesto?.referencia || r.repuesto?.codigo || r.repuesto?.id || r.repuesto_id,
-                    nombre: r.repuesto?.descripcion || r.repuesto?.nombre || r.repuesto?.repuesto || 'Repuesto',
+                    sku: r.repuesto?.sku || r.repuesto?.referencia || r.repuesto?.codigo || r.repuesto?.id || r.repuesto_id,
+                    nombre: r.repuesto?.nombre || r.repuesto?.descripcion || r.repuesto?.repuesto || 'Repuesto',
                     cantidad: r.cantidad || 1
                 })) : [])
             ];
