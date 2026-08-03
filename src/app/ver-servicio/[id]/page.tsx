@@ -1614,6 +1614,9 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
     const [isCancelling, setIsCancelling] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
 
+    const [isDurationModalOpen, setIsDurationModalOpen] = useState(false);
+    const [tempStartTime, setTempStartTime] = useState<Date | null>(null);
+
     const [currentVisitId, setCurrentVisitId] = useState<number | null>(null);
     const [historialVisitas, setHistorialVisitas] = useState<any[]>([]);
     const [selectedSignature, setSelectedSignature] = useState<{
@@ -1749,18 +1752,7 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
         const clickedTime = new Date(day);
         clickedTime.setHours(h, m, 0, 0);
 
-        const formatForInput = (date: Date) => {
-            const yyyy = date.getFullYear();
-            const MM = String(date.getMonth() + 1).padStart(2, '0');
-            const dd = String(date.getDate()).padStart(2, '0');
-            const hh = String(date.getHours()).padStart(2, '0');
-            const mm = String(date.getMinutes()).padStart(2, '0');
-            return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
-        };
-
-        const clickedFormatted = formatForInput(clickedTime);
-
-        // Si ya hay selección y el click cae dentro del rango → deseleccionar
+        // Si ya hay selección y el click cae dentro del rango -> limpiar
         if (fechaInicio && fechaFin) {
             const startDate = new Date(fechaInicio);
             const endDate = new Date(fechaFin);
@@ -1771,37 +1763,29 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
             }
         }
 
-        // Si no hay inicio → establecer hora de inicio (sin fin aún)
-        if (!fechaInicio) {
-            setFechaInicio(clickedFormatted);
-            setFechaFin('');
-            return;
-        }
+        // Abrir modal de duración
+        setTempStartTime(clickedTime);
+        setIsDurationModalOpen(true);
+    };
 
-        const currentStart = new Date(fechaInicio);
+    const handleDurationSelect = (durationMinutes: number) => {
+        if (!tempStartTime) return;
+        
+        const formatForInput = (date: Date) => {
+            const yyyy = date.getFullYear();
+            const MM = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+        };
 
-        // Si es un día diferente al inicio → reiniciar con nuevo inicio
-        if (format(currentStart, 'yyyy-MM-dd') !== format(day, 'yyyy-MM-dd')) {
-            setFechaInicio(clickedFormatted);
-            setFechaFin('');
-            return;
-        }
-
-        // Si ya hay inicio pero no hay fin
-        if (!fechaFin) {
-            if (clickedTime <= currentStart) {
-                // Click arriba o en el mismo → mover el inicio
-                setFechaInicio(clickedFormatted);
-            } else {
-                // Click abajo → establecer fin (+30min del slot clickeado)
-                setFechaFin(formatForInput(new Date(clickedTime.getTime() + 30 * 60000)));
-            }
-            return;
-        }
-
-        // Ya hay inicio y fin, click fuera del rango → nuevo inicio
-        setFechaInicio(clickedFormatted);
-        setFechaFin('');
+        const endTime = new Date(tempStartTime.getTime() + durationMinutes * 60000);
+        
+        setFechaInicio(formatForInput(tempStartTime));
+        setFechaFin(formatForInput(endTime));
+        setIsDurationModalOpen(false);
+        setTempStartTime(null);
     };
 
     const handleSave = async () => {
@@ -2554,6 +2538,98 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                     alt="Firma ampliada"
                                     className="max-h-[65vh] w-full object-contain"
                                 />
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {isDurationModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.94, y: 18 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.94, y: 18 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                            className="w-full max-w-sm rounded-[32px] bg-white p-8 shadow-2xl border border-white/30"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Duración</h3>
+                                    <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">¿Cuánto tomará el servicio?</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setIsDurationModalOpen(false);
+                                        setTempStartTime(null);
+                                    }}
+                                    className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-all"
+                                >
+                                    <XCircle className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { label: '30 min', val: 30 },
+                                    { label: '1 hora', val: 60 },
+                                    { label: '1.5 horas', val: 90 },
+                                    { label: '2 horas', val: 120 },
+                                    { label: '3 horas', val: 180 },
+                                    { label: '4 horas', val: 240 },
+                                    { label: '6 horas', val: 360 },
+                                    { label: '8 horas', val: 480 },
+                                ].map((opt) => (
+                                    <button
+                                        key={opt.val}
+                                        onClick={() => handleDurationSelect(opt.val)}
+                                        className="py-4 bg-slate-50 hover:bg-brand/10 border border-slate-100 hover:border-brand/30 rounded-2xl text-sm font-bold text-slate-600 hover:text-brand transition-all shadow-sm"
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-3">
+                                <div className="relative flex-1">
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        placeholder="Ej: 5 (horas)"
+                                        id="custom-duration-input"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all placeholder:text-slate-400 placeholder:font-normal"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                const val = parseFloat(e.currentTarget.value);
+                                                if (!isNaN(val) && val > 0) {
+                                                    handleDurationSelect(val * 60);
+                                                }
+                                            }
+                                        }}
+                                        onInput={(e) => {
+                                            // Solo permitir números y un punto decimal
+                                            e.currentTarget.value = e.currentTarget.value.replace(/[^0-9.]/g, '');
+                                        }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const input = document.getElementById('custom-duration-input') as HTMLInputElement;
+                                        if (input) {
+                                            const val = parseFloat(input.value);
+                                            if (!isNaN(val) && val > 0) {
+                                                handleDurationSelect(val * 60);
+                                            }
+                                        }
+                                    }}
+                                    className="px-6 py-3 bg-brand text-white text-sm font-bold uppercase tracking-wider rounded-xl hover:bg-blue-600 transition-all shadow-md shadow-brand/20"
+                                >
+                                    Aplicar
+                                </button>
                             </div>
                         </motion.div>
                     </motion.div>
