@@ -1660,6 +1660,28 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
     const [isSavingOrdenVenta, setIsSavingOrdenVenta] = useState(false);
     const [isSavingTipoSolicitud, setIsSavingTipoSolicitud] = useState(false);
     const [tiposSolicitud, setTiposSolicitud] = useState<string[]>([]);
+    const [usuarioCierre, setUsuarioCierre] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (registro?.consecutivo && (registro.cerrada || registro.estado === 'Cerrado')) {
+            const fetchUltimoComentario = async () => {
+                const { data } = await supabase
+                    .from('Comentarios_RegistroMAC')
+                    .select('Usuarios!fk_autor(nombres, apellidos)')
+                    .eq('numero_radicado', registro.consecutivo)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (data?.Usuarios) {
+                    const usr: any = Array.isArray(data.Usuarios) ? data.Usuarios[0] : data.Usuarios;
+                    if (usr) {
+                        setUsuarioCierre(`${usr.nombres || ''} ${usr.apellidos || ''}`.trim());
+                    }
+                }
+            };
+            fetchUltimoComentario();
+        }
+    }, [registro?.consecutivo, registro?.cerrada, registro?.estado]);
 
     useEffect(() => {
         const fetchTipos = async () => {
@@ -1790,6 +1812,10 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                     <InfoField label="Consecutivo" value={registro.consecutivo || 'N/A'} icon={Hash} />
                     <InfoField label="Fecha de Solicitud" value={dateStr} icon={Calendar} />
                     <InfoField label="Solicitado Por" value={tratadoPor} icon={UserCog} />
+                    
+                    {(registro.cerrada || registro.estado === 'Cerrado') && usuarioCierre && (
+                        <InfoField label="Cerrado Por" value={usuarioCierre} icon={ShieldCheck} />
+                    )}
                     
                     <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
                         <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">

@@ -1117,7 +1117,7 @@ function ObservacionesTab({ service, refreshTrigger, onAddComment, currentUser }
             .from('query_comentarios')
             .select('*')
             .eq('servicio_id', service.id)
-            .order('created_at', { ascending: false });
+            .order('id', { ascending: false });
 
         if (error) {
             console.error('Error fetching comentarios:', error);
