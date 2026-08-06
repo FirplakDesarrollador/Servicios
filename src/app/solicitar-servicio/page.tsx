@@ -83,7 +83,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
     const [showBuscadorClientes, setShowBuscadorClientes] = useState(false);
     const [showBuscadorClienteFinal, setShowBuscadorClienteFinal] = useState(false);
     const [showBuscadorProductos, setShowBuscadorProductos] = useState(false);
-    const [showBuscadorRepuestos, setShowBuscadorRepuestos] = useState(false);
+    const [activeBuscadorRepuestosTarget, setActiveBuscadorRepuestosTarget] = useState<'global' | number | null>(null);
     const [showEditSala, setShowEditSala] = useState(false);
     const [showEditClienteFinal, setShowEditClienteFinal] = useState(false);
 
@@ -595,7 +595,11 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 } : null,
                 productos: productosSeleccionados.length > 0 ? productosSeleccionados.map(p => ({
                     producto_id: p.id,
-                    cantidad: p.cantidad || 1
+                    cantidad: p.cantidad || 1,
+                    repuestos: p.repuestos?.length > 0 ? p.repuestos.map((r: any) => ({
+                        repuesto_id: r.id,
+                        cantidad: r.cantidad || 1
+                    })) : null
                 })) : null,
                 repuestos: repuestosSeleccionados.length > 0 ? repuestosSeleccionados.map(r => ({
                     repuesto_id: r.id,
@@ -952,49 +956,125 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                                 {productosSeleccionados.map((prod, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group gap-4">
-                                        <div className="flex flex-col flex-1 min-w-0">
-                                            <span className="text-[10px] font-black text-brand uppercase tracking-wider">{prod.sku}</span>
-                                            <span className="text-xs font-bold text-slate-700 uppercase leading-tight">{prod.nombre}</span>
-                                            {(prod.color_base || prod.color_mueble) && (
-                                                <span className="text-[9px] text-slate-400 font-medium uppercase mt-1">
-                                                    {prod.color_base && `Base: ${prod.color_base}`}
-                                                    {prod.color_base && prod.color_mueble && ' | '}
-                                                    {prod.color_mueble && `Mueble: ${prod.color_mueble}`}
+                                    <div key={idx} className="flex flex-col p-4 bg-slate-50 rounded-2xl border border-slate-100 group gap-4">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex flex-col flex-1 min-w-0">
+                                                <span className="text-[10px] font-black text-brand uppercase tracking-wider">{prod.sku}</span>
+                                                <span className="text-xs font-bold text-slate-700 uppercase leading-tight">{prod.nombre}</span>
+                                                {(prod.color_base || prod.color_mueble) && (
+                                                    <span className="text-[9px] text-slate-400 font-medium uppercase mt-1">
+                                                        {prod.color_base && `Base: ${prod.color_base}`}
+                                                        {prod.color_base && prod.color_mueble && ' | '}
+                                                        {prod.color_mueble && `Mueble: ${prod.color_mueble}`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="flex items-center bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+                                                <button 
+                                                    onClick={() => {
+                                                        const newQty = Math.max(1, (prod.cantidad || 1) - 1);
+                                                        setProductosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                    }}
+                                                    className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                                >
+                                                    <Minus className="w-3.5 h-3.5" />
+                                                </button>
+                                                <span className="px-3 text-xs font-black text-brand min-w-[2rem] text-center">
+                                                    {prod.cantidad || 1}
                                                 </span>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="flex items-center bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
-                                            <button 
-                                                onClick={() => {
-                                                    const newQty = Math.max(1, (prod.cantidad || 1) - 1);
-                                                    setProductosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
-                                                }}
-                                                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                                <button 
+                                                    onClick={() => {
+                                                        const newQty = (prod.cantidad || 1) + 1;
+                                                        setProductosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
+                                                    }}
+                                                    className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                onClick={() => setProductosSeleccionados(prev => prev.filter((_, i) => i !== idx))}
+                                                className="p-2 text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
                                             >
-                                                <Minus className="w-3.5 h-3.5" />
-                                            </button>
-                                            <span className="px-3 text-xs font-black text-brand min-w-[2rem] text-center">
-                                                {prod.cantidad || 1}
-                                            </span>
-                                            <button 
-                                                onClick={() => {
-                                                    const newQty = (prod.cantidad || 1) + 1;
-                                                    setProductosSeleccionados(prev => prev.map((p, i) => i === idx ? { ...p, cantidad: newQty } : p));
-                                                }}
-                                                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
 
-                                        <button
-                                            onClick={() => setProductosSeleccionados(prev => prev.filter((_, i) => i !== idx))}
-                                            className="p-2 text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {/* Repuestos del producto */}
+                                        <div className="pt-3 border-t border-slate-200">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <Settings className="w-3 h-3" />
+                                                    Repuestos ({prod.repuestos?.length || 0})
+                                                </span>
+                                                <button
+                                                    onClick={() => setActiveBuscadorRepuestosTarget(idx)}
+                                                    className="text-[9px] font-black uppercase text-brand hover:text-brand/80 transition-colors flex items-center gap-1 bg-brand/5 px-2 py-1 rounded-full"
+                                                >
+                                                    <Plus className="w-2.5 h-2.5" /> Añadir Repuesto
+                                                </button>
+                                            </div>
+                                            {prod.repuestos?.length > 0 && (
+                                                <div className="flex flex-col gap-2">
+                                                    {prod.repuestos.map((rep: any, repIdx: number) => (
+                                                        <div key={repIdx} className="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
+                                                            <div className="flex flex-col flex-1 min-w-0">
+                                                                <span className="text-[9px] font-black text-indigo-600 uppercase truncate">{rep.sku}</span>
+                                                                <span className="text-[10px] font-medium text-slate-600 truncate">{rep.nombre}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex items-center bg-slate-50 rounded-lg border border-slate-100 p-0.5">
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            const newQty = Math.max(1, (rep.cantidad || 1) - 1);
+                                                                            setProductosSeleccionados(prev => prev.map((p, i) => {
+                                                                                if (i !== idx) return p;
+                                                                                const newReps = [...(p.repuestos || [])];
+                                                                                newReps[repIdx] = { ...newReps[repIdx], cantidad: newQty };
+                                                                                return { ...p, repuestos: newReps };
+                                                                            }));
+                                                                        }}
+                                                                        className="p-1 hover:bg-slate-200 rounded text-slate-400"
+                                                                    >
+                                                                        <Minus className="w-2.5 h-2.5" />
+                                                                    </button>
+                                                                    <span className="px-2 text-[10px] font-bold text-slate-700 min-w-[1.5rem] text-center">
+                                                                        {rep.cantidad || 1}
+                                                                    </span>
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            const newQty = (rep.cantidad || 1) + 1;
+                                                                            setProductosSeleccionados(prev => prev.map((p, i) => {
+                                                                                if (i !== idx) return p;
+                                                                                const newReps = [...(p.repuestos || [])];
+                                                                                newReps[repIdx] = { ...newReps[repIdx], cantidad: newQty };
+                                                                                return { ...p, repuestos: newReps };
+                                                                            }));
+                                                                        }}
+                                                                        className="p-1 hover:bg-slate-200 rounded text-slate-400"
+                                                                    >
+                                                                        <Plus className="w-2.5 h-2.5" />
+                                                                    </button>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setProductosSeleccionados(prev => prev.map((p, i) => {
+                                                                            if (i !== idx) return p;
+                                                                            return { ...p, repuestos: (p.repuestos || []).filter((_: any, ri: number) => ri !== repIdx) };
+                                                                        }));
+                                                                    }}
+                                                                    className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1019,7 +1099,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                                             Repuestos / Kits ({repuestosSeleccionados.length})
                                         </h3>
                                         <button
-                                            onClick={() => setShowBuscadorRepuestos(true)}
+                                            onClick={() => setActiveBuscadorRepuestosTarget('global')}
                                             className="bg-indigo-600 text-white text-[10px] font-black uppercase px-4 py-1.5 rounded-full shadow-md hover:scale-105 transition-all flex items-center gap-1.5"
                                         >
                                             <Plus className="w-3 h-3" />
@@ -1259,17 +1339,40 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         onClose={() => setShowBuscadorProductos(false)}
                     />
                 )}
-                {showBuscadorRepuestos && (
+                {activeBuscadorRepuestosTarget !== null && (
                     <BuscadorRepuestos
-                        repuestosSeleccionados={repuestosSeleccionados}
-                        onAdd={(rep) => setRepuestosSeleccionados(prev => [...prev, { ...rep, cantidad: 1 }])}
-                        onRemove={(index) => setRepuestosSeleccionados(prev => prev.filter((_, i) => i !== index))}
-                        onUpdateQuantity={(index, quantity) => {
-                            setRepuestosSeleccionados(prev => prev.map((item, i) =>
-                                i === index ? { ...item, cantidad: quantity } : item
-                            ));
+                        repuestosSeleccionados={activeBuscadorRepuestosTarget === 'global' ? repuestosSeleccionados : (productosSeleccionados[activeBuscadorRepuestosTarget as number].repuestos || [])}
+                        onAdd={(rep) => {
+                            if (activeBuscadorRepuestosTarget === 'global') {
+                                setRepuestosSeleccionados(prev => [...prev, { ...rep, cantidad: 1 }]);
+                            } else {
+                                setProductosSeleccionados(prev => prev.map((p, i) => {
+                                    if (i !== activeBuscadorRepuestosTarget) return p;
+                                    return { ...p, repuestos: [...(p.repuestos || []), { ...rep, cantidad: 1 }] };
+                                }));
+                            }
                         }}
-                        onClose={() => setShowBuscadorRepuestos(false)}
+                        onRemove={(index) => {
+                            if (activeBuscadorRepuestosTarget === 'global') {
+                                setRepuestosSeleccionados(prev => prev.filter((_, i) => i !== index));
+                            } else {
+                                setProductosSeleccionados(prev => prev.map((p, i) => {
+                                    if (i !== activeBuscadorRepuestosTarget) return p;
+                                    return { ...p, repuestos: (p.repuestos || []).filter((_: any, ri: number) => ri !== index) };
+                                }));
+                            }
+                        }}
+                        onUpdateQuantity={(index, quantity) => {
+                            if (activeBuscadorRepuestosTarget === 'global') {
+                                setRepuestosSeleccionados(prev => prev.map((item, i) => i === index ? { ...item, cantidad: quantity } : item));
+                            } else {
+                                setProductosSeleccionados(prev => prev.map((p, i) => {
+                                    if (i !== activeBuscadorRepuestosTarget) return p;
+                                    return { ...p, repuestos: (p.repuestos || []).map((r: any, ri: number) => ri === index ? { ...r, cantidad: quantity } : r) };
+                                }));
+                            }
+                        }}
+                        onClose={() => setActiveBuscadorRepuestosTarget(null)}
                     />
                 )}
                 {showEditSala && (
