@@ -463,10 +463,10 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 if (clienteFinalSeleccionado.zona_id) {
                     zoneId = clienteFinalSeleccionado.zona_id;
                 } else if (clienteFinalSeleccionado.ciudad_id) {
-                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).maybeSingle();
+                    const { data: cityData } = await supabase.from('Ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 } else if (clienteFinalSeleccionado.ciudad) {
-                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`).limit(1).maybeSingle();
+                    const { data: cityData } = await supabase.from('Ciudades').select('zona_id').ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`).limit(1).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 }
             }
@@ -477,7 +477,7 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 let ciudadId = null;
                 if (clienteFinalSeleccionado.ciudad) {
                     const { data: cityData } = await supabase
-                        .from('ciudades')
+                        .from('Ciudades')
                         .select('id, zona_id')
                         .ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`)
                         .limit(1)
@@ -487,6 +487,10 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         if (!zoneId && cityData.zona_id) {
                             zoneId = cityData.zona_id;
                         }
+                    } else if (clienteFinalSeleccionado.ciudad) {
+                        alert(`No se encontró la ciudad "${clienteFinalSeleccionado.ciudad}" en el sistema. Por favor corrija el nombre o agréguela en la base de datos.`);
+                        setIsSaving(false);
+                        return;
                     }
                 }
 
@@ -514,10 +518,10 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 if (clienteSeleccionado.zona_id) {
                     zoneId = clienteSeleccionado.zona_id;
                 } else if (clienteSeleccionado.ciudad_id) {
-                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).maybeSingle();
+                    const { data: cityData } = await supabase.from('Ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 } else if (clienteSeleccionado.ciudad) {
-                    const { data: cityData } = await supabase.from('ciudades').select('zona_id').ilike('ciudad', `%${clienteSeleccionado.ciudad}%`).limit(1).maybeSingle();
+                    const { data: cityData } = await supabase.from('Ciudades').select('zona_id').ilike('ciudad', `%${clienteSeleccionado.ciudad}%`).limit(1).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 }
             }
@@ -557,10 +561,9 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                 finalCoordinadorId = 26; // Coordinador MAC por defecto
             }
 
-            // 3. Insert Servicio
-            const { data: servicioData, error: servicioError } = await supabase
-                .from('Servicios')
-                .insert({
+            // 3. Crear payload unificado para el RPC y ejecutarlo
+            const payload = {
+                servicio: {
                     consecutivo: consecutivo,
                     numero_de_pedido: numeroPedido,
                     comercial_id: currentUser?.id,
@@ -583,59 +586,27 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         : null,
                     service_parent_id: parentServiceId ? parseInt(parentServiceId) : null,
                     soportes_pago: hiddenUrls
-                })
-                .select()
-                .single();
-
-            if (servicioError) throw servicioError;
-
-            // 4, 5 & 6. Execute remaining inserts in parallel for better performance
-            const postCreationTasks = [];
-
-            // Add Comment task
-            if (observaciones || allUrls.length > 0) {
-                postCreationTasks.push(
-                    supabase.from('Comentarios').insert({
-                        servicio_id: servicioData.id,
-                        contenido: observaciones || 'Anexos adjuntos',
-                        documentos: allUrls,
-                        usuario_id: currentUser?.id,
-                        tipo: 'solicitud_servicio'
-                    })
-                );
-            }
-
-            // Add Products task
-            if (productosSeleccionados.length > 0) {
-                const productosToInsert = productosSeleccionados.map(p => ({
-                    servicio_id: servicioData.id,
+                },
+                comentario: (observaciones || allUrls.length > 0) ? {
+                    contenido: observaciones || 'Anexos adjuntos',
+                    documentos: allUrls,
+                    usuario_id: currentUser?.id,
+                    tipo: 'solicitud_servicio'
+                } : null,
+                productos: productosSeleccionados.length > 0 ? productosSeleccionados.map(p => ({
                     producto_id: p.id,
                     cantidad: p.cantidad || 1
-                }));
-                postCreationTasks.push(
-                    supabase.from('productos_servicios').insert(productosToInsert)
-                );
-            }
-
-            // Add Repuestos task
-            if (repuestosSeleccionados.length > 0) {
-                const repuestosToInsert = repuestosSeleccionados.map(r => ({
-                    servicio_id: servicioData.id,
+                })) : null,
+                repuestos: repuestosSeleccionados.length > 0 ? repuestosSeleccionados.map(r => ({
                     repuesto_id: r.id,
                     cantidad: r.cantidad || 1
-                }));
-                postCreationTasks.push(
-                    supabase.from('Repuestos_Servicios').insert(repuestosToInsert)
-                );
-            }
+                })) : null
+            };
 
-            // Execute all secondary tasks in parallel
-            if (postCreationTasks.length > 0) {
-                const results = await Promise.all(postCreationTasks);
-                // Check for errors in parallel tasks
-                const taskError = results.find(r => r.error);
-                if (taskError) throw taskError.error;
-            }
+            const { data: servicioData, error: servicioError } = await supabase
+                .rpc('create_service_with_details', { payload });
+
+            if (servicioError) throw servicioError;
 
             alert('Servicio creado correctamente');
             handleClear();

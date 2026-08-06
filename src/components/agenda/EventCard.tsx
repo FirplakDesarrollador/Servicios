@@ -10,12 +10,14 @@ interface Props {
 
 export default function EventCard({ visita, onClick }: Props) {
     const getEventTypeColor = () => {
+        if (!visita.estado) return 'bg-slate-100 border-slate-300 text-slate-600 opacity-70 grayscale'
         if (visita.personal) return 'bg-purple-100 border-purple-300 text-purple-800'
         if (visita.recurrente) return 'bg-blue-100 border-blue-300 text-blue-800'
         return 'bg-emerald-100 border-emerald-300 text-emerald-800'
     }
 
     const getEventTypeBadge = () => {
+        if (!visita.estado) return { icon: Calendar, label: 'Cancelada', color: 'bg-slate-500' }
         if (visita.personal) return { icon: User, label: 'Personal', color: 'bg-purple-500' }
         if (visita.recurrente) return { icon: Repeat, label: 'Recurrente', color: 'bg-blue-500' }
         return { icon: Calendar, label: 'Evento', color: 'bg-emerald-500' }
@@ -32,7 +34,7 @@ export default function EventCard({ visita, onClick }: Props) {
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                     {/* Nombre del evento */}
-                    <h3 className="font-bold text-lg mb-2">{visita.nombre}</h3>
+                    <h3 className={`font-bold text-lg mb-2 ${!visita.estado ? 'line-through text-slate-500' : ''}`}>{visita.nombre}</h3>
 
                     {/* Horario */}
                     {visita.fecha_hora_inicio && (
@@ -52,19 +54,19 @@ export default function EventCard({ visita, onClick }: Props) {
                             {badge.label}
                         </span>
 
-                        {visita.reagendado && (
+                        {visita.estado && visita.reagendado && (
                             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white">
                                 Reagendado
                             </span>
                         )}
 
-                        {visita.ocurriendo && (
+                        {visita.estado && visita.ocurriendo && (
                             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white animate-pulse">
                                 En curso
                             </span>
                         )}
 
-                        {visita.entrega_parcial && (
+                        {visita.estado && visita.entrega_parcial && (
                             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500 text-white">
                                 Entrega parcial
                             </span>

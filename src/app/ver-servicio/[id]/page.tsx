@@ -1901,7 +1901,7 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
         setIsSaving(true);
         try {
             // 1. Desactivar la visita
-            const { error: visitError } = await supabase
+            const { data: visitData, error: visitError } = await supabase
                 .from('Visitas')
                 .update({ 
                     estado: false,
@@ -1909,16 +1909,19 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                     modified_by: currentUser?.id
                 })
                 .eq('servicio_id', service.id)
-                .eq('estado', true);
+                .eq('estado', true)
+                .select('id');
             
             if (visitError) throw visitError;
+            
+            const canceledVisitId = visitData?.[0]?.id || currentVisitId;
 
             // 2. Guardar el comentario
             const { error: commentError } = await supabase
                 .from('Comentarios')
                 .insert([{
                     servicio_id: service.id,
-                    visita_id: currentVisitId,
+                    visita_id: canceledVisitId,
                     contenido: cancelReason,
                     usuario_id: currentUser?.id,
                     tipo: 'motivo_cancelacion_visita'
@@ -2346,30 +2349,31 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                 }
                             };
 
-                            const getCancelFormattedDateTime = (scheduledStart: string | null, realStart: string | null) => {
-                                if (!scheduledStart || !realStart) return 'N/A';
+                            const getCancelFormattedDateTime = (scheduledStart: string | null, scheduledEnd: string | null) => {
+                                if (!scheduledStart || !scheduledEnd) return 'N/A';
                                 try {
                                     const datePart = parseLocalTimestamp(scheduledStart);
-                                    const timePart = parseLocalTimestamp(realStart);
+                                    const timePart = parseLocalTimestamp(scheduledEnd);
                                     if (!datePart || !timePart) return 'N/A';
                                     const dateStr = datePart.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-                                    const timeStr = timePart.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
-                                    return `${dateStr} ${timeStr} - ${timeStr}`;
+                                    const timeStrStart = datePart.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    const timeStrEnd = timePart.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    return `${dateStr} ${timeStrStart} - ${timeStrEnd}`;
                                 } catch {
                                     return 'N/A';
                                 }
                             };
 
-                            const getCancellationDateTime = (realStart: string | null) => {
-                                if (!realStart) return 'N/A';
+                            const getCancellationDateTime = (cancelDate: string | null) => {
+                                if (!cancelDate) return 'No registrada';
                                 try {
-                                    const realDate = parseLocalTimestamp(realStart);
-                                    if (!realDate) return 'N/A';
+                                    const realDate = parseLocalTimestamp(cancelDate);
+                                    if (!realDate) return 'No registrada';
                                     const dateStr = realDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
                                     const timeStr = realDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
                                     return `${dateStr} ${timeStr}`;
                                 } catch {
-                                    return 'N/A';
+                                    return 'No registrada';
                                 }
                             };
 
@@ -2383,9 +2387,9 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                                                 <div>
-                                                    <p className="font-bold text-slate-700">Fecha y hora:</p>
+                                                    <p className="font-bold text-slate-700">Fecha y hora programada:</p>
                                                     <p className="text-slate-600 font-medium mt-1">
-                                                        {getCancelFormattedDateTime(visit.fecha_hora_inicio, visit.fecha_hora_inicio_real)}
+                                                        {getCancelFormattedDateTime(visit.fecha_hora_inicio, visit.fecha_hora_fin)}
                                                     </p>
                                                 </div>
                                                 <div>
@@ -2394,17 +2398,22 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-slate-700">Fecha y hora cancelación:</p>
-                                                    <p className="text-slate-600 font-medium mt-1">{getCancellationDateTime(visit.fecha_hora_inicio_real)}</p>
+                                                    <p className="text-slate-600 font-medium mt-1">{getCancellationDateTime(visit.motivo_cancelacion_fecha)}</p>
                                                 </div>
-
                                                 <div>
                                                     <p className="font-bold text-slate-700">Cancelado por:</p>
                                                     <p className="text-slate-600 font-medium mt-1">{visit.modificado_por || 'N/A'}</p>
                                                 </div>
-                                                <div className="md:col-span-2">
-                                                    <p className="font-bold text-slate-700">Motivo cancelación:</p>
-                                                    <p className="text-slate-600 font-medium mt-1">{visit.motivo_cancelacion || 'N/A'}</p>
-                                                </div>
+                                            </div>
+                                            
+                                            <div className="mt-2 bg-red-50 border border-red-100 rounded-2xl p-4">
+                                                <p className="font-black text-red-800 text-xs uppercase tracking-wider mb-1 flex items-center gap-2">
+                                                    <MessageSquare className="w-4 h-4" />
+                                                    Motivo de la cancelación:
+                                                </p>
+                                                <p className="text-red-900 font-medium text-sm whitespace-pre-wrap leading-relaxed">
+                                                    {visit.motivo_cancelacion || 'N/A'}
+                                                </p>
                                             </div>
                                         </>
                                     ) : (

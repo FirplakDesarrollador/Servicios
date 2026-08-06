@@ -89,10 +89,16 @@ export default function FormularioClientePage() {
             if (preciosData) {
                 console.log('Precios loaded:', preciosData.length);
                 setPreciosZonas(preciosData);
+            }
 
-                // Extract unique cities from precioszonas
-                const ciudadesUnicas = [...new Set(preciosData.map(item => item.Ciudad || item.ciudad))].filter(Boolean);
-                setCiudades(ciudadesUnicas.map((ciudad, index) => ({ id: index, ciudad })));
+            // Load official cities from query_ciudades
+            const { data: ciudadesData } = await supabase
+                .from('query_ciudades')
+                .select('id, ciudad')
+                .order('ciudad');
+                
+            if (ciudadesData) {
+                setCiudades(ciudadesData);
             }
 
             // Load grupos from vw_zonas_medidas_descripciones view
