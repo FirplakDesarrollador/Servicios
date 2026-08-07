@@ -6,10 +6,14 @@ import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 interface Props {
     data: RegistroMAC[];
     prevData: RegistroMAC[]; // For variation calculations if needed
+    dataForDefectos?: RegistroMAC[];
+    dataForResponsables?: RegistroMAC[];
     filters: FilterState;
     razones: any[];
     defectosRef?: any[];
     responsablesRef?: any[];
+    setFilters?: any;
+    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
 }
 
 const COLORS = ['#254153', '#749094', '#e8e2d5', '#f5f1ea', '#d3b99f', '#c96a4e', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
@@ -53,7 +57,7 @@ const SingleDataPie = ({ data, color }: { data: any, color: string }) => (
     </div>
 );
 
-const CleanDonutCard = ({ title, data, colors }: { title: string, data: any[], colors: string[] }) => {
+const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle }: { title: string, data: any[], colors: string[], filterKey: string, onFilterToggle: any }) => {
     if (!data || data.length === 0) return null;
 
     if (data.length === 1) {
@@ -87,6 +91,8 @@ const CleanDonutCard = ({ title, data, colors }: { title: string, data: any[], c
                                 paddingAngle={2}
                                 isAnimationActive={true}
                                 stroke="none"
+                                onClick={(data, index, e) => onFilterToggle(filterKey, data.payload?.nombre || data.nombre || data.name, e)}
+                                className="cursor-pointer"
                             >
                                 {data.map((entry, index) => <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />)}
                             </Pie>
@@ -99,7 +105,11 @@ const CleanDonutCard = ({ title, data, colors }: { title: string, data: any[], c
                 <div className="w-[40%] flex flex-col justify-center pl-2">
                     <div className="flex flex-col space-y-3 w-full">
                         {data.map((item, index) => (
-                            <div key={index} className="flex items-center justify-between text-xs w-full">
+                            <div 
+                                key={index} 
+                                onClick={(e) => onFilterToggle(filterKey, item.nombre, e)} 
+                                className="flex items-center justify-between text-xs w-full cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors"
+                            >
                                 <div className="flex items-center gap-2 truncate pr-2 flex-1 min-w-0">
                                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[index % colors.length] }}></div>
                                     <span className="font-semibold text-gray-700 truncate" title={item.nombre}>{item.nombre}</span>
@@ -118,10 +128,12 @@ const CleanDonutCard = ({ title, data, colors }: { title: string, data: any[], c
 };
 
 // ─── Product Table ───────────────────────────────────────────────────────────
-const ProductTable = ({ title, data, maxHeight = 440 }: {
+const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle }: {
     title: string;
     data: Array<{ nombre: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
     maxHeight?: number;
+    filterKey: string;
+    onFilterToggle: any;
 }) => {
     const [query, setQuery] = React.useState('');
 
@@ -185,7 +197,11 @@ const ProductTable = ({ title, data, maxHeight = 440 }: {
                         </thead>
                         <tbody>
                             {filtered.map((item, i) => (
-                                <tr key={i} className={`group hover:bg-blue-50/40 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}>
+                                <tr 
+                                    key={i} 
+                                    onClick={(e) => onFilterToggle(filterKey, item.nombre, e)}
+                                    className={`group hover:bg-blue-50/40 transition-colors cursor-pointer ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}
+                                >
                                     <td className="px-3 py-2.5 text-xs font-medium text-gray-700 leading-snug border-b border-gray-100">{item.nombre}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{item.Registros}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{item['Productos Afectados']}</td>
@@ -202,8 +218,9 @@ const ProductTable = ({ title, data, maxHeight = 440 }: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Top Clientes Card ────────────────────────────────────────────────────────
-const TopClientesCard = ({ data }: {
+const TopClientesCard = ({ data, onFilterToggle }: {
     data: Array<{ Cliente: string; Registros: number; Productos: number; Participacion: string }>;
+    onFilterToggle: any;
 }) => {
     const [q, setQ] = React.useState('');
     const filtered = q.trim()
@@ -252,7 +269,11 @@ const TopClientesCard = ({ data }: {
                         </thead>
                         <tbody>
                             {filtered.map((c, i) => (
-                                <tr key={i} className={`group hover:bg-blue-50/40 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}>
+                                <tr 
+                                    key={i} 
+                                    onClick={(e) => onFilterToggle('clientes', c.Cliente, e)}
+                                    className={`group hover:bg-blue-50/40 transition-colors cursor-pointer ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}
+                                >
                                     <td className="px-3 py-2.5 text-xs font-medium text-gray-700 leading-snug border-b border-gray-100">{c.Cliente}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{c.Registros}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{c.Productos}</td>
@@ -268,7 +289,7 @@ const TopClientesCard = ({ data }: {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function GeneralMac({ data, prevData, filters, razones, defectosRef = [], responsablesRef = [] }: Props) {
+export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [] }: Props) {
     // KPIs
     const totalNovedades = data.length;
     const abiertas = data.filter(d => d.estado === 'Abierto').length;
@@ -383,8 +404,7 @@ export default function GeneralMac({ data, prevData, filters, razones, defectosR
                     Participacion: ((regs / totalRegistros) * 100).toFixed(1) + '%'
                 };
             })
-            .sort((a, b) => b.Registros - a.Registros)
-            .slice(0, 10);
+            .sort((a, b) => b.Registros - a.Registros);
     }, [data, razones, defectosRef]);
 
     const responsableProblemaStats = useMemo(() => {
@@ -433,8 +453,7 @@ export default function GeneralMac({ data, prevData, filters, razones, defectosR
                     Participacion: ((regs / totalRegistros) * 100).toFixed(1) + '%'
                 };
             })
-            .sort((a, b) => b.Registros - a.Registros)
-            .slice(0, 10);
+            .sort((a, b) => b.Registros - a.Registros);
     }, [data, responsablesRef]);
 
     const productosNovedadStats = useMemo(() => getProductosStats('productos_novedad'), [data]);
@@ -545,63 +564,115 @@ export default function GeneralMac({ data, prevData, filters, razones, defectosR
                 </div>
 
                 {/* Chart 5: Tipo de Problemas */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Tipo de Problemas</h3>
-                    <div className="h-[400px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={tipoProblemaStats} layout="vertical" margin={{ top: 20, right: 30, left: -25, bottom: 10 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                                <YAxis dataKey="nombre" type="category" width={115} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                                <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                                <Bar dataKey="Registros" fill="#749094" radius={[0, 4, 4, 0]} maxBarSize={25}>
-                                    <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 10 }} />
-                                </Bar>
-                                <Bar dataKey="Productos Afectados" fill="#c96a4e" radius={[0, 4, 4, 0]} maxBarSize={25} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[480px]">
+                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider shrink-0">Tipo de Problemas</h3>
+                    <div className="flex-1 overflow-y-auto pr-2 min-h-0 custom-scrollbar">
+                        <div style={{ height: `${Math.max(400, tipoProblemaStats.length * 40)}px` }}>
+                            <ResponsiveContainer width="99%" height="100%">
+                                <BarChart data={tipoProblemaStats} layout="vertical" margin={{ top: 10, right: 20, left: -25, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
+                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
+                                    <RechartsTooltip 
+                                        cursor={{ fill: '#f9fafb' }} 
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '8px 12px' }} 
+                                        labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px', fontSize: '11px' }}
+                                        itemStyle={{ fontSize: '10px', padding: '2px 0' }}
+                                    />
+                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                                    <Bar 
+                                        dataKey="Registros" 
+                                        radius={[0, 4, 4, 0]} 
+                                        maxBarSize={16}
+                                        onClick={(data, index, e) => onFilterToggle('defectos', data.payload?.nombre || data.nombre, e)}
+                                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
+                                        {tipoProblemaStats.map((entry, index) => (
+                                            <Cell key={`cell-reg-${index}`} fill="#749094" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(entry.nombre) ? 1 : 0.25} />
+                                        ))}
+                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 9 }} />
+                                    </Bar>
+                                    <Bar 
+                                        dataKey="Productos Afectados" 
+                                        radius={[0, 4, 4, 0]} 
+                                        maxBarSize={16} 
+                                        onClick={(data, index, e) => onFilterToggle('defectos', data.payload?.nombre || data.nombre, e)}
+                                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
+                                        {tipoProblemaStats.map((entry, index) => (
+                                            <Cell key={`cell-prod-${index}`} fill="#c96a4e" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(entry.nombre) ? 1 : 0.25} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
 
                 {/* Chart: Responsable del Problema */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Responsable del Problema</h3>
-                    <div className="h-[400px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={responsableProblemaStats} layout="vertical" margin={{ top: 20, right: 30, left: -25, bottom: 10 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                                <YAxis dataKey="nombre" type="category" width={115} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                                <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                                <Bar dataKey="Registros" fill="#749094" radius={[0, 4, 4, 0]} maxBarSize={25}>
-                                    <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 10 }} />
-                                </Bar>
-                                <Bar dataKey="Productos Afectados" fill="#c96a4e" radius={[0, 4, 4, 0]} maxBarSize={25} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[480px]">
+                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider shrink-0">Responsable del Problema</h3>
+                    <div className="flex-1 overflow-y-auto pr-2 min-h-0 custom-scrollbar">
+                        <div style={{ height: `${Math.max(400, responsableProblemaStats.length * 40)}px` }}>
+                            <ResponsiveContainer width="99%" height="100%">
+                                <BarChart data={responsableProblemaStats} layout="vertical" margin={{ top: 10, right: 20, left: -25, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
+                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
+                                    <RechartsTooltip 
+                                        cursor={{ fill: '#f9fafb' }} 
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '8px 12px' }} 
+                                        labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px', fontSize: '11px' }}
+                                        itemStyle={{ fontSize: '10px', padding: '2px 0' }}
+                                    />
+                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                                    <Bar 
+                                        dataKey="Registros" 
+                                        radius={[0, 4, 4, 0]} 
+                                        maxBarSize={16}
+                                        onClick={(data, index, e) => onFilterToggle('responsables', data.payload?.nombre || data.nombre, e)}
+                                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
+                                        {responsableProblemaStats.map((entry, index) => (
+                                            <Cell key={`cell-reg-${index}`} fill="#749094" fillOpacity={filters.responsables.length === 0 || filters.responsables.includes(entry.nombre) ? 1 : 0.25} />
+                                        ))}
+                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 9 }} />
+                                    </Bar>
+                                    <Bar 
+                                        dataKey="Productos Afectados" 
+                                        radius={[0, 4, 4, 0]} 
+                                        maxBarSize={16} 
+                                        onClick={(data, index, e) => onFilterToggle('responsables', data.payload?.nombre || data.nombre, e)}
+                                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
+                                        {responsableProblemaStats.map((entry, index) => (
+                                            <Cell key={`cell-prod-${index}`} fill="#c96a4e" fillOpacity={filters.responsables.length === 0 || filters.responsables.includes(entry.nombre) ? 1 : 0.25} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
             </div>
 
                 <div className="xl:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Chart 6: Productos de Compra */}
-                    <ProductTable title="Productos de Compra" data={productosCompraStats} maxHeight={440} />
+                    <ProductTable title="Productos de Compra" data={productosCompraStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} />
 
                     {/* Chart 7: Productos con Novedad */}
-                    <ProductTable title="Productos con Novedad" data={productosNovedadStats} maxHeight={440} />
+                    <ProductTable title="Productos con Novedad" data={productosNovedadStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} />
                 </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Ciudades */}
-                <CleanDonutCard title="Top Ciudades" data={ciudadesData} colors={COLORS} />
+                <CleanDonutCard title="Top Ciudades" data={ciudadesData} colors={COLORS} filterKey="ciudades" onFilterToggle={onFilterToggle} />
 
                 {/* Zonas */}
-                <CleanDonutCard title="Top Zonas" data={zonasData} colors={COLORS.slice(3).concat(COLORS.slice(0,3))} />
+                <CleanDonutCard title="Top Zonas" data={zonasData} colors={COLORS.slice(3).concat(COLORS.slice(0,3))} filterKey="zonas" onFilterToggle={onFilterToggle} />
 
                 {/* Clientes */}
-                <TopClientesCard data={clientesData} />
+                <TopClientesCard data={clientesData} onFilterToggle={onFilterToggle} />
             </div>
         </div>
     );

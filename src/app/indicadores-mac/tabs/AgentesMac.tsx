@@ -8,6 +8,8 @@ interface Props {
     data: RegistroMAC[];
     prevData: RegistroMAC[];
     filters: FilterState;
+    setFilters?: any;
+    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
 }
 
 const COLORS = {
