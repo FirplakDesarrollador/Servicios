@@ -47,7 +47,8 @@ export default function ModalCerrarServicio({ isOpen, onClose, service, onSucces
                 .update({
                     estado: false,
                     razon_cierre: razonCierre,
-                    fecha_cierre: new Date().toISOString()
+                    fecha_cierre: new Date().toISOString(),
+                    cerrado_por: currentUser?.id
                 })
                 .eq('id', service.id);
 

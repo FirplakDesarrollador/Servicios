@@ -936,6 +936,9 @@ function InformacionTab({
                         />
                         <InfoField label="Coordinador" value={service.coordinador_nombre} icon={UserCheck} />
                         <InfoField label="Zona de Atención" value={service.consumidor_zona || service.ubicacion_zona || 'Sin asignar'} icon={MapPin} />
+                        {service.estado === false && (
+                            <InfoField label="Cerrado Por" value={service.nombre_cerrado_por || 'Sistema'} icon={UserCheck} />
+                        )}
                     </InfoSection>
 
                     {/* Canal Data Section */}
