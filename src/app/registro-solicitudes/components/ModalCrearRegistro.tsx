@@ -19,35 +19,44 @@ export default function ModalCrearRegistro({
 }) {
     const [isSaving, setIsSaving] = useState(false);
     
+    // Helper para UUID seguro
+    const getUUID = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    };
+
     // Generar consecutivo basado en el último ID de la base de datos
     const [consecutivoStr, setConsecutivoStr] = useState('Cargando...');
 
-    useEffect(() => {
-        const fetchNextId = async () => {
-            try {
-                // Buscamos el último consecutivo real (que empiece con ceros)
-                const { data } = await supabase
-                    .from('registro_solicitudes')
-                    .select('consecutivo')
-                    .like('consecutivo', 'RAD-000%')
-                    .order('consecutivo', { ascending: false })
-                    .limit(1);
-                
-                let nextId = 100; // Comenzar desde el 100 como solicitó el usuario
-                if (data && data.length > 0) {
-                    const lastConsecutivo = data[0].consecutivo;
-                    const num = parseInt(lastConsecutivo.replace('RAD-', ''), 10);
-                    if (!isNaN(num)) {
-                        nextId = num + 1;
-                    }
+    const fetchNextId = async () => {
+        try {
+            // Buscamos el último consecutivo real (que empiece con ceros)
+            const { data } = await supabase
+                .from('registro_solicitudes')
+                .select('consecutivo')
+                .like('consecutivo', 'RAD-000%')
+                .order('consecutivo', { ascending: false })
+                .limit(1);
+            
+            let nextId = 100; // Comenzar desde el 100 como solicitó el usuario
+            if (data && data.length > 0) {
+                const lastConsecutivo = data[0].consecutivo;
+                const num = parseInt(lastConsecutivo.replace('RAD-', ''), 10);
+                if (!isNaN(num)) {
+                    nextId = num + 1;
                 }
-                setConsecutivoStr(`RAD-${String(nextId).padStart(6, '0')}`);
-            } catch (e) {
-                // Fallback si falla
-                setConsecutivoStr(`RAD-${Math.floor(100000 + Math.random() * 900000)}`);
             }
-        };
-        fetchNextId();
+            return `RAD-${String(nextId).padStart(6, '0')}`;
+        } catch (e) {
+            // Fallback si falla
+            return `RAD-${Math.floor(100000 + Math.random() * 900000)}`;
+        }
+    };
+
+    useEffect(() => {
+        fetchNextId().then(val => setConsecutivoStr(val));
     }, []);
 
     // Form fields
@@ -164,34 +173,53 @@ export default function ModalCrearRegistro({
                 }
             }
 
-            // Mapeamos los arrays eliminando información innecesaria y guardando id, sku, nombre, cantidad
-            const formatProducts = (prods: any[]) => prods.map(p => ({
-                id: p.id,
-                sku: p.sku,
-                nombre: p.nombre || p.producto_descripcion,
+            // Preservar todos los campos del producto sin descartar propiedades
+            const formatProducts = (prods: any[]) => (prods || []).map(p => ({
+                ...p,
+                id: p.id || p.producto_id,
+                sku: p.sku || p.codigo || p.referencia || '',
+                nombre: p.nombre || p.descripcion || p.producto_descripcion || '',
                 cantidad: p.cantidad || 1
             }));
 
-            const { error } = await supabase
+            // Determinar consecutivo a usar
+            let finalConsecutivo = consecutivoStr;
+            if (!finalConsecutivo || finalConsecutivo === 'Cargando...') {
+                finalConsecutivo = await fetchNextId();
+                setConsecutivoStr(finalConsecutivo);
+            }
+
+            const payload: any = {
+                consecutivo: finalConsecutivo,
+                orden_venta: ordenVenta ? ordenVenta.trim() : null,
+                tipo_solicitud: tipoSolicitud,
+                canal_venta: canalVenta,
+                cliente_id: cliente ? cliente.id : null,
+                cliente_nombre: cliente ? (cliente.cliente_nombre || cliente.nombre) : null,
+                cliente_final_id: clienteFinal ? clienteFinal.id : null,
+                cliente_final_nombre: clienteFinal ? (clienteFinal.contacto || clienteFinal.nombre_contacto || clienteFinal.cedula) : null,
+                productos_compra: formatProducts(productosCompra),
+                productos_novedad: formatProducts(productosNovedad),
+                comentarios: comentarios,
+                tratado_por_id: tratadoPorId,
+                asesor_mac_id: asesorMacId,
+                estado: 'Abierto',
+                prioridad: 'Media',
+                servicio_creado_consecutivo: servicioPreEnlazado || null
+            };
+
+            let { error } = await supabase
                 .from('registro_solicitudes')
-                .insert({
-                    consecutivo: consecutivoStr,
-                    orden_venta: ordenVenta ? parseInt(ordenVenta) : null,
-                    tipo_solicitud: tipoSolicitud,
-                    canal_venta: canalVenta,
-                    cliente_id: cliente ? cliente.id : null,
-                    cliente_nombre: cliente ? (cliente.cliente_nombre || cliente.nombre) : null,
-                    cliente_final_id: clienteFinal ? clienteFinal.id : null,
-                    cliente_final_nombre: clienteFinal ? (clienteFinal.contacto || clienteFinal.nombre_contacto || clienteFinal.cedula) : null,
-                    productos_compra: formatProducts(productosCompra),
-                    productos_novedad: formatProducts(productosNovedad),
-                    comentarios: comentarios,
-                    tratado_por_id: tratadoPorId,
-                    asesor_mac_id: asesorMacId,
-                    estado: 'Abierto',
-                    prioridad: 'Media',
-                    servicio_creado_consecutivo: servicioPreEnlazado || null
-                });
+                .insert(payload);
+
+            // Reintento automático si hubo conflicto de consecutivo único
+            if (error && error.code === '23505' && error.message?.includes('consecutivo')) {
+                finalConsecutivo = await fetchNextId();
+                payload.consecutivo = finalConsecutivo;
+                setConsecutivoStr(finalConsecutivo);
+                const retry = await supabase.from('registro_solicitudes').insert(payload);
+                error = retry.error;
+            }
 
             if (error) throw error;
             
@@ -204,7 +232,7 @@ export default function ModalCrearRegistro({
                 if (hasArchivos) {
                     for (const file of archivos) {
                         const fileExt = file.name.split('.').pop();
-                        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                        const fileName = `${getUUID()}.${fileExt}`;
                         
                         const sanitizePath = (path: string) => {
                             return path
@@ -215,7 +243,7 @@ export default function ModalCrearRegistro({
                                 .replace(/[^a-zA-Z0-9\/\-_.]/g, "_");
                         };
 
-                        const folderPath = sanitizePath(consecutivoStr);
+                        const folderPath = sanitizePath(finalConsecutivo);
                         const filePath = `registrosMAC/${folderPath}/comentarios/${fileName}`;
 
                         const { error: uploadError } = await supabase.storage
@@ -234,7 +262,7 @@ export default function ModalCrearRegistro({
                 await supabase
                     .from('Comentarios_RegistroMAC')
                     .insert({
-                        numero_radicado: consecutivoStr,
+                        numero_radicado: finalConsecutivo,
                         autor: tratadoPorId,
                         comentario: hasComentario ? comentarios.trim() : "Archivos adjuntos iniciales",
                         adjuntos: uploadedUrls.length > 0 ? uploadedUrls : null
