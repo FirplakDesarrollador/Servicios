@@ -83,7 +83,7 @@ export default function IndicadoresMacPage() {
                 
                 const createdAt = new Date(r.created_at);
                 const fechaCierre = isClosed ? new Date(r.fecha_verificacion) : null;
-                const fechaReferencia = isClosed ? fechaCierre : new Date();
+                const fechaReferencia = fechaCierre || new Date();
                 
                 const diasHabilesAbierta = getBusinessDaysDifference(createdAt, fechaReferencia);
 
@@ -445,7 +445,7 @@ export default function IndicadoresMacPage() {
                             { key: 'clientes', label: 'Cliente' },
                             { key: 'mesPresupuesto', label: 'Mes SLA' },
                             { key: 'mesCreacion', label: 'Mes Ingreso' },
-                        ].map(f => filters[f.key as keyof FilterState].map((val: string, idx: number) => (
+                        ].map(f => (filters[f.key as keyof FilterState] as string[]).map((val: string, idx: number) => (
                             <span key={`${f.key}-${idx}`} className="bg-brand text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5 shadow-sm animate-fade-in">
                                 {f.label}: {val}
                                 <button onClick={() => setFilters(prev => ({ ...prev, [f.key]: (prev[f.key as keyof FilterState] as string[]).filter(v => v !== val) }))} className="hover:text-red-300 transition-colors">

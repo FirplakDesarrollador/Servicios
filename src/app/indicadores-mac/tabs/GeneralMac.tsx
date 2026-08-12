@@ -6,6 +6,7 @@ import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 interface Props {
     data: RegistroMAC[];
     prevData: RegistroMAC[]; // For variation calculations if needed
+    filters: FilterState;
     defectosRef?: any[];
     responsablesRef?: any[];
     dataForDefectos?: RegistroMAC[];
@@ -17,6 +18,7 @@ interface Props {
     dataForMesCreacion?: RegistroMAC[];
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
+    razones?: any[];
 }
 
 const COLORS = ['#254153', '#749094', '#e8e2d5', '#f5f1ea', '#d3b99f', '#c96a4e', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
@@ -94,7 +96,7 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
                                 paddingAngle={2}
                                 isAnimationActive={true}
                                 stroke="none"
-                                onClick={(data, index, e) => onFilterToggle(filterKey, data.payload?.nombre || data.nombre || data.name, e)}
+                                onClick={(data: any, index: number, e: any) => onFilterToggle(filterKey as keyof FilterState, data.payload?.nombre || data.nombre || data.name, e)}
                                 className="cursor-pointer"
                             >
                                 {data.map((entry, index) => {
@@ -678,7 +680,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                     dataKey="Registros" 
                                     radius={[4, 4, 0, 0]} 
                                     maxBarSize={60}
-                                    onClick={(data, index, e) => onFilterToggle('mesCreacion', data.payload?.key, e)}
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('mesCreacion', data.payload?.key, e)}
                                     className="cursor-pointer hover:opacity-80 transition-opacity"
                                 >
                                     {registrosPorMes.map((entry, index) => (
@@ -712,7 +714,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         dataKey="Registros" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16}
-                                        onClick={(data, index, e) => onFilterToggle('defectos', data.payload?.nombre || data.nombre, e)}
+                                        onClick={(data: any, index: number, e: any) => onFilterToggle('defectos', data.payload?.nombre || data.nombre, e)}
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {tipoProblemaStats.map((entry, index) => (
@@ -724,7 +726,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         dataKey="Productos Afectados" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16} 
-                                        onClick={(data, index, e) => onFilterToggle('defectos', data.payload?.nombre || data.nombre, e)}
+                                        onClick={(data: any, index: number, e: any) => onFilterToggle('defectos', data.payload?.nombre || data.nombre, e)}
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {tipoProblemaStats.map((entry, index) => (
@@ -758,7 +760,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         dataKey="Registros" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16}
-                                        onClick={(data, index, e) => onFilterToggle('responsables', data.payload?.nombre || data.nombre, e)}
+                                        onClick={(data: any, index: number, e: any) => onFilterToggle('responsables', data.payload?.nombre || data.nombre, e)}
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {responsableProblemaStats.map((entry, index) => (
@@ -770,7 +772,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         dataKey="Productos Afectados" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16} 
-                                        onClick={(data, index, e) => onFilterToggle('responsables', data.payload?.nombre || data.nombre, e)}
+                                        onClick={(data: any, index: number, e: any) => onFilterToggle('responsables', data.payload?.nombre || data.nombre, e)}
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {responsableProblemaStats.map((entry, index) => (

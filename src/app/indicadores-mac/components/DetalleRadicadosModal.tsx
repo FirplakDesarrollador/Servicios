@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RegistroMAC } from '../../types';
+import { RegistroMAC } from '../types';
 import { XIcon, ExternalLinkIcon } from 'lucide-react';
 import Link from 'next/link';
 
