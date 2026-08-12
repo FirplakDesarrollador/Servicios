@@ -305,7 +305,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                     fill={COLORS.brandLight} 
                                     radius={[4, 4, 0, 0]} 
                                     name="Presupuesto"
-                                    onClick={(data, index, e) => onFilterToggle('mesPresupuesto', data.mesKey, e)}
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('mesPresupuesto', data.payload?.mesKey || data.mesKey, e)}
                                     className="cursor-pointer hover:opacity-80 transition-opacity"
                                 />
                                 <Bar 
@@ -314,11 +314,11 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                     fill={COLORS.brand} 
                                     radius={[4, 4, 0, 0]} 
                                     name="Cerradas en SLA"
-                                    onClick={(data, index, e) => onFilterToggle('mesPresupuesto', data.mesKey, e)}
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('mesPresupuesto', data.payload?.mesKey || data.mesKey, e)}
                                     className="cursor-pointer hover:opacity-80 transition-opacity"
                                 />
                                 <Line yAxisId="right" type="monotone" dataKey="Cumplimiento" stroke="#000000" strokeWidth={3} dot={{ r: 4 }} name="% Cumplimiento">
-                                    <LabelList dataKey="Cumplimiento" position="top" formatter={(val: number) => `${val}%`} style={{ fill: '#374151', fontSize: 11, fontWeight: 'bold' }} offset={10} />
+                                    <LabelList dataKey="Cumplimiento" position="top" formatter={(val: any) => `${val}%`} style={{ fill: '#374151', fontSize: 11, fontWeight: 'bold' }} offset={10} />
                                 </Line>
                             </ComposedChart>
                         </ResponsiveContainer>
