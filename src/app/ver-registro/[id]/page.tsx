@@ -1040,7 +1040,13 @@ function ComentariosTab({ registro }: { registro: any }) {
             if (archivos.length > 0) {
                 for (const file of archivos) {
                     const fileExt = file.name.split('.').pop();
-                    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                    const getUUID = () => {
+                        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+                            return crypto.randomUUID();
+                        }
+                        return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                    };
+                    const fileName = `${getUUID()}.${fileExt}`;
                     
                     const sanitizePath = (path: string) => {
                         return path
@@ -1477,14 +1483,20 @@ function ClasificacionTab({
     const handleSaveClasificacion = async () => {
         setIsSavingClasificacion(true);
         try {
+            const parseNum = (val: any) => {
+                if (val === null || val === undefined || val === '') return null;
+                const num = Number(val);
+                return isNaN(num) ? null : num;
+            };
+
             const { error } = await supabase
                 .from('registro_solicitudes')
                 .update({
                     productos_novedad: editClasificacionProductos,
                     vendedor_id: globalClasificacion.vendedor_id || null,
-                    valor_servicio: globalClasificacion.valor_servicio || null,
-                    valor_flete: globalClasificacion.valor_flete || null,
-                    valor_producto: globalClasificacion.valor_producto || null,
+                    valor_servicio: parseNum(globalClasificacion.valor_servicio),
+                    valor_flete: parseNum(globalClasificacion.valor_flete),
+                    valor_producto: parseNum(globalClasificacion.valor_producto),
                     responsable_atraso: globalClasificacion.responsable_atraso || null,
                     area_responsable: globalClasificacion.area_responsable || null,
                     fecha_verificacion: globalClasificacion.fecha_verificacion || null,
