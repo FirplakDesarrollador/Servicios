@@ -9,6 +9,7 @@ interface Props {
     data: RegistroMAC[];
     prevData: RegistroMAC[];
     filters: FilterState;
+    dataForMesPresupuesto?: RegistroMAC[];
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
 }
@@ -49,7 +50,7 @@ function calcularRiesgo(d: RegistroMAC): { diasHabiles: number; estadoRiesgo: 'E
     return { diasHabiles, estadoRiesgo };
 }
 
-export default function DetalleMac({ data, prevData, filters, setFilters, onFilterToggle }: Props) {
+export default function DetalleMac({ data, prevData, filters, dataForMesPresupuesto, setFilters, onFilterToggle }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Datos enriquecidos con cálculo dinámico de riesgo
@@ -126,7 +127,12 @@ export default function DetalleMac({ data, prevData, filters, setFilters, onFilt
             }
         }
 
-        dataConRiesgo.forEach(d => {
+        const sourceData = dataForMesPresupuesto ? dataForMesPresupuesto.map(d => {
+            const { diasHabiles, estadoRiesgo } = calcularRiesgo(d);
+            return { ...d, _diasHabilesAbierta: diasHabiles, _estadoRiesgo: estadoRiesgo, _tiempoCierre: d.estado === 'Cerrado' ? diasHabiles : null };
+        }) : dataConRiesgo;
+
+        sourceData.forEach(d => {
             const created = new Date(d.created_at);
             const fechaObjetivo = addBusinessDays(created, 15);
             const mesKey = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
@@ -236,30 +242,19 @@ export default function DetalleMac({ data, prevData, filters, setFilters, onFilt
     }, [dataConRiesgo, searchTerm]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
-        <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
-            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{title}</h3>
-            <div className="text-xl font-black text-gray-800">
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
+            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
+            <div className="text-lg font-black text-gray-800 leading-tight">
                 {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
             </div>
-            {subtitle && <div className="mt-1 text-[10px] font-medium text-gray-400">{subtitle}</div>}
+            {subtitle && <div className="mt-0.5 text-[9px] font-medium text-gray-400">{subtitle}</div>}
         </div>
     );
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Header: Semáforo */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full ${semaforoColor} animate-pulse`} />
-                    <span className="text-sm font-black uppercase tracking-widest text-gray-800">Estado Operativo: {semaforoTexto}</span>
-                </div>
-                <div className="text-xs font-bold text-gray-500">
-                    Cumplimiento: {porcCumplimiento.toFixed(1)}% | Riesgo: {porcRiesgo.toFixed(1)}%
-                </div>
-            </div>
-
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
                 <KpiCard title="Total Solicitudes" value={total} />
                 <KpiCard title="Cerradas" value={cerradas.length} subtitle={`${porcCierre.toFixed(1)}% de cierre`} />
                 <KpiCard title="Costo Promedio" value={costoPromedio} prefix="$" />

@@ -91,9 +91,9 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
     };
 
     const KpiCard = ({ title, value, suffix = '', prefix = '' }: any) => (
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">{title}</h3>
-            <div className="text-2xl font-black text-gray-800">
+        <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[60px]">
+            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
+            <div className="text-lg font-black text-gray-800 leading-tight">
                 {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
             </div>
         </div>
@@ -112,36 +112,36 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
     return (
         <div className="space-y-6 animate-fade-in">
             {!isAgenteSelected && (
-                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl flex items-start gap-3">
-                    <AlertCircleIcon className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg flex items-start gap-2">
+                    <AlertCircleIcon className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                        <h4 className="text-sm font-bold">Vista General de Agentes</h4>
-                        <p className="text-xs mt-1 text-blue-700">Estás viendo los indicadores de todos los agentes. Selecciona un agente en el filtro superior para ver su panel de trabajo personal.</p>
+                        <h4 className="text-xs font-bold">Vista General de Agentes</h4>
+                        <p className="text-[10px] mt-0.5 text-blue-700">Estás viendo los indicadores de todos los agentes. Selecciona un agente en el filtro superior para ver su panel de trabajo personal.</p>
                     </div>
                 </div>
             )}
 
             {/* Mis Prioridades (Solo visibles si hay abiertas) */}
             {prioridades.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-red-50 to-white px-6 py-4 border-b border-red-100 flex items-center justify-between">
-                        <h3 className="text-sm font-black text-red-700 uppercase tracking-wider flex items-center gap-2">
+                <div className="bg-white rounded-xl shadow-sm border border-red-100 overflow-hidden">
+                    <div className="bg-gradient-to-r from-red-50 to-white px-4 py-2 border-b border-red-100 flex items-center justify-between">
+                        <h3 className="text-xs font-black text-red-700 uppercase tracking-wider flex items-center gap-1.5">
                             🔥 Mis Prioridades de Hoy
                         </h3>
-                        <span className="text-xs font-bold text-red-500">Top {prioridades.length} más críticas</span>
+                        <span className="text-[10px] font-bold text-red-500">Top {prioridades.length} más críticas</span>
                     </div>
-                    <div className="p-2 flex overflow-x-auto gap-3 snap-x">
+                    <div className="p-2 flex overflow-x-auto gap-2 snap-x custom-scrollbar pb-3">
                         {prioridades.map(p => (
-                            <div key={p.id} className="snap-start shrink-0 w-64 bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                            <div key={p.id} className="snap-start shrink-0 w-52 bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative overflow-hidden">
                                 <div className={`absolute top-0 left-0 w-1 h-full ${p._estadoRiesgo === 'Demandante' ? 'bg-red-500' : p._estadoRiesgo === 'Riesgo de demanda' ? 'bg-orange-500' : 'bg-amber-500'}`} />
-                                <div className="flex justify-between items-start mb-2">
-                                    <a href={`/ver-registro/${p.id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-black text-brand hover:underline flex items-center gap-1">
-                                        {p.consecutivo} <ExternalLinkIcon className="w-3 h-3" />
+                                <div className="flex justify-between items-start mb-1.5 pl-1">
+                                    <a href={`/ver-registro/${p.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-brand hover:underline flex items-center gap-1">
+                                        {p.consecutivo} <ExternalLinkIcon className="w-2.5 h-2.5" />
                                     </a>
-                                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">{p._diasHabilesAbierta} días</span>
+                                    <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">{p._diasHabilesAbierta} días</span>
                                 </div>
-                                <p className="text-[11px] text-gray-600 font-medium truncate mb-1">{p.cliente_final_nombre || p.cliente_nombre}</p>
-                                <p className="text-[10px] text-gray-400 truncate">{p.tipo_solicitud}</p>
+                                <p className="text-[10px] text-gray-600 font-medium truncate mb-0.5 pl-1">{p.cliente_final_nombre || p.cliente_nombre}</p>
+                                <p className="text-[9px] text-gray-400 truncate pl-1">{p.tipo_solicitud}</p>
                             </div>
                         ))}
                     </div>

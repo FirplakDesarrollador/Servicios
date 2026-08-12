@@ -16,6 +16,12 @@ export default function IndicadoresMacPage() {
     const [data, setData] = useState<RegistroMAC[]>([]);
     const [razones, setRazones] = useState<any[]>([]);
     const [defectosRef, setDefectosRef] = useState<any[]>([]);
+    // Excel Export Modal State
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+
+    // Fetch filters options
     const [responsablesRef, setResponsablesRef] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(0);
@@ -35,6 +41,7 @@ export default function IndicadoresMacPage() {
         zonas: [],
         clientes: [],
         mesPresupuesto: [],
+        mesCreacion: [],
     });
 
     useEffect(() => {
@@ -159,10 +166,21 @@ export default function IndicadoresMacPage() {
 
                 const fechaObjetivo = addBusinessDays(createdAt, 15);
                 const mesPresupuestoKey = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
+                const mesCreacionKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
                 const clienteFinalOrPrincipal = r.cliente_final_nombre || r.cliente_nombre || 'Desconocido';
+
+                const canalVentaMap: Record<string, string> = {
+                    'canal_ditribuidor': 'Canal Distribuidor',
+                    'canal_distribuidor': 'Canal Distribuidor',
+                    'canal_exportador': 'Canal Exportador',
+                    'canal_constructor': 'Canal Constructor',
+                    'canal_propio_firplakhome': 'Canal Propio Firplakhome',
+                    'canal_propio_ecommerce': 'Canal Propio eCommerce'
+                };
 
                 return {
                     ...r,
+                    canal_venta: canalVentaMap[r.canal_venta] || r.canal_venta,
                     estado,
                     _fechaCierre: fechaCierre,
                     _diasHabilesAbierta: diasHabilesAbierta,
@@ -177,6 +195,7 @@ export default function IndicadoresMacPage() {
                     _productosNombres: Array.from(_productosNombres),
                     _clientePrincipalFinal: clienteFinalOrPrincipal,
                     _mesPresupuestoKey: mesPresupuestoKey,
+                    _mesCreacionKey: mesCreacionKey,
                 } as RegistroMAC;
             });
 
@@ -201,6 +220,7 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('zonas') && filters.zonas.length > 0 && !filters.zonas.includes(d._zona || '')) return false;
             if (!excludeKeys.includes('clientes') && filters.clientes.length > 0 && !filters.clientes.includes(d._clientePrincipalFinal || '')) return false;
             if (!excludeKeys.includes('mesPresupuesto') && filters.mesPresupuesto.length > 0 && !filters.mesPresupuesto.includes(d._mesPresupuestoKey || '')) return false;
+            if (!excludeKeys.includes('mesCreacion') && filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) return false;
             
             if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.includes(f))) return false;
             if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.includes(f))) return false;
@@ -213,6 +233,12 @@ export default function IndicadoresMacPage() {
     const filteredData = useMemo(() => getFilteredData(), [data, filters]);
     const dataForDefectos = useMemo(() => getFilteredData(['defectos']), [data, filters]);
     const dataForResponsables = useMemo(() => getFilteredData(['responsables']), [data, filters]);
+    const dataForCiudades = useMemo(() => getFilteredData(['ciudades']), [data, filters]);
+    const dataForZonas = useMemo(() => getFilteredData(['zonas']), [data, filters]);
+    const dataForClientes = useMemo(() => getFilteredData(['clientes']), [data, filters]);
+    const dataForProductos = useMemo(() => getFilteredData(['productos']), [data, filters]);
+    const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [data, filters]);
+    const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [data, filters]);
 
     const handleFilterToggle = (key: keyof FilterState, value: string, e?: any) => {
         setFilters(prev => {
@@ -234,14 +260,26 @@ export default function IndicadoresMacPage() {
         });
     };
 
-    const exportToExcel = () => {
+    const confirmExport = () => {
+        let toExport = data; // Usamos todos los datos (base de datos)
+        if (exportStartDate) {
+            toExport = toExport.filter(d => new Date(d.created_at) >= new Date(exportStartDate + 'T00:00:00'));
+        }
+        if (exportEndDate) {
+            toExport = toExport.filter(d => new Date(d.created_at) <= new Date(exportEndDate + 'T23:59:59'));
+        }
+        exportToExcel(toExport);
+        setShowExportModal(false);
+    };
+
+    const exportToExcel = (dataToExport: RegistroMAC[] = filteredData) => {
         const allRows: Record<string, any>[] = [];
 
         // Crear mapas de lookup para resolver IDs a nombres
         const razonesMap = new Map(razones.map(r => [String(r.id), r.razon]));
         const responsablesMap = new Map(responsablesRef.map(r => [String(r.id), r.responsable]));
 
-        filteredData.forEach(d => {
+        dataToExport.forEach(d => {
             // Construir fila base con todos los campos escalares
             const baseRow: Record<string, any> = {};
             Object.entries(d).forEach(([key, val]) => {
@@ -365,7 +403,7 @@ export default function IndicadoresMacPage() {
                 
                 <div className="flex flex-wrap items-center gap-4 pb-3 md:pb-0">
                     <button
-                        onClick={exportToExcel}
+                        onClick={() => setShowExportModal(true)}
                         className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg shadow-sm transition-all whitespace-nowrap"
                     >
                         <DownloadIcon className="w-3.5 h-3.5" />
@@ -406,6 +444,7 @@ export default function IndicadoresMacPage() {
                             { key: 'zonas', label: 'Zona' },
                             { key: 'clientes', label: 'Cliente' },
                             { key: 'mesPresupuesto', label: 'Mes SLA' },
+                            { key: 'mesCreacion', label: 'Mes Ingreso' },
                         ].map(f => filters[f.key as keyof FilterState].map((val: string, idx: number) => (
                             <span key={`${f.key}-${idx}`} className="bg-brand text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5 shadow-sm animate-fade-in">
                                 {f.label}: {val}
@@ -424,7 +463,7 @@ export default function IndicadoresMacPage() {
                         </button>
                         <button 
                             onClick={() => setFilters(prev => ({
-                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: []
+                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: []
                             }))} 
                             className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
                         >
@@ -438,8 +477,8 @@ export default function IndicadoresMacPage() {
                 <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} />
                 
                 <div className="mt-4 transition-opacity duration-300">
-                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
-                    {activeTab === 1 && <DetalleMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
+                    {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                     {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                 </div>
             </main>
@@ -449,6 +488,63 @@ export default function IndicadoresMacPage() {
                     onClose={() => setIsModalOpen(false)} 
                     data={filteredData} 
                 />
+            )}
+
+            {/* Modal de Exportación a Excel */}
+            {showExportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="bg-emerald-600 px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-white font-black flex items-center gap-2">
+                                <DownloadIcon className="w-5 h-5" /> Exportar Base de Datos
+                            </h3>
+                            <button onClick={() => setShowExportModal(false)} className="text-white/80 hover:text-white transition-colors">
+                                <XIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm text-gray-600 mb-6">
+                                Selecciona el rango de fechas de creación de las solicitudes que deseas descargar. Si dejas los campos vacíos, se descargará toda la base de datos.
+                            </p>
+                            
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Desde</label>
+                                    <input 
+                                        type="date"
+                                        value={exportStartDate}
+                                        onChange={e => setExportStartDate(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Hasta</label>
+                                    <input 
+                                        type="date"
+                                        value={exportEndDate}
+                                        onChange={e => setExportEndDate(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button 
+                                    onClick={() => setShowExportModal(false)}
+                                    className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={confirmExport}
+                                    className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
+                                >
+                                    <DownloadIcon className="w-4 h-4" /> Descargar Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

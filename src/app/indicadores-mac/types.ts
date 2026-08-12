@@ -47,6 +47,7 @@ export interface RegistroMAC {
     _productosNombres?: string[];
     _clientePrincipalFinal?: string;
     _mesPresupuestoKey?: string;
+    _mesCreacionKey?: string;
 }
 
 export interface FilterState {
@@ -64,4 +65,5 @@ export interface FilterState {
     zonas: string[];
     clientes: string[];
     mesPresupuesto: string[];
+    mesCreacion: string[];
 }
