@@ -7,17 +7,25 @@ import Filters from './components/Filters';
 import GeneralMac from './tabs/GeneralMac';
 import DetalleMac from './tabs/DetalleMac';
 import AgentesMac from './tabs/AgentesMac';
-import { getBusinessDaysDifference, isBusinessDay } from './utils/businessDays';
+import { getBusinessDaysDifference, isBusinessDay, addBusinessDays } from './utils/businessDays';
 import * as XLSX from 'xlsx';
-import { DownloadIcon } from 'lucide-react';
+import { DownloadIcon, XIcon, ListFilterIcon } from 'lucide-react';
+import DetalleRadicadosModal from './components/DetalleRadicadosModal';
 
 export default function IndicadoresMacPage() {
     const [data, setData] = useState<RegistroMAC[]>([]);
     const [razones, setRazones] = useState<any[]>([]);
     const [defectosRef, setDefectosRef] = useState<any[]>([]);
+    // Excel Export Modal State
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+
+    // Fetch filters options
     const [responsablesRef, setResponsablesRef] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(0);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [filters, setFilters] = useState<FilterState>({
         fechaInicial: '2026-07-03',
@@ -26,6 +34,14 @@ export default function IndicadoresMacPage() {
         canalVenta: [],
         tipoSolicitud: ['Garantía'],
         agenteMac: [],
+        defectos: [],
+        productos: [],
+        ciudades: [],
+        responsables: [],
+        zonas: [],
+        clientes: [],
+        mesPresupuesto: [],
+        mesCreacion: [],
     });
 
     useEffect(() => {
@@ -61,13 +77,14 @@ export default function IndicadoresMacPage() {
 
             // Procesar y enriquecer datos en cliente
             const processed = (registrosData as any[]).map(r => {
+                // REGLA GLOBAL: El estado se define única y exclusivamente por la existencia de la Fecha de Verificación.
+                const isClosed = !!r.fecha_verificacion;
+                const estado = isClosed ? 'Cerrado' : 'Abierto';
+                
                 const createdAt = new Date(r.created_at);
-                // Fecha de cierre: usar fecha_verificacion si existe, si no la fecha actual
-                const fechaCierre = r.fecha_verificacion 
-                    ? new Date(r.fecha_verificacion) 
-                    : (r.cerrada ? new Date() : null);
-                // Días hábiles: desde fecha de creación hasta fecha_verificacion (o fecha actual si vacío)
-                const fechaReferencia = r.fecha_verificacion ? new Date(r.fecha_verificacion) : new Date();
+                const fechaCierre = isClosed ? new Date(r.fecha_verificacion) : null;
+                const fechaReferencia = isClosed ? fechaCierre : new Date();
+                
                 const diasHabilesAbierta = getBusinessDaysDifference(createdAt, fechaReferencia);
 
                 let estadoRiesgo: 'Excelente' | 'Regular' | 'Riesgo de demanda' | 'Demandante' = 'Excelente';
@@ -107,16 +124,78 @@ export default function IndicadoresMacPage() {
                     ? `${r.AsesorMAC.nombres} ${r.AsesorMAC.apellidos}`.trim() 
                     : (r.Usuarios?.rol?.toLowerCase() === 'mac' ? `${r.Usuarios.nombres} ${r.Usuarios.apellidos}`.trim() : 'Sin Asignar');
 
+                const _defectosNombres = new Set<string>();
+                const _responsablesNombres = new Set<string>();
+                const _productosNombres = new Set<string>();
+                
+                if (Array.isArray(r.productos_compra)) {
+                    r.productos_compra.forEach((p: any) => {
+                        _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                    });
+                }
+                
+                if (Array.isArray(r.productos_novedad)) {
+                    r.productos_novedad.forEach((p: any) => {
+                        _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                        let hasProblema = false;
+                        let hasResp = false;
+                        if (Array.isArray(p.problemas)) {
+                            p.problemas.forEach((prob: any) => {
+                                if (prob.tipo_problema_id) {
+                                    hasProblema = true;
+                                    const d = defectosData?.find(x => x.id == prob.tipo_problema_id)?.defecto || razonesData?.find(x => x.id == prob.tipo_problema_id)?.razon || `ID ${prob.tipo_problema_id}`;
+                                    _defectosNombres.add(d);
+                                }
+                                if (prob.responsable_problema_id) {
+                                    hasResp = true;
+                                    const resp = responsablesData?.find(x => x.id == prob.responsable_problema_id)?.responsable || `ID ${prob.responsable_problema_id}`;
+                                    _responsablesNombres.add(resp);
+                                }
+                            });
+                        }
+                        if (!hasProblema && p.tipo_problema_id) {
+                             const d = defectosData?.find(x => x.id == p.tipo_problema_id)?.defecto || razonesData?.find(x => x.id == p.tipo_problema_id)?.razon || `ID ${p.tipo_problema_id}`;
+                            _defectosNombres.add(d);
+                        }
+                        if (!hasResp && p.responsable_problema_id) {
+                             const resp = responsablesData?.find(x => x.id == p.responsable_problema_id)?.responsable || `ID ${p.responsable_problema_id}`;
+                            _responsablesNombres.add(resp);
+                        }
+                    });
+                }
+
+                const fechaObjetivo = addBusinessDays(createdAt, 15);
+                const mesPresupuestoKey = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
+                const mesCreacionKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
+                const clienteFinalOrPrincipal = r.cliente_final_nombre || r.cliente_nombre || 'Desconocido';
+
+                const canalVentaMap: Record<string, string> = {
+                    'canal_ditribuidor': 'Canal Distribuidor',
+                    'canal_distribuidor': 'Canal Distribuidor',
+                    'canal_exportador': 'Canal Exportador',
+                    'canal_constructor': 'Canal Constructor',
+                    'canal_propio_firplakhome': 'Canal Propio Firplakhome',
+                    'canal_propio_ecommerce': 'Canal Propio eCommerce'
+                };
+
                 return {
                     ...r,
+                    canal_venta: canalVentaMap[r.canal_venta] || r.canal_venta,
+                    estado,
                     _fechaCierre: fechaCierre,
                     _diasHabilesAbierta: diasHabilesAbierta,
                     _tiempoCierre: fechaCierre ? diasHabilesAbierta : null,
                     _estadoRiesgo: estadoRiesgo,
-                    _valorInvertido: r.valor_total || 0, // Tomado de la base de datos
+                    _valorInvertido: r.valor_total || 0,
                     _ciudad: ciudad,
                     _zona: zona,
-                    _agenteNombre: agenteNombre
+                    _agenteNombre: agenteNombre,
+                    _defectosNombres: Array.from(_defectosNombres),
+                    _responsablesNombres: Array.from(_responsablesNombres),
+                    _productosNombres: Array.from(_productosNombres),
+                    _clientePrincipalFinal: clienteFinalOrPrincipal,
+                    _mesPresupuestoKey: mesPresupuestoKey,
+                    _mesCreacionKey: mesCreacionKey,
                 } as RegistroMAC;
             });
 
@@ -128,28 +207,79 @@ export default function IndicadoresMacPage() {
         }
     };
 
-    // Aplicar filtros en cascada
-    const filteredData = useMemo(() => {
+    const getFilteredData = (excludeKeys: (keyof FilterState)[] = []) => {
         return data.filter(d => {
-            if (filters.fechaInicial && new Date(d.created_at) < new Date(filters.fechaInicial)) return false;
-            // Para fecha final sumamos 1 día para incluir el día completo
-            if (filters.fechaFinal && new Date(d.created_at) > new Date(new Date(filters.fechaFinal).getTime() + 86400000)) return false;
-            if (filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
-            if (filters.canalVenta.length > 0 && !filters.canalVenta.includes(d.canal_venta)) return false;
-            if (filters.tipoSolicitud.length > 0 && !filters.tipoSolicitud.includes(d.tipo_solicitud)) return false;
-            if (filters.agenteMac.length > 0 && !filters.agenteMac.includes(d._agenteNombre || '')) return false;
+            if (!excludeKeys.includes('fechaInicial') && filters.fechaInicial && new Date(d.created_at) < new Date(filters.fechaInicial)) return false;
+            if (!excludeKeys.includes('fechaFinal') && filters.fechaFinal && new Date(d.created_at) > new Date(new Date(filters.fechaFinal).getTime() + 86400000)) return false;
+            if (!excludeKeys.includes('estado') && filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
+            if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0 && !filters.canalVenta.includes(d.canal_venta)) return false;
+            if (!excludeKeys.includes('tipoSolicitud') && filters.tipoSolicitud.length > 0 && !filters.tipoSolicitud.includes(d.tipo_solicitud)) return false;
+            if (!excludeKeys.includes('agenteMac') && filters.agenteMac.length > 0 && !filters.agenteMac.includes(d._agenteNombre || '')) return false;
+            
+            if (!excludeKeys.includes('ciudades') && filters.ciudades.length > 0 && !filters.ciudades.includes(d._ciudad || '')) return false;
+            if (!excludeKeys.includes('zonas') && filters.zonas.length > 0 && !filters.zonas.includes(d._zona || '')) return false;
+            if (!excludeKeys.includes('clientes') && filters.clientes.length > 0 && !filters.clientes.includes(d._clientePrincipalFinal || '')) return false;
+            if (!excludeKeys.includes('mesPresupuesto') && filters.mesPresupuesto.length > 0 && !filters.mesPresupuesto.includes(d._mesPresupuestoKey || '')) return false;
+            if (!excludeKeys.includes('mesCreacion') && filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) return false;
+            
+            if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.includes(f))) return false;
+            if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.includes(f))) return false;
+            if (!excludeKeys.includes('productos') && filters.productos.length > 0 && !filters.productos.some(f => d._productosNombres?.includes(f))) return false;
+
             return true;
         });
-    }, [data, filters]);
+    };
 
-    const exportToExcel = () => {
+    const filteredData = useMemo(() => getFilteredData(), [data, filters]);
+    const dataForDefectos = useMemo(() => getFilteredData(['defectos']), [data, filters]);
+    const dataForResponsables = useMemo(() => getFilteredData(['responsables']), [data, filters]);
+    const dataForCiudades = useMemo(() => getFilteredData(['ciudades']), [data, filters]);
+    const dataForZonas = useMemo(() => getFilteredData(['zonas']), [data, filters]);
+    const dataForClientes = useMemo(() => getFilteredData(['clientes']), [data, filters]);
+    const dataForProductos = useMemo(() => getFilteredData(['productos']), [data, filters]);
+    const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [data, filters]);
+    const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [data, filters]);
+
+    const handleFilterToggle = (key: keyof FilterState, value: string, e?: any) => {
+        setFilters(prev => {
+            const isMulti = e?.ctrlKey || e?.metaKey;
+            const currentArray = prev[key] as string[];
+            
+            if (isMulti) {
+                if (currentArray.includes(value)) {
+                    return { ...prev, [key]: currentArray.filter(v => v !== value) };
+                } else {
+                    return { ...prev, [key]: [...currentArray, value] };
+                }
+            } else {
+                if (currentArray.length === 1 && currentArray[0] === value) {
+                    return { ...prev, [key]: [] };
+                }
+                return { ...prev, [key]: [value] };
+            }
+        });
+    };
+
+    const confirmExport = () => {
+        let toExport = data; // Usamos todos los datos (base de datos)
+        if (exportStartDate) {
+            toExport = toExport.filter(d => new Date(d.created_at) >= new Date(exportStartDate + 'T00:00:00'));
+        }
+        if (exportEndDate) {
+            toExport = toExport.filter(d => new Date(d.created_at) <= new Date(exportEndDate + 'T23:59:59'));
+        }
+        exportToExcel(toExport);
+        setShowExportModal(false);
+    };
+
+    const exportToExcel = (dataToExport: RegistroMAC[] = filteredData) => {
         const allRows: Record<string, any>[] = [];
 
         // Crear mapas de lookup para resolver IDs a nombres
         const razonesMap = new Map(razones.map(r => [String(r.id), r.razon]));
         const responsablesMap = new Map(responsablesRef.map(r => [String(r.id), r.responsable]));
 
-        filteredData.forEach(d => {
+        dataToExport.forEach(d => {
             // Construir fila base con todos los campos escalares
             const baseRow: Record<string, any> = {};
             Object.entries(d).forEach(([key, val]) => {
@@ -273,7 +403,7 @@ export default function IndicadoresMacPage() {
                 
                 <div className="flex flex-wrap items-center gap-4 pb-3 md:pb-0">
                     <button
-                        onClick={exportToExcel}
+                        onClick={() => setShowExportModal(true)}
                         className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg shadow-sm transition-all whitespace-nowrap"
                     >
                         <DownloadIcon className="w-3.5 h-3.5" />
@@ -300,16 +430,122 @@ export default function IndicadoresMacPage() {
                     </div>
                 </div>
             </header>
+            
+            {/* Breadcrumb de Filtros Activos y Limpiar */}
+            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0) && (
+                <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                        <span className="text-xs font-bold text-gray-500 mr-2 flex items-center gap-1"><ListFilterIcon className="w-3.5 h-3.5" />Filtros cruzados:</span>
+                        {[
+                            { key: 'defectos', label: 'Defecto' },
+                            { key: 'productos', label: 'Producto' },
+                            { key: 'ciudades', label: 'Ciudad' },
+                            { key: 'responsables', label: 'Responsable' },
+                            { key: 'zonas', label: 'Zona' },
+                            { key: 'clientes', label: 'Cliente' },
+                            { key: 'mesPresupuesto', label: 'Mes SLA' },
+                            { key: 'mesCreacion', label: 'Mes Ingreso' },
+                        ].map(f => filters[f.key as keyof FilterState].map((val: string, idx: number) => (
+                            <span key={`${f.key}-${idx}`} className="bg-brand text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5 shadow-sm animate-fade-in">
+                                {f.label}: {val}
+                                <button onClick={() => setFilters(prev => ({ ...prev, [f.key]: (prev[f.key as keyof FilterState] as string[]).filter(v => v !== val) }))} className="hover:text-red-300 transition-colors">
+                                    <XIcon className="w-3.5 h-3.5" />
+                                </button>
+                            </span>
+                        )))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => setIsModalOpen(true)}
+                            className="text-xs font-bold bg-brandLight text-white px-3 py-1.5 rounded-lg hover:bg-brand transition-colors flex items-center gap-1.5 shadow-sm"
+                        >
+                            Ver {filteredData.length} registros
+                        </button>
+                        <button 
+                            onClick={() => setFilters(prev => ({
+                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: []
+                            }))} 
+                            className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
+                        >
+                            Restablecer filtros cruzados
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <main className="flex-1 p-6 overflow-auto">
                 <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} />
                 
                 <div className="mt-4 transition-opacity duration-300">
-                    {activeTab === 0 && <GeneralMac data={filteredData} prevData={filteredData} filters={filters} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
-                    {activeTab === 1 && <DetalleMac data={filteredData} prevData={data} filters={filters} />}
-                    {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} />}
+                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
+                    {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                    {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                 </div>
             </main>
+            {isModalOpen && (
+                <DetalleRadicadosModal 
+                    isOpen={isModalOpen} 
+                    onClose={() => setIsModalOpen(false)} 
+                    data={filteredData} 
+                />
+            )}
+
+            {/* Modal de Exportación a Excel */}
+            {showExportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="bg-emerald-600 px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-white font-black flex items-center gap-2">
+                                <DownloadIcon className="w-5 h-5" /> Exportar Base de Datos
+                            </h3>
+                            <button onClick={() => setShowExportModal(false)} className="text-white/80 hover:text-white transition-colors">
+                                <XIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm text-gray-600 mb-6">
+                                Selecciona el rango de fechas de creación de las solicitudes que deseas descargar. Si dejas los campos vacíos, se descargará toda la base de datos.
+                            </p>
+                            
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Desde</label>
+                                    <input 
+                                        type="date"
+                                        value={exportStartDate}
+                                        onChange={e => setExportStartDate(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Hasta</label>
+                                    <input 
+                                        type="date"
+                                        value={exportEndDate}
+                                        onChange={e => setExportEndDate(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button 
+                                    onClick={() => setShowExportModal(false)}
+                                    className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={confirmExport}
+                                    className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
+                                >
+                                    <DownloadIcon className="w-4 h-4" /> Descargar Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

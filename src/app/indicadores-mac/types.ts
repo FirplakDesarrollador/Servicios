@@ -42,6 +42,12 @@ export interface RegistroMAC {
     _ciudad?: string;
     _zona?: string;
     _agenteNombre?: string;
+    _defectosNombres?: string[];
+    _responsablesNombres?: string[];
+    _productosNombres?: string[];
+    _clientePrincipalFinal?: string;
+    _mesPresupuestoKey?: string;
+    _mesCreacionKey?: string;
 }
 
 export interface FilterState {
@@ -51,4 +57,13 @@ export interface FilterState {
     canalVenta: string[];
     tipoSolicitud: string[];
     agenteMac: string[]; // IDs o nombres
+    // Filtros interactivos dinámicos
+    defectos: string[];
+    productos: string[];
+    ciudades: string[];
+    responsables: string[];
+    zonas: string[];
+    clientes: string[];
+    mesPresupuesto: string[];
+    mesCreacion: string[];
 }
