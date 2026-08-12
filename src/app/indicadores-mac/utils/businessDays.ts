@@ -1,19 +1,75 @@
-import { parseISO, isWeekend, addDays, isValid, startOfDay } from 'date-fns';
+import { isWeekend, addDays, isValid, startOfDay } from 'date-fns';
 
-// Festivos de Colombia 2024 - 2026
-const holidaysStr = [
-    // 2024
-    '2024-01-01', '2024-01-08', '2024-03-25', '2024-03-28', '2024-03-29', '2024-05-01', '2024-05-13', '2024-06-03', '2024-06-10', '2024-07-01', '2024-07-20', '2024-08-07', '2024-08-19', '2024-10-14', '2024-11-04', '2024-11-11', '2024-12-08', '2024-12-25',
-    // 2025
-    '2025-01-01', '2025-01-06', '2025-03-24', '2025-04-17', '2025-04-18', '2025-05-01', '2025-06-02', '2025-06-23', '2025-06-30', '2025-07-20', '2025-08-07', '2025-08-18', '2025-10-13', '2025-11-03', '2025-11-17', '2025-12-08', '2025-12-25',
-    // 2026
-    '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03', '2026-05-01', '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29', '2026-07-20', '2026-08-07', '2026-08-17', '2026-10-12', '2026-11-02', '2026-11-16', '2026-12-08', '2026-12-25',
-];
+function calculateEaster(year: number): Date {
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+}
 
-const holidays = new Set(holidaysStr.map(h => startOfDay(parseISO(h)).getTime()));
+function nextMonday(date: Date): Date {
+    const day = date.getDay();
+    if (day === 1) return new Date(date);
+    const add = day === 0 ? 1 : 8 - day;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate() + add);
+}
+
+function getColombianHolidaysForYear(year: number): Date[] {
+    const holidays: Date[] = [];
+    
+    // Fijos
+    holidays.push(new Date(year, 0, 1)); // Año Nuevo
+    holidays.push(new Date(year, 4, 1)); // Día del Trabajo
+    holidays.push(new Date(year, 6, 20)); // Independencia
+    holidays.push(new Date(year, 7, 7)); // Batalla de Boyacá
+    holidays.push(new Date(year, 11, 8)); // Inmaculada Concepción
+    holidays.push(new Date(year, 11, 25)); // Navidad
+
+    // Ley Emiliani (traslado al lunes)
+    holidays.push(nextMonday(new Date(year, 0, 6))); // Reyes Magos
+    holidays.push(nextMonday(new Date(year, 2, 19))); // San José
+    holidays.push(nextMonday(new Date(year, 5, 29))); // San Pedro y San Pablo
+    holidays.push(nextMonday(new Date(year, 7, 15))); // Asunción
+    holidays.push(nextMonday(new Date(year, 9, 12))); // Día de la Raza
+    holidays.push(nextMonday(new Date(year, 10, 1))); // Todos los Santos
+    holidays.push(nextMonday(new Date(year, 10, 11))); // Independencia de Cartagena
+
+    // Relativos a Pascua
+    const easter = calculateEaster(year);
+    holidays.push(new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() - 3)); // Jueves Santo
+    holidays.push(new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() - 2)); // Viernes Santo
+    holidays.push(nextMonday(new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() + 39))); // Ascensión
+    holidays.push(nextMonday(new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() + 60))); // Corpus Christi
+    holidays.push(nextMonday(new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() + 68))); // Sagrado Corazón
+
+    return holidays;
+}
+
+const holidaysCache: Record<number, Set<number>> = {};
+
+function getHolidaysSetForYear(year: number): Set<number> {
+    if (holidaysCache[year]) return holidaysCache[year];
+    const h = getColombianHolidaysForYear(year);
+    const set = new Set(h.map(d => startOfDay(d).getTime()));
+    holidaysCache[year] = set;
+    return set;
+}
 
 export function isHoliday(date: Date): boolean {
-    return holidays.has(startOfDay(date).getTime());
+    const year = date.getFullYear();
+    const set = getHolidaysSetForYear(year);
+    return set.has(startOfDay(date).getTime());
 }
 
 export function isBusinessDay(date: Date): boolean {
@@ -26,18 +82,13 @@ export function getBusinessDaysDifference(startDate: Date, endDate: Date): numbe
     let start = startOfDay(startDate);
     let end = startOfDay(endDate);
     
-    // Si la fecha inicial es igual o mayor a la final, 0 días transcurridos
-    if (start >= end) {
-        return 0;
-    }
+    if (start >= end) return 0;
     
     let days = 0;
     let current = start;
     
     while (current < end) {
-        if (isBusinessDay(current)) {
-            days++;
-        }
+        if (isBusinessDay(current)) days++;
         current = addDays(current, 1);
     }
     
@@ -45,6 +96,7 @@ export function getBusinessDaysDifference(startDate: Date, endDate: Date): numbe
 }
 
 export function addBusinessDays(startDate: Date, days: number): Date {
+    if (!isValid(startDate)) return new Date();
     let current = startOfDay(startDate);
     let added = 0;
     

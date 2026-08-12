@@ -113,6 +113,22 @@ export default function VerRegistroPage() {
                 .single();
 
             if (error) throw error;
+            
+            // Garantizar que los productos sean arreglos (por si vienen como JSON string o null)
+            let parsedCompra = data.productos_compra || [];
+            if (typeof parsedCompra === 'string') {
+                try { parsedCompra = JSON.parse(parsedCompra); } catch(e) { parsedCompra = []; }
+            }
+            if (!Array.isArray(parsedCompra)) parsedCompra = [];
+            data.productos_compra = parsedCompra;
+
+            let parsedNovedad = data.productos_novedad || [];
+            if (typeof parsedNovedad === 'string') {
+                try { parsedNovedad = JSON.parse(parsedNovedad); } catch(e) { parsedNovedad = []; }
+            }
+            if (!Array.isArray(parsedNovedad)) parsedNovedad = [];
+            data.productos_novedad = parsedNovedad;
+
             setRegistro(data);
         } catch (error) {
             console.error('Error fetching registro:', error);
@@ -2065,7 +2081,7 @@ function ServiciosEnlazadosTab({ registro }: { registro: any }) {
 
     const fetchServicios = async () => {
         try {
-            const consecutivos = registro.servicio_creado_consecutivo.split(',').map((s: string) => s.trim()).filter(Boolean);
+            const consecutivos = String(registro.servicio_creado_consecutivo || '').split(',').map((s: string) => s.trim()).filter(Boolean);
             if(consecutivos.length === 0) {
                 setLoading(false); return;
             }

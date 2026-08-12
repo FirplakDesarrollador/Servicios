@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { RegistroMAC, FilterState } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, DownloadIcon, SearchIcon } from 'lucide-react';
 import { addBusinessDays, getBusinessDaysDifference } from '../utils/businessDays';
@@ -9,6 +9,9 @@ interface Props {
     data: RegistroMAC[];
     prevData: RegistroMAC[];
     filters: FilterState;
+    dataForMesPresupuesto?: RegistroMAC[];
+    setFilters?: any;
+    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
 }
 
 const COLORS = {
@@ -47,7 +50,7 @@ function calcularRiesgo(d: RegistroMAC): { diasHabiles: number; estadoRiesgo: 'E
     return { diasHabiles, estadoRiesgo };
 }
 
-export default function DetalleMac({ data, prevData, filters }: Props) {
+export default function DetalleMac({ data, prevData, filters, dataForMesPresupuesto, setFilters, onFilterToggle }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Datos enriquecidos con cálculo dinámico de riesgo
@@ -106,57 +109,105 @@ export default function DetalleMac({ data, prevData, filters }: Props) {
 
     // Presupuesto de Cierre
     // Presupuesto = mes donde se espera cerrar (created_at + 15 días hábiles)
-    // Cerradas = mes donde realmente se cerró (fecha_verificacion, o fecha actual si vacío)
+    // El radicado SIEMPRE pertenece a su mes objetivo (incluso si se cerró antes).
     const presupuestoData = useMemo(() => {
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         
-        const meses: Record<string, { pres: number, cerr: number }> = {};
+        const meses: Record<string, { pres: number, cerrEnSla: number, fueraSla: number, pendientes: number }> = {};
 
-        // Generar todos los meses del rango del filtro para que el eje siempre esté completo
         const fechaIni = filters.fechaInicial ? new Date(filters.fechaInicial) : null;
         const fechaFin = filters.fechaFinal ? new Date(filters.fechaFinal) : null;
         if (fechaIni && fechaFin) {
-            // Incluir también el mes siguiente al fin por si el presupuesto cae ahí
             const endWithBuffer = new Date(fechaFin.getFullYear(), fechaFin.getMonth() + 1, 1);
             const current = new Date(fechaIni.getFullYear(), fechaIni.getMonth(), 1);
             while (current <= endWithBuffer) {
                 const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-                meses[key] = { pres: 0, cerr: 0 };
+                meses[key] = { pres: 0, cerrEnSla: 0, fueraSla: 0, pendientes: 0 };
                 current.setMonth(current.getMonth() + 1);
             }
         }
 
-        dataConRiesgo.forEach(d => {
+        const sourceData = dataForMesPresupuesto ? dataForMesPresupuesto.map(d => {
+            const { diasHabiles, estadoRiesgo } = calcularRiesgo(d);
+            return { ...d, _diasHabilesAbierta: diasHabiles, _estadoRiesgo: estadoRiesgo, _tiempoCierre: d.estado === 'Cerrado' ? diasHabiles : null };
+        }) : dataConRiesgo;
+
+        sourceData.forEach(d => {
             const created = new Date(d.created_at);
-
-            // Presupuesto: mes en el que se espera cerrar (created_at + 15 días hábiles)
             const fechaObjetivo = addBusinessDays(created, 15);
-            const mesPresupuesto = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
-            if (!meses[mesPresupuesto]) meses[mesPresupuesto] = { pres: 0, cerr: 0 };
-            meses[mesPresupuesto].pres += 1;
+            const mesKey = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (!meses[mesKey]) meses[mesKey] = { pres: 0, cerrEnSla: 0, fueraSla: 0, pendientes: 0 };
+            meses[mesKey].pres += 1;
 
-            // Cerradas: mes real de cierre basado en fecha_verificacion
-            // Si fecha_verificacion está vacía → usar fecha actual
-            const fechaVerif = parseDateSafe((d as any).fecha_verificacion) || new Date();
+            const diasHabiles = d._tiempoCierre !== null ? d._tiempoCierre : d._diasHabilesAbierta;
             
             if (d.estado === 'Cerrado') {
-                const mesCierre = `${fechaVerif.getFullYear()}-${String(fechaVerif.getMonth() + 1).padStart(2, '0')}`;
-                if (!meses[mesCierre]) meses[mesCierre] = { pres: 0, cerr: 0 };
-                meses[mesCierre].cerr += 1;
+                if (diasHabiles <= 15) {
+                    meses[mesKey].cerrEnSla += 1;
+                } else {
+                    meses[mesKey].fueraSla += 1; // Cerrado tarde
+                }
+            } else {
+                meses[mesKey].pendientes += 1; // Abierto
+                if (diasHabiles > 15) {
+                    meses[mesKey].fueraSla += 1; // Vencido
+                }
             }
         });
 
-        return Object.entries(meses).sort().filter(([, vals]) => vals.pres > 0 || vals.cerr > 0).map(([mesKey, vals]) => {
+        return Object.entries(meses).sort().filter(([, vals]) => vals.pres > 0).map(([mesKey, vals]) => {
             const [year, monthStr] = mesKey.split('-');
             const monthIdx = parseInt(monthStr, 10) - 1;
             const mesLabel = monthNames[monthIdx] || mesKey;
+            
+            const cumplimiento = vals.pres > 0 ? (((vals.pres - vals.fueraSla) / vals.pres) * 100).toFixed(2) : "0.00";
+
             return {
+                mesKey: mesKey,
                 mes: mesLabel, 
-                'Presupuesto': vals.pres, 
-                'Cerradas': vals.cerr,
+                Presupuesto: vals.pres, 
+                CerradasEnSLA: vals.cerrEnSla,
+                FueraSLA: vals.fueraSla,
+                Pendientes: vals.pendientes,
+                Cumplimiento: parseFloat(cumplimiento)
             };
         });
     }, [dataConRiesgo, filters.fechaInicial, filters.fechaFinal]);
+
+    const CustomPresupuestoTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            return (
+                <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100 text-xs z-50 min-w-[200px]">
+                    <p className="font-black text-gray-800 mb-2 uppercase border-b pb-1">{label}</p>
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center text-gray-600">
+                            <span>Presupuesto:</span>
+                            <span className="font-bold text-gray-800">{data.Presupuesto}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-emerald-600">
+                            <span>Cerradas en SLA:</span>
+                            <span className="font-bold">{data.CerradasEnSLA}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-red-500">
+                            <span>Fuera del SLA:</span>
+                            <span className="font-bold">{data.FueraSLA}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-amber-500">
+                            <span>Pendientes:</span>
+                            <span className="font-bold">{data.Pendientes}</span>
+                        </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t flex justify-between items-center text-brand">
+                        <span className="font-black">Cumplimiento:</span>
+                        <span className="font-black">{data.Cumplimiento}%</span>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
 
     // Export Excel
     const exportToExcel = () => {
@@ -191,30 +242,19 @@ export default function DetalleMac({ data, prevData, filters }: Props) {
     }, [dataConRiesgo, searchTerm]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
-        <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
-            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{title}</h3>
-            <div className="text-xl font-black text-gray-800">
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
+            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
+            <div className="text-lg font-black text-gray-800 leading-tight">
                 {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
             </div>
-            {subtitle && <div className="mt-1 text-[10px] font-medium text-gray-400">{subtitle}</div>}
+            {subtitle && <div className="mt-0.5 text-[9px] font-medium text-gray-400">{subtitle}</div>}
         </div>
     );
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Header: Semáforo */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full ${semaforoColor} animate-pulse`} />
-                    <span className="text-sm font-black uppercase tracking-widest text-gray-800">Estado Operativo: {semaforoTexto}</span>
-                </div>
-                <div className="text-xs font-bold text-gray-500">
-                    Cumplimiento: {porcCumplimiento.toFixed(1)}% | Riesgo: {porcRiesgo.toFixed(1)}%
-                </div>
-            </div>
-
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
                 <KpiCard title="Total Solicitudes" value={total} />
                 <KpiCard title="Cerradas" value={cerradas.length} subtitle={`${porcCierre.toFixed(1)}% de cierre`} />
                 <KpiCard title="Costo Promedio" value={costoPromedio} prefix="$" />
@@ -252,15 +292,35 @@ export default function DetalleMac({ data, prevData, filters }: Props) {
                     <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Presupuesto de Cierre</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={presupuestoData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <ComposedChart data={presupuestoData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                                <RechartsTooltip />
+                                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} hide domain={[0, 100]} />
+                                <RechartsTooltip content={<CustomPresupuestoTooltip />} cursor={{ fill: '#f9fafb' }} />
                                 <Legend />
-                                <Bar dataKey="Presupuesto" fill={COLORS.brandLight} radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="Cerradas" fill={COLORS.brand} radius={[4, 4, 0, 0]} />
-                            </BarChart>
+                                <Bar 
+                                    yAxisId="left" 
+                                    dataKey="Presupuesto" 
+                                    fill={COLORS.brandLight} 
+                                    radius={[4, 4, 0, 0]} 
+                                    name="Presupuesto"
+                                    onClick={(data, index, e) => onFilterToggle('mesPresupuesto', data.mesKey, e)}
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                />
+                                <Bar 
+                                    yAxisId="left" 
+                                    dataKey="CerradasEnSLA" 
+                                    fill={COLORS.brand} 
+                                    radius={[4, 4, 0, 0]} 
+                                    name="Cerradas en SLA"
+                                    onClick={(data, index, e) => onFilterToggle('mesPresupuesto', data.mesKey, e)}
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                />
+                                <Line yAxisId="right" type="monotone" dataKey="Cumplimiento" stroke="#000000" strokeWidth={3} dot={{ r: 4 }} name="% Cumplimiento">
+                                    <LabelList dataKey="Cumplimiento" position="top" formatter={(val: number) => `${val}%`} style={{ fill: '#374151', fontSize: 11, fontWeight: 'bold' }} offset={10} />
+                                </Line>
+                            </ComposedChart>
                         </ResponsiveContainer>
                     </div>
                 </div>

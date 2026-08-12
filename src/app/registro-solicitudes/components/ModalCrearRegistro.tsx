@@ -19,8 +19,36 @@ export default function ModalCrearRegistro({
 }) {
     const [isSaving, setIsSaving] = useState(false);
     
-    // Generar consecutivo al cargar el modal
-    const [consecutivoStr] = useState(`RAD-${Math.floor(100000 + Math.random() * 900000)}`);
+    // Generar consecutivo basado en el último ID de la base de datos
+    const [consecutivoStr, setConsecutivoStr] = useState('Cargando...');
+
+    useEffect(() => {
+        const fetchNextId = async () => {
+            try {
+                // Buscamos el último consecutivo real (que empiece con ceros)
+                const { data } = await supabase
+                    .from('registro_solicitudes')
+                    .select('consecutivo')
+                    .like('consecutivo', 'RAD-000%')
+                    .order('consecutivo', { ascending: false })
+                    .limit(1);
+                
+                let nextId = 100; // Comenzar desde el 100 como solicitó el usuario
+                if (data && data.length > 0) {
+                    const lastConsecutivo = data[0].consecutivo;
+                    const num = parseInt(lastConsecutivo.replace('RAD-', ''), 10);
+                    if (!isNaN(num)) {
+                        nextId = num + 1;
+                    }
+                }
+                setConsecutivoStr(`RAD-${String(nextId).padStart(6, '0')}`);
+            } catch (e) {
+                // Fallback si falla
+                setConsecutivoStr(`RAD-${Math.floor(100000 + Math.random() * 900000)}`);
+            }
+        };
+        fetchNextId();
+    }, []);
 
     // Form fields
     const [ordenVenta, setOrdenVenta] = useState('');
