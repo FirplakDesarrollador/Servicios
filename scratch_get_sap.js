@@ -33,7 +33,7 @@ async function checkItem() {
     }
     
     const baseUrl = env.SAP_API_URL.replace('/Login', '');
-    const itemCode = 'VBAN05-0125-000-1304';
+    const itemCode = 'VBAN03-2584-000-0100';
     
     const itemRes = await fetch(baseUrl + `/Items('${itemCode}')`, {
       headers: { 'Cookie': cookie }
