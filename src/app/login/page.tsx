@@ -1,12 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, Loader2, ArrowRight, UserCircle } from 'lucide-react';
 
 export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+                <Loader2 className="w-10 h-10 animate-spin text-brand" />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
+    );
+}
+
+function LoginContent() {
+    const searchParams = useSearchParams();
+    const isCliente = searchParams.get('type') === 'cliente';
+    
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -25,6 +40,13 @@ export default function LoginPage() {
             });
 
             if (error) throw error;
+
+            // Persistir el tipo de portal en localStorage
+            if (isCliente) {
+                localStorage.setItem('portalType', 'cliente');
+            } else {
+                localStorage.setItem('portalType', 'interno');
+            }
 
             router.push('/');
             router.refresh();
@@ -58,15 +80,17 @@ export default function LoginPage() {
                     >
                         <LogIn className="text-white w-10 h-10" strokeWidth={2.5} />
                     </motion.div>
-                    <motion.h1
+                    <motion.div
                         initial={{ y: -10, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-5xl font-black text-brand tracking-tighter uppercase mb-2"
+                        className="mb-4"
                     >
-                        FIRPLAK
-                    </motion.h1>
-                    <p className="text-slate-400 font-bold tracking-widest uppercase text-[10px]">Portal de Servicios</p>
+                        <img src="/logo-firplak.png" alt="FIRPLAK" className="h-16 w-auto" />
+                    </motion.div>
+                    <p className="text-slate-400 font-bold tracking-widest uppercase text-[10px]">
+                        {isCliente ? 'Ingreso Zona Clientes' : 'Portal de Servicios'}
+                    </p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-8">
@@ -128,6 +152,20 @@ export default function LoginPage() {
                         )}
                     </motion.button>
                 </form>
+
+                {!isCliente && (
+                    <div className="mt-6">
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => router.push('/login?type=cliente')}
+                            className="w-full bg-white border-2 border-slate-100 hover:border-brand/20 text-brand/60 hover:text-brand font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 group text-sm"
+                        >
+                            <UserCircle className="w-5 h-5" />
+                            Zona Clientes
+                        </motion.button>
+                    </div>
+                )}
 
                 <div className="mt-12 text-center">
                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">

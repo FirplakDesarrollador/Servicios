@@ -20,14 +20,15 @@ export default function ConfigurationPage() {
             description: 'Administrar roles, perfiles y contraseñas de los usuarios del sistema.',
             icon: Users,
             path: '/configuracion/usuarios',
-            color: 'bg-blue-500'
+            color: 'bg-brand'
         },
         {
             title: 'Gestión de Roles y Permisos',
-            description: 'Configurar qué módulos son visibles para cada rol de usuario.',
+            description: 'Configurar los módulos accesibles por defecto para cada rol del sistema.',
             icon: ShieldCheck,
             path: '/configuracion/roles',
-            color: 'bg-emerald-500'
+            color: 'bg-emerald-500',
+            disabled: false
         },
         {
             title: 'Seguridad y Auditoría',
