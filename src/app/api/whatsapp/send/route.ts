@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { chat_id, text_body } = await request.json();
+    const { chat_id, text_body, id } = await request.json();
 
     if (!chat_id || !text_body) {
       return NextResponse.json({ error: 'chat_id and text_body are required' }, { status: 400 });
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       .from('whatsapp_messages')
       .insert([
         {
+          ...(id ? { id } : {}),
           chat_id,
           wam_id,
           text_body,
