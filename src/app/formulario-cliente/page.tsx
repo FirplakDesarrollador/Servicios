@@ -186,10 +186,22 @@ export default function FormularioClientePage() {
         if (formData.ciudad || formData.tipoServicio || formData.productos?.length) {
             let precioTotal = 0;
 
+            // Normalize text to match correctly (e.g. "Rionegro" vs "Rionegro (Antioquia)", ignoring accents and spaces)
+            const normalize = (str: string) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : '';
+            const formCiudad = normalize(formData.ciudad);
+
             // Get city tariff
-            const ciudadPrecio = preciosZonas.find((p: any) => (p.Ciudad || p.ciudad) === formData.ciudad);
-            const tarifaRaw = ciudadPrecio ? (ciudadPrecio.Tarifa || ciudadPrecio.tarifa) : 0;
-            let tarifaCiudad = tarifaRaw ? (parseFloat(tarifaRaw) || 0) : 0;
+            const ciudadPrecio = preciosZonas.find((p: any) => {
+                const pCiudad = normalize(p.Ciudad || p.ciudad);
+                return formCiudad === pCiudad || formCiudad.startsWith(pCiudad + ' ') || formCiudad.startsWith(pCiudad + '(') || formCiudad.startsWith(pCiudad + ',');
+            });
+            
+            let tarifaCiudad = 0;
+            if (ciudadPrecio) {
+                const zonaStr = (ciudadPrecio.Zona || ciudadPrecio.zona || '').toLowerCase().replace(/\s/g, '');
+                if (zonaStr === 'zona2') tarifaCiudad = 112000;
+                else if (zonaStr === 'zona3') tarifaCiudad = 236000;
+            }
 
             if (formData.tipoServicio === 'Visita de Asesoría') {
                 // Rule: 60000 + City Surcharge (Fixed for the whole visit)
