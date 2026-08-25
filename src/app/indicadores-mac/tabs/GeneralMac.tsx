@@ -144,7 +144,7 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
 // ─── Product Table ───────────────────────────────────────────────────────────
 const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle, activeFilters = [] }: {
     title: string;
-    data: Array<{ nombre: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
+    data: Array<{ nombre: string; codigo?: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
     maxHeight?: number;
     filterKey: string;
     onFilterToggle: any;
@@ -162,7 +162,12 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
     }
 
     const filtered = query.trim()
-        ? data.filter(item => item.nombre.toLowerCase().includes(query.toLowerCase()))
+        ? data.filter(item => {
+            const q = query.toLowerCase().trim();
+            const matchNombre = item.nombre.toLowerCase().includes(q);
+            const matchCodigo = item.codigo ? item.codigo.toLowerCase().includes(q) : false;
+            return matchNombre || matchCodigo;
+        })
         : data;
 
     return (
@@ -184,8 +189,8 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
                     type="text"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
-                    placeholder="Buscar producto..."
-                    className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    placeholder="Buscar por código o producto..."
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
                 {query && (
                     <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -236,6 +241,83 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
         </div>
     );
 };
+// ─── Top Ciudades Card ────────────────────────────────────────────────────────
+const TopCiudadesCard = ({ data, onFilterToggle, activeFilters = [] }: {
+    data: Array<{ nombre: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
+    onFilterToggle: any;
+    activeFilters?: string[];
+}) => {
+    const [q, setQ] = React.useState('');
+    const filtered = q.trim()
+        ? data.filter(c => c.nombre.toLowerCase().includes(q.toLowerCase()))
+        : data;
+
+    return (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Top Ciudades</h3>
+                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                    {filtered.length}/{data.length} ciudades
+                </span>
+            </div>
+            <div className="relative mb-3">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <input
+                    type="text"
+                    value={q}
+                    onChange={e => setQ(e.target.value)}
+                    placeholder="Buscar ciudad..."
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                />
+                {q && (
+                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                )}
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
+                {filtered.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
+                ) : (
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-gray-50">
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Ciudad</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map((c, i) => (
+                                <tr 
+                                    key={i} 
+                                    onClick={(e) => onFilterToggle('ciudades', c.nombre, e)}
+                                    className={`group transition-colors cursor-pointer ${
+                                        activeFilters.length > 0 && activeFilters.includes(c.nombre)
+                                            ? 'bg-blue-100 border-l-4 border-blue-500'
+                                            : activeFilters.length > 0 
+                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-gray-50'
+                                                : i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'
+                                    }`}
+                                >
+                                    <td className="px-3 py-2.5 text-xs font-medium text-gray-700 leading-snug border-b border-gray-100">{c.nombre}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{c.Registros}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{c['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-gray-100">{c.Participacion}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </div>
+    );
+};
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Top Clientes Card ────────────────────────────────────────────────────────
@@ -265,7 +347,7 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                     type="text"
                     value={q}
                     onChange={e => setQ(e.target.value)}
-                    placeholder="Buscar cliente..."
+                    placeholder="Buscar cliente final..."
                     className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
                 {q && (
@@ -276,7 +358,7 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                     </button>
                 )}
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: '320px' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
                 {filtered.length === 0 ? (
                     <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
                 ) : (
@@ -351,15 +433,22 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             });
     }, [data, dataForMesCreacion]);
 
+    const promedioIngresoMensual = useMemo(() => {
+        const numMeses = registrosPorMes.length || 1;
+        const avg = totalNovedades / numMeses;
+        return avg % 1 === 0 ? avg.toString() : avg.toFixed(1);
+    }, [totalNovedades, registrosPorMes]);
+
     // Funciones auxiliares
     const getProductosStats = (field: 'productos_compra' | 'productos_novedad') => {
-        const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
+        const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number, codigosSet: Set<string> }> = {};
         
         const sourceData = dataForProductos || data;
         sourceData.forEach(d => {
             if (Array.isArray(d[field])) {
                 d[field].forEach((p: any) => {
-                    const nombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
+                    const nombre = p.descripcion || p.nombre || p.sku || p.referencia || p.codigo || 'Desconocido';
+                    const codigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
                     
                     let include = true;
                     if (field === 'productos_novedad' && ((filters.defectos && filters.defectos.length > 0) || (filters.responsables && filters.responsables.length > 0))) {
@@ -397,9 +486,12 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     }
                     
                     if (include) {
-                        if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
+                        if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0, codigosSet: new Set() };
                         stats[nombre].registrosSet.add(d.id);
                         stats[nombre].productosAfectados += (p.cantidad || 1);
+                        if (codigo && String(codigo).trim() && String(codigo).trim() !== nombre) {
+                            stats[nombre].codigosSet.add(String(codigo).trim());
+                        }
                     }
                 });
             }
@@ -410,8 +502,11 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         return Object.entries(stats)
             .map(([nombre, stat]) => {
                 const regs = stat.registrosSet.size;
+                const codigosArr = Array.from(stat.codigosSet);
+                const codigoStr = codigosArr.length > 0 ? codigosArr.join(', ') : '';
                 return { 
                     nombre, 
+                    codigo: codigoStr,
                     Registros: regs, 
                     'Productos Afectados': stat.productosAfectados,
                     Participacion: ((regs / totalRegistros) * 100).toFixed(1) + '%'
@@ -440,7 +535,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     let passesProductos = true;
                     if (filters.productos && filters.productos.length > 0) {
                         const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
-                        if (!filters.productos.includes(prodNombre)) passesProductos = false;
+                        const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
+                        if (!filters.productos.includes(prodNombre) && (!prodCodigo || !filters.productos.includes(prodCodigo))) passesProductos = false;
                     }
 
                     if (!passesProductos) return;
@@ -512,7 +608,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     let passesProductos = true;
                     if (filters.productos && filters.productos.length > 0) {
                         const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
-                        if (!filters.productos.includes(prodNombre)) passesProductos = false;
+                        const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
+                        if (!filters.productos.includes(prodNombre) && (!prodCodigo || !filters.productos.includes(prodCodigo))) passesProductos = false;
                     }
 
                     if (!passesProductos) return;
@@ -623,7 +720,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         const stats: Record<string, { regs: number, prods: number, valor: number }> = {};
         const sourceData = dataForClientes || data;
         sourceData.forEach(d => {
-            const cliente = d.cliente_nombre || d.cliente_final_nombre || 'Desconocido';
+            const cliente = d.cliente_final_nombre || d.cliente_nombre || 'Desconocido';
             if (!stats[cliente]) stats[cliente] = { regs: 0, prods: 0, valor: 0 };
             stats[cliente].regs += 1;
             stats[cliente].valor += (d._valorInvertido || 0);
@@ -637,15 +734,20 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             Productos: stat.prods,
             Valor: stat.valor,
             Participacion: ((stat.regs / (data.length || 1)) * 100).toFixed(1) + '%'
-        })).sort((a, b) => b.Registros - a.Registros).slice(0, 10);
-    }, [data]);
+        })).sort((a, b) => b.Registros - a.Registros);
+    }, [data, dataForClientes]);
 
-    const KpiCard = ({ title, value, prefix = '', suffix = '', variacion }: { title: string, value: number, prefix?: string, suffix?: string, variacion?: number }) => (
+    const KpiCard = ({ title, value, prefix = '', suffix = '', variacion, subtitle }: { title: string, value: number | string, prefix?: string, suffix?: string, variacion?: number, subtitle?: string }) => (
         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
             <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
             <div className="text-lg font-black text-gray-800 leading-tight">
-                {prefix}{value.toLocaleString('es-CO')}{suffix}
+                {prefix}{typeof value === 'number' ? value.toLocaleString('es-CO') : value}{suffix}
             </div>
+            {subtitle && (
+                <div className="text-[9px] text-gray-400 font-semibold mt-0.5">
+                    {subtitle}
+                </div>
+            )}
             {variacion !== undefined && (
                 <div className={`flex items-center gap-1 mt-0.5 text-[9px] font-bold ${variacion > 0 ? 'text-green-600' : variacion < 0 ? 'text-red-600' : 'text-gray-500'}`} title="Comparado con el periodo inmediatamente anterior de la misma longitud">
                     {variacion > 0 ? <ArrowUpIcon className="w-2.5 h-2.5" /> : variacion < 0 ? <ArrowDownIcon className="w-2.5 h-2.5" /> : <MinusIcon className="w-2.5 h-2.5" />}
@@ -658,11 +760,12 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
     return (
         <div className="space-y-4 animate-fade-in">
             {/* Tarjetas KPI */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
                 <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
                 <KpiCard title="Valor Invertido" value={valorInvertido} prefix="$" />
                 <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                 <KpiCard title="Solicitudes Cerradas" value={cerradas} />
+                <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -796,7 +899,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
                 {/* Ciudades */}
-                <CleanDonutCard title="Top Ciudades" data={ciudadesData} colors={COLORS} filterKey="ciudades" onFilterToggle={onFilterToggle} activeFilters={filters.ciudades} />
+                <TopCiudadesCard data={ciudadesData} onFilterToggle={onFilterToggle} activeFilters={filters.ciudades} />
 
                 {/* Zonas */}
                 <CleanDonutCard title="Top Zonas" data={zonasData} colors={COLORS.slice(3).concat(COLORS.slice(0,3))} filterKey="zonas" onFilterToggle={onFilterToggle} activeFilters={filters.zonas} />
