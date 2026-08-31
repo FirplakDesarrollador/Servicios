@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState } from './types';
 import Filters from './components/Filters';
-import GeneralMac from './tabs/GeneralMac';
+import GeneralMac, { CanalesVentaCard } from './tabs/GeneralMac';
 import DetalleMac from './tabs/DetalleMac';
 import AgentesMac from './tabs/AgentesMac';
 import { getBusinessDaysDifference, isBusinessDay, addBusinessDays } from './utils/businessDays';
@@ -216,7 +216,18 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('fechaInicial') && filters.fechaInicial && new Date(d.created_at) < new Date(filters.fechaInicial)) return false;
             if (!excludeKeys.includes('fechaFinal') && filters.fechaFinal && new Date(d.created_at) > new Date(new Date(filters.fechaFinal).getTime() + 86400000)) return false;
             if (!excludeKeys.includes('estado') && filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
-            if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0 && !filters.canalVenta.includes(d.canal_venta)) return false;
+            if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0) {
+                const activeFilters = filters.canalVenta.map(f => f.toLowerCase());
+                const dCanal = (d.canal_venta || '').toLowerCase();
+                const match = activeFilters.some(f => 
+                    dCanal === f || dCanal.includes(f) || f.includes(dCanal) ||
+                    (f === 'distribucion' && (dCanal.includes('distribuid') || dCanal.includes('ditribuid'))) ||
+                    (f === 'constructor' && dCanal.includes('construct')) ||
+                    (f === 'exportaciones' && dCanal.includes('export')) ||
+                    (f === 'canal_propio' && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce')))
+                );
+                if (!match) return false;
+            }
             if (!excludeKeys.includes('tipoSolicitud') && filters.tipoSolicitud.length > 0 && !filters.tipoSolicitud.includes(d.tipo_solicitud)) return false;
             if (!excludeKeys.includes('agenteMac') && filters.agenteMac.length > 0 && !filters.agenteMac.includes(d._agenteNombre || '')) return false;
             
@@ -243,6 +254,7 @@ export default function IndicadoresMacPage() {
     const dataForProductos = useMemo(() => getFilteredData(['productos']), [data, filters]);
     const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [data, filters]);
     const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [data, filters]);
+    const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [data, filters]);
 
     const handleFilterToggle = (key: keyof FilterState, value: string, e?: any) => {
         setFilters(prev => {
@@ -436,7 +448,7 @@ export default function IndicadoresMacPage() {
             </header>
             
             {/* Breadcrumb de Filtros Activos y Limpiar */}
-            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0) && (
+            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0 || filters.canalVenta.length > 0) && (
                 <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
                     <div className="flex flex-wrap items-center gap-2 flex-1">
                         <span className="text-xs font-bold text-gray-500 mr-2 flex items-center gap-1"><ListFilterIcon className="w-3.5 h-3.5" />Filtros cruzados:</span>
@@ -467,7 +479,7 @@ export default function IndicadoresMacPage() {
                         </button>
                         <button 
                             onClick={() => setFilters(prev => ({
-                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: []
+                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: []
                             }))} 
                             className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
                         >
@@ -477,11 +489,20 @@ export default function IndicadoresMacPage() {
                 </div>
             )}
 
-            <main className="flex-1 p-6 overflow-auto">
+            <main className="flex-1 p-6 overflow-auto space-y-4">
                 <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} />
+
+                {activeTab === 0 && (
+                    <CanalesVentaCard 
+                        data={filteredData} 
+                        dataForCanalVenta={dataForCanalVenta} 
+                        filters={filters} 
+                        onFilterToggle={handleFilterToggle} 
+                    />
+                )}
                 
                 <div className="mt-4 transition-opacity duration-300">
-                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
+                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} dataForCanalVenta={dataForCanalVenta} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
                     {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                     {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                 </div>
