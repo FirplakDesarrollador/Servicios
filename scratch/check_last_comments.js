@@ -5,12 +5,14 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-    const { data: user, error } = await supabase
-        .from('Usuarios')
+    // Get last 5 comments
+    const { data: comments, error } = await supabase
+        .from('Comentarios')
         .select('*')
-        .ilike('correo', '%edison.porras%');
+        .order('created_at', { ascending: false })
+        .limit(5);
         
-    console.log("Usuario:", JSON.stringify(user, null, 2));
+    console.log("Ultimos comentarios:", comments);
 }
 
 run();

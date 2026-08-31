@@ -5,12 +5,13 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-    const { data: user, error } = await supabase
-        .from('Usuarios')
-        .select('*')
-        .ilike('correo', '%edison.porras%');
-        
-    console.log("Usuario:", JSON.stringify(user, null, 2));
+    // List tables that look like comentarios
+    const { data, error } = await supabase.rpc('get_tables');
+    if (error) {
+        console.log("Could not run get_tables RPC", error.message);
+    } else {
+        console.log(data);
+    }
 }
 
 run();

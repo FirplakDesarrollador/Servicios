@@ -26,7 +26,8 @@ import {
   AlertTriangle,
   Users,
   FileText,
-  PieChart
+  PieChart,
+  Server
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -182,6 +183,7 @@ export default function Home() {
     'Indicadores MAC': '/indicadores-mac',
     'Registro Solicitudes': '/registro-solicitudes',
     'Configuración': '/configuracion',
+    'Consultas SAP': '/consultas-sap',
   };
 
   const allMenuItems = [
@@ -200,6 +202,7 @@ export default function Home() {
     { title: 'BI', icon: BarChart3, color: 'bg-[#254153]/10 text-[#254153]' },
     { title: 'Indicadores MAC', icon: PieChart, color: 'bg-[#254153]/10 text-[#254153]' },
     { title: 'Registro Solicitudes', icon: FileText, color: 'bg-sky-50 text-sky-700 border border-sky-100' },
+    { title: 'Consultas SAP', icon: Server, color: 'bg-orange-50 text-orange-700 border border-orange-100' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-100 text-slate-700 border border-slate-200' },
   ];
 

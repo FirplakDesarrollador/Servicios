@@ -33,6 +33,7 @@ const ALL_MODULES = [
     'BI',
     'Indicadores MAC',
     'Registro Solicitudes',
+    'Consultas SAP',
     'Configuración'
 ];
 

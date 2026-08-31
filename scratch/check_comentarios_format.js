@@ -5,12 +5,13 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-    const { data: user, error } = await supabase
-        .from('Usuarios')
+    // Check columns of Comentarios table
+    const { data, error } = await supabase
+        .from('Comentarios')
         .select('*')
-        .ilike('correo', '%edison.porras%');
+        .limit(1);
         
-    console.log("Usuario:", JSON.stringify(user, null, 2));
+    console.log("Comentarios format:", data);
 }
 
 run();

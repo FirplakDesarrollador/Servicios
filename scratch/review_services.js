@@ -5,12 +5,16 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-    const { data: user, error } = await supabase
-        .from('Usuarios')
+    const { data, error } = await supabase
+        .from('Servicios')
         .select('*')
-        .ilike('correo', '%edison.porras%');
+        .in('consecutivo', ['FEdiPorMant93643', 'FEdiPorInst54568']);
         
-    console.log("Usuario:", JSON.stringify(user, null, 2));
+    if (error) {
+        console.error('Error fetching:', error);
+    } else {
+        console.log(JSON.stringify(data, null, 2));
+    }
 }
 
 run();

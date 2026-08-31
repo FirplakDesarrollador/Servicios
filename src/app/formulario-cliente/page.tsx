@@ -80,7 +80,7 @@ export default function FormularioClientePage() {
 
         try {
             console.log('Fetching initial data...');
-            // Load precios zonas
+            // Load official cities and tariffs from precioszonas
             const { data: preciosData, error: preciosError } = await supabase
                 .from('precioszonas')
                 .select('*')
@@ -89,16 +89,11 @@ export default function FormularioClientePage() {
             if (preciosData) {
                 console.log('Precios loaded:', preciosData.length);
                 setPreciosZonas(preciosData);
-            }
-
-            // Load official cities from query_ciudades
-            const { data: ciudadesData } = await supabase
-                .from('query_ciudades')
-                .select('id, ciudad')
-                .order('ciudad');
-                
-            if (ciudadesData) {
-                setCiudades(ciudadesData);
+                // Populate select list directly from precioszonas so all cities match recargos 1:1
+                setCiudades(preciosData.map((item: any) => ({
+                    id: item.id,
+                    ciudad: item.Ciudad
+                })));
             }
 
             // Load grupos from vw_zonas_medidas_descripciones view
@@ -198,9 +193,13 @@ export default function FormularioClientePage() {
             
             let tarifaCiudad = 0;
             if (ciudadPrecio) {
-                const zonaStr = (ciudadPrecio.Zona || ciudadPrecio.zona || '').toLowerCase().replace(/\s/g, '');
-                if (zonaStr === 'zona2') tarifaCiudad = 112000;
-                else if (zonaStr === 'zona3') tarifaCiudad = 236000;
+                if (ciudadPrecio.Tarifa && ciudadPrecio.Tarifa !== 'Sin recargo') {
+                    tarifaCiudad = Number(ciudadPrecio.Tarifa) || 0;
+                } else {
+                    const zonaStr = (ciudadPrecio.Zona || ciudadPrecio.zona || '').toLowerCase().replace(/\s/g, '');
+                    if (zonaStr === 'zona2') tarifaCiudad = 112000;
+                    else if (zonaStr === 'zona3') tarifaCiudad = 236000;
+                }
             }
 
             if (formData.tipoServicio === 'Visita de Asesoría') {
