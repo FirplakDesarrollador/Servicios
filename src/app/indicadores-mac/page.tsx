@@ -131,12 +131,16 @@ export default function IndicadoresMacPage() {
                 if (Array.isArray(r.productos_compra)) {
                     r.productos_compra.forEach((p: any) => {
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                        const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
+                        if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                     });
                 }
                 
                 if (Array.isArray(r.productos_novedad)) {
                     r.productos_novedad.forEach((p: any) => {
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                        const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
+                        if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                         let hasProblema = false;
                         let hasResp = false;
                         if (Array.isArray(p.problemas)) {
