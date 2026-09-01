@@ -124,7 +124,7 @@ export default function WhatsAppPage() {
   const handleUpdateResponsable = async (chatId: string, value: string) => {
     setChats(prev => prev.map(c => c.id === chatId ? { ...c, responsable: value } : c));
     if (activeChat?.id === chatId) {
-      setActiveChat(prev => prev ? { ...prev, responsable: value } : prev);
+      setActiveChat((prev: any) => prev ? { ...prev, responsable: value } : prev);
     }
     await supabase
       .from('whatsapp_chats')
