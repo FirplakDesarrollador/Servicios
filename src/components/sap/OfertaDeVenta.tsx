@@ -73,7 +73,7 @@ export default function OfertaDeVenta() {
   const [fechaCierre, setFechaCierre] = useState('');
   const [bloqueadoDespacho, setBloqueadoDespacho] = useState('No Bloqueado');
   const [estadoOfertaVenta, setEstadoOfertaVenta] = useState('Pendiente');
-  const [tipoPedido, setTipoPedido] = useState('Estándar');
+  const [tipoPedido, setTipoPedido] = useState('Normal');
   const [valorAnticipo, setValorAnticipo] = useState('0.00');
 
   // Tabs
@@ -94,12 +94,22 @@ export default function OfertaDeVenta() {
     }
   ]);
 
-  // Footer Fields
+  // Footer & Logistics Fields
   const [salesEmployee, setSalesEmployee] = useState('');
   const [owner, setOwner] = useState('');
+  const [comments, setComments] = useState('');
+  const [openingRemarks, setOpeningRemarks] = useState('');
+  const [closingRemarks, setClosingRemarks] = useState('');
+  const [shipToAddressText, setShipToAddressText] = useState('');
+  const [payToAddressText, setPayToAddressText] = useState('');
   const [headerDiscountPct, setHeaderDiscountPct] = useState(0);
   const [additionalExpenses, setAdditionalExpenses] = useState(0);
   const [rounding, setRounding] = useState(false);
+
+  // Context Menu & SAP Modals State
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [isComentariosModalOpen, setIsComentariosModalOpen] = useState(false);
+  const [isMapaRelacionesModalOpen, setIsMapaRelacionesModalOpen] = useState(false);
 
   // Modals & Search State
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -115,6 +125,12 @@ export default function OfertaDeVenta() {
   // Status message
   const [statusMessage, setStatusMessage] = useState('● Ingrese un número de Orden de Venta u Oferta en el campo lateral y presione Consultar.');
   const [statusType, setStatusType] = useState<'info' | 'success' | 'error'>('info');
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
 
   // Load live SAP Business Partners & Items background cache
   const [costCentersList, setCostCentersList] = useState<Array<{ code: string; name: string }>>([]);
@@ -186,7 +202,7 @@ export default function OfertaDeVenta() {
       // Populate Header
       setCardCode(sapDoc.CardCode || '');
       setCardName(sapDoc.CardName || '');
-      setContactPerson(sapDoc.ContactPerson || '');
+      setContactPerson(sapDoc._ContactPersonName || sapDoc.ContactPerson || '');
       setRefNumber(sapDoc.NumAtCard || '');
       setCurrency(sapDoc.DocCurrency === '$' ? 'COP' : sapDoc.DocCurrency || 'COP');
       setDocNum(String(sapDoc.DocNum || searchTarget));
@@ -197,18 +213,90 @@ export default function OfertaDeVenta() {
       setDocDate(sapDoc.TaxDate ? sapDoc.TaxDate.split('T')[0] : '');
 
       // Populate User Fields
-      setSegmentoPedido(sapDoc.U_Segmentacion || 'Nacional');
+      const segVal = String(sapDoc.U_Segmentacion || sapDoc.U_Segmento_Pedido || sapDoc.U_Segmento || '').trim();
+      setSegmentoPedido(segVal === '01' || segVal === '1' ? 'Nacional' : (segVal || 'N/A'));
+
       setOrdenVenta(String(sapDoc.U_OrdendeVenta || sapDoc.DocNum || searchTarget));
-      setAnticipoPct(String(sapDoc.U_Anticipo || '0.00'));
-      setAmortizacionFacturaPct(String(sapDoc.U_PorcAmortizacionFa || '0.00'));
-      setAplicacionAnticipo(sapDoc.U_AplicacionAnticipo || 'NO');
+      
+      const antRaw = String(sapDoc.U_Anticipo || '').trim();
+      setAnticipoPct(antRaw === '02' || antRaw === '2' || antRaw === 'SI tiene anticipo' ? 'SI tiene anticipo' : (antRaw === '01' || antRaw === '1' ? 'NO tiene anticipo' : (antRaw || 'SI tiene anticipo')));
+      
+      setAmortizacionFacturaPct(String(sapDoc.U_PorcAmortizacionFa || '100.00'));
+      setAplicacionAnticipo(sapDoc.U_AplicacionAnticipo === '02' || sapDoc.U_AplicacionAnticipo === '2' ? 'NO' : (sapDoc.U_AplicacionAnticipo || 'NO'));
       setPctContenedor(String(sapDoc.U_Porc_contenedor || '0.00'));
-      setBloqueadoDespacho(sapDoc.U_Bloqueado || 'No Bloqueado');
-      setEstadoOfertaVenta(sapDoc.U_Estado_Oferta_Venta === '02' ? 'Aprobado' : 'Pendiente');
+      setBloqueadoDespacho(sapDoc.U_Bloqueado === '01' || sapDoc.U_Bloqueado === '1' ? 'No Bloqueado' : (sapDoc.U_Bloqueado || 'No Bloqueado'));
+
+      const estRaw = String(sapDoc.U_Estado_Oferta_Venta || sapDoc.U_Estado_Oferta || '').trim();
+      setEstadoOfertaVenta(estRaw === '02' || estRaw === '2' || estRaw === 'Confirmada' ? 'Confirmada' : (estRaw === '01' || estRaw === '1' ? 'Pendiente' : (estRaw || 'Confirmada')));
+
+      const TIPO_PEDIDO_MAP: Record<string, string> = {
+        '1': 'Normal',
+        '01': 'Normal',
+        '2': 'Llenado Stock',
+        '02': 'Llenado Stock',
+        '3': 'Exportacion',
+        '03': 'Exportacion',
+        '4': 'Muestras y exhibiciones',
+        '04': 'Muestras y exhibiciones',
+        '5': 'Servicios',
+        '05': 'Servicios',
+        '6': 'Reposicion Producto',
+        '06': 'Reposicion Producto',
+        '7': 'Atención',
+        '07': 'Atención',
+        '8': 'Muestra Facturable',
+        '08': 'Muestra Facturable',
+        '9': 'FulFilment',
+        '09': 'FulFilment',
+        '10': 'Llenado Eventos',
+        '11': 'Llenado Ferias',
+        '12': 'Reposicion Repuesto',
+        '13': 'Firplak.com',
+        '14': 'Cliente Final',
+        '15': 'Reabastecimiento Firplak Home',
+      };
+      const tipoRaw = String(sapDoc.U_TipoPedido || sapDoc.U_Tipo_Pedido || '').trim();
+      setTipoPedido(TIPO_PEDIDO_MAP[tipoRaw] || tipoRaw || 'Normal');
+
       setValorAnticipo(String(sapDoc.U_VlorAnticipo || '0.00'));
 
-      // Set Footer Empleado de Ventas
+      // Set Footer Empleado de Ventas, Propietario & Comentarios
       setSalesEmployee(sapDoc._SalesEmployeeName || 'Firplak');
+      setOwner(sapDoc._OwnerName || (sapDoc.DocumentsOwner ? String(sapDoc.DocumentsOwner) : ''));
+      setComments(sapDoc.Comments || '');
+      setOpeningRemarks(sapDoc.OpeningRemarks || sapDoc.Comments || '');
+      setClosingRemarks(sapDoc.ClosingRemarks || sapDoc.Comments || '');
+
+      // Construct Logistics Addresses (Destino & Facturación)
+      const shipName = sapDoc.ShipToCode || sapDoc.CardName || '';
+      let shipAddrStr = '';
+      if (sapDoc.Address) {
+        shipAddrStr = sapDoc.Address;
+      } else if (sapDoc.AddressExtension) {
+        const parts = [
+          sapDoc.AddressExtension.ShipToStreet,
+          `${sapDoc.AddressExtension.ShipToZipCode || '000000'} ${sapDoc.AddressExtension.ShipToCity || ''}`.trim(),
+          sapDoc.AddressExtension.ShipToCountry === 'CO' ? 'COLOMBIA' : (sapDoc.AddressExtension.ShipToCountry || '')
+        ].filter(Boolean);
+        shipAddrStr = parts.join('\n');
+      }
+      const fullShip = shipAddrStr ? (shipAddrStr.includes(shipName) ? shipAddrStr : `${shipName}\n${shipAddrStr}`) : shipName;
+      setShipToAddressText(fullShip);
+
+      const payName = sapDoc.PayToCode || sapDoc.CardName || '';
+      let payAddrStr = '';
+      if (sapDoc.Address2) {
+        payAddrStr = sapDoc.Address2;
+      } else if (sapDoc.AddressExtension) {
+        const parts = [
+          sapDoc.AddressExtension.BillToStreet,
+          `${sapDoc.AddressExtension.BillToZipCode || '000000'} ${sapDoc.AddressExtension.BillToCity || ''}`.trim(),
+          sapDoc.AddressExtension.BillToCountry === 'CO' ? 'COLOMBIA' : (sapDoc.AddressExtension.BillToCountry || '')
+        ].filter(Boolean);
+        payAddrStr = parts.join('\n');
+      }
+      const fullPay = payAddrStr ? (payAddrStr.includes(payName) ? payAddrStr : `${payName}\n${payAddrStr}`) : payName;
+      setPayToAddressText(fullPay);
 
       // Populate Document Lines
       if (sapDoc.DocumentLines && sapDoc.DocumentLines.length > 0) {
@@ -455,12 +543,18 @@ export default function OfertaDeVenta() {
 
             <div>
               <label className="text-slate-600 block mb-0.5">Anticipo</label>
-              <input 
-                type="text"
+              <select 
                 value={anticipoPct}
                 onChange={e => setAnticipoPct(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
-              />
+                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+              >
+                <option value="SI tiene anticipo">SI tiene anticipo</option>
+                <option value="NO tiene anticipo">NO tiene anticipo</option>
+                <option value="0.00">0.00</option>
+                {anticipoPct && !['SI tiene anticipo', 'NO tiene anticipo', '0.00'].includes(anticipoPct) && (
+                  <option value={anticipoPct}>{anticipoPct}</option>
+                )}
+              </select>
             </div>
 
             <div>
@@ -534,11 +628,16 @@ export default function OfertaDeVenta() {
               <select 
                 value={estadoOfertaVenta}
                 onChange={e => setEstadoOfertaVenta(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
               >
+                <option value="Confirmada">Confirmada</option>
                 <option value="Pendiente">Pendiente</option>
                 <option value="Aprobado">Aprobado</option>
                 <option value="Rechazado">Rechazado</option>
+                <option value="Anulada">Anulada</option>
+                {estadoOfertaVenta && !['Confirmada', 'Pendiente', 'Aprobado', 'Rechazado', 'Anulada'].includes(estadoOfertaVenta) && (
+                  <option value={estadoOfertaVenta}>{estadoOfertaVenta}</option>
+                )}
               </select>
             </div>
 
@@ -547,11 +646,26 @@ export default function OfertaDeVenta() {
               <select 
                 value={tipoPedido}
                 onChange={e => setTipoPedido(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
               >
-                <option value="Estándar">Estándar</option>
-                <option value="Muestra">Muestra</option>
-                <option value="Garantía">Garantía</option>
+                <option value="Normal">Normal</option>
+                <option value="Llenado Eventos">Llenado Eventos</option>
+                <option value="Llenado Ferias">Llenado Ferias</option>
+                <option value="Reposicion Repuesto">Reposicion Repuesto</option>
+                <option value="Firplak.com">Firplak.com</option>
+                <option value="Cliente Final">Cliente Final</option>
+                <option value="Reabastecimiento Firplak Home">Reabastecimiento Firplak Home</option>
+                <option value="Llenado Stock">Llenado Stock</option>
+                <option value="Exportacion">Exportacion</option>
+                <option value="Muestras y exhibiciones">Muestras y exhibiciones</option>
+                <option value="Servicios">Servicios</option>
+                <option value="Reposicion Producto">Reposicion Producto</option>
+                <option value="Atención">Atención</option>
+                <option value="Muestra Facturable">Muestra Facturable</option>
+                <option value="FulFilment">FulFilment</option>
+                {tipoPedido && !['Normal', 'Llenado Eventos', 'Llenado Ferias', 'Reposicion Repuesto', 'Firplak.com', 'Cliente Final', 'Reabastecimiento Firplak Home', 'Llenado Stock', 'Exportacion', 'Muestras y exhibiciones', 'Servicios', 'Reposicion Producto', 'Atención', 'Muestra Facturable', 'FulFilment'].includes(tipoPedido) && (
+                  <option value={tipoPedido}>{tipoPedido}</option>
+                )}
               </select>
             </div>
 
@@ -568,7 +682,13 @@ export default function OfertaDeVenta() {
         </div>
 
         {/* ── Right Main Window: Oferta de ventas ───────────────────────────── */}
-        <div className="flex-1 bg-[#F8FAFC] border border-slate-300 rounded-md shadow-sm flex flex-col overflow-hidden text-[11px]">
+        <div 
+          className="flex-1 bg-[#F8FAFC] border border-slate-300 rounded-md shadow-sm flex flex-col overflow-hidden text-[11px] relative"
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setContextMenu({ x: e.clientX, y: e.clientY });
+          }}
+        >
           
           {/* SAP Orange Window Title Bar */}
           <div className="bg-gradient-to-r from-[#D97706] to-[#F59E0B] text-white px-3 py-1 font-bold text-xs flex items-center justify-between shadow-sm">
@@ -619,17 +739,12 @@ export default function OfertaDeVenta() {
               <div className="flex items-center gap-2">
                 <label className="w-28 text-slate-600 text-right">Persona de contacto</label>
                 <div className="flex-1 flex items-center gap-1">
-                  <select 
+                  <input 
+                    type="text"
                     value={contactPerson}
                     onChange={e => setContactPerson(e.target.value)}
-                    className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
-                  >
-                    <option value="Mayerly Marín">Mayerly Marín</option>
-                    <option value="Carlos Mendoza">Carlos Mendoza</option>
-                    <option value="Andrés Uribe">Andrés Uribe</option>
-                    <option value="Ximena Ballestas">Ximena Ballestas</option>
-                    <option value="Tatiana Duque">Tatiana Duque</option>
-                  </select>
+                    className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 font-medium text-slate-800 text-xs"
+                  />
                   <span className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[9px] font-bold text-slate-600 cursor-pointer" title="Información de contacto">i</span>
                 </div>
               </div>
@@ -1000,20 +1115,24 @@ export default function OfertaDeVenta() {
             {/* Tab 2: Logística */}
             {activeTab === 'logistica' && (
               <div className="p-4 grid grid-cols-2 gap-6 text-xs bg-slate-50 flex-1">
-                <div className="space-y-2 bg-white p-3 border border-slate-200 rounded">
+                <div className="space-y-2 bg-white p-3 border border-slate-200 rounded shadow-sm">
                   <h4 className="font-bold text-slate-700 border-b pb-1">Dirección de Destino / Despacho</h4>
                   <textarea 
-                    defaultValue="Calle 10 No. 45-20, Zona Industrial Belén, Medellín, Antioquia"
-                    rows={4}
-                    className="w-full border border-slate-300 rounded p-1.5 outline-none"
+                    value={shipToAddressText}
+                    onChange={(e) => setShipToAddressText(e.target.value)}
+                    rows={5}
+                    placeholder="Dirección de Destino..."
+                    className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/50"
                   />
                 </div>
-                <div className="space-y-2 bg-white p-3 border border-slate-200 rounded">
+                <div className="space-y-2 bg-white p-3 border border-slate-200 rounded shadow-sm">
                   <h4 className="font-bold text-slate-700 border-b pb-1">Dirección de Facturación</h4>
                   <textarea 
-                    defaultValue="Calle 10 No. 45-20, Medellín, Colombia"
-                    rows={4}
-                    className="w-full border border-slate-300 rounded p-1.5 outline-none"
+                    value={payToAddressText}
+                    onChange={(e) => setPayToAddressText(e.target.value)}
+                    rows={5}
+                    placeholder="Dirección de Facturación..."
+                    className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/50"
                   />
                 </div>
               </div>
@@ -1058,31 +1177,38 @@ export default function OfertaDeVenta() {
           <div className="p-3 bg-[#F1F5F9] border-t border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             
             {/* Left Footer */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <label className="w-32 text-slate-600 text-right">Empleado de ventas</label>
+                <label className="w-32 text-slate-600 text-right font-medium">Empleado de ventas</label>
                 <div className="flex-1 flex items-center gap-1">
-                  <select 
+                  <input 
+                    type="text"
                     value={salesEmployee}
                     onChange={e => setSalesEmployee(e.target.value)}
-                    className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none"
-                  >
-                    <option value="Luis Guillermo Esteban">Luis Guillermo Esteban</option>
-                    <option value="Ximena Ballestas">Ximena Ballestas</option>
-                    <option value="Tatiana Duque">Tatiana Duque</option>
-                    <option value="Andrey Uribe">Andrey Uribe</option>
-                  </select>
+                    className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium text-slate-800"
+                  />
                   <span className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[9px] font-bold text-slate-600">i</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-32 text-slate-600 text-right">Propietario</label>
+                <label className="w-32 text-slate-600 text-right font-medium">Propietario</label>
                 <input 
                   type="text"
                   value={owner}
                   onChange={e => setOwner(e.target.value)}
-                  className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none"
+                  className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium text-slate-800"
+                />
+              </div>
+
+              <div className="flex items-start gap-2 pt-1">
+                <label className="w-32 text-slate-600 text-right font-medium pt-1">Comentarios</label>
+                <textarea 
+                  value={comments}
+                  onChange={e => setComments(e.target.value)}
+                  rows={3}
+                  placeholder="Comentarios u observaciones..."
+                  className="flex-1 bg-white border border-slate-300 rounded p-1.5 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
                 />
               </div>
             </div>
@@ -1315,6 +1441,216 @@ export default function OfertaDeVenta() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Custom Context Menu (Right Click SAP Menu) ────────────────────────── */}
+      {contextMenu && (
+        <div 
+          className="fixed bg-white border border-slate-300 shadow-2xl rounded py-1 z-50 text-xs text-slate-800 w-56 animate-in fade-in zoom-in-95"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Duplicar documento SAP'); }}
+          >
+            <span className="w-4 text-center">📋</span> Duplicar
+          </button>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Documento destino'); }}
+          >
+            <span className="w-4 text-center">➡️</span> Documento destino...
+          </button>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Info detallada de fila'); }}
+          >
+            <span className="w-4 text-center">🔍</span> Info detallada de fila...
+          </button>
+          <div className="border-t border-slate-200 my-1"></div>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Actividad nueva'); }}
+          >
+            <span className="w-4 text-center">📅</span> Actividad nueva
+          </button>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Ganancia bruta'); }}
+          >
+            <span className="w-4 text-center">📊</span> Ganancia bruta...
+          </button>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Cálculo de volumen y peso'); }}
+          >
+            <span className="w-4 text-center">⚖️</span> Cálculo de volumen y peso...
+          </button>
+          <div className="border-t border-slate-200 my-1"></div>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-amber-900 bg-amber-50/50 flex items-center gap-2"
+            onClick={() => { setContextMenu(null); setIsComentariosModalOpen(true); }}
+          >
+            <span className="w-4 text-center">📝</span> Comentarios iniciales y finales...
+          </button>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Actividades relacionadas'); }}
+          >
+            <span className="w-4 text-center">📌</span> Actividades relacionadas
+          </button>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+            onClick={() => { setContextMenu(null); alert('Oportunidades relacionadas'); }}
+          >
+            <span className="w-4 text-center">🎯</span> Oportunidades relacionadas
+          </button>
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-blue-900 bg-blue-50/50 flex items-center gap-2"
+            onClick={() => { setContextMenu(null); setIsMapaRelacionesModalOpen(true); }}
+          >
+            <span className="w-4 text-center">🌿</span> Mapa de relaciones...
+          </button>
+        </div>
+      )}
+
+      {/* ── Modal: Comentarios Iniciales y Finales ───────────────────────────── */}
+      {isComentariosModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 py-2 font-bold text-xs flex justify-between items-center shadow-sm">
+              <span className="flex items-center gap-2">
+                <span>📝</span> Comentarios iniciales y finales - Documento Nº {docNum || 'Nuevo'}
+              </span>
+              <button onClick={() => setIsComentariosModalOpen(false)} className="hover:text-amber-200 text-sm">✕</button>
+            </div>
+
+            <div className="p-4 space-y-4 text-xs bg-slate-50">
+              <div className="bg-white p-3 border border-slate-200 rounded shadow-xs space-y-1">
+                <label className="font-bold text-slate-700 block">Comentarios iniciales (Encabezado)</label>
+                <textarea 
+                  value={openingRemarks}
+                  onChange={(e) => setOpeningRemarks(e.target.value)}
+                  rows={4}
+                  placeholder="Ingrese los comentarios iniciales del documento..."
+                  className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/30"
+                />
+              </div>
+
+              <div className="bg-white p-3 border border-slate-200 rounded shadow-xs space-y-1">
+                <label className="font-bold text-slate-700 block">Comentarios finales (Pie de página / Observaciones)</label>
+                <textarea 
+                  value={closingRemarks}
+                  onChange={(e) => setClosingRemarks(e.target.value)}
+                  rows={4}
+                  placeholder="Ingrese los comentarios finales del documento..."
+                  className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/30"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-100 border-t border-slate-200 flex justify-end gap-2 text-xs">
+              <button 
+                onClick={() => {
+                  setComments(closingRemarks);
+                  setIsComentariosModalOpen(false);
+                }}
+                className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded border border-amber-600 shadow-xs"
+              >
+                OK
+              </button>
+              <button 
+                onClick={() => setIsComentariosModalOpen(false)}
+                className="px-4 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded border border-slate-300"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Mapa de Relaciones SAP ────────────────────────────────────── */}
+      {isMapaRelacionesModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-4 py-2 font-bold text-xs flex justify-between items-center shadow-sm">
+              <span className="flex items-center gap-2">
+                <span>🌿</span> Mapa de relaciones - Documento SAP B1 Nº {docNum || 'Consultado'}
+              </span>
+              <button onClick={() => setIsMapaRelacionesModalOpen(false)} className="hover:text-blue-200 text-sm">✕</button>
+            </div>
+
+            <div className="p-3 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-slate-600 font-semibold">
+                <span>Vista de árbol de documentos vinculados</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-bold">● Válido / Confirmado</span>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 border border-blue-300 rounded text-[10px] font-bold">● En Proceso</span>
+              </div>
+            </div>
+
+            {/* Visual Relationship Diagram */}
+            <div className="p-6 bg-slate-50 flex-1 overflow-auto flex items-center justify-center min-h-[360px]">
+              <div className="flex items-center gap-4 max-w-full">
+                
+                {/* Card 1: Cliente / BP */}
+                <div className="w-48 bg-white border-2 border-slate-300 rounded-xl p-3 shadow-md flex flex-col items-center text-center">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2">👤</div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cliente (OCRD)</span>
+                  <h5 className="font-bold text-xs text-slate-800 mt-1 line-clamp-1">{cardCode || 'C890900123'}</h5>
+                  <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5">{cardName || 'Cliente SAP'}</p>
+                </div>
+
+                <div className="text-slate-400 font-bold text-lg">➔</div>
+
+                {/* Card 2: Oferta de Ventas */}
+                <div className="w-52 bg-amber-50 border-2 border-amber-500 rounded-xl p-3 shadow-lg flex flex-col items-center text-center relative">
+                  <span className="absolute -top-2.5 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Documento Actual</span>
+                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg mb-2 mt-1">📋</div>
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Oferta de Ventas</span>
+                  <h5 className="font-black text-sm text-slate-900 mt-0.5">Nº {docNum || '5800'}</h5>
+                  <p className="text-[10px] text-slate-600 mt-1 font-semibold">Fecha: {postingDate || 'Fecha SAP'}</p>
+                  <p className="text-xs font-extrabold text-amber-900 mt-1">{formatMoney(subtotalRows)}</p>
+                  <span className="mt-2 px-2 py-0.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full">{docStatus || 'Confirmada'}</span>
+                </div>
+
+                <div className="text-slate-400 font-bold text-lg">➔</div>
+
+                {/* Card 3: Orden de Venta */}
+                <div className="w-52 bg-white border-2 border-emerald-400 rounded-xl p-3 shadow-md flex flex-col items-center text-center">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg mb-2">📦</div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Orden de Venta</span>
+                  <h5 className="font-bold text-xs text-slate-800 mt-1">Nº {ordenVenta || docNum || '5800'}</h5>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Tipo: {tipoPedido || 'Normal'}</p>
+                  <span className="mt-2 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded">{estadoOfertaVenta || 'Confirmada'}</span>
+                </div>
+
+                <div className="text-slate-400 font-bold text-lg">➔</div>
+
+                {/* Card 4: Despacho / Logística */}
+                <div className="w-48 bg-white border-2 border-slate-200 rounded-xl p-3 shadow-sm flex flex-col items-center text-center opacity-90">
+                  <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg mb-2">🚚</div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Despacho</span>
+                  <h5 className="font-bold text-xs text-slate-700 mt-1">{bloqueadoDespacho || 'No Bloqueado'}</h5>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Logística Firplak</p>
+                </div>
+
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-100 border-t border-slate-200 flex justify-end text-xs">
+              <button 
+                onClick={() => setIsMapaRelacionesModalOpen(false)}
+                className="px-5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded shadow-xs"
+              >
+                Cerrar Mapa
+              </button>
             </div>
           </div>
         </div>

@@ -133,6 +133,49 @@ export async function fetchSapSalesPersonName(code: number | string): Promise<st
 }
 
 /**
+ * Fetch Contact Person Name for a BusinessPartner and ContactPersonCode
+ */
+export async function fetchSapContactPersonName(cardCode: string, contactCode: number | string): Promise<string> {
+  if (!cardCode || !contactCode) return '';
+  try {
+    const cookie = await getSapSessionCookie();
+    const res = await fetch(`${SAP_BASE_URL}/BusinessPartners('${encodeURIComponent(cardCode)}')?$select=ContactEmployees`, { headers: { 'Cookie': cookie } });
+    if (res.ok) {
+      const data = await res.json();
+      const contacts = data.ContactEmployees || [];
+      const found = contacts.find((c: any) => String(c.InternalCode) === String(contactCode) || String(c.Code) === String(contactCode));
+      if (found) {
+        return found.Name || `${found.FirstName || ''} ${found.LastName || ''}`.trim();
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching ContactPerson:', err);
+  }
+  return String(contactCode);
+}
+
+/**
+ * Fetch Employee Name by EmpID (Owner)
+ */
+export async function fetchSapEmployeeName(empID: number | string): Promise<string> {
+  if (!empID) return '';
+  try {
+    const cookie = await getSapSessionCookie();
+    const res = await fetch(`${SAP_BASE_URL}/EmployeesInfo(${empID})`, { headers: { 'Cookie': cookie } });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.LastName && data.FirstName) {
+        return `${data.LastName}, ${data.FirstName}`;
+      }
+      return data.LastName || data.FirstName || String(empID);
+    }
+  } catch (err) {
+    console.error('Error fetching EmployeeInfo:', err);
+  }
+  return String(empID);
+}
+
+/**
  * Fetch a single Quotation (Oferta de Ventas OQUT) or Order (ORDR) by DocNum or DocEntry using OData $filter
  */
 export async function fetchSapQuotationByDocNum(searchNum: string) {
@@ -190,6 +233,21 @@ export async function fetchSapQuotationByDocNum(searchNum: string) {
       slpName = await fetchSapSalesPersonName(docData.SalesPersonCode);
     }
     docData._SalesEmployeeName = slpName;
+
+    // Enrich with Contact Person Name
+    let contactName = '';
+    if (docData.ContactPersonCode && docData.CardCode) {
+      contactName = await fetchSapContactPersonName(docData.CardCode, docData.ContactPersonCode);
+    }
+    docData._ContactPersonName = contactName || String(docData.ContactPersonCode || '');
+
+    // Enrich with Owner Name
+    let ownerName = '';
+    if (docData.DocumentsOwner) {
+      ownerName = await fetchSapEmployeeName(docData.DocumentsOwner);
+    }
+    docData._OwnerName = ownerName || String(docData.DocumentsOwner || '');
+
     return { documentType, data: docData };
   }
 
