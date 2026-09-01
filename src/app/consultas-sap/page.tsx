@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Server, ArrowLeft, FileText, ShoppingCart, Package, Receipt, Boxes, ChevronRight, Sparkles } from 'lucide-react';
+import { Server, ArrowLeft, FileText, Factory, Package, Truck, Receipt, Boxes, ChevronRight, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import OfertaDeVenta from '@/components/sap/OfertaDeVenta';
 
@@ -22,6 +22,16 @@ export default function ConsultasSapPage() {
       active: true
     },
     {
+      id: 'orden-fabricacion',
+      title: 'Orden de Fabricación',
+      description: 'Seguimiento y estado de órdenes de fabricación (OF) en planta.',
+      icon: Factory,
+      color: 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white',
+      badge: 'Disponible',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      active: true
+    },
+    {
       id: 'orden-venta',
       title: 'Orden de Venta',
       description: 'Seguimiento y detalle de órdenes de venta en SAP B1.',
@@ -32,11 +42,21 @@ export default function ConsultasSapPage() {
       active: true
     },
     {
+      id: 'entrega-despacho',
+      title: 'Entrega',
+      description: 'Registro y control de documentos de entrega y guías de despacho.',
+      icon: Truck,
+      color: 'bg-gradient-to-tr from-teal-500 to-emerald-600 text-white',
+      badge: 'Disponible',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      active: true
+    },
+    {
       id: 'factura-cliente',
       title: 'Factura de Clientes',
       description: 'Histórico de facturación y comprobantes fiscales SAP.',
       icon: Receipt,
-      color: 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white',
+      color: 'bg-gradient-to-tr from-pink-500 to-rose-500 text-white',
       badge: 'Próximamente',
       badgeColor: 'bg-slate-100 text-slate-500 border-slate-200',
       active: false
@@ -76,8 +96,12 @@ export default function ConsultasSapPage() {
           <div className="flex items-center gap-2">
             <Server className="w-5 h-5 opacity-70" />
             <h1 className="font-black text-xl tracking-tight uppercase">
-              {selectedModule === 'orden-venta' 
+              {selectedModule === 'orden-fabricacion'
+                ? 'Consultas SAP — Orden de Fabricación'
+                : selectedModule === 'orden-venta' 
                 ? 'Consultas SAP — Orden de Venta' 
+                : selectedModule === 'entrega-despacho'
+                ? 'Consultas SAP — Entrega'
                 : selectedModule === 'oferta-venta'
                 ? 'Consultas SAP — Oferta de Ventas' 
                 : 'Consultas SAP'}
@@ -90,7 +114,7 @@ export default function ConsultasSapPage() {
       <main className="pt-20 px-4 max-w-[1700px] mx-auto">
         {!selectedModule ? (
           /* ── Sub-menu Dashboard Cards (Cuadritos) ────────────────────────── */
-          <div className="max-w-5xl mx-auto pt-6">
+          <div className="max-w-6xl mx-auto pt-6">
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -108,8 +132,8 @@ export default function ConsultasSapPage() {
               </p>
             </motion.div>
 
-            {/* Grid Cards (Cuadritos) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Grid Cards (Cuadritos) - 3 Columns Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sapModules.map((mod, idx) => (
                 <motion.div
                   key={mod.id}
@@ -165,7 +189,14 @@ export default function ConsultasSapPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
           >
-            <OfertaDeVenta mode={selectedModule === 'orden-venta' ? 'Order' : 'Quotation'} />
+            <OfertaDeVenta 
+              mode={
+                selectedModule === 'orden-fabricacion' ? 'ProductionOrder' :
+                selectedModule === 'orden-venta' ? 'Order' :
+                selectedModule === 'entrega-despacho' ? 'Delivery' :
+                'Quotation'
+              } 
+            />
           </motion.div>
         )}
       </main>

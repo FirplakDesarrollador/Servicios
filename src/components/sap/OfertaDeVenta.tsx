@@ -45,7 +45,7 @@ export interface GridRow {
   lineStatus?: string;
 }
 
-export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotation' | 'Order' }) {
+export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' }) {
   // ── Form State (Initially EMPTY for Consultation) ─────────────────────────────
   // Header Left
   const [cardCode, setCardCode] = useState('');
@@ -55,7 +55,9 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [currency, setCurrency] = useState('COP');
 
   // Header Right
-  const [docSeries, setDocSeries] = useState(mode === 'Order' ? 'Ped.Nac' : 'Cot-Nal');
+  const [docSeries, setDocSeries] = useState(
+    mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'
+  );
   const [docNum, setDocNum] = useState('');
   const [docStatus, setDocStatus] = useState('');
   const [postingDate, setPostingDate] = useState('');
@@ -726,7 +728,15 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
           
           {/* SAP Orange Window Title Bar */}
           <div className="bg-gradient-to-r from-[#D97706] to-[#F59E0B] text-white px-3 py-1 font-bold text-xs flex items-center justify-between shadow-sm">
-            <span>{mode === 'Order' ? 'Orden de venta' : 'Oferta de ventas'}</span>
+            <span>
+              {mode === 'ProductionOrder' 
+                ? 'Orden de fabricación' 
+                : mode === 'Order' 
+                ? 'Orden de venta' 
+                : mode === 'Delivery' 
+                ? 'Entrega' 
+                : 'Oferta de ventas'}
+            </span>
             <div className="flex items-center gap-1 opacity-80">
               <span className="hover:opacity-100 cursor-pointer">_</span>
               <span className="hover:opacity-100 cursor-pointer">□</span>
@@ -784,7 +794,15 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-slate-600 text-right">{mode === 'Order' ? 'OC / COT' : 'Referencia'}</label>
+                <label className="w-28 text-slate-600 text-right">
+                  {mode === 'ProductionOrder'
+                    ? 'Nº Oferta / Pedido'
+                    : mode === 'Order' 
+                    ? 'OC / COT' 
+                    : mode === 'Delivery'
+                    ? 'Guía / Referencia'
+                    : 'Referencia'}
+                </label>
                 <input 
                   type="text"
                   value={refNumber}
@@ -816,8 +834,12 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                     onChange={e => setDocSeries(e.target.value)}
                     className="bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"
                   >
-                    <option value={mode === 'Order' ? 'Ped.Nac' : 'Cot-Nal'}>{mode === 'Order' ? 'Ped.Nac' : 'Cot-Nal'}</option>
-                    <option value={mode === 'Order' ? 'Ped.Exp' : 'Cot-Exp'}>{mode === 'Order' ? 'Ped.Exp' : 'Cot-Exp'}</option>
+                    <option value={mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}>
+                      {mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}
+                    </option>
+                    <option value={mode === 'ProductionOrder' ? 'OF-Especial' : mode === 'Order' ? 'Ped.Exp' : mode === 'Delivery' ? 'Ent-Exp' : 'Cot-Exp'}>
+                      {mode === 'ProductionOrder' ? 'OF-Especial' : mode === 'Order' ? 'Ped.Exp' : mode === 'Delivery' ? 'Ent-Exp' : 'Cot-Exp'}
+                    </option>
                   </select>
                   <input 
                     type="text"
@@ -851,7 +873,15 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-36 text-slate-600 text-right">{mode === 'Order' ? 'Fecha Plan Despacho' : 'Válido hasta'}</label>
+                <label className="w-36 text-slate-600 text-right">
+                  {mode === 'ProductionOrder' 
+                    ? 'Fecha Finalización' 
+                    : mode === 'Order' 
+                    ? 'Fecha Plan Despacho' 
+                    : mode === 'Delivery'
+                    ? 'Fecha de Entrega'
+                    : 'Válido hasta'}
+                </label>
                 <input 
                   type="date"
                   value={validUntil}
