@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 
 // Helper to handle GET request for Webhook Verification
 export async function GET(request: Request) {
@@ -29,8 +30,13 @@ export async function POST(request: Request) {
         for (const change of entry.changes) {
           const value = change.value;
 
-          // 1. Handle Incoming Messages
+          // 1. Handle Incoming Messages (Meta ONLY provides value.contacts for genuine INCOMING customer messages)
           if (value.messages && value.messages.length > 0) {
+            // Outbound message echoes do not have value.contacts → ignore them so outbound chats stay unassigned (null)
+            if (!value.contacts || value.contacts.length === 0) {
+              continue;
+            }
+
             for (const message of value.messages) {
               const wa_id = message.from; // Phone number
               const text_body = message.text?.body;
@@ -38,24 +44,36 @@ export async function POST(request: Request) {
               
               // Find contact name from the contacts array
               let contactName = 'Unknown';
-              if (value.contacts && value.contacts.length > 0) {
-                const contact = value.contacts.find((c: any) => c.wa_id === wa_id);
-                if (contact && contact.profile?.name) {
-                  contactName = contact.profile.name;
-                }
+              const contact = value.contacts.find((c: any) => c.wa_id === wa_id);
+              if (contact && contact.profile?.name) {
+                contactName = contact.profile.name;
               }
 
               if (text_body) {
+                // Check if message was already created by our system (outbound message/template sent by us)
+                const { data: existingWam } = await supabase
+                  .from('whatsapp_messages')
+                  .select('id, sender')
+                  .eq('wam_id', wam_id)
+                  .maybeSingle();
+
+                if (existingWam && existingWam.sender === 'me') {
+                  // Ignore outbound messages sent by our system so they remain unassigned (null)
+                  continue;
+                }
+
                 // Find or create chat
                 let { data: chat, error: chatFindError } = await supabase
                   .from('whatsapp_chats')
-                  .select('id, unread_count')
+                  .select('id, unread_count, responsable')
                   .eq('phone_number', wa_id)
                   .single();
 
                 let chatId = chat?.id;
 
                 if (!chat) {
+                  // If chat did not exist, it's an incoming customer message -> auto-assign Round-Robin
+                  const autoAssignedResponsable = await getNextAssignedAsesor();
                   const { data: newChat, error: createError } = await supabase
                     .from('whatsapp_chats')
                     .insert([{
@@ -63,7 +81,8 @@ export async function POST(request: Request) {
                       contact_name: contactName,
                       last_message: text_body,
                       last_message_time: new Date().toISOString(),
-                      unread_count: 1
+                      unread_count: 1,
+                      responsable: autoAssignedResponsable
                     }])
                     .select()
                     .single();
@@ -73,13 +92,21 @@ export async function POST(request: Request) {
                   }
                 } else {
                   // Update existing chat
+                  // AUTO-ASSIGN ONLY IF:
+                  // 1) The chat has NO responsable currently (null)
+                  // AND 2) The chat has unread_count > 0 (meaning customer wrote to us / replied)
+                  let updatedResponsable = chat.responsable;
+                  if (!chat.responsable && (chat.unread_count || 0) > 0) {
+                    updatedResponsable = await getNextAssignedAsesor();
+                  }
+
                   await supabase
                     .from('whatsapp_chats')
                     .update({
                       contact_name: contactName !== 'Unknown' ? contactName : undefined,
                       last_message: text_body,
                       last_message_time: new Date().toISOString(),
-                      unread_count: (chat.unread_count || 0) + 1
+                      ...(updatedResponsable ? { responsable: updatedResponsable } : {})
                     })
                     .eq('id', chatId);
                 }

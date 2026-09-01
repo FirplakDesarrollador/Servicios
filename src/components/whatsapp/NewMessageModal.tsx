@@ -6,14 +6,16 @@ const TEMPLATES = [
     id: 'template_1',
     name: 'Presentación Básica',
     metaName: 'apertura_inicial',
-    text: '¡Hola! 🤩 Mi nombre es {{1}} y soy la persona encargada de gestionar su solicitud. Es un placer atenderle. Estaré acompañándole durante el proceso y estaré atenta a cualquier inquietud que pueda presentarse. Para mí será un gusto ayudarle. ¡Bienvenido/a! 🤝',
+    languageCode: 'es_CO',
+    text: '¡Hola! 😊 Mi nombre es {{1}} y soy la persona encargada de gestionar su solicitud.\nEs un placer atenderle. Estaré acompañándole durante el proceso y estaré atenta a cualquier inquietud que pueda presentarse.\nPara mí será un gusto ayudarle. ¡Bienvenido/a! 🤝',
     variables: ['Tu Nombre (Agente)'],
   },
   {
     id: 'template_2',
     name: 'Gestión de Solicitud (Formal)',
-    metaName: 'apertura_inicial', // TODO: Reemplazar por el nombre real de la segunda plantilla
-    text: '¡Hola, {{1}}! Espero que estés teniendo un buen día. Mi nombre es {{2}} y me comunico con usted porque tengo a mi cargo la gestión de su solicitud. Quisiera brindarle información importante sobre el estado de su caso y acompañarle en lo que necesite. Cuando tengas un momento, puedes responder a este mensaje y con gusto continuamos.',
+    metaName: 'plantilla_despues_de_24_horas',
+    languageCode: 'en',
+    text: '¡Hola, {{1}}! Espero que estés teniendo un buen día.\nMi nombre es {{2}} y me comunico con usted porque tengo a mi cargo la gestión de su solicitud. Quisiera brindarle información importante sobre el estado de su caso y acompañarle en lo que necesite.\nCuando tengas un momento, puedes responder a este mensaje y con gusto continuamos.',
     variables: ['Nombre del Cliente', 'Tu Nombre (Agente)'],
   }
 ];

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 
 export async function POST(request: Request) {
   try {
-    const { phone_number, template_name, parameters, template_text } = await request.json();
+    const { phone_number, template_name, parameters, template_text, language_code } = await request.json();
 
     if (!phone_number || !template_name) {
       return NextResponse.json({ error: 'phone_number and template_name are required' }, { status: 400 });
@@ -29,10 +30,15 @@ export async function POST(request: Request) {
       chat_id = existingChats[0].id;
       contact_name = existingChats[0].contact_name;
     } else {
-      // Create new chat
+      // Outbound initiated chat defaults to unassigned (null)
       const { data: newChat, error: newChatError } = await supabase
         .from('whatsapp_chats')
-        .insert([{ phone_number: cleanPhone, contact_name: 'Unknown', unread_count: 0 }])
+        .insert([{ 
+          phone_number: cleanPhone, 
+          contact_name: 'Unknown', 
+          unread_count: 0,
+          responsable: null
+        }])
         .select()
         .single();
       
@@ -54,6 +60,8 @@ export async function POST(request: Request) {
       }
     ] : [];
 
+    const targetLanguageCode = language_code || (template_name === 'plantilla_despues_de_24_horas' ? 'en' : 'es_CO');
+
     const waResponse = await fetch(`https://graph.facebook.com/v17.0/${WA_PHONE_NUMBER_ID}/messages`, {
       method: 'POST',
       headers: {
@@ -65,9 +73,9 @@ export async function POST(request: Request) {
         to: cleanPhone,
         type: 'template',
         template: {
-          name: template_name, // e.g., "apertura_inicial"
+          name: template_name,
           language: {
-            code: "es_CO" // assuming this from the user's screenshot
+            code: targetLanguageCode
           },
           components: components
         },
