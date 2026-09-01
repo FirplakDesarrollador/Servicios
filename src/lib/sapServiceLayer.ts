@@ -115,12 +115,33 @@ export async function fetchSapItems(searchQuery?: string) {
 }
 
 /**
+ * Fetch Sales Person name by Code
+ */
+export async function fetchSapSalesPersonName(code: number | string): Promise<string> {
+  if (!code || code === -1) return '-Ningún empleado del departamento-';
+  try {
+    const cookie = await getSapSessionCookie();
+    const res = await fetch(`${SAP_BASE_URL}/SalesPersons(${code})`, { headers: { 'Cookie': cookie } });
+    if (res.ok) {
+      const data = await res.json();
+      return data.SalesEmployeeName || String(code);
+    }
+  } catch (err) {
+    console.error('Error fetching SalesPerson:', err);
+  }
+  return String(code);
+}
+
+/**
  * Fetch a single Quotation (Oferta de Ventas OQUT) or Order (ORDR) by DocNum or DocEntry using OData $filter
  */
 export async function fetchSapQuotationByDocNum(searchNum: string) {
   const cookie = await getSapSessionCookie();
   const target = String(searchNum).trim();
   const isNumeric = /^\d+$/.test(target);
+
+  let docData: any = null;
+  let documentType = 'Quotation';
 
   // 1. Try Quotations (OQUT) with $filter=DocNum eq target
   if (isNumeric) {
@@ -130,33 +151,46 @@ export async function fetchSapQuotationByDocNum(searchNum: string) {
     if (qRes.ok) {
       const qData = await qRes.json();
       if (qData.value && qData.value.length > 0) {
-        return { documentType: 'Quotation', data: qData.value[0] };
+        docData = qData.value[0];
+        documentType = 'Quotation';
       }
     }
   }
 
   // 2. Try Orders (ORDR) with $filter=DocNum eq target
-  if (isNumeric) {
+  if (!docData && isNumeric) {
     const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
     console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
     const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
     if (oRes.ok) {
       const oData = await oRes.json();
       if (oData.value && oData.value.length > 0) {
-        return { documentType: 'Order', data: oData.value[0] };
+        docData = oData.value[0];
+        documentType = 'Order';
       }
     }
   }
 
   // 3. Fallback: try fetching by internal DocEntry
-  if (isNumeric) {
+  if (!docData && isNumeric) {
     const directQRes = await fetch(`${SAP_BASE_URL}/Quotations(${target})`, { headers: { 'Cookie': cookie } });
     if (directQRes.ok) {
       const directQData = await directQRes.json();
       if (directQData && directQData.DocNum) {
-        return { documentType: 'Quotation', data: directQData };
+        docData = directQData;
+        documentType = 'Quotation';
       }
     }
+  }
+
+  if (docData) {
+    // Enrich with Sales Employee Name
+    let slpName = '-Ningún empleado del departamento-';
+    if (docData.SalesPersonCode) {
+      slpName = await fetchSapSalesPersonName(docData.SalesPersonCode);
+    }
+    docData._SalesEmployeeName = slpName;
+    return { documentType, data: docData };
   }
 
   return null;

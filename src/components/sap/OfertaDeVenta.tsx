@@ -40,10 +40,8 @@ export interface GridRow {
   taxCode?: string;
   total: number;
   whsCode?: string;
-  inStock?: number;
-  shipDate?: string;
   costingCode?: string;
-  projectCode?: string;
+  salesEmployee?: string;
   lineStatus?: string;
 }
 
@@ -198,6 +196,9 @@ export default function OfertaDeVenta() {
       setEstadoOfertaVenta(sapDoc.U_Estado_Oferta_Venta === '02' ? 'Aprobado' : 'Pendiente');
       setValorAnticipo(String(sapDoc.U_VlorAnticipo || '0.00'));
 
+      // Set Footer Empleado de Ventas
+      setSalesEmployee(sapDoc._SalesEmployeeName || 'Firplak');
+
       // Populate Document Lines
       if (sapDoc.DocumentLines && sapDoc.DocumentLines.length > 0) {
         const mappedLines: GridRow[] = sapDoc.DocumentLines.map((line: any, idx: number) => ({
@@ -212,10 +213,8 @@ export default function OfertaDeVenta() {
           taxCode: line.TaxCode || 'IVA 19%',
           total: line.LineTotal || (line.Quantity * line.UnitPrice),
           whsCode: line.WarehouseCode || 'PT-01',
-          inStock: line.InStock || 10,
-          shipDate: line.ShipDate ? line.ShipDate.split('T')[0] : (sapDoc.DocDueDate ? sapDoc.DocDueDate.split('T')[0] : ''),
-          costingCode: line.CostingCode || 'CC-NA',
-          projectCode: line.ProjectCode || 'PRJ-FIR',
+          costingCode: line.CostingCode || line.CostingCode2 || line.CostingCode3 || '',
+          salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
           lineStatus: line.LineStatus === 'bost_Open' || line.LineStatus === 'O' ? 'Abierto' : 'Cerrado'
         }));
 
@@ -232,16 +231,14 @@ export default function OfertaDeVenta() {
           taxCode: 'IVA 19%',
           total: 0,
           whsCode: 'PT-01',
-          inStock: 0,
-          shipDate: '',
           costingCode: '',
-          projectCode: '',
+          salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
           lineStatus: 'Abierto'
         });
 
         setRows(mappedLines);
       } else {
-        setRows([{ id: '1', itemCode: '', description: '', barCode: '', quantity: 1, unitMsr: 'UND', price: 0, discount: 0, taxCode: 'IVA 19%', total: 0, whsCode: 'PT-01', inStock: 0, shipDate: '', costingCode: '', projectCode: '', lineStatus: 'Abierto' }]);
+        setRows([{ id: '1', itemCode: '', description: '', barCode: '', quantity: 1, unitMsr: 'UND', price: 0, discount: 0, taxCode: 'IVA 19%', total: 0, whsCode: 'PT-01', costingCode: '', salesEmployee: sapDoc._SalesEmployeeName || 'Firplak', lineStatus: 'Abierto' }]);
       }
 
       setHeaderDiscountPct(sapDoc.DiscountPercent || 0);
@@ -795,7 +792,7 @@ export default function OfertaDeVenta() {
 
                 {/* Data Grid Table Container (Wide Horizontal Scrollbar) */}
                 <div className="flex-1 border border-slate-300 rounded overflow-x-auto relative min-h-[280px] shadow-inner bg-slate-50">
-                  <table className="min-w-[2100px] w-full text-left border-collapse text-[11px]">
+                  <table className="min-w-[1750px] w-full text-left border-collapse text-[11px]">
                     <thead>
                       <tr className="bg-[#CBD5E1] text-slate-700 font-bold border-b border-slate-300 sticky top-0 z-10">
                         <th className="p-1.5 w-8 text-center border-r border-slate-300">#</th>
@@ -809,10 +806,8 @@ export default function OfertaDeVenta() {
                         <th className="p-1.5 w-28 text-center border-r border-slate-300">Indicador de impuesto</th>
                         <th className="p-1.5 w-36 text-right border-r border-slate-300">Total (ML)</th>
                         <th className="p-1.5 w-24 text-center border-r border-slate-300">Almacén</th>
-                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Stock disponible</th>
-                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Fecha de entrega</th>
-                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Centro de Costo</th>
-                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Proyecto SAP</th>
+                        <th className="p-1.5 w-36 text-center border-r border-slate-300">Centro de Costo</th>
+                        <th className="p-1.5 w-44 text-center border-r border-slate-300">Empleado de ventas</th>
                         <th className="p-1.5 w-24 text-center border-r border-slate-300">Estado de Línea</th>
                         <th className="p-1.5 w-8 text-center"></th>
                       </tr>
@@ -937,40 +932,25 @@ export default function OfertaDeVenta() {
                             />
                           </td>
 
-                          {/* In Stock */}
-                          <td className="p-1.5 text-right text-slate-600 font-medium border-r border-slate-200 bg-slate-50/30">
-                            {row.inStock || 0}
-                          </td>
-
-                          {/* Delivery Date */}
-                          <td className="p-0 border-r border-slate-200">
-                            <input 
-                              type="date"
-                              value={row.shipDate || ''}
-                              onChange={e => handleRowChange(row.id, 'shipDate', e.target.value)}
-                              className="w-full px-1 py-1 bg-transparent text-center outline-none text-[10px]"
-                            />
-                          </td>
-
-                          {/* Costing Code */}
+                          {/* Costing Code (Centro de costos) */}
                           <td className="p-0 border-r border-slate-200">
                             <input 
                               type="text"
                               value={row.costingCode || ''}
                               onChange={e => handleRowChange(row.id, 'costingCode', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
-                              placeholder="Centro costo"
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-700 font-medium"
+                              placeholder=""
                             />
                           </td>
 
-                          {/* Project Code */}
+                          {/* Empleado de ventas (Sales Employee) */}
                           <td className="p-0 border-r border-slate-200">
                             <input 
                               type="text"
-                              value={row.projectCode || ''}
-                              onChange={e => handleRowChange(row.id, 'projectCode', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
-                              placeholder="Proyecto"
+                              value={row.salesEmployee || salesEmployee || 'Firplak'}
+                              onChange={e => handleRowChange(row.id, 'salesEmployee', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-700 font-medium"
+                              placeholder="Empleado ventas"
                             />
                           </td>
 
