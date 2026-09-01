@@ -180,16 +180,43 @@ export async function fetchSapEmployeeName(empID: number | string): Promise<stri
  */
 export async function fetchSapQuotationByDocNum(
   docNumOrEntry: string,
-  preferType?: 'Order' | 'Quotation' | 'Delivery' | 'ProductionOrder'
+  preferType?: 'Order' | 'Quotation' | 'Delivery' | 'ProductionOrder' | 'Invoice'
 ) {
   const cookie = await getSapSessionCookie();
   const target = docNumOrEntry.trim();
   const isNumeric = /^\d+$/.test(target);
 
   let docData: any = null;
-  let documentType: 'Quotation' | 'Order' | 'Delivery' | 'ProductionOrder' = preferType || 'Quotation';
+  let documentType: 'Quotation' | 'Order' | 'Delivery' | 'ProductionOrder' | 'Invoice' = preferType || 'Quotation';
 
-  if (preferType === 'Delivery') {
+  if (preferType === 'Invoice') {
+    // 1. Try Invoices (OINV) first
+    if (isNumeric) {
+      const iUrl = `${SAP_BASE_URL}/Invoices?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying Invoices filter:', iUrl);
+      const iRes = await fetch(iUrl, { headers: { 'Cookie': cookie } });
+      if (iRes.ok) {
+        const iData = await iRes.json();
+        if (iData.value && iData.value.length > 0) {
+          docData = iData.value[0];
+          documentType = 'Invoice';
+        }
+      }
+    }
+    // 2. Fallback to DeliveryNotes
+    if (!docData && isNumeric) {
+      const dUrl = `${SAP_BASE_URL}/DeliveryNotes?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying DeliveryNotes filter:', dUrl);
+      const dRes = await fetch(dUrl, { headers: { 'Cookie': cookie } });
+      if (dRes.ok) {
+        const dData = await dRes.json();
+        if (dData.value && dData.value.length > 0) {
+          docData = dData.value[0];
+          documentType = 'Delivery';
+        }
+      }
+    }
+  } else if (preferType === 'Delivery') {
     // 1. Try DeliveryNotes (ODLN) first
     if (isNumeric) {
       const dUrl = `${SAP_BASE_URL}/DeliveryNotes?$filter=DocNum eq ${target}`;

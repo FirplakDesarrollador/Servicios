@@ -45,7 +45,7 @@ export interface GridRow {
   lineStatus?: string;
 }
 
-export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' }) {
+export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice' }) {
   // ── Form State (Initially EMPTY for Consultation) ─────────────────────────────
   // Header Left
   const [cardCode, setCardCode] = useState('');
@@ -56,7 +56,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
   // Header Right
   const [docSeries, setDocSeries] = useState(
-    mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'
+    mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : mode === 'Invoice' ? 'NAL-FEN8' : 'Cot-Nal'
   );
   const [docNum, setDocNum] = useState('');
   const [docStatus, setDocStatus] = useState('');
@@ -81,9 +81,11 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
   const [activaConsignatarioNotifi, setActivaConsignatarioNotifi] = useState('NO Activar');
   const [viaDelPedido, setViaDelPedido] = useState('Asesores de Ventas');
+  const [validativeEAlmacen, setValidativeEAlmacen] = useState('No requiere Autorizacion');
+  const [anticipoTotal, setAnticipoTotal] = useState('0.00');
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'localizacion' | 'finanzas' | 'anexos'>('contenido');
+  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'facturaElectronica' | 'localizacion' | 'finanzas' | 'anexos'>('contenido');
   const [itemClass, setItemClass] = useState('Artículo');
   const [summaryClass, setSummaryClass] = useState('Sin resumen');
 
@@ -563,7 +565,141 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             </div>
 
-            {mode === 'Delivery' ? (
+            {mode === 'Invoice' ? (
+              <>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Tiene Autorretención</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">BPCOST</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">WUID</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Tipo de Nota</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Codigo de DifCambio</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">IVA x Muestras pagado</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Tiene Retefuente</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Tiene ReteICA</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Incoterm</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha Real de Despacho</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Puerto Destino</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Medio de transporte</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha salida del Puerto</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha llegada de documentos</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha llegada al puerto destin</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha d Pre inspección</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha Pago Anticipo</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha de levante</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha de llegada a Firplak</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Plan Vallejo</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Importación Fraccionada</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Servicio (Calificación)</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Calidad (Calificación)</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Cantidad (calificación)</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Cumplimiento (Calificación)</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Tipo de devolucion NC</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Validación E almacén vs Factur</label>
+                  <select value={validativeEAlmacen} onChange={e => setValidativeEAlmacen(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value="No requiere Autorizacion">No requiere Autorizacion</option>
+                    <option value="Requiere Autorizacion">Requiere Autorizacion</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">QRObservac</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Codigo del vendedor Junior</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Autorizacion de descuentos</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Lugar de entrega</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha esperada de entrega</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+              </>
+            ) : mode === 'Delivery' ? (
               <>
                 <div>
                   <label className="text-slate-600 block mb-0.5">Autorizacion de descuentos</label>
@@ -1073,6 +1209,16 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 Logística
               </button>
               <button
+                onClick={() => setActiveTab('facturaElectronica')}
+                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                  activeTab === 'facturaElectronica'
+                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                }`}
+              >
+                Factura Electrónica
+              </button>
+              <button
                 onClick={() => setActiveTab('localizacion')}
                 className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
                   activeTab === 'localizacion'
@@ -1357,7 +1503,43 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             )}
 
-            {/* Tab 3: Localización */}
+            {/* Tab 3: Factura Electrónica */}
+            {activeTab === 'facturaElectronica' && (
+              <div className="p-4 space-y-4 text-xs bg-slate-50 flex-1">
+                <div className="bg-white p-4 border border-slate-200 rounded shadow-sm max-w-2xl space-y-3">
+                  <h4 className="font-bold text-slate-800 border-b pb-1.5 text-xs flex items-center justify-between">
+                    <span>Estado de Facturación Electrónica DIAN</span>
+                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">● Exitosa / Aprobada</span>
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="text-slate-600 block mb-1 font-semibold">Estado DIAN</label>
+                      <input type="text" value="0 - Exitosa / Aprobada" readOnly className="w-full bg-emerald-50 border border-emerald-300 rounded p-1.5 outline-none text-emerald-900 font-bold" />
+                    </div>
+                    <div>
+                      <label className="text-slate-600 block mb-1 font-semibold">Tipo de Operación</label>
+                      <input type="text" value="10 - Estándar" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-800 font-medium" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-slate-600 block mb-1 font-semibold">CUFE (Código Único de Facturación Electrónica)</label>
+                      <input type="text" value="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none font-mono text-[10px] text-slate-700 select-all" />
+                    </div>
+                    <div className="col-span-2 flex items-center gap-4 bg-slate-50 p-2.5 border border-slate-200 rounded">
+                      <div className="w-16 h-16 bg-white border border-slate-300 rounded flex items-center justify-center font-bold text-slate-400 text-xs shadow-xs">
+                        QR DIAN
+                      </div>
+                      <div className="space-y-1 text-slate-600">
+                        <p className="font-bold text-slate-800 text-xs">Comprobante Fiscal Autorizado</p>
+                        <p className="text-[10px]">Factura enviada y aprobada electrónicamente ante la DIAN Colombia.</p>
+                        <p className="text-[10px] font-medium text-slate-500">Documento de representación gráfica nativo SAP B1.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 4: Localización */}
             {activeTab === 'localizacion' && (
               <div className="p-4 space-y-4 text-xs bg-slate-50 flex-1">
                 <div className="bg-white p-4 border border-slate-200 rounded shadow-sm max-w-2xl space-y-3">
@@ -1428,7 +1610,9 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
             {/* Left Footer */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <label className="w-32 text-slate-600 text-right font-medium">Empleado de ventas</label>
+                <label className="w-32 text-slate-600 text-right font-medium">
+                  {mode === 'Invoice' ? 'Empleado dpto.ventas' : 'Empleado de ventas'}
+                </label>
                 <div className="flex-1 flex items-center gap-1">
                   <input 
                     type="text"
@@ -1490,6 +1674,19 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                   className="w-36 bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-right font-semibold text-slate-700 outline-none"
                 />
               </div>
+
+              {mode === 'Invoice' && (
+                <div className="flex items-center justify-end gap-2">
+                  <button className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 rounded text-[10px] font-bold text-slate-700 border border-slate-300 cursor-pointer">...</button>
+                  <span className="text-slate-600">Anticipo total</span>
+                  <input 
+                    type="text" 
+                    value={anticipoTotal} 
+                    onChange={e => setAnticipoTotal(e.target.value)} 
+                    className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none font-bold text-slate-800"
+                  />
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2">
                 <span className="text-slate-600">Gastos adicionales:</span>

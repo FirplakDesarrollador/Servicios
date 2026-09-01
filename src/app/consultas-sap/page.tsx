@@ -57,9 +57,9 @@ export default function ConsultasSapPage() {
       description: 'Histórico de facturación y comprobantes fiscales SAP.',
       icon: Receipt,
       color: 'bg-gradient-to-tr from-pink-500 to-rose-500 text-white',
-      badge: 'Próximamente',
-      badgeColor: 'bg-slate-100 text-slate-500 border-slate-200',
-      active: false
+      badge: 'Disponible',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      active: true
     },
     {
       id: 'inventario-sap',
@@ -102,6 +102,8 @@ export default function ConsultasSapPage() {
                 ? 'Consultas SAP — Orden de Venta' 
                 : selectedModule === 'entrega-despacho'
                 ? 'Consultas SAP — Entrega'
+                : selectedModule === 'factura-cliente'
+                ? 'Consultas SAP — Factura de Clientes'
                 : selectedModule === 'oferta-venta'
                 ? 'Consultas SAP — Oferta de Ventas' 
                 : 'Consultas SAP'}
@@ -194,6 +196,7 @@ export default function ConsultasSapPage() {
                 selectedModule === 'orden-fabricacion' ? 'ProductionOrder' :
                 selectedModule === 'orden-venta' ? 'Order' :
                 selectedModule === 'entrega-despacho' ? 'Delivery' :
+                selectedModule === 'factura-cliente' ? 'Invoice' :
                 'Quotation'
               } 
             />
