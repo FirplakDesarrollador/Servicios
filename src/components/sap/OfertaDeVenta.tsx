@@ -79,8 +79,11 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [valorAnticipo, setValorAnticipo] = useState('0.00');
   const [tipoFacturacion, setTipoFacturacion] = useState('Sin POD');
 
+  const [activaConsignatarioNotifi, setActivaConsignatarioNotifi] = useState('NO Activar');
+  const [viaDelPedido, setViaDelPedido] = useState('Asesores de Ventas');
+
   // Tabs
-  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'finanzas' | 'anexos'>('contenido');
+  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'localizacion' | 'finanzas' | 'anexos'>('contenido');
   const [itemClass, setItemClass] = useState('Artículo');
   const [summaryClass, setSummaryClass] = useState('Sin resumen');
 
@@ -560,159 +563,301 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             </div>
 
-            <div>
-              <label className="text-slate-600 block mb-0.5">Anticipo</label>
-              <select 
-                value={anticipoPct}
-                onChange={e => setAnticipoPct(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
-              >
-                <option value="SI tiene anticipo">SI tiene anticipo</option>
-                <option value="NO tiene anticipo">NO tiene anticipo</option>
-                <option value="0.00">0.00</option>
-                {anticipoPct && !['SI tiene anticipo', 'NO tiene anticipo', '0.00'].includes(anticipoPct) && (
-                  <option value={anticipoPct}>{anticipoPct}</option>
+            {mode === 'Delivery' ? (
+              <>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Autorizacion de descuentos</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Lugar de entrega</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha esperada de entrega</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Consignatario</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Notificar</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Activa consignatario y notifi</label>
+                  <select value={activaConsignatarioNotifi} onChange={e => setActivaConsignatarioNotifi(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value="NO Activar">NO Activar</option>
+                    <option value="Activar">Activar</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Seguro</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Marcas</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">A (to):</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Embarcado en:</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Via</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Flete</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Vía del Pedido</label>
+                  <select value={viaDelPedido} onChange={e => setViaDelPedido(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value="Asesores de Ventas">Asesores de Ventas</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Pedido para TOC ?</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">TiposNC</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Conceptos de NC</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha de cierre</label>
+                  <input type="date" value={fechaCierre} onChange={e => setFechaCierre(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha de autorizacion</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Cambio fecha de Entrega</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Ciudad de destino Nacional</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">RecibosCaja</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Numero de guia</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Transportador</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha de despacho</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha recepcion de mercancia</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Anticipo</label>
+                  <select value={anticipoPct} onChange={e => setAnticipoPct(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value="SI tiene anticipo">SI tiene anticipo</option>
+                    <option value="NO tiene anticipo">NO tiene anticipo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Recibo de caja del anticipo</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Número del documento</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Aplicacion Anticipo ?</label>
+                  <select value={aplicacionAnticipo} onChange={e => setAplicacionAnticipo(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value="NO">NO</option>
+                    <option value="SI">SI</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Volver a remisionar?</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Concepto de entrada</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Anticipo</label>
+                  <select 
+                    value={anticipoPct}
+                    onChange={e => setAnticipoPct(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                  >
+                    <option value="SI tiene anticipo">SI tiene anticipo</option>
+                    <option value="NO tiene anticipo">NO tiene anticipo</option>
+                    <option value="0.00">0.00</option>
+                    {anticipoPct && !['SI tiene anticipo', 'NO tiene anticipo', '0.00'].includes(anticipoPct) && (
+                      <option value={anticipoPct}>{anticipoPct}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">% de amortizacion factura</label>
+                  <input 
+                    type="text"
+                    value={amortizacionFacturaPct}
+                    onChange={e => setAmortizacionFacturaPct(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Aplicacion Anticipo ?</label>
+                  <select 
+                    value={aplicacionAnticipo}
+                    onChange={e => setAplicacionAnticipo(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                  >
+                    <option value="NO">NO</option>
+                    <option value="SI">SI</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">% Contenedor</label>
+                  <input 
+                    type="text"
+                    value={pctContenedor}
+                    onChange={e => setPctContenedor(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Actualizar BF</label>
+                  <select 
+                    value={actualizarBF}
+                    onChange={e => setActualizarBF(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                  >
+                    <option value="NO">NO</option>
+                    <option value="SI">SI</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha de cierre</label>
+                  <input 
+                    type="date"
+                    value={fechaCierre}
+                    onChange={e => setFechaCierre(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none focus:border-blue-600 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Bloqueado para Despacho</label>
+                  <select 
+                    value={bloqueadoDespacho}
+                    onChange={e => setBloqueadoDespacho(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                  >
+                    <option value="No Bloqueado">No Bloqueado</option>
+                    <option value="Bloqueado">Bloqueado</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Estado de la Oferta de Venta</label>
+                  <select 
+                    value={estadoOfertaVenta}
+                    onChange={e => setEstadoOfertaVenta(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                  >
+                    <option value="Confirmada">Confirmada</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Aprobado">Aprobado</option>
+                    <option value="Rechazado">Rechazado</option>
+                    <option value="Anulada">Anulada</option>
+                    {estadoOfertaVenta && !['Confirmada', 'Pendiente', 'Aprobado', 'Rechazado', 'Anulada'].includes(estadoOfertaVenta) && (
+                      <option value={estadoOfertaVenta}>{estadoOfertaVenta}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Tipo de pedido</label>
+                  <select 
+                    value={tipoPedido}
+                    onChange={e => setTipoPedido(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                  >
+                    <option value="Normal">Normal</option>
+                    <option value="Llenado Eventos">Llenado Eventos</option>
+                    <option value="Llenado Ferias">Llenado Ferias</option>
+                    <option value="Reposicion Repuesto">Reposicion Repuesto</option>
+                    <option value="Firplak.com">Firplak.com</option>
+                    <option value="Cliente Final">Cliente Final</option>
+                    <option value="Reabastecimiento Firplak Home">Reabastecimiento Firplak Home</option>
+                    <option value="Llenado Stock">Llenado Stock</option>
+                    <option value="Exportacion">Exportacion</option>
+                    <option value="Muestras y exhibiciones">Muestras y exhibiciones</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Reposicion Producto">Reposicion Producto</option>
+                    <option value="Atención">Atención</option>
+                    <option value="Muestra Facturable">Muestra Facturable</option>
+                    <option value="FulFilment">FulFilment</option>
+                    {tipoPedido && !['Normal', 'Llenado Eventos', 'Llenado Ferias', 'Reposicion Repuesto', 'Firplak.com', 'Cliente Final', 'Reabastecimiento Firplak Home', 'Llenado Stock', 'Exportacion', 'Muestras y exhibiciones', 'Servicios', 'Reposicion Producto', 'Atención', 'Muestra Facturable', 'FulFilment'].includes(tipoPedido) && (
+                      <option value={tipoPedido}>{tipoPedido}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Valor Anticipo</label>
+                  <input 
+                    type="text"
+                    value={valorAnticipo}
+                    onChange={e => setValorAnticipo(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
+                  />
+                </div>
+
+                {mode === 'Order' && (
+                  <div>
+                    <label className="text-slate-600 block mb-0.5 font-medium">Tipo Facturacion</label>
+                    <select 
+                      value={tipoFacturacion}
+                      onChange={e => setTipoFacturacion(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                    >
+                      <option value="Sin POD">Sin POD</option>
+                      <option value="Con POD">Con POD</option>
+                      {tipoFacturacion && !['Sin POD', 'Con POD'].includes(tipoFacturacion) && (
+                        <option value={tipoFacturacion}>{tipoFacturacion}</option>
+                      )}
+                    </select>
+                  </div>
                 )}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">% de amortizacion factura</label>
-              <input 
-                type="text"
-                value={amortizacionFacturaPct}
-                onChange={e => setAmortizacionFacturaPct(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
-              />
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">Aplicacion Anticipo ?</label>
-              <select 
-                value={aplicacionAnticipo}
-                onChange={e => setAplicacionAnticipo(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
-              >
-                <option value="NO">NO</option>
-                <option value="SI">SI</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">% Contenedor</label>
-              <input 
-                type="text"
-                value={pctContenedor}
-                onChange={e => setPctContenedor(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
-              />
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">Actualizar BF</label>
-              <select 
-                value={actualizarBF}
-                onChange={e => setActualizarBF(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
-              >
-                <option value="NO">NO</option>
-                <option value="SI">SI</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">Fecha de cierre</label>
-              <input 
-                type="date"
-                value={fechaCierre}
-                onChange={e => setFechaCierre(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none focus:border-blue-600 text-xs"
-              />
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">Bloqueado para Despacho</label>
-              <select 
-                value={bloqueadoDespacho}
-                onChange={e => setBloqueadoDespacho(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
-              >
-                <option value="No Bloqueado">No Bloqueado</option>
-                <option value="Bloqueado">Bloqueado</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">Estado de la Oferta de Venta</label>
-              <select 
-                value={estadoOfertaVenta}
-                onChange={e => setEstadoOfertaVenta(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
-              >
-                <option value="Confirmada">Confirmada</option>
-                <option value="Pendiente">Pendiente</option>
-                <option value="Aprobado">Aprobado</option>
-                <option value="Rechazado">Rechazado</option>
-                <option value="Anulada">Anulada</option>
-                {estadoOfertaVenta && !['Confirmada', 'Pendiente', 'Aprobado', 'Rechazado', 'Anulada'].includes(estadoOfertaVenta) && (
-                  <option value={estadoOfertaVenta}>{estadoOfertaVenta}</option>
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">Tipo de pedido</label>
-              <select 
-                value={tipoPedido}
-                onChange={e => setTipoPedido(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
-              >
-                <option value="Normal">Normal</option>
-                <option value="Llenado Eventos">Llenado Eventos</option>
-                <option value="Llenado Ferias">Llenado Ferias</option>
-                <option value="Reposicion Repuesto">Reposicion Repuesto</option>
-                <option value="Firplak.com">Firplak.com</option>
-                <option value="Cliente Final">Cliente Final</option>
-                <option value="Reabastecimiento Firplak Home">Reabastecimiento Firplak Home</option>
-                <option value="Llenado Stock">Llenado Stock</option>
-                <option value="Exportacion">Exportacion</option>
-                <option value="Muestras y exhibiciones">Muestras y exhibiciones</option>
-                <option value="Servicios">Servicios</option>
-                <option value="Reposicion Producto">Reposicion Producto</option>
-                <option value="Atención">Atención</option>
-                <option value="Muestra Facturable">Muestra Facturable</option>
-                <option value="FulFilment">FulFilment</option>
-                {tipoPedido && !['Normal', 'Llenado Eventos', 'Llenado Ferias', 'Reposicion Repuesto', 'Firplak.com', 'Cliente Final', 'Reabastecimiento Firplak Home', 'Llenado Stock', 'Exportacion', 'Muestras y exhibiciones', 'Servicios', 'Reposicion Producto', 'Atención', 'Muestra Facturable', 'FulFilment'].includes(tipoPedido) && (
-                  <option value={tipoPedido}>{tipoPedido}</option>
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-600 block mb-0.5">Valor Anticipo</label>
-              <input 
-                type="text"
-                value={valorAnticipo}
-                onChange={e => setValorAnticipo(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
-              />
-            </div>
-
-            {mode === 'Order' && (
-              <div>
-                <label className="text-slate-600 block mb-0.5 font-medium">Tipo Facturacion</label>
-                <select 
-                  value={tipoFacturacion}
-                  onChange={e => setTipoFacturacion(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
-                >
-                  <option value="Sin POD">Sin POD</option>
-                  <option value="Con POD">Con POD</option>
-                  {tipoFacturacion && !['Sin POD', 'Con POD'].includes(tipoFacturacion) && (
-                    <option value={tipoFacturacion}>{tipoFacturacion}</option>
-                  )}
-                </select>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -926,6 +1071,16 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 }`}
               >
                 Logística
+              </button>
+              <button
+                onClick={() => setActiveTab('localizacion')}
+                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                  activeTab === 'localizacion'
+                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                }`}
+              >
+                Localización
               </button>
               <button
                 onClick={() => setActiveTab('finanzas')}
@@ -1202,7 +1357,37 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             )}
 
-            {/* Tab 3: Finanzas */}
+            {/* Tab 3: Localización */}
+            {activeTab === 'localizacion' && (
+              <div className="p-4 space-y-4 text-xs bg-slate-50 flex-1">
+                <div className="bg-white p-4 border border-slate-200 rounded shadow-sm max-w-2xl space-y-3">
+                  <h4 className="font-bold text-slate-800 border-b pb-1.5 text-xs flex items-center justify-between">
+                    <span>Datos de Localización - SAP Business One</span>
+                    <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Colombia</span>
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="text-slate-600 block mb-1 font-semibold">Tipo de documento de referencia</label>
+                      <input type="text" value="Remisión Nacional" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-700 font-medium" />
+                    </div>
+                    <div>
+                      <label className="text-slate-600 block mb-1 font-semibold">Número Folio</label>
+                      <input type="text" value={docNum || '91277'} readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-900 font-bold" />
+                    </div>
+                    <div>
+                      <label className="text-slate-600 block mb-1 font-semibold">Jurisdicción fiscal</label>
+                      <input type="text" value="IVAGV4 (19%)" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-700 font-medium" />
+                    </div>
+                    <div>
+                      <label className="text-slate-600 block mb-1 font-semibold">Lugar de expedición</label>
+                      <input type="text" value="Planta Principal - Firplak" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-700 font-medium" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 4: Finanzas */}
             {activeTab === 'finanzas' && (
               <div className="p-4 grid grid-cols-2 gap-6 text-xs bg-slate-50 flex-1">
                 <div className="space-y-3 bg-white p-3 border border-slate-200 rounded">

@@ -178,15 +178,45 @@ export async function fetchSapEmployeeName(empID: number | string): Promise<stri
 /**
  * Fetch a single Quotation (Oferta de Ventas OQUT) or Order (ORDR) by DocNum or DocEntry using OData $filter
  */
-export async function fetchSapQuotationByDocNum(searchNum: string, preferType?: 'Order' | 'Quotation') {
+export async function fetchSapQuotationByDocNum(
+  docNumOrEntry: string,
+  preferType?: 'Order' | 'Quotation' | 'Delivery' | 'ProductionOrder'
+) {
   const cookie = await getSapSessionCookie();
-  const target = String(searchNum).trim();
+  const target = docNumOrEntry.trim();
   const isNumeric = /^\d+$/.test(target);
 
   let docData: any = null;
-  let documentType = preferType || 'Quotation';
+  let documentType: 'Quotation' | 'Order' | 'Delivery' | 'ProductionOrder' = preferType || 'Quotation';
 
-  if (preferType === 'Order') {
+  if (preferType === 'Delivery') {
+    // 1. Try DeliveryNotes (ODLN) first
+    if (isNumeric) {
+      const dUrl = `${SAP_BASE_URL}/DeliveryNotes?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying DeliveryNotes filter:', dUrl);
+      const dRes = await fetch(dUrl, { headers: { 'Cookie': cookie } });
+      if (dRes.ok) {
+        const dData = await dRes.json();
+        if (dData.value && dData.value.length > 0) {
+          docData = dData.value[0];
+          documentType = 'Delivery';
+        }
+      }
+    }
+    // 2. Fallback to Orders
+    if (!docData && isNumeric) {
+      const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
+      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
+      if (oRes.ok) {
+        const oData = await oRes.json();
+        if (oData.value && oData.value.length > 0) {
+          docData = oData.value[0];
+          documentType = 'Order';
+        }
+      }
+    }
+  } else if (preferType === 'Order') {
     // 1. Try Orders (ORDR) first
     if (isNumeric) {
       const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
