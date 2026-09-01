@@ -2071,126 +2071,256 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 </div>
               </div>
 
-              {/* Tree Flow Container */}
-              <div className="pt-16 pb-4 flex items-center justify-center min-w-[960px]">
-                <div className="grid grid-cols-5 gap-6 items-center relative w-full px-4">
-                  
-                  {/* SVG Connecting Arrows overlay */}
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
-                    <defs>
-                      <marker id="sap-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
-                      </marker>
-                    </defs>
-                    
-                    {/* Arrow 1: Oferta -> Orden de Fabricacion */}
-                    <line x1="18%" y1="50%" x2="23%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
-                    
-                    {/* Arrow 2: Orden de Fabricación <-> Orden de Venta */}
-                    <line x1="38%" y1="50%" x2="43%" y2="50%" stroke="#EAB308" strokeWidth="2.5" markerEnd="url(#sap-arrow)" />
-                    
-                    {/* Arrow 3: Orden de Venta -> Entrega */}
-                    <line x1="58%" y1="50%" x2="63%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
-                    
-                    {/* Arrow 4: Entrega -> Factura */}
-                    <line x1="78%" y1="50%" x2="83%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
-                  </svg>
+              {/* Dynamic Tree Flow Container */}
+              {(() => {
+                const currentDoc = docNum || ordenVenta || '162517';
+                
+                // Determine document data based on active document
+                let qNum = '5795';
+                let qDate = '28/08/2026';
+                let qTotal = '4370250.90';
 
-                  {/* Column 1: Oferta de ventas */}
-                  <div className="z-10 flex flex-col items-center">
-                    <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
-                      mode === 'Quotation' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                    }`}>
-                      <div className={`${mode === 'Quotation' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                        <span>Oferta de ventas</span>
-                        <span className="text-[10px]" title="Cerrado">🔒</span>
-                      </div>
-                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">{mode === 'Quotation' ? (docNum || '5795') : '5795'}</p>
-                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '28/08/2026'}</p>
-                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4370250.90)}</p>
-                      </div>
-                    </div>
-                  </div>
+                let poNum = '10073750';
+                let poItem = rows[0]?.itemCode && rows[0]?.itemCode !== 'Escriba código...' ? rows[0].itemCode : 'VBAN05-0051-000-0439';
+                let poStatus = 'Planif.';
+                let poDate = '07/09/2026';
 
-                  {/* Column 2: Orden de fabricación */}
-                  <div className="z-10 flex flex-col items-center">
-                    <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
-                      mode === 'ProductionOrder' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                    }`}>
-                      <div className={`${mode === 'ProductionOrder' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                        <span>Orden de fabricación</span>
-                      </div>
-                      <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">10073750</p>
-                        <p className="text-[9px] text-slate-600 truncate">{rows[0]?.itemCode || 'VBAN05-0051-000-0439'}</p>
-                        <p className="text-[9px] text-slate-600">Estándar</p>
-                        <p className="text-[9px] text-slate-600">Planif.</p>
-                        <p className="text-[9px] text-slate-500">07/09/2026</p>
-                      </div>
-                    </div>
-                  </div>
+                let soNum = currentDoc;
+                let soDate = postingDate ? postingDate.split('-').reverse().join('/') : '29/08/2026';
+                let soTotal = subtotalRows > 0 ? (subtotalRows * 1.19) : 4382656.95;
 
-                  {/* Column 3: Orden de venta (ACTIVE Node Highlight) */}
-                  <div className="z-10 flex flex-col items-center">
-                    <div className={`w-40 border-2 rounded-sm bg-white shadow-xl relative ${
-                      mode === 'Order' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-amber-400'
-                    }`}>
-                      <div className="bg-[#F0C050] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-amber-300 flex items-center justify-between">
-                        <span>Orden de venta</span>
-                        <span className="text-[10px]" title="Cerrado">🔒</span>
-                      </div>
-                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right bg-amber-50/20">
-                        <p className="font-bold text-slate-900">{mode === 'Order' ? (docNum || '162516') : '162516'}</p>
-                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '29/08/2026'}</p>
-                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4382656.95)}</p>
-                      </div>
-                    </div>
-                  </div>
+                let hasDel = false;
+                let delNum = '91279';
+                let delDate = '31/08/2026';
+                let delTotal = '4382656.95';
 
-                  {/* Column 4: Entrega */}
-                  <div className="z-10 flex flex-col items-center">
-                    <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
-                      mode === 'Delivery' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                    }`}>
-                      <div className={`${mode === 'Delivery' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                        <span>Entrega</span>
-                        <div className="flex items-center gap-1 text-[9px]">
-                          <span>🖨️</span>
-                          <span>🔒</span>
+                let hasInv = false;
+                let invNum = '156832';
+                let invDate = '31/08/2026';
+                let invTotal = '4382656.95';
+
+                // Specific SAP B1 Document Relationship Chains
+                if (currentDoc === '162517') {
+                  qNum = '5797';
+                  qDate = '28/08/2026';
+                  qTotal = '2552900.00';
+
+                  poNum = '10073751';
+                  poItem = 'VBAN12-0011-000-0437';
+                  poStatus = 'Liberado';
+                  poDate = '04/09/2026';
+
+                  soNum = '162517';
+                  soDate = '29/08/2026';
+                  soTotal = 2552900.00;
+
+                  hasDel = false;
+                  hasInv = false;
+                } else if (currentDoc === '162516') {
+                  qNum = '5795';
+                  qDate = '28/08/2026';
+                  qTotal = '4370250.90';
+
+                  poNum = '10073750';
+                  poItem = 'VBAN05-0051-000-0439';
+                  poStatus = 'Planif.';
+                  poDate = '07/09/2026';
+
+                  soNum = '162516';
+                  soDate = '29/08/2026';
+                  soTotal = 4382656.95;
+
+                  hasDel = true;
+                  delNum = '91279';
+                  delDate = '31/08/2026';
+                  delTotal = '4382656.95';
+
+                  hasInv = true;
+                  invNum = '156832';
+                  invDate = '31/08/2026';
+                  invTotal = '4382656.95';
+                } else if (currentDoc === '91277' || currentDoc === '156830' || currentDoc === '162361' || comments.includes('5730')) {
+                  qNum = '5730';
+                  qDate = '25/08/2026';
+                  qTotal = '5475860.21';
+
+                  poNum = '10073748';
+                  poItem = 'VROP01-0019-000-0100';
+                  poStatus = 'Liberado';
+                  poDate = '28/08/2026';
+
+                  soNum = '162361';
+                  soDate = '26/08/2026';
+                  soTotal = 5475860.21;
+
+                  hasDel = true;
+                  delNum = '91277';
+                  delDate = '31/08/2026';
+                  delTotal = '5475860.21';
+
+                  hasInv = mode === 'Invoice' || currentDoc === '156830';
+                  invNum = '156830';
+                  invDate = '31/08/2026';
+                  invTotal = '5475860.21';
+                } else if (currentDoc === '162561' || comments.includes('5800')) {
+                  qNum = '5800';
+                  qDate = '31/08/2026';
+                  qTotal = '3814033.30';
+
+                  poNum = '10073752';
+                  poItem = 'VBAN05-0051-000-0439';
+                  poStatus = 'Planif.';
+                  poDate = '08/09/2026';
+
+                  soNum = '162561';
+                  soDate = '31/08/2026';
+                  soTotal = 3814033.30;
+
+                  hasDel = false;
+                  hasInv = false;
+                } else if (mode === 'Delivery') {
+                  hasDel = true;
+                  delNum = currentDoc;
+                } else if (mode === 'Invoice') {
+                  hasDel = true;
+                  hasInv = true;
+                  invNum = currentDoc;
+                }
+
+                const totalNodes = 3 + (hasDel ? 1 : 0) + (hasInv ? 1 : 0);
+
+                return (
+                  <div className="pt-16 pb-4 flex items-center justify-center min-w-[750px]">
+                    <div className={`grid ${
+                      totalNodes === 3 ? 'grid-cols-3 max-w-2xl gap-10' : totalNodes === 4 ? 'grid-cols-4 max-w-3xl gap-8' : 'grid-cols-5 max-w-4xl gap-6'
+                    } items-center relative w-full px-4`}>
+                      
+                      {/* SVG Connecting Arrows overlay */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
+                        <defs>
+                          <marker id="sap-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
+                          </marker>
+                        </defs>
+                        
+                        {/* Arrow 1: Oferta -> Orden de Fabricacion */}
+                        <line x1={totalNodes === 3 ? "28%" : totalNodes === 4 ? "20%" : "18%"} y1="50%" x2={totalNodes === 3 ? "37%" : totalNodes === 4 ? "27%" : "23%"} y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                        
+                        {/* Arrow 2: Orden de Fabricación <-> Orden de Venta */}
+                        <line x1={totalNodes === 3 ? "62%" : totalNodes === 4 ? "47%" : "38%"} y1="50%" x2={totalNodes === 3 ? "71%" : totalNodes === 4 ? "54%" : "43%"} y2="50%" stroke="#EAB308" strokeWidth="2.5" markerEnd="url(#sap-arrow)" />
+                        
+                        {/* Arrow 3: Orden de Venta -> Entrega */}
+                        {hasDel && (
+                          <line x1={totalNodes === 4 ? "74%" : "58%"} y1="50%" x2={totalNodes === 4 ? "81%" : "63%"} y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                        )}
+                        
+                        {/* Arrow 4: Entrega -> Factura */}
+                        {hasInv && (
+                          <line x1="78%" y1="50%" x2="83%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                        )}
+                      </svg>
+
+                      {/* Column 1: Oferta de ventas */}
+                      <div className="z-10 flex flex-col items-center">
+                        <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
+                          mode === 'Quotation' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                        }`}>
+                          <div className={`${mode === 'Quotation' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
+                            <span>Oferta de ventas</span>
+                            <span className="text-[10px]" title="Cerrado">🔒</span>
+                          </div>
+                          <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
+                            <p className="font-bold text-slate-900">{mode === 'Quotation' ? (docNum || qNum) : qNum}</p>
+                            <p className="text-[10px] text-slate-600">{qDate}</p>
+                            <p className="font-bold text-slate-900">{formatMoney(Number(qTotal))}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">{mode === 'Delivery' ? (docNum || '91279') : '91279'}</p>
-                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '31/08/2026'}</p>
-                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4382656.95)}</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Column 5: Factura de deudores */}
-                  <div className="z-10 flex flex-col items-center">
-                    <div className={`w-40 border rounded-sm bg-white shadow-md relative overflow-hidden ${
-                      mode === 'Invoice' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                    }`}>
-                      <div className={`${mode === 'Invoice' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                        <span>Factura de deudores</span>
-                        <div className="flex items-center gap-1 text-[9px]">
-                          <span>💰</span>
-                          <span>🔒</span>
+                      {/* Column 2: Orden de fabricación */}
+                      <div className="z-10 flex flex-col items-center">
+                        <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
+                          mode === 'ProductionOrder' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                        }`}>
+                          <div className={`${mode === 'ProductionOrder' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
+                            <span>Orden de fabricación</span>
+                          </div>
+                          <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right">
+                            <p className="font-bold text-slate-900">{poNum}</p>
+                            <p className="text-[9px] text-slate-600 truncate">{poItem}</p>
+                            <p className="text-[9px] text-slate-600">Estándar</p>
+                            <p className="text-[9px] text-slate-600">{poStatus}</p>
+                            <p className="text-[9px] text-slate-500">{poDate}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">{mode === 'Invoice' ? (docNum || '156832') : '156832'}</p>
-                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '31/08/2026'}</p>
-                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4382656.95)}</p>
+
+                      {/* Column 3: Orden de venta (ACTIVE Node Highlight if in Order mode or default) */}
+                      <div className="z-10 flex flex-col items-center">
+                        <div className={`w-40 border-2 rounded-sm bg-white shadow-xl relative ${
+                          mode === 'Order' || (!hasDel && !hasInv) ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                        }`}>
+                          <div className={`${mode === 'Order' || (!hasDel && !hasInv) ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-amber-300 flex items-center justify-between`}>
+                            <span>Orden de venta</span>
+                            <span className="text-[10px]" title="Cerrado">🔒</span>
+                          </div>
+                          <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right bg-amber-50/10">
+                            <p className="font-bold text-slate-900">{soNum}</p>
+                            <p className="text-[10px] text-slate-600">{soDate}</p>
+                            <p className="font-bold text-slate-900">{formatMoney(soTotal)}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="h-1.5 bg-[#F0C050] w-full"></div>
+
+                      {/* Column 4: Entrega (Optional) */}
+                      {hasDel && (
+                        <div className="z-10 flex flex-col items-center">
+                          <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
+                            mode === 'Delivery' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                          }`}>
+                            <div className={`${mode === 'Delivery' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
+                              <span>Entrega</span>
+                              <div className="flex items-center gap-1 text-[9px]">
+                                <span>🖨️</span>
+                                <span>🔒</span>
+                              </div>
+                            </div>
+                            <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
+                              <p className="font-bold text-slate-900">{delNum}</p>
+                              <p className="text-[10px] text-slate-600">{delDate}</p>
+                              <p className="font-bold text-slate-900">{formatMoney(Number(delTotal))}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Column 5: Factura de deudores (Optional) */}
+                      {hasInv && (
+                        <div className="z-10 flex flex-col items-center">
+                          <div className={`w-40 border rounded-sm bg-white shadow-md relative overflow-hidden ${
+                            mode === 'Invoice' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                          }`}>
+                            <div className={`${mode === 'Invoice' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
+                              <span>Factura de deudores</span>
+                              <div className="flex items-center gap-1 text-[9px]">
+                                <span>💰</span>
+                                <span>🔒</span>
+                              </div>
+                            </div>
+                            <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
+                              <p className="font-bold text-slate-900">{invNum}</p>
+                              <p className="text-[10px] text-slate-600">{invDate}</p>
+                              <p className="font-bold text-slate-900">{formatMoney(Number(invTotal))}</p>
+                            </div>
+                            <div className="h-1.5 bg-[#F0C050] w-full"></div>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </div>
-
-                </div>
-              </div>
+                );
+              })()}
 
             </div>
 
