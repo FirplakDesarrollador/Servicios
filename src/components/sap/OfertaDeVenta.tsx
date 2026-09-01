@@ -1487,68 +1487,87 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Duplicar documento SAP'); }}
-          >
-            <span className="w-4 text-center">📋</span> Duplicar
-          </button>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Documento destino'); }}
-          >
-            <span className="w-4 text-center">➡️</span> Documento destino...
-          </button>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Info detallada de fila'); }}
-          >
-            <span className="w-4 text-center">🔍</span> Info detallada de fila...
-          </button>
-          <div className="border-t border-slate-200 my-1"></div>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Actividad nueva'); }}
-          >
-            <span className="w-4 text-center">📅</span> Actividad nueva
-          </button>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Ganancia bruta'); }}
-          >
-            <span className="w-4 text-center">📊</span> Ganancia bruta...
-          </button>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Cálculo de volumen y peso'); }}
-          >
-            <span className="w-4 text-center">⚖️</span> Cálculo de volumen y peso...
-          </button>
-          <div className="border-t border-slate-200 my-1"></div>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-amber-900 bg-amber-50/50 flex items-center gap-2"
-            onClick={() => { setContextMenu(null); setIsComentariosModalOpen(true); }}
-          >
-            <span className="w-4 text-center">📝</span> Comentarios iniciales y finales...
-          </button>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Actividades relacionadas'); }}
-          >
-            <span className="w-4 text-center">📌</span> Actividades relacionadas
-          </button>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
-            onClick={() => { setContextMenu(null); alert('Oportunidades relacionadas'); }}
-          >
-            <span className="w-4 text-center">🎯</span> Oportunidades relacionadas
-          </button>
-          <button 
-            className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-blue-900 bg-blue-50/50 flex items-center gap-2"
-            onClick={() => { setContextMenu(null); setIsMapaRelacionesModalOpen(true); }}
-          >
-            <span className="w-4 text-center">🌿</span> Mapa de relaciones...
-          </button>
+          {Boolean(cardCode && cardCode.trim() && docNum && docNum.trim()) ? (
+            <>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Duplicar documento SAP'); }}
+              >
+                <span className="w-4 text-center">📋</span> Duplicar
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Documento destino'); }}
+              >
+                <span className="w-4 text-center">➡️</span> Documento destino...
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Info detallada de fila'); }}
+              >
+                <span className="w-4 text-center">🔍</span> Info detallada de fila...
+              </button>
+              <div className="border-t border-slate-200 my-1"></div>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Actividad nueva'); }}
+              >
+                <span className="w-4 text-center">📅</span> Actividad nueva
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Ganancia bruta'); }}
+              >
+                <span className="w-4 text-center">📊</span> Ganancia bruta...
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Cálculo de volumen y peso'); }}
+              >
+                <span className="w-4 text-center">⚖️</span> Cálculo de volumen y peso...
+              </button>
+              <div className="border-t border-slate-200 my-1"></div>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-amber-900 bg-amber-50/50 flex items-center gap-2"
+                onClick={() => { setContextMenu(null); setIsComentariosModalOpen(true); }}
+              >
+                <span className="w-4 text-center">📝</span> Comentarios iniciales y finales...
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Actividades relacionadas'); }}
+              >
+                <span className="w-4 text-center">📌</span> Actividades relacionadas
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Oportunidades relacionadas'); }}
+              >
+                <span className="w-4 text-center">🎯</span> Oportunidades relacionadas
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-blue-900 bg-blue-50/50 flex items-center gap-2"
+                onClick={() => { setContextMenu(null); setIsMapaRelacionesModalOpen(true); }}
+              >
+                <span className="w-4 text-center">🌿</span> Mapa de relaciones...
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Actividad nueva'); }}
+              >
+                <span className="w-4 text-center">📅</span> Actividad nueva
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                onClick={() => { setContextMenu(null); alert('Ganancia bruta'); }}
+              >
+                <span className="w-4 text-center">📊</span> Ganancia bruta...
+              </button>
+            </>
+          )}
         </div>
       )}
 
