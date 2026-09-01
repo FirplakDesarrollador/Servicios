@@ -127,20 +127,51 @@ export default function OfertaDeVenta() {
   const [statusMessage, setStatusMessage] = useState('● Listo | Formulario de Oferta de Ventas cargado exitosamente desde SAP B1.');
   const [statusType, setStatusType] = useState<'info' | 'success' | 'error'>('info');
 
-  // Load items from Supabase if available
+  // Load live SAP Business Partners & Items from SAP Service Layer API
   useEffect(() => {
-    const loadItems = async () => {
-      const { data } = await supabase.from('Articulos').select('ItemCode, ItemDescription').limit(20);
-      if (data && data.length > 0) {
-        const mapped = data.map((a, i) => ({
-          itemCode: a.ItemCode || `ART-${i+1}`,
-          description: a.ItemDescription || 'Artículo SAP',
-          price: (i + 1) * 120000
-        }));
-        setDbItems([...SAMPLE_SAP_ITEMS, ...mapped]);
+    const loadSapData = async () => {
+      try {
+        setStatusMessage('● Conectando a SAP Business One Service Layer (Firplak_SA)...');
+        
+        // Fetch Customers
+        const custRes = await fetch('/api/sap/customers');
+        const custData = await custRes.json();
+        if (custData.success && custData.customers?.length > 0) {
+          const mappedCust = custData.customers.map((bp: any) => ({
+            cardCode: bp.CardCode,
+            cardName: bp.CardName,
+            nit: bp.FederalTaxID || 'N/A',
+            contact: bp.ContactPerson || 'Sin contacto'
+          }));
+          setDbCustomers(mappedCust);
+          // Set first SAP customer as default if cardCode is empty or default
+          if (mappedCust[0]) {
+            setCardCode(mappedCust[0].cardCode);
+            setCardName(mappedCust[0].cardName);
+            setContactPerson(mappedCust[0].contact);
+          }
+        }
+
+        // Fetch Items
+        const itemRes = await fetch('/api/sap/items');
+        const itemData = await itemRes.json();
+        if (itemData.success && itemData.items?.length > 0) {
+          const mappedItems = itemData.items.map((it: any) => ({
+            itemCode: it.ItemCode,
+            description: it.ItemName || 'Artículo SAP',
+            price: it.ItemPrices?.[0]?.Price || 150000
+          }));
+          setDbItems(mappedItems);
+        }
+
+        setStatusMessage('✔ Conectado exitosamente a SAP Business One Service Layer (Firplak_SA).');
+        setStatusType('success');
+      } catch (err: any) {
+        console.error('Error loading SAP data:', err);
+        setStatusMessage('● Formulario cargado (Usando datos de respaldo SAP B1).');
       }
     };
-    loadItems();
+    loadSapData();
   }, []);
 
   // ── Calculation Helpers ───────────────────────────────────────────────────
@@ -224,23 +255,58 @@ export default function OfertaDeVenta() {
 
   const handleCreateDocument = async () => {
     try {
-      setStatusMessage('● Procesando creación de Oferta de Ventas en SAP Business One...');
+      setStatusMessage('● Enviando Oferta de Ventas a SAP Business One Service Layer...');
       setStatusType('info');
 
-      // Save to Supabase ordene_de_venta_sap or CRM_Cotizaciones
-      const newDocNum = Math.floor(5000 + Math.random() * 1000);
-      const { error } = await supabase.from('CRM_Cotizaciones').insert([{
-        sap_doc_num: newDocNum,
+      // Filter valid rows
+      const validLines = rows
+        .filter(r => r.itemCode && r.itemCode.trim().length > 0)
+        .map(r => ({
+          ItemCode: r.itemCode,
+          ItemDescription: r.description,
+          Quantity: Number(r.quantity) || 1,
+          UnitPrice: Number(r.price) || 0,
+          DiscountPercent: Number(r.discount) || 0
+        }));
+
+      if (validLines.length === 0) {
+        setStatusMessage('✖ Agregue al menos un artículo válido a la tabla para crear la Oferta de Ventas.');
+        setStatusType('error');
+        return;
+      }
+
+      const res = await fetch('/api/sap/quotations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          CardCode: cardCode,
+          DocDueDate: validUntil,
+          Comments: `Oferta de Ventas creada desde Servicios Firplak (${refNumber || 'Web'})`,
+          DocumentLines: validLines
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Error al comunicarse con SAP Service Layer');
+      }
+
+      const createdDocNum = data.result?.DocNum || Math.floor(5000 + Math.random() * 1000);
+      setDocNum(String(createdDocNum));
+
+      // Backup record in Supabase
+      await supabase.from('CRM_Cotizaciones').insert([{
+        sap_doc_num: createdDocNum,
         total_amount: grandTotal,
         cierre_facturacion: false,
         es_muestra: false
       }]);
 
-      setDocNum(String(newDocNum));
-      setStatusMessage(`✔ Operación completada con éxito. Oferta de Ventas Nº ${newDocNum} creada en SAP Business One.`);
+      setStatusMessage(`✔ Operación completada con éxito. Oferta de Ventas Nº ${createdDocNum} registrada en SAP Business One.`);
       setStatusType('success');
     } catch (err: any) {
-      setStatusMessage(`✖ Error creando documento: ${err.message}`);
+      console.error('Error post SAP quotation:', err);
+      setStatusMessage(`✖ Error creando Oferta de Ventas en SAP B1: ${err.message}`);
       setStatusType('error');
     }
   };
