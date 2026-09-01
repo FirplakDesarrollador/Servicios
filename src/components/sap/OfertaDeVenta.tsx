@@ -231,7 +231,19 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       setBloqueadoDespacho(sapDoc.U_Bloqueado === '01' || sapDoc.U_Bloqueado === '1' ? 'No Bloqueado' : (sapDoc.U_Bloqueado || 'No Bloqueado'));
 
       const estRaw = String(sapDoc.U_Estado_Oferta_Venta || sapDoc.U_Estado_Oferta || '').trim();
-      setEstadoOfertaVenta(estRaw === '02' || estRaw === '2' || estRaw === 'Confirmada' ? 'Confirmada' : (estRaw === '01' || estRaw === '1' ? 'Pendiente' : (estRaw || 'Confirmada')));
+      if (estRaw === '01' || estRaw === '1' || estRaw.toLowerCase().includes('conf')) {
+        setEstadoOfertaVenta('Confirmada');
+      } else if (estRaw === '02' || estRaw === '2' || estRaw.toLowerCase().includes('pend')) {
+        setEstadoOfertaVenta('Pendiente');
+      } else if (estRaw === '03' || estRaw === '3' || estRaw.toLowerCase().includes('aprob')) {
+        setEstadoOfertaVenta('Aprobado');
+      } else if (estRaw.toLowerCase().includes('rech')) {
+        setEstadoOfertaVenta('Rechazado');
+      } else if (estRaw.toLowerCase().includes('anul')) {
+        setEstadoOfertaVenta('Anulada');
+      } else {
+        setEstadoOfertaVenta(estRaw || 'Confirmada');
+      }
 
       const TIPO_PEDIDO_MAP: Record<string, string> = {
         '1': 'Normal',
