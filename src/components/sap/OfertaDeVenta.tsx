@@ -184,9 +184,9 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
   // ── Search Real SAP Document by Orden de Venta / DocNum ──────────────────────
   const handleSearchSapDocument = async (queryNum?: string) => {
-    const searchTarget = queryNum || ordenVenta || docNum;
-    if (!searchTarget || searchTarget.trim().length === 0) {
-      setStatusMessage('✖ Ingrese un número de Orden de Venta o Documento para consultar en SAP B1.');
+    const searchTarget = (queryNum || docNum || ordenVenta || '').trim();
+    if (!searchTarget) {
+      setStatusMessage('✖ Ingrese un número de Documento para consultar en SAP Business One.');
       setStatusType('error');
       return;
     }
@@ -1122,14 +1122,26 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                       {mode === 'ProductionOrder' ? 'OF-Especial' : mode === 'Order' ? 'Ped.Exp' : mode === 'Delivery' ? 'Ent-Exp' : 'Cot-Exp'}
                     </option>
                   </select>
-                  <input 
-                    type="text"
-                    placeholder="DocNum..."
-                    value={docNum}
-                    onChange={e => setDocNum(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(); }}
-                    className="w-28 bg-[#FFFDE7] border border-amber-300 rounded px-1.5 py-0.5 outline-none text-right font-bold text-slate-800 focus:ring-1 focus:ring-amber-500"
-                  />
+                  <div className="relative flex items-center">
+                    <input 
+                      type="text"
+                      placeholder="DocNum..."
+                      value={docNum}
+                      onChange={e => {
+                        setDocNum(e.target.value);
+                        setOrdenVenta(e.target.value);
+                      }}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(e.currentTarget.value); }}
+                      className="w-32 bg-[#FFFDE7] border border-amber-400 font-bold rounded pl-1.5 pr-6 py-0.5 outline-none text-right text-slate-900 focus:ring-2 focus:ring-amber-500 text-xs shadow-inner"
+                    />
+                    <button
+                      onClick={() => handleSearchSapDocument(docNum)}
+                      className="absolute right-1 text-slate-600 hover:text-amber-700 font-bold text-xs p-0.5 cursor-pointer hover:scale-110 transition-transform"
+                      title="Consultar Documento en SAP B1"
+                    >
+                      🔍
+                    </button>
+                  </div>
                 </div>
               </div>
 
