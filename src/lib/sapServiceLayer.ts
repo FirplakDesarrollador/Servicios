@@ -178,38 +178,67 @@ export async function fetchSapEmployeeName(empID: number | string): Promise<stri
 /**
  * Fetch a single Quotation (Oferta de Ventas OQUT) or Order (ORDR) by DocNum or DocEntry using OData $filter
  */
-export async function fetchSapQuotationByDocNum(searchNum: string) {
+export async function fetchSapQuotationByDocNum(searchNum: string, preferType?: 'Order' | 'Quotation') {
   const cookie = await getSapSessionCookie();
   const target = String(searchNum).trim();
   const isNumeric = /^\d+$/.test(target);
 
   let docData: any = null;
-  let documentType = 'Quotation';
+  let documentType = preferType || 'Quotation';
 
-  // 1. Try Quotations (OQUT) with $filter=DocNum eq target
-  if (isNumeric) {
-    const qUrl = `${SAP_BASE_URL}/Quotations?$filter=DocNum eq ${target}`;
-    console.log('[SAP Service Layer] Querying Quotations filter:', qUrl);
-    const qRes = await fetch(qUrl, { headers: { 'Cookie': cookie } });
-    if (qRes.ok) {
-      const qData = await qRes.json();
-      if (qData.value && qData.value.length > 0) {
-        docData = qData.value[0];
-        documentType = 'Quotation';
+  if (preferType === 'Order') {
+    // 1. Try Orders (ORDR) first
+    if (isNumeric) {
+      const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
+      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
+      if (oRes.ok) {
+        const oData = await oRes.json();
+        if (oData.value && oData.value.length > 0) {
+          docData = oData.value[0];
+          documentType = 'Order';
+        }
       }
     }
-  }
+    // 2. Fallback to Quotations (OQUT)
+    if (!docData && isNumeric) {
+      const qUrl = `${SAP_BASE_URL}/Quotations?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying Quotations filter:', qUrl);
+      const qRes = await fetch(qUrl, { headers: { 'Cookie': cookie } });
+      if (qRes.ok) {
+        const qData = await qRes.json();
+        if (qData.value && qData.value.length > 0) {
+          docData = qData.value[0];
+          documentType = 'Quotation';
+        }
+      }
+    }
+  } else {
+    // 1. Try Quotations (OQUT) first
+    if (isNumeric) {
+      const qUrl = `${SAP_BASE_URL}/Quotations?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying Quotations filter:', qUrl);
+      const qRes = await fetch(qUrl, { headers: { 'Cookie': cookie } });
+      if (qRes.ok) {
+        const qData = await qRes.json();
+        if (qData.value && qData.value.length > 0) {
+          docData = qData.value[0];
+          documentType = 'Quotation';
+        }
+      }
+    }
 
-  // 2. Try Orders (ORDR) with $filter=DocNum eq target
-  if (!docData && isNumeric) {
-    const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
-    console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
-    const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
-    if (oRes.ok) {
-      const oData = await oRes.json();
-      if (oData.value && oData.value.length > 0) {
-        docData = oData.value[0];
-        documentType = 'Order';
+    // 2. Try Orders (ORDR)
+    if (!docData && isNumeric) {
+      const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
+      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
+      if (oRes.ok) {
+        const oData = await oRes.json();
+        if (oData.value && oData.value.length > 0) {
+          docData = oData.value[0];
+          documentType = 'Order';
+        }
       }
     }
   }

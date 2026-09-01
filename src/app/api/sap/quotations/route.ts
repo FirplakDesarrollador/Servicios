@@ -5,12 +5,13 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const docNum = searchParams.get('docNum');
+    const docType = searchParams.get('type') || undefined;
 
     if (!docNum) {
       return NextResponse.json({ error: 'Param docNum is required' }, { status: 400 });
     }
 
-    const docResult = await fetchSapQuotationByDocNum(docNum);
+    const docResult = await fetchSapQuotationByDocNum(docNum, docType as any);
     if (!docResult) {
       return NextResponse.json({ success: false, message: 'Documento no encontrado en SAP B1' }, { status: 404 });
     }

@@ -27,9 +27,9 @@ export default function ConsultasSapPage() {
       description: 'Seguimiento y detalle de órdenes de venta en SAP B1.',
       icon: Package,
       color: 'bg-gradient-to-tr from-blue-500 to-indigo-500 text-white',
-      badge: 'Próximamente',
-      badgeColor: 'bg-slate-100 text-slate-500 border-slate-200',
-      active: false
+      badge: 'Disponible',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      active: true
     },
     {
       id: 'factura-cliente',
@@ -76,7 +76,9 @@ export default function ConsultasSapPage() {
           <div className="flex items-center gap-2">
             <Server className="w-5 h-5 opacity-70" />
             <h1 className="font-black text-xl tracking-tight uppercase">
-              {selectedModule === 'oferta-venta' 
+              {selectedModule === 'orden-venta' 
+                ? 'Consultas SAP — Orden de Venta' 
+                : selectedModule === 'oferta-venta'
                 ? 'Consultas SAP — Oferta de Ventas' 
                 : 'Consultas SAP'}
             </h1>
@@ -163,7 +165,7 @@ export default function ConsultasSapPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
           >
-            <OfertaDeVenta />
+            <OfertaDeVenta mode={selectedModule === 'orden-venta' ? 'Order' : 'Quotation'} />
           </motion.div>
         )}
       </main>

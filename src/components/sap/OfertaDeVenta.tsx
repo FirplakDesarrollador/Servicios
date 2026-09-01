@@ -45,7 +45,7 @@ export interface GridRow {
   lineStatus?: string;
 }
 
-export default function OfertaDeVenta() {
+export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotation' | 'Order' }) {
   // ── Form State (Initially EMPTY for Consultation) ─────────────────────────────
   // Header Left
   const [cardCode, setCardCode] = useState('');
@@ -55,7 +55,7 @@ export default function OfertaDeVenta() {
   const [currency, setCurrency] = useState('COP');
 
   // Header Right
-  const [docSeries, setDocSeries] = useState('Cot-Nal');
+  const [docSeries, setDocSeries] = useState(mode === 'Order' ? 'Ped.Nac' : 'Cot-Nal');
   const [docNum, setDocNum] = useState('');
   const [docStatus, setDocStatus] = useState('');
   const [postingDate, setPostingDate] = useState('');
@@ -75,6 +75,7 @@ export default function OfertaDeVenta() {
   const [estadoOfertaVenta, setEstadoOfertaVenta] = useState('Pendiente');
   const [tipoPedido, setTipoPedido] = useState('Normal');
   const [valorAnticipo, setValorAnticipo] = useState('0.00');
+  const [tipoFacturacion, setTipoFacturacion] = useState('Sin POD');
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'finanzas' | 'anexos'>('contenido');
@@ -187,7 +188,7 @@ export default function OfertaDeVenta() {
       setStatusMessage(`● Consultando documento Nº ${searchTarget} en SAP Business One Service Layer...`);
       setStatusType('info');
 
-      const res = await fetch(`/api/sap/quotations?docNum=${encodeURIComponent(searchTarget.trim())}`);
+      const res = await fetch(`/api/sap/quotations?docNum=${encodeURIComponent(searchTarget.trim())}&type=${mode}`);
       const data = await res.json();
 
       if (!res.ok || !data.success || !data.document) {
@@ -259,6 +260,7 @@ export default function OfertaDeVenta() {
       setTipoPedido(TIPO_PEDIDO_MAP[tipoRaw] || tipoRaw || 'Normal');
 
       setValorAnticipo(String(sapDoc.U_VlorAnticipo || '0.00'));
+      setTipoFacturacion(String(sapDoc.U_TipoFacturacion || sapDoc.U_Tipo_Facturacion || 'Sin POD'));
 
       // Set Footer Empleado de Ventas, Propietario & Comentarios
       setSalesEmployee(sapDoc._SalesEmployeeName || 'Firplak');
@@ -678,6 +680,23 @@ export default function OfertaDeVenta() {
                 className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
               />
             </div>
+
+            {mode === 'Order' && (
+              <div>
+                <label className="text-slate-600 block mb-0.5 font-medium">Tipo Facturacion</label>
+                <select 
+                  value={tipoFacturacion}
+                  onChange={e => setTipoFacturacion(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                >
+                  <option value="Sin POD">Sin POD</option>
+                  <option value="Con POD">Con POD</option>
+                  {tipoFacturacion && !['Sin POD', 'Con POD'].includes(tipoFacturacion) && (
+                    <option value={tipoFacturacion}>{tipoFacturacion}</option>
+                  )}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -692,7 +711,7 @@ export default function OfertaDeVenta() {
           
           {/* SAP Orange Window Title Bar */}
           <div className="bg-gradient-to-r from-[#D97706] to-[#F59E0B] text-white px-3 py-1 font-bold text-xs flex items-center justify-between shadow-sm">
-            <span>Oferta de ventas</span>
+            <span>{mode === 'Order' ? 'Orden de venta' : 'Oferta de ventas'}</span>
             <div className="flex items-center gap-1 opacity-80">
               <span className="hover:opacity-100 cursor-pointer">_</span>
               <span className="hover:opacity-100 cursor-pointer">□</span>
@@ -750,7 +769,7 @@ export default function OfertaDeVenta() {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-slate-600 text-right">Referencia</label>
+                <label className="w-28 text-slate-600 text-right">{mode === 'Order' ? 'OC / COT' : 'Referencia'}</label>
                 <input 
                   type="text"
                   value={refNumber}
@@ -782,8 +801,8 @@ export default function OfertaDeVenta() {
                     onChange={e => setDocSeries(e.target.value)}
                     className="bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"
                   >
-                    <option value="Cot-Nal">Cot-Nal</option>
-                    <option value="Cot-Exp">Cot-Exp</option>
+                    <option value={mode === 'Order' ? 'Ped.Nac' : 'Cot-Nal'}>{mode === 'Order' ? 'Ped.Nac' : 'Cot-Nal'}</option>
+                    <option value={mode === 'Order' ? 'Ped.Exp' : 'Cot-Exp'}>{mode === 'Order' ? 'Ped.Exp' : 'Cot-Exp'}</option>
                   </select>
                   <input 
                     type="text"
@@ -817,7 +836,7 @@ export default function OfertaDeVenta() {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-36 text-slate-600 text-right">Válido hasta</label>
+                <label className="w-36 text-slate-600 text-right">{mode === 'Order' ? 'Fecha Plan Despacho' : 'Válido hasta'}</label>
                 <input 
                   type="date"
                   value={validUntil}
