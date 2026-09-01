@@ -247,55 +247,8 @@ export default function OfertaDeVenta() {
 
   return (
     <div className="w-full bg-[#CBD5E1] text-slate-800 font-sans p-2 select-none min-h-screen">
-      
-      {/* ── 1. Top SAP B1 Window Frame Bar ───────────────────────────────────── */}
-      <div className="bg-[#1E293B] text-white flex items-center justify-between px-3 py-1.5 rounded-t-lg shadow-md border-b border-slate-700">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gradient-to-tr from-amber-400 to-amber-600 rounded flex items-center justify-center font-bold text-[10px] text-slate-900">
-            SAP
-          </div>
-          <span className="text-xs font-bold tracking-wide text-slate-200">
-            Firplak S.A. | Luis Guillermo Esteban - [Oferta de ventas]
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors text-xs font-bold">_</button>
-          <button className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors text-xs">□</button>
-          <button className="w-5 h-5 flex items-center justify-center text-slate-400 hover:bg-rose-600 hover:text-white rounded transition-colors text-xs">✕</button>
-        </div>
-      </div>
-
-      {/* ── 2. SAP B1 Top Menu Bar ────────────────────────────────────────────── */}
-      <div className="bg-[#F1F5F9] border-x border-b border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 flex items-center gap-5 shadow-sm">
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Archivo</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Editar</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Visualizar</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Datos</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Pasar a</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Módulos</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Herramientas</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Ventana</span>
-        <span className="hover:bg-slate-200 px-1.5 py-0.5 rounded cursor-pointer">Ayuda</span>
-      </div>
-
-      {/* ── 3. SAP B1 Icon Action Toolbar ─────────────────────────────────────── */}
-      <div className="bg-[#E2E8F0] border-x border-b border-slate-300 px-3 py-1.5 flex items-center gap-1.5 text-slate-600 text-xs shadow-inner">
-        <button title="Buscar / Filtro" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><Search className="w-3.5 h-3.5 text-slate-700" /></button>
-        <button title="Nuevo documento" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><Plus className="w-3.5 h-3.5 text-indigo-600 font-bold" /></button>
-        <button title="Imprimir" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><Printer className="w-3.5 h-3.5 text-slate-700" /></button>
-        <div className="w-[1px] h-4 bg-slate-300 mx-1" />
-        <button title="Exportar a Excel" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /></button>
-        <button title="Exportar a PDF" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><FileText className="w-3.5 h-3.5 text-rose-600" /></button>
-        <button title="Actualizar datos" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60" onClick={() => setStatusMessage('● Datos refrescados desde SAP B1.')}><RefreshCw className="w-3.5 h-3.5 text-blue-600" /></button>
-        <div className="w-[1px] h-4 bg-slate-300 mx-1" />
-        <button title="Primer registro" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><ChevronsLeft className="w-3.5 h-3.5" /></button>
-        <button title="Anterior" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><ChevronLeft className="w-3.5 h-3.5" /></button>
-        <button title="Siguiente" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><ChevronRight className="w-3.5 h-3.5" /></button>
-        <button title="Último registro" className="p-1 hover:bg-white hover:shadow-sm rounded border border-slate-300/60"><ChevronsRight className="w-3.5 h-3.5" /></button>
-      </div>
-
-      {/* ── 4. Main Body Split Layout ─────────────────────────────────────────── */}
-      <div className="flex gap-2 p-2 border-x border-b border-slate-300 bg-[#E2E8F0] min-h-[640px]">
+      {/* ── Main Body Split Layout ─────────────────────────────────────────── */}
+      <div className="flex gap-2 p-2 border border-slate-300 rounded-lg bg-[#E2E8F0] min-h-[640px]">
 
         {/* ── Left Sidebar: Campos de usuario (User Fields) ──────────────────── */}
         <div className="w-64 bg-[#F8FAFC] border border-slate-300 rounded-md shadow-sm flex flex-col shrink-0 overflow-hidden text-[11px]">
