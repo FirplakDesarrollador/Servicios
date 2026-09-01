@@ -544,27 +544,6 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </select>
             </div>
 
-            <div>
-              <label className="text-slate-600 block mb-0.5 font-bold">Orden de Venta / Cotización</label>
-              <div className="flex items-center gap-1">
-                <input 
-                  type="text"
-                  placeholder="Ej: 2000001"
-                  value={ordenVenta}
-                  onChange={e => setOrdenVenta(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(); }}
-                  className="w-full bg-[#FFFDE7] border border-amber-400 font-bold rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-amber-500 text-slate-900"
-                />
-                <button 
-                  onClick={() => handleSearchSapDocument()}
-                  className="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded text-[10px] shrink-0 border border-amber-600 cursor-pointer shadow-xs"
-                  title="Consultar Orden u Oferta en SAP B1"
-                >
-                  🔍 Buscar
-                </button>
-              </div>
-            </div>
-
             {mode === 'Invoice' ? (
               <>
                 <div>
