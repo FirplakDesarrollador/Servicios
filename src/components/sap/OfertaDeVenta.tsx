@@ -207,7 +207,10 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       setRefNumber(sapDoc.NumAtCard || '');
       setCurrency(sapDoc.DocCurrency === '$' ? 'COP' : sapDoc.DocCurrency || 'COP');
       setDocNum(String(sapDoc.DocNum || searchTarget));
-      setDocStatus(sapDoc.DocStatus === 'bost_Open' || sapDoc.DocStatus === 'O' ? 'Abiertos' : 'Cerrado');
+      const rawStatus = sapDoc.DocumentStatus || sapDoc.DocStatus || '';
+      const isAbierto = rawStatus === 'bost_Open' || rawStatus === 'O' || rawStatus === 'Open';
+      const isCancelled = sapDoc.Cancelled === 'tYES' || rawStatus === 'bost_Cancelled' || rawStatus === 'Canceled';
+      setDocStatus(isCancelled ? 'Cancelado' : (isAbierto ? 'Abiertos' : 'Cerrado'));
 
       setPostingDate(sapDoc.DocDate ? sapDoc.DocDate.split('T')[0] : '');
       setValidUntil(sapDoc.DocDueDate ? sapDoc.DocDueDate.split('T')[0] : '');
