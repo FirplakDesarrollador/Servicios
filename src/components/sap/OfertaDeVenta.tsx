@@ -523,7 +523,17 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
           <div className="bg-[#334155] text-white px-2.5 py-1.5 font-bold flex items-center justify-between border-b border-slate-400">
             <div className="flex items-center gap-1">
               <button className="text-[10px] hover:text-amber-300">◀</button>
-              <span>Oferta de Ventas</span>
+              <span>
+                {mode === 'Invoice'
+                  ? 'Factura de deudores'
+                  : mode === 'Delivery'
+                  ? 'Entrega'
+                  : mode === 'Order'
+                  ? 'Orden de venta'
+                  : mode === 'ProductionOrder'
+                  ? 'Orden de fabricación'
+                  : 'Oferta de ventas'}
+              </span>
               <button className="text-[10px] hover:text-amber-300">▶</button>
             </div>
             <span className="text-[10px] text-slate-300">Campos U.</span>
@@ -989,7 +999,9 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
           {/* SAP Orange Window Title Bar */}
           <div className="bg-gradient-to-r from-[#D97706] to-[#F59E0B] text-white px-3 py-1 font-bold text-xs flex items-center justify-between shadow-sm">
             <span>
-              {mode === 'ProductionOrder' 
+              {mode === 'Invoice'
+                ? 'Factura de deudores'
+                : mode === 'ProductionOrder' 
                 ? 'Orden de fabricación' 
                 : mode === 'Order' 
                 ? 'Orden de venta' 
