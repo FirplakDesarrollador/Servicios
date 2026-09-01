@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState } from './types';
 import Filters from './components/Filters';
-import GeneralMac from './tabs/GeneralMac';
+import GeneralMac, { CanalesVentaCard } from './tabs/GeneralMac';
 import DetalleMac from './tabs/DetalleMac';
 import AgentesMac from './tabs/AgentesMac';
 import { getBusinessDaysDifference, isBusinessDay, addBusinessDays } from './utils/businessDays';
@@ -75,6 +75,67 @@ export default function IndicadoresMacPage() {
             const { data: zonasData } = await supabase.from('zonas').select('id, zona');
             const zonasRef = zonasData || [];
 
+            // Consultar la tabla Productos para obtener la columna exact 'grupo'
+            const { data: productosCatalogData } = await supabase.from('Productos').select('Nombre, sku, grupo');
+            const skuToGrupoMap = new Map<string, string>();
+            const nombreToGrupoMap = new Map<string, string>();
+
+            if (Array.isArray(productosCatalogData)) {
+                productosCatalogData.forEach((prod: any) => {
+                    if (prod.grupo) {
+                        const grupoVal = String(prod.grupo).trim().toUpperCase();
+                        if (prod.sku) skuToGrupoMap.set(String(prod.sku).trim().toLowerCase(), grupoVal);
+                        if (prod.Nombre) nombreToGrupoMap.set(String(prod.Nombre).trim().toLowerCase(), grupoVal);
+                    }
+                });
+            }
+
+            const normalizeGrupo = (g: string): string => {
+                if (!g) return '';
+                let norm = String(g).trim().toUpperCase();
+                if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
+                if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
+                if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
+                if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
+                if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
+                if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
+                if (norm.includes('HIDROPOR')) return 'HIDROPOR';
+                if (norm.includes('MPDIRECT')) return 'MPDIRECT';
+                if (norm.includes('HIDROEMP')) return 'HIDROEMP';
+                return norm;
+            };
+
+            const getGrupoForProduct = (p: any) => {
+                let rawGrupo = p.grupo || p.grupo_producto || p.linea || '';
+                if (rawGrupo) {
+                    const norm = normalizeGrupo(rawGrupo);
+                    if (norm) return norm;
+                }
+
+                const code = String(p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '').trim().toLowerCase();
+                if (code && skuToGrupoMap.has(code)) return normalizeGrupo(skuToGrupoMap.get(code)!);
+
+                const desc = String(p.descripcion || p.nombre || p.Nombre || p.producto || '').trim().toLowerCase();
+                if (desc && nombreToGrupoMap.has(desc)) return normalizeGrupo(nombreToGrupoMap.get(desc)!);
+
+                for (const [nombreKey, grupoVal] of nombreToGrupoMap.entries()) {
+                    if (nombreKey && (desc.includes(nombreKey) || nombreKey.includes(desc))) return normalizeGrupo(grupoVal);
+                }
+
+                const upperDesc = desc.toUpperCase();
+                if (upperDesc.includes('COCINA') || upperDesc.includes('MESON') || upperDesc.includes('LAVAPLATOS') || upperDesc.includes('AGATA') || upperDesc.includes('FORT') || upperDesc.includes('KORE') || upperDesc.includes('ZAREL') || upperDesc.includes('AMBAR') || upperDesc.includes('HACEB') || upperDesc.includes('CUBIERTA')) return 'COCINAS';
+                if (upperDesc.includes('BAÑO') || upperDesc.includes('BANO') || upperDesc.includes('LAVAMANOS') || upperDesc.includes('LVM') || upperDesc.includes('MUEBLE') || upperDesc.includes('MBLE') || upperDesc.includes('OSLO') || upperDesc.includes('SIENA') || upperDesc.includes('KOA') || upperDesc.includes('SODER') || upperDesc.includes('MALI')) return 'BAÑOS';
+                if (upperDesc.includes('HIDROMASAJE') || upperDesc.includes('SPA') || upperDesc.includes('TINA') || upperDesc.includes('PULSADOR') || upperDesc.includes('CATALUÑA') || upperDesc.includes('ISLA')) return 'HIDROMASAJES';
+                if (upperDesc.includes('LAVARROPAS') || upperDesc.includes('ROPAS') || upperDesc.includes('ROPA')) return 'ROPAS';
+                if (upperDesc.includes('HIDROPOR')) return 'HIDROPOR';
+                if (upperDesc.includes('MPDIRECT')) return 'MPDIRECT';
+                if (upperDesc.includes('HIDROEMP')) return 'HIDROEMP';
+                if (upperDesc.includes('REPUESTO') || upperDesc.includes('REPOSICION')) return 'REPUESTOS';
+                if (upperDesc.includes('INFRAESTRUCTURA') || upperDesc.includes('PATA') || upperDesc.includes('PISO')) return 'INFRAESTRUCTURA';
+
+                return 'OTROS';
+            };
+
             // Procesar y enriquecer datos en cliente
             const processed = (registrosData as any[]).map(r => {
                 // REGLA GLOBAL: El estado se define única y exclusivamente por la existencia de la Fecha de Verificación.
@@ -130,7 +191,9 @@ export default function IndicadoresMacPage() {
                 
                 if (Array.isArray(r.productos_compra)) {
                     r.productos_compra.forEach((p: any) => {
+                        p._grupo = getGrupoForProduct(p);
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                        if (p._grupo) _productosNombres.add(p._grupo);
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                     });
@@ -138,7 +201,9 @@ export default function IndicadoresMacPage() {
                 
                 if (Array.isArray(r.productos_novedad)) {
                     r.productos_novedad.forEach((p: any) => {
+                        p._grupo = getGrupoForProduct(p);
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                        if (p._grupo) _productosNombres.add(p._grupo);
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                         let hasProblema = false;
@@ -216,7 +281,18 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('fechaInicial') && filters.fechaInicial && new Date(d.created_at) < new Date(filters.fechaInicial)) return false;
             if (!excludeKeys.includes('fechaFinal') && filters.fechaFinal && new Date(d.created_at) > new Date(new Date(filters.fechaFinal).getTime() + 86400000)) return false;
             if (!excludeKeys.includes('estado') && filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
-            if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0 && !filters.canalVenta.includes(d.canal_venta)) return false;
+            if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0) {
+                const activeFilters = filters.canalVenta.map(f => f.toLowerCase());
+                const dCanal = (d.canal_venta || '').toLowerCase();
+                const match = activeFilters.some(f => 
+                    dCanal === f || dCanal.includes(f) || f.includes(dCanal) ||
+                    (f === 'distribucion' && (dCanal.includes('distribuid') || dCanal.includes('ditribuid'))) ||
+                    (f === 'constructor' && dCanal.includes('construct')) ||
+                    (f === 'exportaciones' && dCanal.includes('export')) ||
+                    (f === 'canal_propio' && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce')))
+                );
+                if (!match) return false;
+            }
             if (!excludeKeys.includes('tipoSolicitud') && filters.tipoSolicitud.length > 0 && !filters.tipoSolicitud.includes(d.tipo_solicitud)) return false;
             if (!excludeKeys.includes('agenteMac') && filters.agenteMac.length > 0 && !filters.agenteMac.includes(d._agenteNombre || '')) return false;
             
@@ -243,6 +319,7 @@ export default function IndicadoresMacPage() {
     const dataForProductos = useMemo(() => getFilteredData(['productos']), [data, filters]);
     const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [data, filters]);
     const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [data, filters]);
+    const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [data, filters]);
 
     const handleFilterToggle = (key: keyof FilterState, value: string, e?: any) => {
         setFilters(prev => {
@@ -436,7 +513,7 @@ export default function IndicadoresMacPage() {
             </header>
             
             {/* Breadcrumb de Filtros Activos y Limpiar */}
-            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0) && (
+            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0 || filters.canalVenta.length > 0) && (
                 <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
                     <div className="flex flex-wrap items-center gap-2 flex-1">
                         <span className="text-xs font-bold text-gray-500 mr-2 flex items-center gap-1"><ListFilterIcon className="w-3.5 h-3.5" />Filtros cruzados:</span>
@@ -467,7 +544,7 @@ export default function IndicadoresMacPage() {
                         </button>
                         <button 
                             onClick={() => setFilters(prev => ({
-                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: []
+                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: []
                             }))} 
                             className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
                         >
@@ -477,11 +554,20 @@ export default function IndicadoresMacPage() {
                 </div>
             )}
 
-            <main className="flex-1 p-6 overflow-auto">
+            <main className="flex-1 p-6 overflow-auto space-y-4">
                 <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} />
+
+                {activeTab === 0 && (
+                    <CanalesVentaCard 
+                        data={filteredData} 
+                        dataForCanalVenta={dataForCanalVenta} 
+                        filters={filters} 
+                        onFilterToggle={handleFilterToggle} 
+                    />
+                )}
                 
                 <div className="mt-4 transition-opacity duration-300">
-                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
+                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} dataForCanalVenta={dataForCanalVenta} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
                     {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                     {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                 </div>

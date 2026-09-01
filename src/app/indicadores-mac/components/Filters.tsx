@@ -9,14 +9,6 @@ interface FiltersProps {
 }
 
 export default function Filters({ filters, setFilters, data, activeTab }: FiltersProps) {
-    // Opciones estáticas para los canales para que siempre aparezcan todos
-    const opcionesCanal = useMemo(() => [
-        'Canal Distribuidor',
-        'Canal Exportador',
-        'Canal Constructor',
-        'Canal Propio Firplakhome',
-        'Canal Propio eCommerce'
-    ], []);
     const opcionesTipo = useMemo(() => [
         'Garantía',
         'Documento Sagrilaft',
@@ -79,18 +71,6 @@ export default function Filters({ filters, setFilters, data, activeTab }: Filter
                     <option value="">Todos</option>
                     <option value="Abierto">Abierto</option>
                     <option value="Cerrado">Cerrado</option>
-                </select>
-            </div>
-
-            <div className="flex-1 min-w-[150px]">
-                <label className={labelClass}>Canal de Venta</label>
-                <select 
-                    className={selectClass}
-                    value={filters.canalVenta.length === 0 ? '' : filters.canalVenta[0] || ''}
-                    onChange={(e) => handleFilterChange('canalVenta', e.target.value ? [e.target.value] : [])}
-                >
-                    <option value="">Todos</option>
-                    {opcionesCanal.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
             </div>
 
