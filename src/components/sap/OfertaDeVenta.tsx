@@ -117,6 +117,8 @@ export default function OfertaDeVenta() {
   const [statusType, setStatusType] = useState<'info' | 'success' | 'error'>('info');
 
   // Load live SAP Business Partners & Items background cache
+  const [costCentersList, setCostCentersList] = useState<Array<{ code: string; name: string }>>([]);
+
   useEffect(() => {
     const loadSapData = async () => {
       try {
@@ -138,6 +140,15 @@ export default function OfertaDeVenta() {
             itemCode: it.ItemCode,
             description: it.ItemName || 'Artículo SAP',
             price: it.ItemPrices?.[0]?.Price || 0
+          })));
+        }
+
+        const ccRes = await fetch('/api/sap/cost-centers');
+        const ccData = await ccRes.json();
+        if (ccData.success && ccData.costCenters?.length > 0) {
+          setCostCentersList(ccData.costCenters.map((cc: any) => ({
+            code: cc.code,
+            name: cc.name
           })));
         }
       } catch (err) {
@@ -932,15 +943,20 @@ export default function OfertaDeVenta() {
                             />
                           </td>
 
-                          {/* Costing Code (Centro de costos) */}
+                          {/* Costing Code (Centro de costos - Real SAP DistributionRules) */}
                           <td className="p-0 border-r border-slate-200">
-                            <input 
-                              type="text"
+                            <select 
                               value={row.costingCode || ''}
                               onChange={e => handleRowChange(row.id, 'costingCode', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-700 font-medium"
-                              placeholder=""
-                            />
+                              className="w-full px-1 py-1 bg-transparent text-center outline-none text-slate-700 font-semibold text-[10px]"
+                            >
+                              <option value="">-- Sin asignar --</option>
+                              {costCentersList.map((cc) => (
+                                <option key={cc.code} value={cc.code}>
+                                  {cc.code} - {cc.name}
+                                </option>
+                              ))}
+                            </select>
                           </td>
 
                           {/* Empleado de ventas (Sales Employee) */}
