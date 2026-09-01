@@ -32,10 +32,19 @@ export interface GridRow {
   id: string;
   itemCode: string;
   description: string;
+  barCode?: string;
   quantity: number;
+  unitMsr?: string;
   price: number;
   discount: number;
+  taxCode?: string;
   total: number;
+  whsCode?: string;
+  inStock?: number;
+  shipDate?: string;
+  costingCode?: string;
+  projectCode?: string;
+  lineStatus?: string;
 }
 
 export default function OfertaDeVenta() {
@@ -195,10 +204,19 @@ export default function OfertaDeVenta() {
           id: String(idx + 1),
           itemCode: line.ItemCode || '',
           description: line.ItemDescription || line.ItemName || '',
+          barCode: line.BarCode || 'N/A',
           quantity: line.Quantity || 1,
+          unitMsr: line.MeasureUnit || line.SalUnitMsr || 'UND',
           price: line.UnitPrice || 0,
           discount: line.DiscountPercent || 0,
-          total: line.LineTotal || (line.Quantity * line.UnitPrice)
+          taxCode: line.TaxCode || 'IVA 19%',
+          total: line.LineTotal || (line.Quantity * line.UnitPrice),
+          whsCode: line.WarehouseCode || 'PT-01',
+          inStock: line.InStock || 10,
+          shipDate: line.ShipDate ? line.ShipDate.split('T')[0] : (sapDoc.DocDueDate ? sapDoc.DocDueDate.split('T')[0] : ''),
+          costingCode: line.CostingCode || 'CC-NA',
+          projectCode: line.ProjectCode || 'PRJ-FIR',
+          lineStatus: line.LineStatus === 'bost_Open' || line.LineStatus === 'O' ? 'Abierto' : 'Cerrado'
         }));
 
         // Add 1 empty row at the end
@@ -206,15 +224,24 @@ export default function OfertaDeVenta() {
           id: String(mappedLines.length + 1),
           itemCode: '',
           description: '',
+          barCode: '',
           quantity: 1,
+          unitMsr: 'UND',
           price: 0,
           discount: 0,
-          total: 0
+          taxCode: 'IVA 19%',
+          total: 0,
+          whsCode: 'PT-01',
+          inStock: 0,
+          shipDate: '',
+          costingCode: '',
+          projectCode: '',
+          lineStatus: 'Abierto'
         });
 
         setRows(mappedLines);
       } else {
-        setRows([{ id: '1', itemCode: '', description: '', quantity: 1, price: 0, discount: 0, total: 0 }]);
+        setRows([{ id: '1', itemCode: '', description: '', barCode: '', quantity: 1, unitMsr: 'UND', price: 0, discount: 0, taxCode: 'IVA 19%', total: 0, whsCode: 'PT-01', inStock: 0, shipDate: '', costingCode: '', projectCode: '', lineStatus: 'Abierto' }]);
       }
 
       setHeaderDiscountPct(sapDoc.DiscountPercent || 0);
@@ -766,22 +793,31 @@ export default function OfertaDeVenta() {
                   </div>
                 </div>
 
-                {/* Data Grid Table Container */}
-                <div className="flex-1 border border-slate-300 rounded overflow-x-auto relative min-h-[220px]">
-                  <table className="w-full text-left border-collapse text-[11px]">
+                {/* Data Grid Table Container (Wide Horizontal Scrollbar) */}
+                <div className="flex-1 border border-slate-300 rounded overflow-x-auto relative min-h-[280px] shadow-inner bg-slate-50">
+                  <table className="min-w-[2100px] w-full text-left border-collapse text-[11px]">
                     <thead>
                       <tr className="bg-[#CBD5E1] text-slate-700 font-bold border-b border-slate-300 sticky top-0 z-10">
                         <th className="p-1.5 w-8 text-center border-r border-slate-300">#</th>
-                        <th className="p-1.5 w-44 border-r border-slate-300">Número de artículo</th>
-                        <th className="p-1.5 border-r border-slate-300">Descripción del artículo</th>
+                        <th className="p-1.5 w-48 border-r border-slate-300">Número de artículo</th>
+                        <th className="p-1.5 min-w-[320px] border-r border-slate-300">Descripción del artículo</th>
+                        <th className="p-1.5 w-36 border-r border-slate-300">Código de barra</th>
                         <th className="p-1.5 w-20 text-right border-r border-slate-300">Cantidad</th>
+                        <th className="p-1.5 w-24 text-center border-r border-slate-300">Unidad de medida</th>
                         <th className="p-1.5 w-32 text-right border-r border-slate-300">Precio por unidad</th>
                         <th className="p-1.5 w-24 text-right border-r border-slate-300">% de descuento</th>
+                        <th className="p-1.5 w-28 text-center border-r border-slate-300">Indicador de impuesto</th>
                         <th className="p-1.5 w-36 text-right border-r border-slate-300">Total (ML)</th>
+                        <th className="p-1.5 w-24 text-center border-r border-slate-300">Almacén</th>
+                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Stock disponible</th>
+                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Fecha de entrega</th>
+                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Centro de Costo</th>
+                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Proyecto SAP</th>
+                        <th className="p-1.5 w-24 text-center border-r border-slate-300">Estado de Línea</th>
                         <th className="p-1.5 w-8 text-center"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody className="divide-y divide-slate-200 bg-white">
                       {rows.map((row, idx) => (
                         <tr key={row.id} className="hover:bg-amber-50/50 group transition-colors">
                           {/* Row Number */}
@@ -804,7 +840,7 @@ export default function OfertaDeVenta() {
                                   setActiveRowIdForSearch(row.id);
                                   setIsItemModalOpen(true);
                                 }}
-                                className="p-1 text-slate-400 hover:text-amber-600"
+                                className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
                                 title="Buscar artículo SAP B1"
                               >
                                 <Search className="w-3 h-3" />
@@ -823,6 +859,17 @@ export default function OfertaDeVenta() {
                             />
                           </td>
 
+                          {/* BarCode */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input 
+                              type="text"
+                              value={row.barCode || ''}
+                              onChange={e => handleRowChange(row.id, 'barCode', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-transparent outline-none text-slate-500 text-center"
+                              placeholder="Código de barra"
+                            />
+                          </td>
+
                           {/* Quantity */}
                           <td className="p-0 border-r border-slate-200">
                             <input 
@@ -831,6 +878,16 @@ export default function OfertaDeVenta() {
                               value={row.quantity}
                               onChange={e => handleRowChange(row.id, 'quantity', e.target.value)}
                               className="w-full px-1.5 py-1 bg-transparent text-right font-medium outline-none focus:bg-amber-50"
+                            />
+                          </td>
+
+                          {/* Unit Measure */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input 
+                              type="text"
+                              value={row.unitMsr || 'UND'}
+                              onChange={e => handleRowChange(row.id, 'unitMsr', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
                             />
                           </td>
 
@@ -855,19 +912,85 @@ export default function OfertaDeVenta() {
                             />
                           </td>
 
+                          {/* Tax Code */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input 
+                              type="text"
+                              value={row.taxCode || 'IVA 19%'}
+                              onChange={e => handleRowChange(row.id, 'taxCode', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
+                            />
+                          </td>
+
                           {/* Total */}
                           <td className="p-1.5 text-right font-bold text-slate-800 bg-slate-50/50 border-r border-slate-200">
                             {formatMoney(row.total)}
+                          </td>
+
+                          {/* Warehouse Code */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input 
+                              type="text"
+                              value={row.whsCode || 'PT-01'}
+                              onChange={e => handleRowChange(row.id, 'whsCode', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-700 font-semibold"
+                            />
+                          </td>
+
+                          {/* In Stock */}
+                          <td className="p-1.5 text-right text-slate-600 font-medium border-r border-slate-200 bg-slate-50/30">
+                            {row.inStock || 0}
+                          </td>
+
+                          {/* Delivery Date */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input 
+                              type="date"
+                              value={row.shipDate || ''}
+                              onChange={e => handleRowChange(row.id, 'shipDate', e.target.value)}
+                              className="w-full px-1 py-1 bg-transparent text-center outline-none text-[10px]"
+                            />
+                          </td>
+
+                          {/* Costing Code */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input 
+                              type="text"
+                              value={row.costingCode || ''}
+                              onChange={e => handleRowChange(row.id, 'costingCode', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
+                              placeholder="Centro costo"
+                            />
+                          </td>
+
+                          {/* Project Code */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input 
+                              type="text"
+                              value={row.projectCode || ''}
+                              onChange={e => handleRowChange(row.id, 'projectCode', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
+                              placeholder="Proyecto"
+                            />
+                          </td>
+
+                          {/* Line Status */}
+                          <td className="p-1.5 text-center font-semibold text-slate-600 border-r border-slate-200">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              row.lineStatus === 'Abierto' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {row.lineStatus || 'Abierto'}
+                            </span>
                           </td>
 
                           {/* Delete Action */}
                           <td className="p-1 text-center">
                             <button 
                               onClick={() => handleRemoveRow(row.id)}
-                              className="text-slate-300 hover:text-rose-600 transition-colors"
+                              className="text-slate-300 hover:text-rose-600 transition-colors cursor-pointer"
                               title="Eliminar fila"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </td>
                         </tr>
