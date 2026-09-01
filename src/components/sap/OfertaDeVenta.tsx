@@ -1608,84 +1608,197 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
         </div>
       )}
 
-      {/* ── Modal: Mapa de Relaciones SAP ────────────────────────────────────── */}
+      {/* ── Modal: Mapa de Relaciones SAP (Nativo 1-a-1 SAP B1) ────────────────────── */}
       {isMapaRelacionesModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-4 py-2 font-bold text-xs flex justify-between items-center shadow-sm">
-              <span className="flex items-center gap-2">
-                <span>🌿</span> Mapa de relaciones - Documento SAP B1 Nº {docNum || 'Consultado'}
-              </span>
-              <button onClick={() => setIsMapaRelacionesModalOpen(false)} className="hover:text-blue-200 text-sm">✕</button>
-            </div>
-
-            <div className="p-3 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-slate-600 font-semibold">
-                <span>Vista de árbol de documentos vinculados</span>
-              </div>
+          <div className="bg-[#E2E8F0] rounded shadow-2xl border border-slate-400 w-full max-w-5xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[92vh]">
+            
+            {/* Title Bar */}
+            <div className="bg-gradient-to-r from-[#475569] to-[#334155] text-white px-3 py-1.5 font-bold text-xs flex justify-between items-center shadow-sm">
+              <span>Mapa de relaciones</span>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-bold">● Válido / Confirmado</span>
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 border border-blue-300 rounded text-[10px] font-bold">● En Proceso</span>
+                <span className="cursor-pointer hover:opacity-100 opacity-80">_</span>
+                <span className="cursor-pointer hover:opacity-100 opacity-80">□</span>
+                <button onClick={() => setIsMapaRelacionesModalOpen(false)} className="hover:text-amber-300 font-bold ml-1">✕</button>
               </div>
             </div>
 
-            {/* Visual Relationship Diagram */}
-            <div className="p-6 bg-slate-50 flex-1 overflow-auto flex items-center justify-center min-h-[360px]">
-              <div className="flex items-center gap-4 max-w-full">
-                
-                {/* Card 1: Cliente / BP */}
-                <div className="w-48 bg-white border-2 border-slate-300 rounded-xl p-3 shadow-md flex flex-col items-center text-center">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2">👤</div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cliente (OCRD)</span>
-                  <h5 className="font-bold text-xs text-slate-800 mt-1 line-clamp-1">{cardCode || 'C890900123'}</h5>
-                  <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5">{cardName || 'Cliente SAP'}</p>
+            {/* Main Graph View Canvas */}
+            <div className="p-6 bg-white flex-1 overflow-auto relative min-h-[440px] text-[11px] font-sans">
+              
+              {/* Top Left: Socios de negocios Card */}
+              <div className="absolute top-4 left-4 w-44 border border-slate-400 rounded-sm bg-white shadow-md z-10">
+                <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
+                  <span>Socios de negocios</span>
                 </div>
-
-                <div className="text-slate-400 font-bold text-lg">➔</div>
-
-                {/* Card 2: Oferta de Ventas */}
-                <div className="w-52 bg-amber-50 border-2 border-amber-500 rounded-xl p-3 shadow-lg flex flex-col items-center text-center relative">
-                  <span className="absolute -top-2.5 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Documento Actual</span>
-                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg mb-2 mt-1">📋</div>
-                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Oferta de Ventas</span>
-                  <h5 className="font-black text-sm text-slate-900 mt-0.5">Nº {docNum || '5800'}</h5>
-                  <p className="text-[10px] text-slate-600 mt-1 font-semibold">Fecha: {postingDate || 'Fecha SAP'}</p>
-                  <p className="text-xs font-extrabold text-amber-900 mt-1">{formatMoney(subtotalRows)}</p>
-                  <span className="mt-2 px-2 py-0.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full">{docStatus || 'Confirmada'}</span>
+                <div className="p-2 space-y-0.5 text-[10px] text-slate-800">
+                  <p className="font-bold">{cardCode || 'CN280239-01'}</p>
+                  <p className="truncate text-slate-600">{cardName || 'MARCELINO DE FREITA...'}</p>
                 </div>
+              </div>
 
-                <div className="text-slate-400 font-bold text-lg">➔</div>
+              {/* Tree Flow Container */}
+              <div className="pt-16 pb-4 flex items-center justify-center min-w-[800px]">
+                <div className="grid grid-cols-4 gap-12 items-center relative w-full px-8">
+                  
+                  {/* SVG Connecting Arrows overlay */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
+                    <defs>
+                      <marker id="sap-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
+                      </marker>
+                    </defs>
+                    
+                    {/* Arrow from Oferta to Orden */}
+                    <line x1="22%" y1="50%" x2="33%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                    
+                    {/* Arrow from Orden to Entrega */}
+                    <line x1="47%" y1="50%" x2="58%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                    
+                    {/* Arrow from Entrega to Factura 1 (Top) */}
+                    <line x1="72%" y1="45%" x2="83%" y2="25%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                    
+                    {/* Arrow from Entrega to Factura 2 (Bottom) */}
+                    <line x1="72%" y1="55%" x2="83%" y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                  </svg>
 
-                {/* Card 3: Orden de Venta */}
-                <div className="w-52 bg-white border-2 border-emerald-400 rounded-xl p-3 shadow-md flex flex-col items-center text-center">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg mb-2">📦</div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Orden de Venta</span>
-                  <h5 className="font-bold text-xs text-slate-800 mt-1">Nº {ordenVenta || docNum || '5800'}</h5>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Tipo: {tipoPedido || 'Normal'}</p>
-                  <span className="mt-2 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded">{estadoOfertaVenta || 'Confirmada'}</span>
+                  {/* Column 1: Oferta de ventas */}
+                  <div className="z-10 flex flex-col items-center">
+                    <div className={`w-44 border border-slate-400 rounded-sm bg-white shadow-md relative ${
+                      mode === 'Quotation' ? 'ring-4 ring-amber-400/50 border-amber-500' : ''
+                    }`}>
+                      <div className={`${mode === 'Quotation' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
+                        <span>Oferta de ventas</span>
+                        <span className="text-[10px]" title="Cerrado/Bloqueado">🔒</span>
+                      </div>
+                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">{mode === 'Quotation' ? (docNum || '5796') : '5796'}</p>
+                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '28/08/2026'}</p>
+                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
+                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 596735.32)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 2: Orden de venta */}
+                  <div className="z-10 flex flex-col items-center">
+                    <div className={`w-44 border-2 rounded-sm bg-white shadow-xl relative ${
+                      mode === 'Order' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-amber-400'
+                    }`}>
+                      <div className="bg-[#F0C050] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-amber-300 flex items-center justify-between">
+                        <span>Orden de venta</span>
+                        <span className="text-[10px]" title="Bloqueado">🔒</span>
+                      </div>
+                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right bg-amber-50/20">
+                        <p className="font-bold text-slate-900">{ordenVenta || (mode === 'Order' ? docNum : '162564')}</p>
+                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '31/08/2026'}</p>
+                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
+                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 588464.62)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 3: Entrega */}
+                  <div className="z-10 flex flex-col items-center">
+                    <div className="w-44 border border-slate-400 rounded-sm bg-white shadow-md relative">
+                      <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
+                        <span>Entrega</span>
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span>🖨️</span>
+                          <span>🔒</span>
+                        </div>
+                      </div>
+                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">91285</p>
+                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '31/08/2026'}</p>
+                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
+                        <p className="font-bold text-slate-900">$ {formatMoney((subtotalRows * 1.19) * 0.96 || 563465.10)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 4: Factura de deudores Stacked */}
+                  <div className="z-10 flex flex-col gap-8 items-center">
+                    
+                    {/* Factura 1 */}
+                    <div className="w-44 border border-slate-400 rounded-sm bg-white shadow-md relative overflow-hidden">
+                      <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
+                        <span>Factura de deudores</span>
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span>🔑</span>
+                          <span>🔒</span>
+                        </div>
+                      </div>
+                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">156840</p>
+                        <p className="text-[10px] text-slate-600">31/08/2026</p>
+                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
+                        <p className="font-bold text-slate-900">$ 24,999.52</p>
+                      </div>
+                      <div className="h-1.5 bg-[#F0C050] w-full"></div>
+                    </div>
+
+                    {/* Factura 2 */}
+                    <div className="w-44 border border-slate-400 rounded-sm bg-white shadow-md relative overflow-hidden">
+                      <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
+                        <span>Factura de deudores</span>
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span>🔑</span>
+                          <span>🔒</span>
+                        </div>
+                      </div>
+                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">156839</p>
+                        <p className="text-[10px] text-slate-600">31/08/2026</p>
+                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
+                        <p className="font-bold text-slate-900">$ 571,735.80</p>
+                      </div>
+                      <div className="h-1.5 bg-[#F0C050] w-full"></div>
+                    </div>
+
+                  </div>
+
                 </div>
+              </div>
 
-                <div className="text-slate-400 font-bold text-lg">➔</div>
+            </div>
 
-                {/* Card 4: Despacho / Logística */}
-                <div className="w-48 bg-white border-2 border-slate-200 rounded-xl p-3 shadow-sm flex flex-col items-center text-center opacity-90">
-                  <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg mb-2">🚚</div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Despacho</span>
-                  <h5 className="font-bold text-xs text-slate-700 mt-1">{bloqueadoDespacho || 'No Bloqueado'}</h5>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Logística Firplak</p>
-                </div>
+            {/* SAP Bottom Control Bar */}
+            <div className="p-2 bg-[#F1F5F9] border-t border-slate-300 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-3">
+                <select className="bg-white border border-slate-300 rounded px-2 py-0.5 outline-none font-medium text-slate-700 text-xs">
+                  <option>Documento de marketing: árbol de documentos</option>
+                  <option>Detalles de cuenta</option>
+                  <option>Documentos de referencia</option>
+                </select>
+                <label className="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                  <input type="checkbox" className="rounded text-brand" />
+                  <span>Documentos de referencia</span>
+                </label>
+              </div>
 
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsMapaRelacionesModalOpen(false)}
+                  className="px-6 py-1 bg-[#F0C050] hover:bg-amber-400 text-slate-900 font-bold rounded border border-amber-600 shadow-xs"
+                >
+                  OK
+                </button>
+                <button 
+                  disabled 
+                  className="px-4 py-1 bg-slate-200 text-slate-400 font-semibold rounded border border-slate-300 cursor-not-allowed"
+                >
+                  Volver
+                </button>
+                <button 
+                  disabled 
+                  className="px-4 py-1 bg-slate-200 text-slate-400 font-semibold rounded border border-slate-300 cursor-not-allowed"
+                >
+                  Ir adelante
+                </button>
               </div>
             </div>
 
-            <div className="p-3 bg-slate-100 border-t border-slate-200 flex justify-end text-xs">
-              <button 
-                onClick={() => setIsMapaRelacionesModalOpen(false)}
-                className="px-5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded shadow-xs"
-              >
-                Cerrar Mapa
-              </button>
-            </div>
           </div>
         </div>
       )}
