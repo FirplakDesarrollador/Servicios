@@ -2072,8 +2072,8 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
 
               {/* Tree Flow Container */}
-              <div className="pt-16 pb-4 flex items-center justify-center min-w-[800px]">
-                <div className="grid grid-cols-4 gap-12 items-center relative w-full px-8">
+              <div className="pt-16 pb-4 flex items-center justify-center min-w-[960px]">
+                <div className="grid grid-cols-5 gap-6 items-center relative w-full px-4">
                   
                   {/* SVG Connecting Arrows overlay */}
                   <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
@@ -2083,113 +2083,110 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                       </marker>
                     </defs>
                     
-                    {/* Arrow from Oferta to Orden */}
-                    <line x1="22%" y1="50%" x2="33%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                    {/* Arrow 1: Oferta -> Orden de Fabricacion */}
+                    <line x1="18%" y1="50%" x2="23%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
                     
-                    {/* Arrow from Orden to Entrega */}
-                    <line x1="47%" y1="50%" x2="58%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                    {/* Arrow 2: Orden de Fabricación <-> Orden de Venta */}
+                    <line x1="38%" y1="50%" x2="43%" y2="50%" stroke="#EAB308" strokeWidth="2.5" markerEnd="url(#sap-arrow)" />
                     
-                    {/* Arrow from Entrega to Factura 1 (Top) */}
-                    <line x1="72%" y1="45%" x2="83%" y2="25%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                    {/* Arrow 3: Orden de Venta -> Entrega */}
+                    <line x1="58%" y1="50%" x2="63%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
                     
-                    {/* Arrow from Entrega to Factura 2 (Bottom) */}
-                    <line x1="72%" y1="55%" x2="83%" y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                    {/* Arrow 4: Entrega -> Factura */}
+                    <line x1="78%" y1="50%" x2="83%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
                   </svg>
 
                   {/* Column 1: Oferta de ventas */}
                   <div className="z-10 flex flex-col items-center">
-                    <div className={`w-44 border border-slate-400 rounded-sm bg-white shadow-md relative ${
-                      mode === 'Quotation' ? 'ring-4 ring-amber-400/50 border-amber-500' : ''
+                    <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
+                      mode === 'Quotation' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
                     }`}>
                       <div className={`${mode === 'Quotation' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
                         <span>Oferta de ventas</span>
-                        <span className="text-[10px]" title="Cerrado/Bloqueado">🔒</span>
+                        <span className="text-[10px]" title="Cerrado">🔒</span>
                       </div>
-                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">{mode === 'Quotation' ? (docNum || '5796') : '5796'}</p>
+                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">{mode === 'Quotation' ? (docNum || '5795') : '5795'}</p>
                         <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '28/08/2026'}</p>
-                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
-                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 596735.32)}</p>
+                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4370250.90)}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Column 2: Orden de venta */}
+                  {/* Column 2: Orden de fabricación */}
                   <div className="z-10 flex flex-col items-center">
-                    <div className={`w-44 border-2 rounded-sm bg-white shadow-xl relative ${
+                    <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
+                      mode === 'ProductionOrder' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                    }`}>
+                      <div className={`${mode === 'ProductionOrder' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
+                        <span>Orden de fabricación</span>
+                      </div>
+                      <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">10073750</p>
+                        <p className="text-[9px] text-slate-600 truncate">{rows[0]?.itemCode || 'VBAN05-0051-000-0439'}</p>
+                        <p className="text-[9px] text-slate-600">Estándar</p>
+                        <p className="text-[9px] text-slate-600">Planif.</p>
+                        <p className="text-[9px] text-slate-500">07/09/2026</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 3: Orden de venta (ACTIVE Node Highlight) */}
+                  <div className="z-10 flex flex-col items-center">
+                    <div className={`w-40 border-2 rounded-sm bg-white shadow-xl relative ${
                       mode === 'Order' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-amber-400'
                     }`}>
                       <div className="bg-[#F0C050] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-amber-300 flex items-center justify-between">
                         <span>Orden de venta</span>
-                        <span className="text-[10px]" title="Bloqueado">🔒</span>
+                        <span className="text-[10px]" title="Cerrado">🔒</span>
                       </div>
-                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right bg-amber-50/20">
-                        <p className="font-bold text-slate-900">{ordenVenta || (mode === 'Order' ? docNum : '162564')}</p>
-                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '31/08/2026'}</p>
-                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
-                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 588464.62)}</p>
+                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right bg-amber-50/20">
+                        <p className="font-bold text-slate-900">{mode === 'Order' ? (docNum || '162516') : '162516'}</p>
+                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '29/08/2026'}</p>
+                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4382656.95)}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Column 3: Entrega */}
+                  {/* Column 4: Entrega */}
                   <div className="z-10 flex flex-col items-center">
-                    <div className="w-44 border border-slate-400 rounded-sm bg-white shadow-md relative">
-                      <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
+                    <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
+                      mode === 'Delivery' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                    }`}>
+                      <div className={`${mode === 'Delivery' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
                         <span>Entrega</span>
-                        <div className="flex items-center gap-1 text-[10px]">
+                        <div className="flex items-center gap-1 text-[9px]">
                           <span>🖨️</span>
                           <span>🔒</span>
                         </div>
                       </div>
-                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">91285</p>
+                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">{mode === 'Delivery' ? (docNum || '91279') : '91279'}</p>
                         <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '31/08/2026'}</p>
-                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
-                        <p className="font-bold text-slate-900">$ {formatMoney((subtotalRows * 1.19) * 0.96 || 563465.10)}</p>
+                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4382656.95)}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Column 4: Factura de deudores Stacked */}
-                  <div className="z-10 flex flex-col gap-8 items-center">
-                    
-                    {/* Factura 1 */}
-                    <div className="w-44 border border-slate-400 rounded-sm bg-white shadow-md relative overflow-hidden">
-                      <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
+                  {/* Column 5: Factura de deudores */}
+                  <div className="z-10 flex flex-col items-center">
+                    <div className={`w-40 border rounded-sm bg-white shadow-md relative overflow-hidden ${
+                      mode === 'Invoice' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                    }`}>
+                      <div className={`${mode === 'Invoice' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
                         <span>Factura de deudores</span>
-                        <div className="flex items-center gap-1 text-[10px]">
-                          <span>🔑</span>
+                        <div className="flex items-center gap-1 text-[9px]">
+                          <span>💰</span>
                           <span>🔒</span>
                         </div>
                       </div>
-                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">156840</p>
-                        <p className="text-[10px] text-slate-600">31/08/2026</p>
-                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
-                        <p className="font-bold text-slate-900">$ 24,999.52</p>
+                      <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
+                        <p className="font-bold text-slate-900">{mode === 'Invoice' ? (docNum || '156832') : '156832'}</p>
+                        <p className="text-[10px] text-slate-600">{postingDate ? postingDate.split('-').reverse().join('/') : '31/08/2026'}</p>
+                        <p className="font-bold text-slate-900">$ {formatMoney(subtotalRows * 1.19 || 4382656.95)}</p>
                       </div>
                       <div className="h-1.5 bg-[#F0C050] w-full"></div>
                     </div>
-
-                    {/* Factura 2 */}
-                    <div className="w-44 border border-slate-400 rounded-sm bg-white shadow-md relative overflow-hidden">
-                      <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
-                        <span>Factura de deudores</span>
-                        <div className="flex items-center gap-1 text-[10px]">
-                          <span>🔑</span>
-                          <span>🔒</span>
-                        </div>
-                      </div>
-                      <div className="p-2 space-y-1 text-[11px] text-slate-800 text-right">
-                        <p className="font-bold text-slate-900">156839</p>
-                        <p className="text-[10px] text-slate-600">31/08/2026</p>
-                        <p className="text-[10px] text-slate-600">{refNumber || '81213'}</p>
-                        <p className="font-bold text-slate-900">$ 571,735.80</p>
-                      </div>
-                      <div className="h-1.5 bg-[#F0C050] w-full"></div>
-                    </div>
-
                   </div>
 
                 </div>
