@@ -39,21 +39,21 @@ export interface GridRow {
 }
 
 export default function OfertaDeVenta() {
-  // ── Form State ─────────────────────────────────────────────────────────────
+  // ── Form State (Initially EMPTY for Consultation) ─────────────────────────────
   // Header Left
-  const [cardCode, setCardCode] = useState('C900123456');
-  const [cardName, setCardName] = useState('ARQUITECTURA & DISEÑO URBAN S.A.S.');
-  const [contactPerson, setContactPerson] = useState('Mayerly Marín');
-  const [refNumber, setRefNumber] = useState('COT-2026-089');
+  const [cardCode, setCardCode] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [refNumber, setRefNumber] = useState('');
   const [currency, setCurrency] = useState('COP');
 
   // Header Right
   const [docSeries, setDocSeries] = useState('Cot-Nal');
-  const [docNum, setDocNum] = useState('5887');
-  const [docStatus, setDocStatus] = useState('Abiertos');
-  const [postingDate, setPostingDate] = useState('2026-09-01');
-  const [validUntil, setValidUntil] = useState('2026-10-01');
-  const [docDate, setDocDate] = useState('2026-09-01');
+  const [docNum, setDocNum] = useState('');
+  const [docStatus, setDocStatus] = useState('');
+  const [postingDate, setPostingDate] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+  const [docDate, setDocDate] = useState('');
 
   // User Fields Left Sidebar State
   const [segmentoPedido, setSegmentoPedido] = useState('Nacional');
@@ -74,40 +74,22 @@ export default function OfertaDeVenta() {
   const [itemClass, setItemClass] = useState('Artículo');
   const [summaryClass, setSummaryClass] = useState('Sin resumen');
 
-  // Table Grid Rows
+  // Table Grid Rows (Empty row initially)
   const [rows, setRows] = useState<GridRow[]>([
     {
       id: '1',
-      itemCode: 'BAÑ-FIR-001',
-      description: 'Bañera Hidromasaje Firplak 160x80cm - Blanco',
-      quantity: 2,
-      price: 2450000,
-      discount: 5.0,
-      total: 4655000
-    },
-    {
-      id: '2',
-      itemCode: 'LAV-MOD-002',
-      description: 'Lavamanos Módula Firplak 60cm Sobreponer',
-      quantity: 4,
-      price: 420000,
-      discount: 0.0,
-      total: 1680000
-    },
-    {
-      id: '3',
       itemCode: '',
       description: '',
       quantity: 1,
       price: 0,
-      discount: 0.0,
+      discount: 0,
       total: 0
     }
   ]);
 
   // Footer Fields
-  const [salesEmployee, setSalesEmployee] = useState('Luis Guillermo Esteban');
-  const [owner, setOwner] = useState('Luis Guillermo Esteban');
+  const [salesEmployee, setSalesEmployee] = useState('');
+  const [owner, setOwner] = useState('');
   const [headerDiscountPct, setHeaderDiscountPct] = useState(0);
   const [additionalExpenses, setAdditionalExpenses] = useState(0);
   const [rounding, setRounding] = useState(false);
@@ -124,55 +106,127 @@ export default function OfertaDeVenta() {
   const [dbCustomers, setDbCustomers] = useState<any[]>(SAMPLE_CUSTOMERS);
 
   // Status message
-  const [statusMessage, setStatusMessage] = useState('● Listo | Formulario de Oferta de Ventas cargado exitosamente desde SAP B1.');
+  const [statusMessage, setStatusMessage] = useState('● Ingrese un número de Orden de Venta u Oferta en el campo lateral y presione Consultar.');
   const [statusType, setStatusType] = useState<'info' | 'success' | 'error'>('info');
 
-  // Load live SAP Business Partners & Items from SAP Service Layer API
+  // Load live SAP Business Partners & Items background cache
   useEffect(() => {
     const loadSapData = async () => {
       try {
-        setStatusMessage('● Conectando a SAP Business One Service Layer (Firplak_SA)...');
-        
-        // Fetch Customers
         const custRes = await fetch('/api/sap/customers');
         const custData = await custRes.json();
         if (custData.success && custData.customers?.length > 0) {
-          const mappedCust = custData.customers.map((bp: any) => ({
+          setDbCustomers(custData.customers.map((bp: any) => ({
             cardCode: bp.CardCode,
             cardName: bp.CardName,
             nit: bp.FederalTaxID || 'N/A',
             contact: bp.ContactPerson || 'Sin contacto'
-          }));
-          setDbCustomers(mappedCust);
-          // Set first SAP customer as default if cardCode is empty or default
-          if (mappedCust[0]) {
-            setCardCode(mappedCust[0].cardCode);
-            setCardName(mappedCust[0].cardName);
-            setContactPerson(mappedCust[0].contact);
-          }
+          })));
         }
 
-        // Fetch Items
         const itemRes = await fetch('/api/sap/items');
         const itemData = await itemRes.json();
         if (itemData.success && itemData.items?.length > 0) {
-          const mappedItems = itemData.items.map((it: any) => ({
+          setDbItems(itemData.items.map((it: any) => ({
             itemCode: it.ItemCode,
             description: it.ItemName || 'Artículo SAP',
-            price: it.ItemPrices?.[0]?.Price || 150000
-          }));
-          setDbItems(mappedItems);
+            price: it.ItemPrices?.[0]?.Price || 0
+          })));
         }
-
-        setStatusMessage('✔ Conectado exitosamente a SAP Business One Service Layer (Firplak_SA).');
-        setStatusType('success');
-      } catch (err: any) {
-        console.error('Error loading SAP data:', err);
-        setStatusMessage('● Formulario cargado (Usando datos de respaldo SAP B1).');
+      } catch (err) {
+        console.error('Error background pre-fetching SAP data:', err);
       }
     };
     loadSapData();
   }, []);
+
+  // ── Search Real SAP Document by Orden de Venta / DocNum ──────────────────────
+  const handleSearchSapDocument = async (queryNum?: string) => {
+    const searchTarget = queryNum || ordenVenta || docNum;
+    if (!searchTarget || searchTarget.trim().length === 0) {
+      setStatusMessage('✖ Ingrese un número de Orden de Venta o Documento para consultar en SAP B1.');
+      setStatusType('error');
+      return;
+    }
+
+    try {
+      setStatusMessage(`● Consultando documento Nº ${searchTarget} en SAP Business One Service Layer...`);
+      setStatusType('info');
+
+      const res = await fetch(`/api/sap/quotations?docNum=${encodeURIComponent(searchTarget.trim())}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.success || !data.document) {
+        setStatusMessage(`✖ No se encontró la Oferta u Orden de Venta Nº ${searchTarget} en SAP Business One.`);
+        setStatusType('error');
+        return;
+      }
+
+      const sapDoc = data.document.data;
+      console.log('SAP Document fetched:', sapDoc);
+
+      // Populate Header
+      setCardCode(sapDoc.CardCode || '');
+      setCardName(sapDoc.CardName || '');
+      setContactPerson(sapDoc.ContactPerson || '');
+      setRefNumber(sapDoc.NumAtCard || '');
+      setCurrency(sapDoc.DocCurrency === '$' ? 'COP' : sapDoc.DocCurrency || 'COP');
+      setDocNum(String(sapDoc.DocNum || searchTarget));
+      setDocStatus(sapDoc.DocStatus === 'bost_Open' || sapDoc.DocStatus === 'O' ? 'Abiertos' : 'Cerrado');
+
+      setPostingDate(sapDoc.DocDate ? sapDoc.DocDate.split('T')[0] : '');
+      setValidUntil(sapDoc.DocDueDate ? sapDoc.DocDueDate.split('T')[0] : '');
+      setDocDate(sapDoc.TaxDate ? sapDoc.TaxDate.split('T')[0] : '');
+
+      // Populate User Fields
+      setSegmentoPedido(sapDoc.U_Segmentacion || 'Nacional');
+      setOrdenVenta(String(sapDoc.U_OrdendeVenta || sapDoc.DocNum || searchTarget));
+      setAnticipoPct(String(sapDoc.U_Anticipo || '0.00'));
+      setAmortizacionFacturaPct(String(sapDoc.U_PorcAmortizacionFa || '0.00'));
+      setAplicacionAnticipo(sapDoc.U_AplicacionAnticipo || 'NO');
+      setPctContenedor(String(sapDoc.U_Porc_contenedor || '0.00'));
+      setBloqueadoDespacho(sapDoc.U_Bloqueado || 'No Bloqueado');
+      setEstadoOfertaVenta(sapDoc.U_Estado_Oferta_Venta === '02' ? 'Aprobado' : 'Pendiente');
+      setValorAnticipo(String(sapDoc.U_VlorAnticipo || '0.00'));
+
+      // Populate Document Lines
+      if (sapDoc.DocumentLines && sapDoc.DocumentLines.length > 0) {
+        const mappedLines: GridRow[] = sapDoc.DocumentLines.map((line: any, idx: number) => ({
+          id: String(idx + 1),
+          itemCode: line.ItemCode || '',
+          description: line.ItemDescription || line.ItemName || '',
+          quantity: line.Quantity || 1,
+          price: line.UnitPrice || 0,
+          discount: line.DiscountPercent || 0,
+          total: line.LineTotal || (line.Quantity * line.UnitPrice)
+        }));
+
+        // Add 1 empty row at the end
+        mappedLines.push({
+          id: String(mappedLines.length + 1),
+          itemCode: '',
+          description: '',
+          quantity: 1,
+          price: 0,
+          discount: 0,
+          total: 0
+        });
+
+        setRows(mappedLines);
+      } else {
+        setRows([{ id: '1', itemCode: '', description: '', quantity: 1, price: 0, discount: 0, total: 0 }]);
+      }
+
+      setHeaderDiscountPct(sapDoc.DiscountPercent || 0);
+
+      setStatusMessage(`✔ Información de ${data.document.documentType === 'Order' ? 'Orden' : 'Oferta'} de Venta Nº ${sapDoc.DocNum} cargada exitosamente desde SAP B1.`);
+      setStatusType('success');
+    } catch (err: any) {
+      console.error('Error fetching SAP doc:', err);
+      setStatusMessage(`✖ Error consultando documento en SAP: ${err.message}`);
+      setStatusType('error');
+    }
+  };
 
   // ── Calculation Helpers ───────────────────────────────────────────────────
   const updateRowCalculations = (rowList: GridRow[]) => {
@@ -344,13 +398,24 @@ export default function OfertaDeVenta() {
             </div>
 
             <div>
-              <label className="text-slate-600 block mb-0.5">Orden de Venta</label>
-              <input 
-                type="text"
-                value={ordenVenta}
-                onChange={e => setOrdenVenta(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
-              />
+              <label className="text-slate-600 block mb-0.5 font-bold">Orden de Venta / Cotización</label>
+              <div className="flex items-center gap-1">
+                <input 
+                  type="text"
+                  placeholder="Ej: 2000001"
+                  value={ordenVenta}
+                  onChange={e => setOrdenVenta(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(); }}
+                  className="w-full bg-[#FFFDE7] border border-amber-400 font-bold rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-amber-500 text-slate-900"
+                />
+                <button 
+                  onClick={() => handleSearchSapDocument()}
+                  className="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded text-[10px] shrink-0 border border-amber-600 cursor-pointer shadow-xs"
+                  title="Consultar Orden u Oferta en SAP B1"
+                >
+                  🔍 Buscar
+                </button>
+              </div>
             </div>
 
             <div>
@@ -572,9 +637,11 @@ export default function OfertaDeVenta() {
                   </select>
                   <input 
                     type="text"
+                    placeholder="DocNum..."
                     value={docNum}
                     onChange={e => setDocNum(e.target.value)}
-                    className="w-24 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right font-semibold text-slate-700"
+                    onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(); }}
+                    className="w-28 bg-[#FFFDE7] border border-amber-300 rounded px-1.5 py-0.5 outline-none text-right font-bold text-slate-800 focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
               </div>

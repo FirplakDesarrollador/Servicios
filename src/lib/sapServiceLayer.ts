@@ -115,6 +115,42 @@ export async function fetchSapItems(searchQuery?: string) {
 }
 
 /**
+ * Fetch a single Quotation (Oferta de Ventas OQUT) or Order (ORDR) by DocNum, DocEntry or Orden de Venta
+ */
+export async function fetchSapQuotationByDocNum(searchNum: string) {
+  const cookie = await getSapSessionCookie();
+  const target = String(searchNum).trim();
+
+  // 1. Try Quotations (OQUT)
+  const qRes = await fetch(`${SAP_BASE_URL}/Quotations`, { headers: { 'Cookie': cookie } });
+  if (qRes.ok) {
+    const qData = await qRes.json();
+    const foundQ = qData.value?.find((q: any) => 
+      String(q.DocNum) === target || 
+      String(q.DocEntry) === target || 
+      String(q.U_OrdendeVenta || '') === target ||
+      String(q.U_NumPedidoSal || '') === target
+    );
+    if (foundQ) return { documentType: 'Quotation', data: foundQ };
+  }
+
+  // 2. Try Orders (ORDR)
+  const oRes = await fetch(`${SAP_BASE_URL}/Orders`, { headers: { 'Cookie': cookie } });
+  if (oRes.ok) {
+    const oData = await oRes.json();
+    const foundO = oData.value?.find((o: any) => 
+      String(o.DocNum) === target || 
+      String(o.DocEntry) === target || 
+      String(o.U_OrdendeVenta || '') === target ||
+      String(o.U_NumPedidoSal || '') === target
+    );
+    if (foundO) return { documentType: 'Order', data: foundO };
+  }
+
+  return null;
+}
+
+/**
  * Create a new Sales Quotation (Oferta de Ventas OQUT) in SAP Business One
  */
 export async function createSapQuotation(quotationData: {
