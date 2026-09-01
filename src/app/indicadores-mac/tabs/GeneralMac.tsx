@@ -24,6 +24,36 @@ interface Props {
 
 const COLORS = ['#254153', '#749094', '#e8e2d5', '#f5f1ea', '#d3b99f', '#c96a4e', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
+const isGroupFilter = (str: string) => {
+    if (!str) return false;
+    const u = str.toUpperCase().trim();
+    return [
+        'BAÑO', 'BAÑOS', 'BANO', 'BANOS',
+        'COCINA', 'COCINAS', 'MESON', 'MESONES',
+        'HIDROMASAJE', 'HIDROMASAJES',
+        'INFRAESTRUCTURA',
+        'REPUESTO', 'REPUESTOS',
+        'ROPA', 'ROPAS', 'LAVARROPAS',
+        'HIDROPOR', 'MPDIRECT', 'HIDROEMP',
+        'OTROS', 'LAVAMANOS', 'LAVAPLATOS', 'MUEBLES'
+    ].includes(u);
+};
+
+const normalizeGrupoName = (g: string): string => {
+    if (!g) return 'OTROS';
+    let norm = String(g).trim().toUpperCase();
+    if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
+    if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
+    if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
+    if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
+    if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
+    if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
+    if (norm.includes('HIDROPOR')) return 'HIDROPOR';
+    if (norm.includes('MPDIRECT')) return 'MPDIRECT';
+    if (norm.includes('HIDROEMP')) return 'HIDROEMP';
+    return norm;
+};
+
 const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
@@ -398,6 +428,85 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
         </div>
     );
 };
+// ─── Grupos de Producto Table Card ─────────────────────────────────────────────
+const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle, activeFilters = [] }: {
+    title: string;
+    data: Array<{ nombre: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
+    maxHeight?: number;
+    onFilterToggle: any;
+    activeFilters?: string[];
+}) => {
+    const [q, setQ] = React.useState('');
+    const filtered = q.trim()
+        ? data.filter(item => item.nombre.toLowerCase().includes(q.toLowerCase()))
+        : data;
+
+    return (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{title}</h3>
+                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                    {filtered.length}/{data.length} grupos
+                </span>
+            </div>
+            <div className="relative mb-3">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <input
+                    type="text"
+                    value={q}
+                    onChange={e => setQ(e.target.value)}
+                    placeholder="Buscar grupo de producto..."
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                />
+                {q && (
+                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                )}
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: `${maxHeight}px` }}>
+                {filtered.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
+                ) : (
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-gray-50">
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Grupo</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map((item, i) => (
+                                <tr 
+                                    key={i} 
+                                    onClick={(e) => onFilterToggle('productos', item.nombre, e)}
+                                    className={`group transition-colors cursor-pointer ${
+                                        activeFilters.length > 0 && activeFilters.includes(item.nombre)
+                                            ? 'bg-blue-100 border-l-4 border-blue-500'
+                                            : activeFilters.length > 0 
+                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-gray-50'
+                                                : i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'
+                                    }`}
+                                >
+                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 leading-snug border-b border-gray-100">{item.nombre}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{item.Registros}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{item['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-gray-100">{item.Participacion}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </div>
+    );
+};
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Canales de Venta Component ──────────────────────────────────────────────
@@ -629,7 +738,16 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number, codigosSet: Set<string> }> = {};
         
         const sourceData = dataForProductos || data;
+
+        const activeGroupFilters = (filters.productos || []).filter(f => isGroupFilter(f));
+        const activeSpecificFilters = (filters.productos || []).filter(f => !isGroupFilter(f));
+
         sourceData.forEach(d => {
+            if (activeSpecificFilters.length > 0) {
+                const hasSpecificMatch = activeSpecificFilters.some(f => (d as any)._productosNombres?.includes(f));
+                if (!hasSpecificMatch) return;
+            }
+
             if (Array.isArray(d[field])) {
                 d[field].forEach((p: any) => {
                     const nombre = p.descripcion || p.nombre || p.sku || p.referencia || p.codigo || 'Desconocido';
@@ -670,6 +788,12 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         if (!hasMatchingProblem) include = false;
                     }
                     
+                    if (activeGroupFilters.length > 0) {
+                        const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
+                        const matchesGroup = activeGroupFilters.some(gf => gf.toUpperCase() === prodGrupo.toUpperCase());
+                        if (!matchesGroup) include = false;
+                    }
+
                     if (include) {
                         if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0, codigosSet: new Set() };
                         stats[nombre].registrosSet.add(d.id);
@@ -721,7 +845,9 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     if (filters.productos && filters.productos.length > 0) {
                         const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
                         const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-                        if (!filters.productos.includes(prodNombre) && (!prodCodigo || !filters.productos.includes(prodCodigo))) passesProductos = false;
+                        const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
+                        const matches = filters.productos.some(f => f === prodNombre || (prodCodigo && f === prodCodigo) || (prodGrupo && f === prodGrupo));
+                        if (!matches) passesProductos = false;
                     }
 
                     if (!passesProductos) return;
@@ -794,7 +920,9 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     if (filters.productos && filters.productos.length > 0) {
                         const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
                         const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-                        if (!filters.productos.includes(prodNombre) && (!prodCodigo || !filters.productos.includes(prodCodigo))) passesProductos = false;
+                        const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
+                        const matches = filters.productos.some(f => f === prodNombre || (prodCodigo && f === prodCodigo) || (prodGrupo && f === prodGrupo));
+                        if (!matches) passesProductos = false;
                     }
 
                     if (!passesProductos) return;
@@ -858,6 +986,94 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
     const productosNovedadStats = useMemo(() => getProductosStats('productos_novedad'), [data]);
     const productosCompraStats = useMemo(() => getProductosStats('productos_compra'), [data]);
+
+    const productosGruposStats = useMemo(() => {
+        const stats: Record<string, { registrosSet: Set<number>; productosAfectados: number }> = {};
+        const sourceData = dataForProductos || data;
+
+        sourceData.forEach(d => {
+            if (Array.isArray(d.productos_novedad)) {
+                d.productos_novedad.forEach((p: any) => {
+                    let include = true;
+                    if ((filters.defectos && filters.defectos.length > 0) || (filters.responsables && filters.responsables.length > 0)) {
+                        let hasMatchingProblem = false;
+                        if (Array.isArray(p.problemas) && p.problemas.length > 0) {
+                            p.problemas.forEach((prob: any) => {
+                                let matchDef = true;
+                                if (filters.defectos && filters.defectos.length > 0) {
+                                    const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : '';
+                                    if (!filters.defectos.includes(probNombre)) matchDef = false;
+                                }
+                                let matchResp = true;
+                                if (filters.responsables && filters.responsables.length > 0) {
+                                    const respObj = responsablesRef?.find(r => r.id == prob.responsable_problema_id);
+                                    const respNombre = respObj ? respObj.responsable : `ID ${prob.responsable_problema_id}`;
+                                    if (!filters.responsables.includes(respNombre)) matchResp = false;
+                                }
+                                if (matchDef && matchResp) hasMatchingProblem = true;
+                            });
+                        } else {
+                            let matchDef = true;
+                            if (filters.defectos && filters.defectos.length > 0) {
+                                const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : '';
+                                if (!filters.defectos.includes(probNombre)) matchDef = false;
+                            }
+                            let matchResp = true;
+                            if (filters.responsables && filters.responsables.length > 0) {
+                                const respObj = responsablesRef?.find(r => r.id == p.responsable_problema_id);
+                                const respNombre = respObj ? respObj.responsable : `ID ${p.responsable_problema_id}`;
+                                if (!filters.responsables.includes(respNombre)) matchResp = false;
+                            }
+                            if (matchDef && matchResp) hasMatchingProblem = true;
+                        }
+                        if (!hasMatchingProblem) include = false;
+                    }
+
+                    if (filters.productos && filters.productos.length > 0) {
+                        const specificProdFilters = filters.productos.filter(f => !isGroupFilter(f));
+                        if (specificProdFilters.length > 0) {
+                            const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || p.codigo || '';
+                            const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
+                            const matchesSpecific = specificProdFilters.some(f => f === prodNombre || (prodCodigo && f === prodCodigo));
+                            if (!matchesSpecific) include = false;
+                        }
+                    }
+
+                    if (include) {
+                        let grupoRaw = p._grupo || p.grupo || p.grupo_producto || p.linea || p.familia || p.categoria || '';
+                        if (!grupoRaw) {
+                            const desc = (p.descripcion || p.nombre || '').toUpperCase();
+                            if (desc.includes('COCINA') || desc.includes('MESON') || desc.includes('LAVAPLATOS')) grupoRaw = 'COCINAS';
+                            else if (desc.includes('BAÑO') || desc.includes('BANO') || desc.includes('LAVAMANOS') || desc.includes('LVM') || desc.includes('MUEBLE') || desc.includes('MBLE')) grupoRaw = 'BAÑOS';
+                            else if (desc.includes('HIDROMASAJE') || desc.includes('SPA') || desc.includes('TINA')) grupoRaw = 'HIDROMASAJES';
+                            else if (desc.includes('REPUESTO')) grupoRaw = 'REPUESTOS';
+                            else if (desc.includes('INFRAESTRUCTURA')) grupoRaw = 'INFRAESTRUCTURA';
+                            else grupoRaw = 'OTROS';
+                        }
+                        let grupo = normalizeGrupoName(grupoRaw);
+
+                        if (!stats[grupo]) {
+                            stats[grupo] = { registrosSet: new Set(), productosAfectados: 0 };
+                        }
+
+                        stats[grupo].registrosSet.add(d.id);
+                        stats[grupo].productosAfectados += (p.cantidad || 1);
+                    }
+                });
+            }
+        });
+
+        const totalRegistros = sourceData.length || 1;
+
+        return Object.entries(stats)
+            .map(([nombre, stat]) => ({
+                nombre,
+                Registros: stat.registrosSet.size,
+                'Productos Afectados': stat.productosAfectados,
+                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
+            }))
+            .sort((a, b) => b.Registros - a.Registros);
+    }, [data, dataForProductos, filters.defectos, filters.responsables, filters.productos, razones, defectosRef, responsablesRef]);
 
     // Chart 7 & 8: Ciudades y Zonas
     const ciudadesData = useMemo(() => {
@@ -1191,12 +1407,15 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
                 {/* Chart 6: Productos de Compra */}
                 <ProductTable title="Productos de Compra" data={productosCompraStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
 
                 {/* Chart 7: Productos con Novedad */}
                 <ProductTable title="Productos con Novedad" data={productosNovedadStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
+
+                {/* Chart 8: Grupos de Producto */}
+                <GruposProductoTableCard title="Grupos de Producto" data={productosGruposStats} maxHeight={440} onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">

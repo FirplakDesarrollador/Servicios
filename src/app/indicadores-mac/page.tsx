@@ -75,6 +75,67 @@ export default function IndicadoresMacPage() {
             const { data: zonasData } = await supabase.from('zonas').select('id, zona');
             const zonasRef = zonasData || [];
 
+            // Consultar la tabla Productos para obtener la columna exact 'grupo'
+            const { data: productosCatalogData } = await supabase.from('Productos').select('Nombre, sku, grupo');
+            const skuToGrupoMap = new Map<string, string>();
+            const nombreToGrupoMap = new Map<string, string>();
+
+            if (Array.isArray(productosCatalogData)) {
+                productosCatalogData.forEach((prod: any) => {
+                    if (prod.grupo) {
+                        const grupoVal = String(prod.grupo).trim().toUpperCase();
+                        if (prod.sku) skuToGrupoMap.set(String(prod.sku).trim().toLowerCase(), grupoVal);
+                        if (prod.Nombre) nombreToGrupoMap.set(String(prod.Nombre).trim().toLowerCase(), grupoVal);
+                    }
+                });
+            }
+
+            const normalizeGrupo = (g: string): string => {
+                if (!g) return '';
+                let norm = String(g).trim().toUpperCase();
+                if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
+                if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
+                if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
+                if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
+                if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
+                if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
+                if (norm.includes('HIDROPOR')) return 'HIDROPOR';
+                if (norm.includes('MPDIRECT')) return 'MPDIRECT';
+                if (norm.includes('HIDROEMP')) return 'HIDROEMP';
+                return norm;
+            };
+
+            const getGrupoForProduct = (p: any) => {
+                let rawGrupo = p.grupo || p.grupo_producto || p.linea || '';
+                if (rawGrupo) {
+                    const norm = normalizeGrupo(rawGrupo);
+                    if (norm) return norm;
+                }
+
+                const code = String(p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '').trim().toLowerCase();
+                if (code && skuToGrupoMap.has(code)) return normalizeGrupo(skuToGrupoMap.get(code)!);
+
+                const desc = String(p.descripcion || p.nombre || p.Nombre || p.producto || '').trim().toLowerCase();
+                if (desc && nombreToGrupoMap.has(desc)) return normalizeGrupo(nombreToGrupoMap.get(desc)!);
+
+                for (const [nombreKey, grupoVal] of nombreToGrupoMap.entries()) {
+                    if (nombreKey && (desc.includes(nombreKey) || nombreKey.includes(desc))) return normalizeGrupo(grupoVal);
+                }
+
+                const upperDesc = desc.toUpperCase();
+                if (upperDesc.includes('COCINA') || upperDesc.includes('MESON') || upperDesc.includes('LAVAPLATOS') || upperDesc.includes('AGATA') || upperDesc.includes('FORT') || upperDesc.includes('KORE') || upperDesc.includes('ZAREL') || upperDesc.includes('AMBAR') || upperDesc.includes('HACEB') || upperDesc.includes('CUBIERTA')) return 'COCINAS';
+                if (upperDesc.includes('BAÑO') || upperDesc.includes('BANO') || upperDesc.includes('LAVAMANOS') || upperDesc.includes('LVM') || upperDesc.includes('MUEBLE') || upperDesc.includes('MBLE') || upperDesc.includes('OSLO') || upperDesc.includes('SIENA') || upperDesc.includes('KOA') || upperDesc.includes('SODER') || upperDesc.includes('MALI')) return 'BAÑOS';
+                if (upperDesc.includes('HIDROMASAJE') || upperDesc.includes('SPA') || upperDesc.includes('TINA') || upperDesc.includes('PULSADOR') || upperDesc.includes('CATALUÑA') || upperDesc.includes('ISLA')) return 'HIDROMASAJES';
+                if (upperDesc.includes('LAVARROPAS') || upperDesc.includes('ROPAS') || upperDesc.includes('ROPA')) return 'ROPAS';
+                if (upperDesc.includes('HIDROPOR')) return 'HIDROPOR';
+                if (upperDesc.includes('MPDIRECT')) return 'MPDIRECT';
+                if (upperDesc.includes('HIDROEMP')) return 'HIDROEMP';
+                if (upperDesc.includes('REPUESTO') || upperDesc.includes('REPOSICION')) return 'REPUESTOS';
+                if (upperDesc.includes('INFRAESTRUCTURA') || upperDesc.includes('PATA') || upperDesc.includes('PISO')) return 'INFRAESTRUCTURA';
+
+                return 'OTROS';
+            };
+
             // Procesar y enriquecer datos en cliente
             const processed = (registrosData as any[]).map(r => {
                 // REGLA GLOBAL: El estado se define única y exclusivamente por la existencia de la Fecha de Verificación.
@@ -130,7 +191,9 @@ export default function IndicadoresMacPage() {
                 
                 if (Array.isArray(r.productos_compra)) {
                     r.productos_compra.forEach((p: any) => {
+                        p._grupo = getGrupoForProduct(p);
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                        if (p._grupo) _productosNombres.add(p._grupo);
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                     });
@@ -138,7 +201,9 @@ export default function IndicadoresMacPage() {
                 
                 if (Array.isArray(r.productos_novedad)) {
                     r.productos_novedad.forEach((p: any) => {
+                        p._grupo = getGrupoForProduct(p);
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
+                        if (p._grupo) _productosNombres.add(p._grupo);
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                         let hasProblema = false;
