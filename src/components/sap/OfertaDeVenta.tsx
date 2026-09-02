@@ -85,7 +85,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [anticipoTotal, setAnticipoTotal] = useState('0.00');
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'facturaElectronica' | 'localizacion' | 'finanzas' | 'anexos'>('contenido');
+  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'anexos'>('contenido');
   const [itemClass, setItemClass] = useState('Artículo');
   const [summaryClass, setSummaryClass] = useState('Sin resumen');
 
@@ -1212,36 +1212,6 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 Logística
               </button>
               <button
-                onClick={() => setActiveTab('facturaElectronica')}
-                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
-                  activeTab === 'facturaElectronica'
-                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
-                }`}
-              >
-                Factura Electrónica
-              </button>
-              <button
-                onClick={() => setActiveTab('localizacion')}
-                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
-                  activeTab === 'localizacion'
-                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
-                }`}
-              >
-                Localización
-              </button>
-              <button
-                onClick={() => setActiveTab('finanzas')}
-                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
-                  activeTab === 'finanzas'
-                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
-                }`}
-              >
-                Finanzas
-              </button>
-              <button
                 onClick={() => setActiveTab('anexos')}
                 className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
                   activeTab === 'anexos'
@@ -1506,97 +1476,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             )}
 
-            {/* Tab 3: Factura Electrónica */}
-            {activeTab === 'facturaElectronica' && (
-              <div className="p-4 space-y-4 text-xs bg-slate-50 flex-1">
-                <div className="bg-white p-4 border border-slate-200 rounded shadow-sm max-w-2xl space-y-3">
-                  <h4 className="font-bold text-slate-800 border-b pb-1.5 text-xs flex items-center justify-between">
-                    <span>Estado de Facturación Electrónica DIAN</span>
-                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">● Exitosa / Aprobada</span>
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 pt-1">
-                    <div>
-                      <label className="text-slate-600 block mb-1 font-semibold">Estado DIAN</label>
-                      <input type="text" value="0 - Exitosa / Aprobada" readOnly className="w-full bg-emerald-50 border border-emerald-300 rounded p-1.5 outline-none text-emerald-900 font-bold" />
-                    </div>
-                    <div>
-                      <label className="text-slate-600 block mb-1 font-semibold">Tipo de Operación</label>
-                      <input type="text" value="10 - Estándar" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-800 font-medium" />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="text-slate-600 block mb-1 font-semibold">CUFE (Código Único de Facturación Electrónica)</label>
-                      <input type="text" value="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none font-mono text-[10px] text-slate-700 select-all" />
-                    </div>
-                    <div className="col-span-2 flex items-center gap-4 bg-slate-50 p-2.5 border border-slate-200 rounded">
-                      <div className="w-16 h-16 bg-white border border-slate-300 rounded flex items-center justify-center font-bold text-slate-400 text-xs shadow-xs">
-                        QR DIAN
-                      </div>
-                      <div className="space-y-1 text-slate-600">
-                        <p className="font-bold text-slate-800 text-xs">Comprobante Fiscal Autorizado</p>
-                        <p className="text-[10px]">Factura enviada y aprobada electrónicamente ante la DIAN Colombia.</p>
-                        <p className="text-[10px] font-medium text-slate-500">Documento de representación gráfica nativo SAP B1.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 4: Localización */}
-            {activeTab === 'localizacion' && (
-              <div className="p-4 space-y-4 text-xs bg-slate-50 flex-1">
-                <div className="bg-white p-4 border border-slate-200 rounded shadow-sm max-w-2xl space-y-3">
-                  <h4 className="font-bold text-slate-800 border-b pb-1.5 text-xs flex items-center justify-between">
-                    <span>Datos de Localización - SAP Business One</span>
-                    <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Colombia</span>
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 pt-1">
-                    <div>
-                      <label className="text-slate-600 block mb-1 font-semibold">Tipo de documento de referencia</label>
-                      <input type="text" value="Remisión Nacional" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-700 font-medium" />
-                    </div>
-                    <div>
-                      <label className="text-slate-600 block mb-1 font-semibold">Número Folio</label>
-                      <input type="text" value={docNum || '91277'} readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-900 font-bold" />
-                    </div>
-                    <div>
-                      <label className="text-slate-600 block mb-1 font-semibold">Jurisdicción fiscal</label>
-                      <input type="text" value="IVAGV4 (19%)" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-700 font-medium" />
-                    </div>
-                    <div>
-                      <label className="text-slate-600 block mb-1 font-semibold">Lugar de expedición</label>
-                      <input type="text" value="Planta Principal - Firplak" readOnly className="w-full bg-slate-100 border border-slate-300 rounded p-1.5 outline-none text-slate-700 font-medium" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 4: Finanzas */}
-            {activeTab === 'finanzas' && (
-              <div className="p-4 grid grid-cols-2 gap-6 text-xs bg-slate-50 flex-1">
-                <div className="space-y-3 bg-white p-3 border border-slate-200 rounded">
-                  <h4 className="font-bold text-slate-700 border-b pb-1">Condiciones Comerciales</h4>
-                  <div className="flex items-center justify-between">
-                    <span>Condición de Pago:</span>
-                    <select className="border border-slate-300 rounded px-2 py-1 outline-none">
-                      <option>30 Días Fecha Factura</option>
-                      <option>Contado Inmediato</option>
-                      <option>60 Días Crédito</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Indicador de Impuesto:</span>
-                    <select className="border border-slate-300 rounded px-2 py-1 outline-none">
-                      <option>IVA 19% Generales</option>
-                      <option>Exento 0%</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 4: Anexos */}
+            {/* Tab 3: Anexos */}
             {activeTab === 'anexos' && (
               <div className="p-6 text-center text-slate-500 bg-slate-50 flex-1 flex flex-col items-center justify-center border-t border-slate-200">
                 <Package className="w-8 h-8 text-slate-400 mb-2" />
