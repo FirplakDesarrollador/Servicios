@@ -243,6 +243,33 @@ export async function fetchSapQuotationByDocNum(
         }
       }
     }
+  } else if (preferType === 'ProductionOrder') {
+    // 1. Try ProductionOrders (OWOR) first
+    if (isNumeric) {
+      const poUrl = `${SAP_BASE_URL}/ProductionOrders?$filter=DocumentNumber eq ${target} or AbsoluteEntry eq ${target}`;
+      console.log('[SAP Service Layer] Querying ProductionOrders filter:', poUrl);
+      const poRes = await fetch(poUrl, { headers: { 'Cookie': cookie } });
+      if (poRes.ok) {
+        const poData = await poRes.json();
+        if (poData.value && poData.value.length > 0) {
+          docData = poData.value[0];
+          documentType = 'ProductionOrder';
+        }
+      }
+    }
+    // 2. Fallback to Orders
+    if (!docData && isNumeric) {
+      const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
+      console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
+      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
+      if (oRes.ok) {
+        const oData = await oRes.json();
+        if (oData.value && oData.value.length > 0) {
+          docData = oData.value[0];
+          documentType = 'Order';
+        }
+      }
+    }
   } else if (preferType === 'Order') {
     // 1. Try Orders (ORDR) first
     if (isNumeric) {

@@ -84,8 +84,28 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [validativeEAlmacen, setValidativeEAlmacen] = useState('No requiere Autorizacion');
   const [anticipoTotal, setAnticipoTotal] = useState('0.00');
 
+  // Production Order Specific State
+  const [productionOrderType, setProductionOrderType] = useState('Estándar');
+  const [productionOrderStatus, setProductionOrderStatus] = useState('Planif.');
+  const [productNo, setProductNo] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [plannedQuantity, setPlannedQuantity] = useState('1');
+  const [warehouse, setWarehouse] = useState('PT-02');
+  const [businessPartner, setBusinessPartner] = useState('');
+  const [routingDateCalculation, setRoutingDateCalculation] = useState('En Fecha de inicio');
+  const [procureOrder, setProcureOrder] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [poUserSignature, setPoUserSignature] = useState('Luis Guillermo Escobar');
+  const [poOrigin, setPoOrigin] = useState('Manual');
+  const [poLinkedTo, setPoLinkedTo] = useState('Pedido de cliente');
+  const [poLinkedOrder, setPoLinkedOrder] = useState('');
+  const [costCenter, setCostCenter] = useState('');
+  const [poProject, setPoProject] = useState('');
+  const [pickRemarks, setPickRemarks] = useState('');
+
   // Tabs
-  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'anexos'>('contenido');
+  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'anexos' | 'componentes' | 'resumen'>('contenido');
   const [itemClass, setItemClass] = useState('Artículo');
   const [summaryClass, setSummaryClass] = useState('Sin resumen');
 
@@ -322,6 +342,55 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       const fullPay = payAddrStr ? (payAddrStr.includes(payName) ? payAddrStr : `${payName}\n${payAddrStr}`) : payName;
       setPayToAddressText(fullPay);
 
+      // Populate Production Order specific properties
+      if (mode === 'ProductionOrder' || sapDoc.ProductionOrderType || sapDoc.ItemNo) {
+        setProductionOrderType(
+          sapDoc.ProductionOrderType === 'bopotSpecial' ? 'Especial' :
+          sapDoc.ProductionOrderType === 'bopotDisassembly' ? 'Desmontaje' :
+          'Estándar'
+        );
+        setProductionOrderStatus(
+          sapDoc.ProductionOrderStatus === 'boposReleased' ? 'Liberado' :
+          sapDoc.ProductionOrderStatus === 'boposClosed' ? 'Cerrado' :
+          sapDoc.ProductionOrderStatus === 'boposCancelled' ? 'Cancelado' :
+          'Planif.'
+        );
+        setProductNo(sapDoc.ItemNo || '');
+        setProductDescription(sapDoc.ProductDescription || '');
+        setPlannedQuantity(String(sapDoc.PlannedQuantity || 1));
+        setWarehouse(sapDoc.Warehouse || 'PT-02');
+        setBusinessPartner(sapDoc.U_HBT_Tercero || sapDoc.CustomerCode || sapDoc.CardCode || '');
+        setStartDate(sapDoc.StartDate ? sapDoc.StartDate.split('T')[0] : '');
+        setDueDate(sapDoc.DueDate ? sapDoc.DueDate.split('T')[0] : '');
+        setPoUserSignature(sapDoc.UserSignature ? 'Usuario ' + sapDoc.UserSignature : 'Luis Guillermo Escobar');
+        setPoOrigin(sapDoc.ProductionOrderOrigin === 'bopooSalesOrder' ? 'Pedido de cliente' : 'Manual');
+        setPoLinkedOrder(String(sapDoc.ProductionOrderOriginNumber || ''));
+        setPickRemarks(sapDoc.PickRemarks || '');
+        if (sapDoc.DocumentNumber) {
+          setDocNum(String(sapDoc.DocumentNumber));
+        }
+
+        if (sapDoc.ProductionOrderLines && sapDoc.ProductionOrderLines.length > 0) {
+          const mappedLines: GridRow[] = sapDoc.ProductionOrderLines.map((line: any, idx: number) => ({
+            id: String(idx + 1),
+            itemCode: line.ItemNo || line.ItemCode || '',
+            description: line.ItemDescription || line.Description || '',
+            barCode: 'N/A',
+            quantity: line.PlannedQuantity || line.BaseQuantity || 1,
+            unitMsr: 'UN',
+            price: line.IssuedQuantity || 0,
+            discount: 0,
+            taxCode: 'IVA 19%',
+            total: line.PlannedQuantity || 0,
+            whsCode: line.Warehouse || 'PT-02',
+            costingCode: '',
+            salesEmployee: 'Firplak',
+            lineStatus: 'Abierto'
+          }));
+          setRows(mappedLines);
+        }
+      }
+
       // Populate Document Lines
       if (sapDoc.DocumentLines && sapDoc.DocumentLines.length > 0) {
         const mappedLines: GridRow[] = sapDoc.DocumentLines.map((line: any, idx: number) => ({
@@ -541,20 +610,61 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
           {/* Form Fields */}
           <div className="p-2 space-y-2 overflow-y-auto max-h-[580px]">
-            <div>
-              <label className="text-slate-600 block mb-0.5">Segmento del Pedido</label>
-              <select 
-                value={segmentoPedido}
-                onChange={e => setSegmentoPedido(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
-              >
-                <option value="Nacional">Nacional</option>
-                <option value="Exportación">Exportación</option>
-                <option value="Especial">Especial</option>
-              </select>
-            </div>
-
-            {mode === 'Invoice' ? (
+            {mode === 'ProductionOrder' ? (
+              <>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Sugerida Liberacion TOC</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Liberacion Planificacion</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Requisión</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Real Liberacion</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Num. Lote</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Tipo de Orden</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value="STANDARD">STANDARD</option>
+                    <option value="SPECIAL">SPECIAL</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Socio de negocio</label>
+                  <input type="text" value={businessPartner || cardCode} onChange={e => setBusinessPartner(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs font-semibold text-slate-800" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha de finalización (desatraso)</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Razón de retraso 2</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha de finalización (desatraso) 2</label>
+                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Razón de retraso</label>
+                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5 font-medium">Orden de Compra</label>
+                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+              </>
+            ) : mode === 'Invoice' ? (
               <>
                 <div>
                   <label className="text-slate-600 block mb-0.5">Tiene Autorretención</label>
@@ -1017,7 +1127,168 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
           </div>
 
           {/* Form Header Section */}
-          <div className="p-3 bg-[#F1F5F9] border-b border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {mode === 'ProductionOrder' ? (
+            <div className="p-3 bg-[#F1F5F9] border-b border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* Left Header Fields */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Tipo</label>
+                  <select value={productionOrderType} onChange={e => setProductionOrderType(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                    <option value="Estándar">Estándar</option>
+                    <option value="Especial">Especial</option>
+                    <option value="Desmontaje">Desmontaje</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Estado</label>
+                  <select value={productionOrderStatus} onChange={e => setProductionOrderStatus(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                    <option value="Planif.">Planif.</option>
+                    <option value="Liberado">Liberado</option>
+                    <option value="Cerrado">Cerrado</option>
+                    <option value="Cancelado">Cancelado</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Nº producto</label>
+                  <div className="flex-1 flex items-center gap-1">
+                    <input type="text" value={productNo || (rows[0]?.itemCode || '')} onChange={e => setProductNo(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-semibold text-amber-800" />
+                    <button onClick={() => setIsItemModalOpen(true)} className="w-4 h-4 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-900 border border-amber-600 cursor-pointer">◯</button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Descripción producto</label>
+                  <input type="text" value={productDescription || (rows[0]?.description || '')} onChange={e => setProductDescription(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Cantidad planificada</label>
+                  <div className="flex-1 flex items-center gap-2">
+                    <input type="number" value={plannedQuantity} onChange={e => setPlannedQuantity(e.target.value)} className="w-24 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-bold text-slate-800 text-right" />
+                    <span className="text-slate-600">Nombre de</span>
+                    <input type="text" defaultValue="UN" readOnly className="w-12 bg-slate-100 border border-slate-300 rounded px-1 py-0.5 text-center text-slate-600" />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Almacén</label>
+                  <input type="text" value={warehouse} onChange={e => setWarehouse(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Socio de negocio</label>
+                  <div className="flex-1 flex items-center gap-1">
+                    <input type="text" value={businessPartner || cardCode || 'AC890927404-01'} onChange={e => setBusinessPartner(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-amber-400 rounded px-1.5 py-0.5 outline-none font-bold text-slate-800" />
+                    <button onClick={() => setIsCustomerModalOpen(true)} className="w-4 h-4 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-900 border border-amber-600 cursor-pointer">◯</button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Cálculo de fecha de enrutamiento</label>
+                  <select value={routingDateCalculation} onChange={e => setRoutingDateCalculation(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                    <option value="En Fecha de inicio">En Fecha de inicio</option>
+                    <option value="En Fecha de finalización">En Fecha de finalización</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 pt-0.5">
+                  <label className="w-36 text-slate-600 text-right"></label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium">
+                    <input type="checkbox" checked={procureOrder} onChange={e => setProcureOrder(e.target.checked)} className="rounded text-amber-500" />
+                    <span>Aprovisionar artículos</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Right Header Fields */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Nº</label>
+                  <div className="flex items-center gap-1">
+                    <select value={docSeries} onChange={e => setDocSeries(e.target.value)} className="bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                      <option value="OF-Produ">OF-Produ</option>
+                      <option value="OF-Planta">OF-Planta</option>
+                      <option value="OF-Especial">OF-Especial</option>
+                    </select>
+                    <div className="relative flex items-center">
+                      <input 
+                        type="text" 
+                        placeholder="DocNum..." 
+                        value={docNum || '2259805'} 
+                        onChange={e => setDocNum(e.target.value)} 
+                        onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(e.currentTarget.value); }}
+                        className="w-28 bg-[#FFFDE7] border border-amber-400 font-bold rounded pl-1.5 pr-6 py-0.5 outline-none text-right text-slate-900 focus:ring-2 focus:ring-amber-500 text-xs shadow-inner" 
+                      />
+                      <button onClick={() => handleSearchSapDocument(docNum)} className="absolute right-1 text-slate-600 hover:text-amber-700 font-bold text-xs p-0.5 cursor-pointer">🔍</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Fecha orden de fabricación</label>
+                  <input type="date" value={postingDate} onChange={e => setPostingDate(e.target.value)} className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Fecha de inicio</label>
+                  <input type="date" value={startDate || postingDate} onChange={e => setStartDate(e.target.value)} className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Fecha de finalización</label>
+                  <input type="date" value={dueDate || validUntil} onChange={e => setDueDate(e.target.value)} className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Usuario</label>
+                  <select value={poUserSignature} onChange={e => setPoUserSignature(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                    <option value="Luis Guillermo Escobar">Luis Guillermo Escobar</option>
+                    <option value="Mayerly Marin">Mayerly Marin</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Origen</label>
+                  <select value={poOrigin} onChange={e => setPoOrigin(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                    <option value="Manual">Manual</option>
+                    <option value="MRP">MRP</option>
+                    <option value="Pedido de cliente">Pedido de cliente</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Vinculados a</label>
+                  <select value={poLinkedTo} onChange={e => setPoLinkedTo(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                    <option value="Pedido de cliente">Pedido de cliente</option>
+                    <option value="Ninguno">Ninguno</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Pedido vinculado</label>
+                  <input type="text" value={poLinkedOrder || ordenVenta} onChange={e => setPoLinkedOrder(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Cliente</label>
+                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right font-bold text-slate-800">Centro de Costos</label>
+                  <input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="w-36 text-slate-600 text-right">Proyecto</label>
+                  <input type="text" value={poProject} onChange={e => setPoProject(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 bg-[#F1F5F9] border-b border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4">
             
             {/* Left Header Fields */}
             <div className="space-y-1.5">
@@ -1067,9 +1338,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
               <div className="flex items-center gap-2">
                 <label className="w-28 text-slate-600 text-right">
-                  {mode === 'ProductionOrder'
-                    ? 'Nº Oferta / Pedido'
-                    : mode === 'Order' 
+                  {mode === 'Order' 
                     ? 'OC / COT' 
                     : mode === 'Delivery'
                     ? 'Guía / Referencia'
@@ -1106,11 +1375,11 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                     onChange={e => setDocSeries(e.target.value)}
                     className="bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"
                   >
-                    <option value={mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}>
-                      {mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}
+                    <option value={mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}>
+                      {mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}
                     </option>
-                    <option value={mode === 'ProductionOrder' ? 'OF-Especial' : mode === 'Order' ? 'Ped.Exp' : mode === 'Delivery' ? 'Ent-Exp' : 'Cot-Exp'}>
-                      {mode === 'ProductionOrder' ? 'OF-Especial' : mode === 'Order' ? 'Ped.Exp' : mode === 'Delivery' ? 'Ent-Exp' : 'Cot-Exp'}
+                    <option value={mode === 'Order' ? 'Ped.Exp' : mode === 'Delivery' ? 'Ent-Exp' : 'Cot-Exp'}>
+                      {mode === 'Order' ? 'Ped.Exp' : mode === 'Delivery' ? 'Ent-Exp' : 'Cot-Exp'}
                     </option>
                   </select>
                   <div className="relative flex items-center">
@@ -1158,9 +1427,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
               <div className="flex items-center gap-2">
                 <label className="w-36 text-slate-600 text-right">
-                  {mode === 'ProductionOrder' 
-                    ? 'Fecha Finalización' 
-                    : mode === 'Order' 
+                  {mode === 'Order' 
                     ? 'Fecha Plan Despacho' 
                     : mode === 'Delivery'
                     ? 'Fecha de Entrega'
@@ -1185,42 +1452,80 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             </div>
           </div>
+          )}
 
           {/* ── Tabs Container ───────────────────────────────────────────────── */}
           <div className="flex-1 flex flex-col bg-white">
             
             {/* Tab Headers */}
             <div className="flex items-center bg-[#E2E8F0] border-b border-slate-300 px-2 pt-1 gap-1 text-xs">
-              <button
-                onClick={() => setActiveTab('contenido')}
-                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
-                  activeTab === 'contenido'
-                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
-                }`}
-              >
-                Contenido
-              </button>
-              <button
-                onClick={() => setActiveTab('logistica')}
-                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
-                  activeTab === 'logistica'
-                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
-                }`}
-              >
-                Logística
-              </button>
-              <button
-                onClick={() => setActiveTab('anexos')}
-                className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
-                  activeTab === 'anexos'
-                    ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                    : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
-                }`}
-              >
-                Anexos
-              </button>
+              {mode === 'ProductionOrder' ? (
+                <>
+                  <button
+                    onClick={() => setActiveTab('componentes')}
+                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                      activeTab === 'componentes' || activeTab === 'contenido'
+                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Componentes
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('resumen')}
+                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                      activeTab === 'resumen'
+                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Resumen
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('anexos')}
+                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                      activeTab === 'anexos'
+                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Anexos
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setActiveTab('contenido')}
+                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                      activeTab === 'contenido'
+                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Contenido
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('logistica')}
+                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                      activeTab === 'logistica'
+                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Logística
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('anexos')}
+                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                      activeTab === 'anexos'
+                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
+                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Anexos
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Tab 1: Contenido (Grid Table) */}
@@ -1488,7 +1793,57 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
           </div>
 
           {/* ── Footer Section: Employee & Totals ────────────────────────────── */}
-          <div className="p-3 bg-[#F1F5F9] border-t border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          {mode === 'ProductionOrder' ? (
+            <div className="p-3 bg-[#F1F5F9] border-t border-slate-300 flex flex-col gap-3 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Left Footer */}
+                <div className="flex items-start gap-2">
+                  <label className="w-32 text-slate-600 text-right font-medium pt-1">Comentarios</label>
+                  <textarea 
+                    value={comments}
+                    onChange={e => setComments(e.target.value)}
+                    rows={2}
+                    placeholder="Comentarios de producción..."
+                    className="flex-1 bg-white border border-slate-300 rounded p-1.5 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
+                  />
+                </div>
+
+                {/* Right Footer */}
+                <div className="flex items-start gap-2">
+                  <label className="w-44 text-slate-600 text-right font-medium pt-1">Observaciones sobre empaque</label>
+                  <textarea 
+                    value={pickRemarks}
+                    onChange={e => setPickRemarks(e.target.value)}
+                    rows={2}
+                    placeholder="Observaciones de empaque..."
+                    className="flex-1 bg-white border border-slate-300 rounded p-1.5 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
+                  />
+                </div>
+              </div>
+
+              {/* SAP Action Buttons (Crear / Cancelar) */}
+              <div className="flex items-center gap-2 pt-1">
+                <button 
+                  onClick={handleCreateDocument}
+                  className="px-5 py-1 bg-gradient-to-b from-[#FAD961] to-[#F76B1C] hover:from-[#facc15] hover:to-[#ea580c] text-slate-950 font-bold rounded border border-amber-600 shadow-sm cursor-pointer"
+                >
+                  Crear
+                </button>
+                <button 
+                  onClick={() => {
+                    setDocNum('');
+                    setProductNo('');
+                    setProductDescription('');
+                    setRows([]);
+                  }}
+                  className="px-4 py-1 bg-gradient-to-b from-slate-200 to-slate-300 hover:bg-slate-300 text-slate-800 font-bold rounded border border-slate-400 shadow-sm cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 bg-[#F1F5F9] border-t border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             
             {/* Left Footer */}
             <div className="space-y-2">
@@ -1621,6 +1976,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             </div>
           </div>
+          )}
 
           {/* ── Bottom Action Buttons Bar ──────────────────────────────────────── */}
           <div className="p-3 bg-[#E2E8F0] border-t border-slate-300 flex items-center justify-between text-xs">
