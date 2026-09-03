@@ -83,6 +83,15 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [viaDelPedido, setViaDelPedido] = useState('Asesores de Ventas');
   const [validativeEAlmacen, setValidativeEAlmacen] = useState('No requiere Autorizacion');
   const [anticipoTotal, setAnticipoTotal] = useState('0.00');
+  const [fechaRealDespacho, setFechaRealDespacho] = useState('');
+  const [fechaAutorizacion, setFechaAutorizacion] = useState('');
+  const [numeroGuia, setNumeroGuia] = useState('');
+  const [transportador, setTransportador] = useState('');
+  const [fechaRealEntregaEnt, setFechaRealEntregaEnt] = useState('');
+  const [statusEntrega, setStatusEntrega] = useState('Entregada');
+  const [fechaRetPOD, setFechaRetPOD] = useState('');
+  const [pof, setPof] = useState('');
+  const [fechaPlaneadaEntregaCliente, setFechaPlaneadaEntregaCliente] = useState('');
 
   // Production Order Specific State
   const [productionOrderType, setProductionOrderType] = useState('Estándar');
@@ -103,9 +112,15 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [costCenter, setCostCenter] = useState('');
   const [poProject, setPoProject] = useState('');
   const [pickRemarks, setPickRemarks] = useState('');
+  const [numLote, setNumLote] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [poCompletedQty, setPoCompletedQty] = useState('');
+  const [poRejectedQty, setPoRejectedQty] = useState('');
+  const [poClosingDate, setPoClosingDate] = useState('');
+  const [poJournalRemarks, setPoJournalRemarks] = useState('');
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'anexos' | 'componentes' | 'resumen'>('contenido');
+  const [activeTab, setActiveTab] = useState<'contenido' | 'logistica' | 'anexos' | 'componentes' | 'resumen'>(mode === 'ProductionOrder' ? 'componentes' : 'contenido');
   const [itemClass, setItemClass] = useState('Artículo');
   const [summaryClass, setSummaryClass] = useState('Sin resumen');
 
@@ -138,6 +153,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isComentariosModalOpen, setIsComentariosModalOpen] = useState(false);
   const [isMapaRelacionesModalOpen, setIsMapaRelacionesModalOpen] = useState(false);
+  const [isDocumentViewerOpen, setIsDocumentViewerOpen] = useState(false);
 
   // Modals & Search State
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -212,6 +228,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
     }
 
     try {
+      setIsLoading(true);
       setStatusMessage(`● Consultando documento Nº ${searchTarget} en SAP Business One Service Layer...`);
       setStatusType('info');
 
@@ -239,7 +256,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       const isCancelled = sapDoc.Cancelled === 'tYES' || rawStatus === 'bost_Cancelled' || rawStatus === 'Canceled';
       setDocStatus(isCancelled ? 'Cancelado' : (isAbierto ? 'Abiertos' : 'Cerrado'));
 
-      setPostingDate(sapDoc.DocDate ? sapDoc.DocDate.split('T')[0] : '');
+      setPostingDate(sapDoc.PostingDate ? sapDoc.PostingDate.split('T')[0] : (sapDoc.DocDate ? sapDoc.DocDate.split('T')[0] : ''));
       setValidUntil(sapDoc.DocDueDate ? sapDoc.DocDueDate.split('T')[0] : '');
       setDocDate(sapDoc.TaxDate ? sapDoc.TaxDate.split('T')[0] : '');
 
@@ -256,6 +273,21 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       setAplicacionAnticipo(sapDoc.U_AplicacionAnticipo === '02' || sapDoc.U_AplicacionAnticipo === '2' ? 'NO' : (sapDoc.U_AplicacionAnticipo || 'NO'));
       setPctContenedor(String(sapDoc.U_Porc_contenedor || '0.00'));
       setBloqueadoDespacho(sapDoc.U_Bloqueado === '01' || sapDoc.U_Bloqueado === '1' ? 'No Bloqueado' : (sapDoc.U_Bloqueado || 'No Bloqueado'));
+
+      // Delivery specific UDFs
+      setTransportador(sapDoc.U_Transportador || '');
+      setFechaRealDespacho(sapDoc.U_FechaDespacho ? sapDoc.U_FechaDespacho.split('T')[0] : '');
+      setFechaAutorizacion(sapDoc.U_FechaAutorizacion ? sapDoc.U_FechaAutorizacion.split('T')[0] : '');
+      setNumeroGuia(sapDoc.U_NoGuia || '');
+      setFechaRealEntregaEnt(sapDoc.U_FechaRealEntregaEnt ? sapDoc.U_FechaRealEntregaEnt.split('T')[0] : '');
+      
+      const stEnt = String(sapDoc.U_StatusEntrega || '').trim();
+      setStatusEntrega(stEnt === '7' ? 'Entregada' : stEnt === '6' ? 'En Ruta' : (stEnt || 'Entregada'));
+      
+      setFechaRetPOD(sapDoc.U_FechaRetPOD ? sapDoc.U_FechaRetPOD.split('T')[0] : '');
+      setPof(sapDoc.U_POF || '');
+      setFechaPlaneadaEntregaCliente(sapDoc.U_Fecha_Plan_Ent_Cliente ? sapDoc.U_Fecha_Plan_Ent_Cliente.split('T')[0] : '');
+      setActualizarBF(sapDoc.U_Actualizar || 'NO');
 
       const estRaw = String(sapDoc.U_Estado_Oferta_Venta || sapDoc.U_Estado_Oferta || '').trim();
       if (estRaw === '01' || estRaw === '1' || estRaw.toLowerCase().includes('conf')) {
@@ -314,8 +346,8 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       // Construct Logistics Addresses (Destino & Facturación)
       const shipName = sapDoc.ShipToCode || sapDoc.CardName || '';
       let shipAddrStr = '';
-      if (sapDoc.Address) {
-        shipAddrStr = sapDoc.Address;
+      if (sapDoc.Address2) {
+        shipAddrStr = sapDoc.Address2;
       } else if (sapDoc.AddressExtension) {
         const parts = [
           sapDoc.AddressExtension.ShipToStreet,
@@ -329,8 +361,8 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
       const payName = sapDoc.PayToCode || sapDoc.CardName || '';
       let payAddrStr = '';
-      if (sapDoc.Address2) {
-        payAddrStr = sapDoc.Address2;
+      if (sapDoc.Address) {
+        payAddrStr = sapDoc.Address;
       } else if (sapDoc.AddressExtension) {
         const parts = [
           sapDoc.AddressExtension.BillToStreet,
@@ -349,88 +381,137 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
           sapDoc.ProductionOrderType === 'bopotDisassembly' ? 'Desmontaje' :
           'Estándar'
         );
+        const rawStatus = sapDoc.ProductionOrderStatus || '';
         setProductionOrderStatus(
-          sapDoc.ProductionOrderStatus === 'boposReleased' ? 'Liberado' :
-          sapDoc.ProductionOrderStatus === 'boposClosed' ? 'Cerrado' :
-          sapDoc.ProductionOrderStatus === 'boposCancelled' ? 'Cancelado' :
+          rawStatus === 'boposReleased' ? 'Liberado' :
+          rawStatus === 'boposClosed' ? 'Cerrado' :
+          rawStatus === 'boposCancelled' ? 'Cancelado' :
           'Planif.'
         );
         setProductNo(sapDoc.ItemNo || '');
-        setProductDescription(sapDoc.ProductDescription || '');
+        setProductDescription(sapDoc.ProductDescription || sapDoc.ItemName || '');
         setPlannedQuantity(String(sapDoc.PlannedQuantity || 1));
         setWarehouse(sapDoc.Warehouse || 'PT-02');
-        setBusinessPartner(sapDoc.U_HBT_Tercero || sapDoc.CustomerCode || sapDoc.CardCode || '');
+        
+        // CustomerCode in OWOR = the linked sales order customer
+        const poCustomer = sapDoc.CustomerCode || sapDoc.CardCode || '';
+        setBusinessPartner(sapDoc.U_HBT_Tercero || poCustomer);
+        setCardCode(poCustomer);
+
         setStartDate(sapDoc.StartDate ? sapDoc.StartDate.split('T')[0] : '');
         setDueDate(sapDoc.DueDate ? sapDoc.DueDate.split('T')[0] : '');
-        setPoUserSignature(sapDoc.UserSignature ? 'Usuario ' + sapDoc.UserSignature : 'Luis Guillermo Escobar');
-        setPoOrigin(sapDoc.ProductionOrderOrigin === 'bopooSalesOrder' ? 'Pedido de cliente' : 'Manual');
+        
+        // Posting date for ProductionOrder is PostingDate in OWOR
+        if (sapDoc.PostingDate) setPostingDate(sapDoc.PostingDate.split('T')[0]);
+        
+        // User signature - use enriched name
+        const sigName = sapDoc._UserSignatureName || '';
+        setPoUserSignature(sigName || 'Luis Guillermo Escobar');
+        
+        // Comments
+        setComments(sapDoc.Comments || sapDoc.Remarks || '');
+
+        setPoOrigin(
+          sapDoc.ProductionOrderOrigin === 'bopooSalesOrder' ? 'Pedido de cliente' :
+          sapDoc.ProductionOrderOrigin === 'bopooMrp' ? 'MRP' : 'Manual'
+        );
+        setPoLinkedTo(
+          sapDoc.ProductionOrderOrigin === 'bopooSalesOrder' ? 'Pedido de cliente' : 'Ninguno'
+        );
         setPoLinkedOrder(String(sapDoc.ProductionOrderOriginNumber || ''));
         setPickRemarks(sapDoc.PickRemarks || '');
+        setNumLote(sapDoc.U_NumLote || sapDoc.U_Lote || sapDoc.BatchNumber || '');
+        // Centro de Costos and Project from UDFs
+        setCostCenter(sapDoc.U_CentroCosto || sapDoc.U_CostCenter || '');
+        setPoProject(sapDoc.Project || sapDoc.U_Proyecto || '');
+        setPoCompletedQty(String(sapDoc.CompletedQuantity || ''));
+        setPoRejectedQty(String(sapDoc.RejectedQuantity || ''));
+        setPoClosingDate(sapDoc.ClosingDate ? sapDoc.ClosingDate.split('T')[0] : '');
+        setPoJournalRemarks(sapDoc.JournalRemarks || '');
+
         if (sapDoc.DocumentNumber) {
           setDocNum(String(sapDoc.DocumentNumber));
         }
 
         if (sapDoc.ProductionOrderLines && sapDoc.ProductionOrderLines.length > 0) {
-          const mappedLines: GridRow[] = sapDoc.ProductionOrderLines.map((line: any, idx: number) => ({
-            id: String(idx + 1),
-            itemCode: line.ItemNo || line.ItemCode || '',
-            description: line.ItemDescription || line.Description || '',
-            barCode: 'N/A',
-            quantity: line.PlannedQuantity || line.BaseQuantity || 1,
-            unitMsr: 'UN',
-            price: line.IssuedQuantity || 0,
-            discount: 0,
-            taxCode: 'IVA 19%',
-            total: line.PlannedQuantity || 0,
-            whsCode: line.Warehouse || 'PT-02',
-            costingCode: '',
-            salesEmployee: 'Firplak',
-            lineStatus: 'Abierto'
-          }));
+          const mappedLines: GridRow[] = sapDoc.ProductionOrderLines.map((line: any, idx: number) => {
+            // Calculate ratio base as fraction string e.g. "13/100"
+            const baseQty = line.BaseQuantity || 0;
+            const plannedQty = sapDoc.PlannedQuantity || 1;
+            const reqQty = line.PlannedQuantity || (baseQty * plannedQty);
+            // Build ratio string
+            let ratioStr = '';
+            if (line.Ratio) {
+              ratioStr = String(line.Ratio);
+            } else if (baseQty > 0 && plannedQty > 0) {
+              // Express as fraction by finding GCD-like simplification
+              const num = baseQty;
+              const den = 1;
+              ratioStr = `${baseQty}`;
+            }
+            return {
+              id: String(idx + 1),
+              itemCode: line.ItemNo || line.ItemCode || '',
+              description: line.ItemName || line.ItemDescription || line.Description || '',
+              barCode: ratioStr, // reuse barCode field to store ratio
+              quantity: baseQty, // Cantidad base
+              unitMsr: 'Artículo', // Tipo
+              price: line.IssuedQuantity || 0, // Consumido
+              discount: 0,
+              taxCode: String(line.UoMCode || ''), // UoM
+              total: reqQty, // Ctd. requerida
+              whsCode: line.Warehouse || 'PT-02',
+              costingCode: String(line.VisualOrder || idx),
+              salesEmployee: String(line.StockQuantity || 0), // Disponible
+              lineStatus: line.LineStatus === 'bost_Open' || !line.LineStatus ? 'Abierto' : 'Cerrado'
+            };
+          });
           setRows(mappedLines);
         }
       }
 
-      // Populate Document Lines
-      if (sapDoc.DocumentLines && sapDoc.DocumentLines.length > 0) {
-        const mappedLines: GridRow[] = sapDoc.DocumentLines.map((line: any, idx: number) => ({
-          id: String(idx + 1),
-          itemCode: line.ItemCode || '',
-          description: line.ItemDescription || line.ItemName || '',
-          barCode: line.BarCode || 'N/A',
-          quantity: line.Quantity || 1,
-          unitMsr: line.MeasureUnit || line.SalUnitMsr || 'UND',
-          price: line.UnitPrice || 0,
-          discount: line.DiscountPercent || 0,
-          taxCode: line.TaxCode || 'IVA 19%',
-          total: line.LineTotal || (line.Quantity * line.UnitPrice),
-          whsCode: line.WarehouseCode || 'PT-01',
-          costingCode: line.CostingCode || line.CostingCode2 || line.CostingCode3 || '',
-          salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
-          lineStatus: line.LineStatus === 'bost_Open' || line.LineStatus === 'O' ? 'Abierto' : 'Cerrado'
-        }));
+      // Populate Document Lines for non-ProductionOrders
+      if (data.document.documentType !== 'ProductionOrder') {
+        if (sapDoc.DocumentLines && sapDoc.DocumentLines.length > 0) {
+          const mappedLines: GridRow[] = sapDoc.DocumentLines.map((line: any, idx: number) => ({
+            id: String(idx + 1),
+            itemCode: line.ItemCode || '',
+            description: line.ItemDescription || line.ItemName || '',
+            barCode: line.BarCode || 'N/A',
+            quantity: line.Quantity || 1,
+            unitMsr: line.MeasureUnit || line.SalUnitMsr || 'UND',
+            price: line.UnitPrice || 0,
+            discount: line.DiscountPercent || 0,
+            taxCode: line.TaxCode || 'IVA 19%',
+            total: line.LineTotal || (line.Quantity * line.UnitPrice),
+            whsCode: line.WarehouseCode || 'PT-01',
+            costingCode: line.CostingCode || line.CostingCode2 || line.CostingCode3 || '',
+            salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
+            lineStatus: line.LineStatus === 'bost_Open' || line.LineStatus === 'O' ? 'Abierto' : 'Cerrado'
+          }));
 
-        // Add 1 empty row at the end
-        mappedLines.push({
-          id: String(mappedLines.length + 1),
-          itemCode: '',
-          description: '',
-          barCode: '',
-          quantity: 1,
-          unitMsr: 'UND',
-          price: 0,
-          discount: 0,
-          taxCode: 'IVA 19%',
-          total: 0,
-          whsCode: 'PT-01',
-          costingCode: '',
-          salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
-          lineStatus: 'Abierto'
-        });
+          // Add 1 empty row at the end
+          mappedLines.push({
+            id: String(mappedLines.length + 1),
+            itemCode: '',
+            description: '',
+            barCode: '',
+            quantity: 1,
+            unitMsr: 'UND',
+            price: 0,
+            discount: 0,
+            taxCode: 'IVA 19%',
+            total: 0,
+            whsCode: 'PT-01',
+            costingCode: '',
+            salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
+            lineStatus: 'Abierto'
+          });
 
-        setRows(mappedLines);
-      } else {
-        setRows([{ id: '1', itemCode: '', description: '', barCode: '', quantity: 1, unitMsr: 'UND', price: 0, discount: 0, taxCode: 'IVA 19%', total: 0, whsCode: 'PT-01', costingCode: '', salesEmployee: sapDoc._SalesEmployeeName || 'Firplak', lineStatus: 'Abierto' }]);
+          setRows(mappedLines);
+        } else {
+          setRows([{ id: '1', itemCode: '', description: '', barCode: '', quantity: 1, unitMsr: 'UND', price: 0, discount: 0, taxCode: 'IVA 19%', total: 0, whsCode: 'PT-01', costingCode: '', salesEmployee: sapDoc._SalesEmployeeName || 'Firplak', lineStatus: 'Abierto' }]);
+        }
       }
 
       setHeaderDiscountPct(sapDoc.DiscountPercent || 0);
@@ -441,6 +522,8 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       console.error('Error fetching SAP doc:', err);
       setStatusMessage(`✖ Error consultando documento en SAP: ${err.message}`);
       setStatusType('error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -582,7 +665,15 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   };
 
   return (
-    <div className="w-full bg-[#CBD5E1] text-slate-800 font-sans p-2 select-none min-h-screen">
+    <div className="w-full bg-[#CBD5E1] text-slate-800 font-sans p-2 select-none min-h-screen relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]">
+          <div className="bg-white p-6 rounded-lg shadow-2xl flex flex-col items-center gap-4 border border-slate-200">
+            <div className="w-10 h-10 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+            <p className="text-slate-700 font-bold text-sm tracking-wide">Consultando en SAP B1...</p>
+          </div>
+        </div>
+      )}
       {/* ── Main Body Split Layout ─────────────────────────────────────────── */}
       <div className="flex gap-2 p-2 border border-slate-300 rounded-lg bg-[#E2E8F0] min-h-[640px]">
 
@@ -630,7 +721,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 </div>
                 <div>
                   <label className="text-slate-600 block mb-0.5 font-medium">Num. Lote</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <input type="text" value={numLote} onChange={e => setNumLote(e.target.value)} className="w-full bg-[#FFFDE7] border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs font-semibold text-slate-800" />
                 </div>
                 <div>
                   <label className="text-slate-600 block mb-0.5 font-medium">Tipo de Orden</label>
@@ -801,139 +892,98 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
             ) : mode === 'Delivery' ? (
               <>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Autorizacion de descuentos</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Lugar de entrega</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha esperada de entrega</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Consignatario</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Notificar</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Activa consignatario y notifi</label>
-                  <select value={activaConsignatarioNotifi} onChange={e => setActivaConsignatarioNotifi(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
-                    <option value="NO Activar">NO Activar</option>
-                    <option value="Activar">Activar</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Seguro</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Marcas</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">A (to):</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Embarcado en:</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Via</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Flete</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Vía del Pedido</label>
-                  <select value={viaDelPedido} onChange={e => setViaDelPedido(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
-                    <option value="Asesores de Ventas">Asesores de Ventas</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Pedido para TOC ?</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">TiposNC</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Conceptos de NC</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha de cierre</label>
-                  <input type="date" value={fechaCierre} onChange={e => setFechaCierre(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha de autorizacion</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Cambio fecha de Entrega</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Ciudad de destino Nacional</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">RecibosCaja</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-slate-600 block mb-0.5">Fecha Real de Despacho</label>
+                  <input type="date" value={fechaRealDespacho} onChange={e => setFechaRealDespacho(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
                   <label className="text-slate-600 block mb-0.5">Numero de guia</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <textarea rows={3} value={numeroGuia} onChange={e => setNumeroGuia(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-1 outline-none text-xs resize-none" />
                 </div>
                 <div>
                   <label className="text-slate-600 block mb-0.5">Transportador</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha de despacho</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha recepcion de mercancia</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <input type="text" value={transportador} onChange={e => setTransportador(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
                 </div>
                 <div>
                   <label className="text-slate-600 block mb-0.5">Anticipo</label>
-                  <select value={anticipoPct} onChange={e => setAnticipoPct(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                  <select value={anticipoPct} onChange={e => setAnticipoPct(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
                     <option value="SI tiene anticipo">SI tiene anticipo</option>
                     <option value="NO tiene anticipo">NO tiene anticipo</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Recibo de caja del anticipo</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
-                  <label className="text-slate-600 block mb-0.5">Número del documento</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
-                </div>
-                <div>
                   <label className="text-slate-600 block mb-0.5">Aplicacion Anticipo ?</label>
-                  <select value={aplicacionAnticipo} onChange={e => setAplicacionAnticipo(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                  <select value={aplicacionAnticipo} onChange={e => setAplicacionAnticipo(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
                     <option value="NO">NO</option>
                     <option value="SI">SI</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Volver a remisionar?</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-slate-600 block mb-0.5">Tipo de pedido</label>
+                  <select value={tipoPedido} onChange={e => setTipoPedido(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                    <option value="Cliente Final">Cliente Final</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Servicios">Servicios</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Concepto de entrada</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-slate-600 block mb-0.5">% de amortizacion factura</label>
+                  <input type="text" value={amortizacionFacturaPct} onChange={e => setAmortizacionFacturaPct(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Bloqueado para Despacho</label>
+                  <select value={bloqueadoDespacho} onChange={e => setBloqueadoDespacho(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                    <option value="No Bloqueado">No Bloqueado</option>
+                    <option value="Bloqueado">Bloqueado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Actualizar BF</label>
+                  <select value={actualizarBF} onChange={e => setActualizarBF(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                    <option value="NO">NO</option>
+                    <option value="SI">SI</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Orden de Venta</label>
+                  <input type="text" value={ordenVenta} onChange={e => setOrdenVenta(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">FechaRealEntregaEnt</label>
+                  <input type="date" value={fechaRealEntregaEnt} onChange={e => setFechaRealEntregaEnt(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">StatusEntrega</label>
+                  <select value={statusEntrega} onChange={e => setStatusEntrega(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value="Entregada">Entregada</option>
+                    <option value="En Ruta">En Ruta</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">FechaRetPOD</label>
+                  <input type="date" value={fechaRetPOD} onChange={e => setFechaRetPOD(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">POF?</label>
+                  <select value={pof} onChange={e => setPof(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <option value=""></option>
+                    <option value="SI">SI</option>
+                    <option value="NO">NO</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Estado de la Oferta de Venta</label>
+                  <select value={estadoOfertaVenta} onChange={e => setEstadoOfertaVenta(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                    <option value="Confirmada">Confirmada</option>
+                    <option value="Pendiente">Pendiente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">Fecha Planeada Entrega Cliente</label>
+                  <input type="date" value={fechaPlaneadaEntregaCliente} onChange={e => setFechaPlaneadaEntregaCliente(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="text-slate-600 block mb-0.5">% Contenedor</label>
+                  <input type="text" value={pctContenedor} onChange={e => setPctContenedor(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs" />
                 </div>
               </>
             ) : (
@@ -1133,7 +1183,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Tipo</label>
-                  <select value={productionOrderType} onChange={e => setProductionOrderType(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <select value={productionOrderType} onChange={e => setProductionOrderType(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
                     <option value="Estándar">Estándar</option>
                     <option value="Especial">Especial</option>
                     <option value="Desmontaje">Desmontaje</option>
@@ -1142,7 +1192,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Estado</label>
-                  <select value={productionOrderStatus} onChange={e => setProductionOrderStatus(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <select value={productionOrderStatus} onChange={e => setProductionOrderStatus(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
                     <option value="Planif.">Planif.</option>
                     <option value="Liberado">Liberado</option>
                     <option value="Cerrado">Cerrado</option>
@@ -1153,20 +1203,20 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Nº producto</label>
                   <div className="flex-1 flex items-center gap-1">
-                    <input type="text" value={productNo || (rows[0]?.itemCode || '')} onChange={e => setProductNo(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-semibold text-amber-800" />
+                    <input type="text" value={productNo || (rows[0]?.itemCode || '')} onChange={e => setProductNo(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-semibold text-slate-800" />
                     <button onClick={() => setIsItemModalOpen(true)} className="w-4 h-4 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-900 border border-amber-600 cursor-pointer">◯</button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Descripción producto</label>
-                  <input type="text" value={productDescription || (rows[0]?.description || '')} onChange={e => setProductDescription(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <input type="text" value={productDescription || (rows[0]?.description || '')} onChange={e => setProductDescription(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Cantidad planificada</label>
                   <div className="flex-1 flex items-center gap-2">
-                    <input type="number" value={plannedQuantity} onChange={e => setPlannedQuantity(e.target.value)} className="w-24 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-bold text-slate-800 text-right" />
+                    <input type="number" value={plannedQuantity} onChange={e => setPlannedQuantity(e.target.value)} className="w-24 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-bold text-slate-800 text-right" />
                     <span className="text-slate-600">Nombre de</span>
                     <input type="text" defaultValue="UN" readOnly className="w-12 bg-slate-100 border border-slate-300 rounded px-1 py-0.5 text-center text-slate-600" />
                   </div>
@@ -1174,23 +1224,24 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Almacén</label>
-                  <input type="text" value={warehouse} onChange={e => setWarehouse(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <input type="text" value={warehouse} onChange={e => setWarehouse(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Socio de negocio</label>
                   <div className="flex-1 flex items-center gap-1">
-                    <input type="text" value={businessPartner || cardCode || 'AC890927404-01'} onChange={e => setBusinessPartner(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-amber-400 rounded px-1.5 py-0.5 outline-none font-bold text-slate-800" />
+                    <input type="text" value={businessPartner || cardCode || ''} onChange={e => setBusinessPartner(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium text-slate-800" />
                     <button onClick={() => setIsCustomerModalOpen(true)} className="w-4 h-4 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-900 border border-amber-600 cursor-pointer">◯</button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Cálculo de fecha de enrutamiento</label>
-                  <select value={routingDateCalculation} onChange={e => setRoutingDateCalculation(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <select value={routingDateCalculation} onChange={e => setRoutingDateCalculation(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
                     <option value="En Fecha de inicio">En Fecha de inicio</option>
                     <option value="En Fecha de finalización">En Fecha de finalización</option>
                   </select>
+                  <button className="px-2 py-0.5 bg-gradient-to-b from-slate-200 to-slate-300 hover:from-slate-300 hover:to-slate-400 text-slate-700 font-semibold rounded border border-slate-400 text-[10px] whitespace-nowrap cursor-pointer">Actualizar ahora</button>
                 </div>
 
                 <div className="flex items-center gap-2 pt-0.5">
@@ -1207,7 +1258,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Nº</label>
                   <div className="flex items-center gap-1">
-                    <select value={docSeries} onChange={e => setDocSeries(e.target.value)} className="bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <select value={docSeries} onChange={e => setDocSeries(e.target.value)} className="bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs">
                       <option value="OF-Produ">OF-Produ</option>
                       <option value="OF-Planta">OF-Planta</option>
                       <option value="OF-Especial">OF-Especial</option>
@@ -1216,7 +1267,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                       <input 
                         type="text" 
                         placeholder="DocNum..." 
-                        value={docNum || '2259805'} 
+                        value={docNum} 
                         onChange={e => setDocNum(e.target.value)} 
                         onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(e.currentTarget.value); }}
                         className="w-28 bg-[#FFFDE7] border border-amber-400 font-bold rounded pl-1.5 pr-6 py-0.5 outline-none text-right text-slate-900 focus:ring-2 focus:ring-amber-500 text-xs shadow-inner" 
@@ -1228,22 +1279,22 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Fecha orden de fabricación</label>
-                  <input type="date" value={postingDate} onChange={e => setPostingDate(e.target.value)} className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <input type="date" value={postingDate} onChange={e => setPostingDate(e.target.value)} className="w-36 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Fecha de inicio</label>
-                  <input type="date" value={startDate || postingDate} onChange={e => setStartDate(e.target.value)} className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <input type="date" value={startDate || postingDate} onChange={e => setStartDate(e.target.value)} className="w-36 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Fecha de finalización</label>
-                  <input type="date" value={dueDate || validUntil} onChange={e => setDueDate(e.target.value)} className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <input type="date" value={dueDate || validUntil} onChange={e => setDueDate(e.target.value)} className="w-36 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Usuario</label>
-                  <select value={poUserSignature} onChange={e => setPoUserSignature(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <select value={poUserSignature} onChange={e => setPoUserSignature(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
                     <option value="Luis Guillermo Escobar">Luis Guillermo Escobar</option>
                     <option value="Mayerly Marin">Mayerly Marin</option>
                   </select>
@@ -1251,7 +1302,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Origen</label>
-                  <select value={poOrigin} onChange={e => setPoOrigin(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <select value={poOrigin} onChange={e => setPoOrigin(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
                     <option value="Manual">Manual</option>
                     <option value="MRP">MRP</option>
                     <option value="Pedido de cliente">Pedido de cliente</option>
@@ -1260,7 +1311,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Vinculados a</label>
-                  <select value={poLinkedTo} onChange={e => setPoLinkedTo(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <select value={poLinkedTo} onChange={e => setPoLinkedTo(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
                     <option value="Pedido de cliente">Pedido de cliente</option>
                     <option value="Ninguno">Ninguno</option>
                   </select>
@@ -1268,22 +1319,22 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Pedido vinculado</label>
-                  <input type="text" value={poLinkedOrder || ordenVenta} onChange={e => setPoLinkedOrder(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <input type="text" value={poLinkedOrder || ordenVenta} onChange={e => setPoLinkedOrder(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Cliente</label>
-                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right font-bold text-slate-800">Centro de Costos</label>
-                  <input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Proyecto</label>
-                  <input type="text" value={poProject} onChange={e => setPoProject(e.target.value)} className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <input type="text" value={poProject} onChange={e => setPoProject(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
                 </div>
               </div>
             </div>
@@ -1528,8 +1579,236 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               )}
             </div>
 
-            {/* Tab 1: Contenido (Grid Table) */}
-            {activeTab === 'contenido' && (
+            {/* Tab Componentes: Production Order lines with SAP B1 columns */}
+            {(activeTab === 'componentes' || (mode === 'ProductionOrder' && activeTab === 'contenido')) && mode === 'ProductionOrder' && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Componentes table */}
+                <div className="flex-1 overflow-auto min-h-[240px] relative">
+                  <table className="min-w-[900px] w-full text-left border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#CBD5E1] text-slate-700 font-bold border-b border-slate-300 sticky top-0 z-10">
+                        <th className="p-1.5 w-8 text-center border-r border-slate-300">#</th>
+                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Tipo</th>
+                        <th className="p-1.5 w-44 border-r border-slate-300">Nº</th>
+                        <th className="p-1.5 min-w-[220px] border-r border-slate-300">Descripción</th>
+                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Cantidad base</th>
+                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Ratio base</th>
+                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Ctd. requerida</th>
+                        <th className="p-1.5 w-20 text-right border-r border-slate-300">Consumido</th>
+                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Disponible</th>
+                        <th className="p-1.5 w-7 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {rows.map((row, idx) => (
+                        <tr key={row.id} className={`hover:bg-blue-50/30 group transition-colors ${
+                          !row.itemCode ? 'bg-white' : ''
+                        }`}>
+                          {/* # */}
+                          <td className="p-1 text-center bg-[#F1F5F9] font-semibold text-slate-500 border-r border-slate-300 text-[10px]">{idx + 1}</td>
+                          {/* Tipo - dropdown + arrow */}
+                          <td className="p-0 border-r border-slate-200">
+                            <div className="flex items-center gap-0.5 px-0.5">
+                              <select
+                                value={row.unitMsr || 'Artículo'}
+                                onChange={e => handleRowChange(row.id, 'unitMsr', e.target.value)}
+                                className="flex-1 py-1 bg-transparent outline-none text-slate-700 text-[10px] border-0"
+                              >
+                                <option value="Artículo">Artículo</option>
+                                <option value="Trabajo">Trabajo</option>
+                              </select>
+                              {row.itemCode && <span className="text-blue-600 text-[10px] cursor-pointer hover:text-blue-800" title="Ver artículo">→</span>}
+                            </div>
+                          </td>
+                          {/* Nº - item code with link arrow */}
+                          <td className="p-0 border-r border-slate-200">
+                            <div className="flex items-center gap-0.5">
+                              {row.itemCode && <span className="text-blue-600 text-[10px] px-0.5 cursor-pointer" title="Abrir">→</span>}
+                              <input
+                                type="text"
+                                value={row.itemCode}
+                                onChange={e => handleRowChange(row.id, 'itemCode', e.target.value)}
+                                className="flex-1 px-1 py-1 bg-[#FFFDE7] outline-none font-semibold text-slate-800 text-[10px] min-w-0"
+                                placeholder="Nº artículo..."
+                              />
+                            </div>
+                          </td>
+                          {/* Descripción */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input
+                              type="text"
+                              value={row.description}
+                              onChange={e => handleRowChange(row.id, 'description', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-[#FFFDE7] outline-none text-slate-700 text-[10px]"
+                              placeholder="Descripción..."
+                            />
+                          </td>
+                          {/* Cantidad base */}
+                          <td className="p-0 border-r border-slate-200">
+                            <input
+                              type="number"
+                              value={row.quantity}
+                              onChange={e => handleRowChange(row.id, 'quantity', e.target.value)}
+                              className="w-full px-1.5 py-1 bg-[#FFFDE7] text-right outline-none font-medium text-[10px]"
+                            />
+                          </td>
+                          {/* Ratio base - stored in barCode field */}
+                          <td className="p-1.5 text-right text-slate-600 border-r border-slate-200 text-[10px] font-medium bg-slate-50">
+                            {row.barCode && row.barCode !== 'N/A' ? row.barCode : (row.quantity > 0 ? String(row.quantity) : '—')}
+                          </td>
+                          {/* Ctd. requerida - stored in total field */}
+                          <td className="p-1.5 text-right font-semibold text-slate-800 border-r border-slate-200 text-[10px] bg-slate-50/50">
+                            {Number(row.total) > 0 ? Number(row.total).toFixed(2) : (row.quantity > 0 ? row.quantity : '—')}
+                          </td>
+                          {/* Consumido - stored in price field */}
+                          <td className="p-1.5 text-right text-slate-500 border-r border-slate-200 text-[10px]">
+                            {Number(row.price) > 0 ? Number(row.price).toFixed(2) : '0'}
+                          </td>
+                          {/* Disponible - stored in salesEmployee field */}
+                          <td className={`p-1.5 text-right text-[10px] border-r border-slate-200 font-medium ${
+                            Number(row.salesEmployee) < 0 ? 'text-red-600' : 'text-slate-700'
+                          }`}>
+                            {row.salesEmployee && row.salesEmployee !== 'Firplak' ? Number(row.salesEmployee).toFixed(2) : '—'}
+                          </td>
+                          {/* Delete */}
+                          <td className="p-1 text-center">
+                            <button onClick={() => handleRemoveRow(row.id)} className="text-slate-300 hover:text-rose-600 transition-colors cursor-pointer" title="Eliminar fila">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Row navigation arrows (SAP B1 style) */}
+                <div className="flex justify-end px-2 py-1 bg-[#F1F5F9] border-t border-slate-200 gap-1">
+                  <button className="w-5 h-5 border border-slate-400 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] flex items-center justify-center cursor-pointer rounded-sm">▲</button>
+                  <button className="w-5 h-5 border border-slate-400 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] flex items-center justify-center cursor-pointer rounded-sm">▼</button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Resumen: Production Order summary */}
+            {activeTab === 'resumen' && mode === 'ProductionOrder' && (
+              <div className="flex-1 flex gap-8 p-4 overflow-y-auto bg-white min-h-[300px] text-xs">
+                {/* Column 1: Costos */}
+                <div className="flex flex-col gap-4 w-[280px]">
+                  <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1 mb-1">Costos</div>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 flex items-center gap-1 font-bold">Costo de componente real-SAL<span className="text-amber-500 font-bold">→</span></label>
+                      <input type="text" readOnly className="w-24 bg-[#FFFDE7] border border-slate-300 rounded px-1.5 py-0.5 text-right font-medium outline-none" value="$ 0.00" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Costo de componente de recurso real</label>
+                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Costo adicional real MO+CIF</label>
+                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 flex items-center gap-1 font-bold">Costo de producto real+VALE P<span className="text-amber-500 font-bold">→</span></label>
+                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Coste real de subproductos</label>
+                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 flex items-center gap-1 font-bold">Desviación total<span className="text-amber-500 font-bold">→</span></label>
+                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <label className="text-slate-600 font-bold">Asiento contable</label>
+                      <div className="flex items-center gap-1">
+                        <span className="text-amber-500 font-bold">→</span>
+                        <input type="text" readOnly className="w-40 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value={poJournalRemarks} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-slate-600 font-bold">Documento de referencia</label>
+                      <button className="bg-amber-400 hover:bg-amber-500 border border-slate-400 rounded px-3 py-0.5 font-bold shadow-sm text-slate-800">...</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column 2: Cantidades & Fechas */}
+                <div className="flex flex-col gap-6 w-[220px]">
+                  <div className="flex flex-col gap-2">
+                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Cantidades</div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Cantidad planificada</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value={plannedQuantity} />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Cantidad completada</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value={poCompletedQty} />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Cantidad rechazada</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value={poRejectedQty} />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Fechas</div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Fecha de finalización</label>
+                      <input type="date" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value={dueDate} />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Fecha de cierre real</label>
+                      <input type="date" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value={poClosingDate} />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Vencido</label>
+                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value="" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column 3: Tiempos planificados & Días planificados */}
+                <div className="flex flex-col gap-6 w-[240px]">
+                  <div className="flex flex-col gap-2">
+                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Tiempos planificados</div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Tiempo de producción total</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Tiempo adicional total</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Tiempo de ejecución total</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Días planificados</div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Total de días solicitados</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Total de días de espera</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-600 font-bold">Días totales</label>
+                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* Tab 1: Contenido (Grid Table) - only for non-ProductionOrder */}
+            {activeTab === 'contenido' && mode !== 'ProductionOrder' && (
               <div className="p-3 flex-1 flex flex-col">
                 
                 {/* Top Controls inside Contenido */}
@@ -1783,10 +2062,62 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
             {/* Tab 3: Anexos */}
             {activeTab === 'anexos' && (
-              <div className="p-6 text-center text-slate-500 bg-slate-50 flex-1 flex flex-col items-center justify-center border-t border-slate-200">
-                <Package className="w-8 h-8 text-slate-400 mb-2" />
-                <p className="font-bold">Anexos y Documentos Adjuntos</p>
-                <p className="text-xs">Arrastre o seleccione archivos PDF, planos técnicos o cotizaciones asociadas.</p>
+              <div className="flex-1 flex bg-[#F1F5F9] border-t border-slate-300 relative overflow-hidden">
+                {/* Table Section */}
+                <div className="flex-1 overflow-auto bg-white m-2 border border-slate-300 shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-[#E2E8F0] sticky top-0 shadow-sm z-10">
+                      <tr>
+                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 w-8 text-center whitespace-nowrap">#</th>
+                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[120px]">Vía de acceso d...</th>
+                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[120px]">Nombre de ...</th>
+                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[100px]">Fecha del anexo</th>
+                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[150px]">Texto libre</th>
+                        <th className="p-1 px-2 border-b border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[100px] text-center">Copiar a docu...</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-[#F8FAFC]">
+                      <tr 
+                        className="hover:bg-amber-50 cursor-pointer"
+                        onDoubleClick={() => setIsDocumentViewerOpen(true)}
+                      >
+                        <td className="p-1 px-2 border-b border-r border-slate-200 text-center font-medium text-slate-700">1</td>
+                        <td className="p-1 px-2 border-b border-r border-slate-200 font-medium text-slate-800">\\PES\Adjuntossap</td>
+                        <td className="p-1 px-2 border-b border-r border-slate-200 font-medium text-slate-800">Rem. 91253</td>
+                        <td className="p-1 px-2 border-b border-r border-slate-200 font-medium text-slate-800">01/09/2026</td>
+                        <td className="p-1 px-2 border-b border-r border-slate-200 bg-white"></td>
+                        <td className="p-1 px-2 border-b border-slate-200 bg-white text-center">
+                          <input type="checkbox" className="rounded-sm border-slate-300" />
+                        </td>
+                      </tr>
+                      {/* Empty rows to fill space */}
+                      {Array.from({ length: 15 }).map((_, i) => (
+                        <tr key={i}>
+                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
+                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
+                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
+                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
+                          <td className="p-2 border-b border-r border-slate-200 bg-white"></td>
+                          <td className="p-2 border-b border-slate-200 bg-[#F1F5F9]/50"></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Right Buttons Panel */}
+                <div className="w-28 bg-[#F1F5F9] p-2 flex flex-col gap-8 pt-8">
+                  <button className="w-full bg-gradient-to-b from-[#FFD54F] to-[#FFCA28] hover:from-[#FFCA28] hover:to-[#FFC107] border border-amber-600 rounded-sm text-slate-900 font-semibold text-xs py-1 shadow-sm flex items-center justify-between px-2">
+                    <span>Explorar</span>
+                    <span className="text-[9px] text-amber-900 ml-1">▼</span>
+                  </button>
+                  <button className="w-full bg-gradient-to-b from-[#FFD54F] to-[#FFCA28] hover:from-[#FFCA28] hover:to-[#FFC107] border border-amber-600 rounded-sm text-slate-900 font-semibold text-xs py-1 shadow-sm">
+                    Visualizar
+                  </button>
+                  <button className="w-full bg-gradient-to-b from-[#FFD54F] to-[#FFCA28] hover:from-[#FFCA28] hover:to-[#FFC107] border border-amber-600 rounded-sm text-slate-900 font-semibold text-xs py-1 shadow-sm mt-auto mb-20">
+                    Borrar
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1821,20 +2152,23 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 </div>
               </div>
 
-              {/* SAP Action Buttons (Crear / Cancelar) */}
+              {/* SAP Action Buttons (OK / Cancelar) */}
               <div className="flex items-center gap-2 pt-1">
                 <button 
-                  onClick={handleCreateDocument}
-                  className="px-5 py-1 bg-gradient-to-b from-[#FAD961] to-[#F76B1C] hover:from-[#facc15] hover:to-[#ea580c] text-slate-950 font-bold rounded border border-amber-600 shadow-sm cursor-pointer"
+                  onClick={() => handleSearchSapDocument(docNum)}
+                  className="px-6 py-1 bg-gradient-to-b from-[#FAD961] to-[#E8A000] hover:from-[#fbbf24] hover:to-[#d97706] text-slate-900 font-bold rounded border border-amber-600 shadow-sm cursor-pointer"
                 >
-                  Crear
+                  OK
                 </button>
                 <button 
                   onClick={() => {
                     setDocNum('');
                     setProductNo('');
                     setProductDescription('');
-                    setRows([]);
+                    setPlannedQuantity('1');
+                    setRows([{ id: '1', itemCode: '', description: '', quantity: 1, price: 0, discount: 0, total: 0 }]);
+                    setStatusMessage('● Ingrese un número de Orden de Fabricación y presione OK.');
+                    setStatusType('info');
                   }}
                   className="px-4 py-1 bg-gradient-to-b from-slate-200 to-slate-300 hover:bg-slate-300 text-slate-800 font-bold rounded border border-slate-400 shadow-sm cursor-pointer"
                 >
@@ -2596,6 +2930,39 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Document Viewer Modal ────────────────────────────────────────────── */}
+      {isDocumentViewerOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-200 rounded-md shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col border border-slate-400 overflow-hidden">
+            
+            {/* Toolbar */}
+            <div className="bg-slate-800 text-white p-2 px-4 flex items-center justify-between text-sm shadow-md z-10">
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-slate-200">Rem. 91253.pdf</span>
+                <span className="text-slate-400 text-xs bg-slate-700 px-2 py-0.5 rounded">Visualizador PDF</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setIsDocumentViewerOpen(false)}
+                  className="hover:bg-red-500 hover:text-white text-slate-400 p-1 px-2 rounded font-bold transition-colors"
+                >
+                  ✕ Cerrar
+                </button>
+              </div>
+            </div>
+
+            {/* Document Content Area */}
+            <div className="flex-1 bg-slate-300 relative">
+              <iframe 
+                src={`/api/sap/attachments?path=${encodeURIComponent('\\\\PES\\Adjuntossap\\Rem. 91253.pdf')}`}
+                className="w-full h-full border-0"
+                title="Visor de Anexo"
+              />
+            </div>
           </div>
         </div>
       )}

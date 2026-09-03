@@ -244,9 +244,9 @@ export async function fetchSapQuotationByDocNum(
       }
     }
   } else if (preferType === 'ProductionOrder') {
-    // 1. Try ProductionOrders (OWOR) first
+    // 1. Try ProductionOrders (OWOR)
     if (isNumeric) {
-      const poUrl = `${SAP_BASE_URL}/ProductionOrders?$filter=DocumentNumber eq ${target} or AbsoluteEntry eq ${target}`;
+      const poUrl = `${SAP_BASE_URL}/ProductionOrders?$filter=DocumentNumber eq ${target}`;
       console.log('[SAP Service Layer] Querying ProductionOrders filter:', poUrl);
       const poRes = await fetch(poUrl, { headers: { 'Cookie': cookie } });
       if (poRes.ok) {
@@ -254,19 +254,39 @@ export async function fetchSapQuotationByDocNum(
         if (poData.value && poData.value.length > 0) {
           docData = poData.value[0];
           documentType = 'ProductionOrder';
+          console.log('[SAP PO] Raw document keys:', Object.keys(docData));
+          console.log('[SAP PO] ProductionOrderLines count:', docData.ProductionOrderLines?.length ?? 'N/A');
+          console.log('[SAP PO] Sample fields:', {
+            DocumentNumber: docData.DocumentNumber,
+            PostingDate: docData.PostingDate,
+            StartDate: docData.StartDate,
+            DueDate: docData.DueDate,
+            UserSignature: docData.UserSignature,
+            CustomerCode: docData.CustomerCode,
+            Comments: docData.Comments,
+            ItemNo: docData.ItemNo,
+            ProductDescription: docData.ProductDescription,
+            PlannedQuantity: docData.PlannedQuantity,
+            ProductionOrderStatus: docData.ProductionOrderStatus,
+            U_NumLote: docData.U_NumLote,
+          });
+          if (docData.ProductionOrderLines?.length > 0) {
+            console.log('[SAP PO] Sample line keys:', Object.keys(docData.ProductionOrderLines[0]));
+          }
         }
       }
     }
-    // 2. Fallback to Orders
+    // 1b. Try by AbsoluteEntry if DocumentNumber didn't match
     if (!docData && isNumeric) {
-      const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
-      console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
-      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
-      if (oRes.ok) {
-        const oData = await oRes.json();
-        if (oData.value && oData.value.length > 0) {
-          docData = oData.value[0];
-          documentType = 'Order';
+      const poUrl2 = `${SAP_BASE_URL}/ProductionOrders(${target})`;
+      console.log('[SAP Service Layer] Querying ProductionOrders by entry:', poUrl2);
+      const poRes2 = await fetch(poUrl2, { headers: { 'Cookie': cookie } });
+      if (poRes2.ok) {
+        const poData2 = await poRes2.json();
+        if (poData2 && (poData2.DocumentNumber || poData2.AbsoluteEntry)) {
+          docData = poData2;
+          documentType = 'ProductionOrder';
+          console.log('[SAP PO by entry] Keys:', Object.keys(docData));
         }
       }
     }
@@ -360,6 +380,32 @@ export async function fetchSapQuotationByDocNum(
       ownerName = await fetchSapEmployeeName(docData.DocumentsOwner);
     }
     docData._OwnerName = ownerName || String(docData.DocumentsOwner || '');
+
+    // Enrich UserSignature (Production Order user) → get name from EmployeesInfo
+    if (documentType === 'ProductionOrder' && docData.UserSignature) {
+      try {
+        const cookie2 = await getSapSessionCookie();
+        // Try Users endpoint first (SBO_SP_Users)
+        const userRes = await fetch(`${SAP_BASE_URL}/Users(${docData.UserSignature})`, { headers: { 'Cookie': cookie2 } });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          docData._UserSignatureName = userData.UserName || userData.FullName || String(docData.UserSignature);
+          console.log('[SAP PO] User name resolved:', docData._UserSignatureName);
+        } else {
+          // Fallback to EmployeesInfo
+          const empRes = await fetch(`${SAP_BASE_URL}/EmployeesInfo(${docData.UserSignature})`, { headers: { 'Cookie': cookie2 } });
+          if (empRes.ok) {
+            const empData = await empRes.json();
+            const fullName = [empData.FirstName, empData.LastName].filter(Boolean).join(' ');
+            docData._UserSignatureName = fullName || String(docData.UserSignature);
+          } else {
+            docData._UserSignatureName = String(docData.UserSignature);
+          }
+        }
+      } catch (e) {
+        docData._UserSignatureName = String(docData.UserSignature);
+      }
+    }
 
     return { documentType, data: docData };
   }
