@@ -52,6 +52,8 @@ function calcularRiesgo(d: RegistroMAC): { diasHabiles: number; estadoRiesgo: 'E
 
 export default function DetalleMac({ data, prevData, filters, dataForMesPresupuesto, setFilters, onFilterToggle }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchTipoProblema, setSearchTipoProblema] = useState('');
+    const [searchResponsable, setSearchResponsable] = useState('');
 
     // Datos enriquecidos con cálculo dinámico de riesgo
     const dataConRiesgo = useMemo(() => {
@@ -217,7 +219,8 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
             'Cliente': d.cliente_final_nombre || d.cliente_nombre,
             'Canal': d.canal_venta,
             'Tipo Solicitud': d.tipo_solicitud,
-            'Responsable': d.Usuarios?.nombres ? `${d.Usuarios.nombres} ${d.Usuarios.apellidos}` : 'N/A',
+            'Tipo Problema': (d._defectosNombres || []).join(' | ') || 'N/A',
+            'Responsable Problema': (d._responsablesNombres || []).join(' | ') || 'N/A',
             'Agente MAC': d._agenteNombre,
             'Estado': d.estado,
             'Días Abierta': d._diasHabilesAbierta,
@@ -233,13 +236,27 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
     };
 
     const exportData = useMemo(() => {
-        if (!searchTerm) return dataConRiesgo;
-        return dataConRiesgo.filter(d => 
-            d.consecutivo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (d.cliente_final_nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (d.cliente_nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [dataConRiesgo, searchTerm]);
+        const termLow = searchTerm.toLowerCase();
+        const tipoLow = searchTipoProblema.toLowerCase();
+        const respLow = searchResponsable.toLowerCase();
+        return dataConRiesgo.filter(d => {
+            // Búsqueda por radicado/cliente
+            if (termLow && !(
+                d.consecutivo.toLowerCase().includes(termLow) ||
+                (d.cliente_final_nombre || '').toLowerCase().includes(termLow) ||
+                (d.cliente_nombre || '').toLowerCase().includes(termLow)
+            )) return false;
+            // Búsqueda por tipo de problema (cualquier defecto del registro)
+            if (tipoLow && !(
+                (d._defectosNombres || []).some(def => def.toLowerCase().includes(tipoLow))
+            )) return false;
+            // Búsqueda por responsable
+            if (respLow && !(
+                (d._responsablesNombres || []).some(res => res.toLowerCase().includes(respLow))
+            )) return false;
+            return true;
+        });
+    }, [dataConRiesgo, searchTerm, searchTipoProblema, searchResponsable]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
@@ -329,19 +346,54 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
             {/* Tabla Detalle */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Detalle Operativo</h3>
-                    <div className="flex items-center gap-3">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Detalle Operativo</h3>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{exportData.length} registros encontrados</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Buscar radicado / cliente */}
                         <div className="relative">
-                            <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input 
+                            <SearchIcon className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
                                 type="text"
-                                placeholder="Buscar radicado, cliente..."
-                                className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-xs w-64 focus:outline-none focus:ring-2 focus:ring-brand"
+                                placeholder="Radicado o cliente..."
+                                className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs w-44 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-all"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={e => setSearchTerm(e.target.value)}
                             />
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                            )}
                         </div>
-                        <button 
+                        {/* Buscar tipo de problema */}
+                        <div className="relative">
+                            <SearchIcon className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Tipo de problema..."
+                                className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs w-44 focus:outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-400 transition-all"
+                                value={searchTipoProblema}
+                                onChange={e => setSearchTipoProblema(e.target.value)}
+                            />
+                            {searchTipoProblema && (
+                                <button onClick={() => setSearchTipoProblema('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                            )}
+                        </div>
+                        {/* Buscar responsable */}
+                        <div className="relative">
+                            <SearchIcon className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Responsable..."
+                                className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs w-40 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 transition-all"
+                                value={searchResponsable}
+                                onChange={e => setSearchResponsable(e.target.value)}
+                            />
+                            {searchResponsable && (
+                                <button onClick={() => setSearchResponsable('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                            )}
+                        </div>
+                        <button
                             onClick={exportToExcel}
                             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors"
                         >
@@ -353,8 +405,8 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
-                            <tr>
-                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Radicado</th>
+                            <tr className="bg-gray-50">
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200 rounded-tl-lg">Radicado</th>
                                 <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Fecha</th>
                                 <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Cliente</th>
                                 <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Canal</th>
@@ -362,16 +414,18 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                 <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Agente</th>
                                 <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200 text-center">Días</th>
                                 <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Riesgo</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-purple-600 border-b border-gray-200 bg-purple-50/60">Tipo Problema</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-amber-600 border-b border-gray-200 bg-amber-50/60 rounded-tr-lg">Responsable</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {exportData.slice(0, 50).map((d, i) => ( // Limite visual a 50
-                                <tr key={i} className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                            {exportData.slice(0, 100).map((d, i) => (
+                                <tr key={i} className={`hover:bg-gray-50/80 transition-colors border-b border-gray-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
                                     <td className="p-3 text-xs font-bold text-brand">{d.consecutivo}</td>
                                     <td className="p-3 text-xs text-gray-600">{new Date(d.created_at).toLocaleDateString()}</td>
-                                    <td className="p-3 text-xs font-medium text-gray-800 max-w-[200px] truncate">{d.cliente_final_nombre || d.cliente_nombre || 'N/A'}</td>
+                                    <td className="p-3 text-xs font-medium text-gray-800 max-w-[200px] truncate" title={d.cliente_final_nombre || d.cliente_nombre || 'N/A'}>{d.cliente_final_nombre || d.cliente_nombre || 'N/A'}</td>
                                     <td className="p-3 text-xs text-gray-600">{d.canal_venta}</td>
-                                    <td className="p-3 text-xs text-gray-600">
+                                    <td className="p-3 text-xs">
                                         <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${d.estado === 'Abierto' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
                                             {d.estado}
                                         </span>
@@ -381,21 +435,63 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                     <td className="p-3 text-xs">
                                         {d.estado === 'Abierto' && (
                                             <span className={`px-2 py-1 rounded-md text-[10px] font-bold text-white
-                                                ${d._estadoRiesgo === 'Excelente' ? 'bg-[#10b981]' : 
-                                                  d._estadoRiesgo === 'Regular' ? 'bg-[#f59e0b]' : 
+                                                ${d._estadoRiesgo === 'Excelente' ? 'bg-[#10b981]' :
+                                                  d._estadoRiesgo === 'Regular' ? 'bg-[#f59e0b]' :
                                                   d._estadoRiesgo === 'Riesgo de demanda' ? 'bg-[#f97316]' : 'bg-[#ef4444]'}`}
                                             >
                                                 {d._estadoRiesgo}
                                             </span>
                                         )}
                                     </td>
+                                    {/* ── Columna Tipo Problema ─────────────────────── */}
+                                    <td className="p-3 text-xs bg-purple-50/30">
+                                        {(d._defectosNombres || []).length > 0 ? (
+                                            <div className="flex flex-col gap-1 max-w-[180px]">
+                                                {(d._defectosNombres || []).slice(0, 2).map((def, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 truncate"
+                                                        title={def}
+                                                    >
+                                                        {def}
+                                                    </span>
+                                                ))}
+                                                {(d._defectosNombres || []).length > 2 && (
+                                                    <span className="text-[10px] text-purple-400 font-medium">+{(d._defectosNombres || []).length - 2} más</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-300 text-[10px]">—</span>
+                                        )}
+                                    </td>
+                                    {/* ── Columna Responsable ───────────────────────── */}
+                                    <td className="p-3 text-xs bg-amber-50/30">
+                                        {(d._responsablesNombres || []).length > 0 ? (
+                                            <div className="flex flex-col gap-1 max-w-[180px]">
+                                                {(d._responsablesNombres || []).slice(0, 2).map((res, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 truncate"
+                                                        title={res}
+                                                    >
+                                                        {res}
+                                                    </span>
+                                                ))}
+                                                {(d._responsablesNombres || []).length > 2 && (
+                                                    <span className="text-[10px] text-amber-400 font-medium">+{(d._responsablesNombres || []).length - 2} más</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-300 text-[10px]">—</span>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                    {exportData.length > 50 && (
-                        <div className="p-4 text-center text-xs text-gray-500 bg-gray-50">
-                            Mostrando los primeros 50 registros. Utilice la exportación a Excel para ver los {exportData.length} registros completos.
+                    {exportData.length > 100 && (
+                        <div className="p-4 text-center text-xs text-gray-500 bg-gray-50 border-t border-gray-100">
+                            Mostrando los primeros 100 registros de {exportData.length}. Utilice la exportación a Excel para ver todos los registros.
                         </div>
                     )}
                 </div>

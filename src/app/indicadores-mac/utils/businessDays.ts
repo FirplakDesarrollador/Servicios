@@ -76,23 +76,84 @@ export function isBusinessDay(date: Date): boolean {
     return !isWeekend(date) && !isHoliday(date);
 }
 
+/**
+ * Cuenta los días hábiles colombianos entre dos fechas usando una fórmula
+ * matemática O(1) por año calendario, en lugar de iterar día a día.
+ * Para rangos de múltiples años, itera una vez por año (no por día).
+ */
 export function getBusinessDaysDifference(startDate: Date, endDate: Date): number {
     if (!isValid(startDate) || !isValid(endDate)) return 0;
-    
+
     let start = startOfDay(startDate);
     let end = startOfDay(endDate);
-    
+
     if (start >= end) return 0;
-    
-    let days = 0;
-    let current = start;
-    
-    while (current < end) {
-        if (isBusinessDay(current)) days++;
-        current = addDays(current, 1);
+
+    /**
+     * Cuenta los días hábiles desde el inicio del año hasta `date` (exclusivo).
+     * Fórmula: (días_calendario - fines_de_semana - festivos) usando aritmética
+     * de semanas completas + días parciales.
+     */
+    const countBusinessDaysFromYearStart = (date: Date): number => {
+        const year = date.getFullYear();
+        const dayOfYear = Math.floor((date.getTime() - new Date(year, 0, 1).getTime()) / 86400000);
+        
+        // Día de la semana del 1 de enero (0=Dom, 1=Lun, ..., 6=Sáb)
+        const jan1DayOfWeek = new Date(year, 0, 1).getDay();
+        
+        // Días totales transcurridos
+        const totalDays = dayOfYear;
+        
+        // Semanas completas + días sobrantes
+        const fullWeeks = Math.floor((jan1DayOfWeek + totalDays) / 7);
+        const remainder = (jan1DayOfWeek + totalDays) % 7;
+        
+        // Días de fin de semana: 2 por semana completa + los sobrantes que caigan en fin de semana
+        let weekendDays = fullWeeks * 2;
+        // Días sobrantes: 0=Dom... 5=Vie, 6=Sáb
+        // Si el remainder incluye sábado (6) o domingo (0 si se contó)
+        // Tabla: remainder 0→+0, 1→+0, 2→+0, 3→+0, 4→+0, 5→+0, 6→+1
+        // Domingo ya fue contado en la semana anterior si jan1 es domingo
+        if (remainder >= 6) weekendDays += 1; // sábado sobrante
+        
+        const workingDays = totalDays - weekendDays;
+        
+        // Restar festivos colombianos que caigan en días hábiles (dentro del rango)
+        const holidaySet = getHolidaysSetForYear(year);
+        let holidaysInRange = 0;
+        for (const hts of holidaySet) {
+            const hDate = new Date(hts);
+            if (hDate < date && !isWeekend(hDate)) {
+                holidaysInRange++;
+            }
+        }
+        
+        return Math.max(0, workingDays - holidaysInRange);
+    };
+
+    // Si el rango está dentro del mismo año → O(1) por el tamaño fijo de festivos
+    if (start.getFullYear() === end.getFullYear()) {
+        return countBusinessDaysFromYearStart(end) - countBusinessDaysFromYearStart(start);
     }
-    
-    return days;
+
+    // Rango de múltiples años: una iteración por año (no por día)
+    let total = 0;
+
+    // 1. Días desde `start` hasta fin del año de start
+    const endOfStartYear = new Date(start.getFullYear() + 1, 0, 1);
+    total += countBusinessDaysFromYearStart(endOfStartYear) - countBusinessDaysFromYearStart(start);
+
+    // 2. Años completos intermedios
+    for (let y = start.getFullYear() + 1; y < end.getFullYear(); y++) {
+        const yearStart = new Date(y, 0, 1);
+        const yearEnd = new Date(y + 1, 0, 1);
+        total += countBusinessDaysFromYearStart(yearEnd) - countBusinessDaysFromYearStart(yearStart);
+    }
+
+    // 3. Días desde inicio del año de `end` hasta `end`
+    total += countBusinessDaysFromYearStart(end);
+
+    return Math.max(0, total);
 }
 
 export function addBusinessDays(startDate: Date, days: number): Date {

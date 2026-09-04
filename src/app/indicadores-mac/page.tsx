@@ -1,27 +1,61 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
 import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState } from './types';
 import Filters from './components/Filters';
-import GeneralMac, { CanalesVentaCard } from './tabs/GeneralMac';
-import DetalleMac from './tabs/DetalleMac';
-import AgentesMac from './tabs/AgentesMac';
-import { getBusinessDaysDifference, isBusinessDay, addBusinessDays } from './utils/businessDays';
-import * as XLSX from 'xlsx';
 import { DownloadIcon, XIcon, ListFilterIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
+import * as XLSX from 'xlsx';
+import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
+
+// ── Lazy loading de tabs → no bloquea el render inicial ──────────────────────
+const GeneralMac = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: m.default })));
+const CanalesVentaCard = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: m.CanalesVentaCard })));
+const DetalleMac = lazy(() => import('./tabs/DetalleMac'));
+const AgentesMac = lazy(() => import('./tabs/AgentesMac'));
+
+// ── Helpers para normalización de grupo ────────────────────────────────────
+const normalizeGrupo = (g: string): string => {
+    if (!g) return '';
+    const norm = String(g).trim().toUpperCase();
+    if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
+    if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
+    if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
+    if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
+    if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
+    if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
+    if (norm.includes('HIDROPOR')) return 'HIDROPOR';
+    if (norm.includes('MPDIRECT')) return 'MPDIRECT';
+    if (norm.includes('HIDROEMP')) return 'HIDROEMP';
+    return norm;
+};
+
+const CANAL_VENTA_MAP: Record<string, string> = {
+    'canal_ditribuidor': 'Canal Distribuidor',
+    'canal_distribuidor': 'Canal Distribuidor',
+    'canal_exportador': 'Canal Exportador',
+    'canal_constructor': 'Canal Constructor',
+    'canal_propio_firplakhome': 'Canal Propio Firplakhome',
+    'canal_propio_ecommerce': 'Canal Propio eCommerce',
+};
+
+// ── TabSuspense wrapper ──────────────────────────────────────────────────────
+function TabFallback() {
+    return (
+        <div className="flex items-center justify-center py-24">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
+        </div>
+    );
+}
 
 export default function IndicadoresMacPage() {
     const [data, setData] = useState<RegistroMAC[]>([]);
     const [razones, setRazones] = useState<any[]>([]);
     const [defectosRef, setDefectosRef] = useState<any[]>([]);
-    // Excel Export Modal State
     const [showExportModal, setShowExportModal] = useState(false);
     const [exportStartDate, setExportStartDate] = useState('');
     const [exportEndDate, setExportEndDate] = useState('');
-
-    // Fetch filters options
     const [responsablesRef, setResponsablesRef] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(0);
@@ -50,59 +84,63 @@ export default function IndicadoresMacPage() {
 
     const fetchData = async () => {
         try {
+            // ── Ejecutar todas las queries en paralelo ────────────────────────
+            const [
+                registrosResult,
+                razonesResult,
+                defectosResult,
+                responsablesResult,
+                zonasResult,
+                productosResult,
+            ] = await Promise.all([
+                supabase
+                    .from('registro_solicitudes')
+                    .select(`
+                        *,
+                        Usuarios!registro_solicitudes_tratado_por_id_fkey(nombres, apellidos, rol),
+                        AsesorMAC:Usuarios!registro_solicitudes_asesor_mac_id_fkey(nombres, apellidos),
+                        Ubicaciones:cliente_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona))),
+                        Consumidores:cliente_final_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona)))
+                    `),
+                supabase.from('razones_queja').select('id, razon'),
+                supabase.from('defectos').select('id, defecto'),
+                supabase.from('responsable_queja').select('id, responsable'),
+                supabase.from('zonas').select('id, zona'),
+                supabase.from('Productos').select('Nombre, sku, grupo'),
+            ]);
 
-            const { data: registrosData, error } = await supabase
-                .from('registro_solicitudes')
-                .select(`
-                    *,
-                    Usuarios!registro_solicitudes_tratado_por_id_fkey(nombres, apellidos, rol),
-                    AsesorMAC:Usuarios!registro_solicitudes_asesor_mac_id_fkey(nombres, apellidos),
-                    Ubicaciones:cliente_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona))),
-                    Consumidores:cliente_final_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona)))
-                `);
+            if (registrosResult.error) throw registrosResult.error;
 
-            if (error) throw error;
+            const razonesData = razonesResult.data || [];
+            const defectosData = defectosResult.data || [];
+            const responsablesData = responsablesResult.data || [];
+            const zonasRef = zonasResult.data || [];
+            const productosCatalogData = productosResult.data || [];
 
-            const { data: razonesData } = await supabase.from('razones_queja').select('id, razon');
-            setRazones(razonesData || []);
+            setRazones(razonesData);
+            setDefectosRef(defectosData);
+            setResponsablesRef(responsablesData);
 
-            const { data: defectosData } = await supabase.from('defectos').select('id, defecto');
-            setDefectosRef(defectosData || []);
-            
-            const { data: responsablesData } = await supabase.from('responsable_queja').select('id, responsable');
-            setResponsablesRef(responsablesData || []);
-
-            const { data: zonasData } = await supabase.from('zonas').select('id, zona');
-            const zonasRef = zonasData || [];
-
-            // Consultar la tabla Productos para obtener la columna exact 'grupo'
-            const { data: productosCatalogData } = await supabase.from('Productos').select('Nombre, sku, grupo');
+            // ── Pre-construir Maps de lookup O(1) ────────────────────────────
             const skuToGrupoMap = new Map<string, string>();
             const nombreToGrupoMap = new Map<string, string>();
+            productosCatalogData.forEach((prod: any) => {
+                if (prod.grupo) {
+                    const grupoVal = String(prod.grupo).trim().toUpperCase();
+                    if (prod.sku) skuToGrupoMap.set(String(prod.sku).trim().toLowerCase(), grupoVal);
+                    if (prod.Nombre) nombreToGrupoMap.set(String(prod.Nombre).trim().toLowerCase(), grupoVal);
+                }
+            });
 
-            if (Array.isArray(productosCatalogData)) {
-                productosCatalogData.forEach((prod: any) => {
-                    if (prod.grupo) {
-                        const grupoVal = String(prod.grupo).trim().toUpperCase();
-                        if (prod.sku) skuToGrupoMap.set(String(prod.sku).trim().toLowerCase(), grupoVal);
-                        if (prod.Nombre) nombreToGrupoMap.set(String(prod.Nombre).trim().toLowerCase(), grupoVal);
-                    }
-                });
-            }
+            // Maps de lookup para IDs → nombres (O(1) en vez de .find())
+            const defectosMap = new Map<string, string>(defectosData.map((d: any) => [String(d.id), d.defecto]));
+            const razonesMap = new Map<string, string>(razonesData.map((r: any) => [String(r.id), r.razon]));
+            const responsablesMap = new Map<string, string>(responsablesData.map((r: any) => [String(r.id), r.responsable]));
+            const zonasMap = new Map<string, string>(zonasRef.map((z: any) => [String(z.id), z.zona]));
 
-            const normalizeGrupo = (g: string): string => {
-                if (!g) return '';
-                let norm = String(g).trim().toUpperCase();
-                if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
-                if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
-                if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
-                if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
-                if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
-                if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
-                if (norm.includes('HIDROPOR')) return 'HIDROPOR';
-                if (norm.includes('MPDIRECT')) return 'MPDIRECT';
-                if (norm.includes('HIDROEMP')) return 'HIDROEMP';
-                return norm;
+            const getNombreProblemaDirect = (id: number | string): string => {
+                const key = String(id);
+                return defectosMap.get(key) || razonesMap.get(key) || `ID ${id}`;
             };
 
             const getGrupoForProduct = (p: any) => {
@@ -136,16 +174,22 @@ export default function IndicadoresMacPage() {
                 return 'OTROS';
             };
 
-            // Procesar y enriquecer datos en cliente
-            const processed = (registrosData as any[]).map(r => {
+            // ── Pre-convertir `created_at` a timestamp numérico ──────────────
+            const now = Date.now();
+            const registrosData = registrosResult.data as any[];
+
+            const processed = registrosData.map(r => {
                 // REGLA GLOBAL: El estado se define única y exclusivamente por la existencia de la Fecha de Verificación.
                 const isClosed = !!r.fecha_verificacion;
                 const estado = isClosed ? 'Cerrado' : 'Abierto';
-                
+
                 const createdAt = new Date(r.created_at);
+                // ── Timestamp numérico para comparaciones rápidas en filtros ──
+                const createdAtTs = createdAt.getTime();
+
                 const fechaCierre = isClosed ? new Date(r.fecha_verificacion) : null;
-                const fechaReferencia = fechaCierre || new Date();
-                
+                const fechaReferencia = fechaCierre || new Date(now);
+
                 const diasHabilesAbierta = getBusinessDaysDifference(createdAt, fechaReferencia);
 
                 let estadoRiesgo: 'Excelente' | 'Regular' | 'Riesgo de demanda' | 'Demandante' = 'Excelente';
@@ -154,7 +198,6 @@ export default function IndicadoresMacPage() {
                 else if (diasHabilesAbierta >= 11) estadoRiesgo = 'Regular';
 
                 // Lógica de ciudad y zona
-                // Si existe Cliente Canal y Cliente Final, predomina Cliente Final
                 let ciudad = 'No definida';
                 let zona = 'No definida';
                 let zonaId = null;
@@ -166,7 +209,6 @@ export default function IndicadoresMacPage() {
                     if (zonaName) zona = zonaName;
                     else if (zonaIdVal) zonaId = zonaIdVal;
                 }
-                // If no zona from consumidor, try the canal client's city
                 if (zona === 'No definida' && r.cliente_id && r.Ubicaciones?.ciudades) {
                     if (!r.cliente_final_id) ciudad = r.Ubicaciones.ciudades.ciudad || ciudad;
                     const zonaName = r.Ubicaciones.ciudades.zonas?.zona;
@@ -176,19 +218,17 @@ export default function IndicadoresMacPage() {
                 }
 
                 if (zonaId && zona === 'No definida') {
-                    const foundZona = zonasRef.find((z: any) => String(z.id) === String(zonaId));
-                    if (!foundZona) console.warn(`[Zona] No encontrada: zonaId=${zonaId} (tipo: ${typeof zonaId}), zonas disponibles:`, zonasRef.map((z:any) => `${z.id}(${typeof z.id})`).join(', '));
-                    zona = foundZona ? foundZona.zona : `Zona ${zonaId}`;
+                    zona = zonasMap.get(String(zonaId)) || `Zona ${zonaId}`;
                 }
 
-                const agenteNombre = r.AsesorMAC 
-                    ? `${r.AsesorMAC.nombres} ${r.AsesorMAC.apellidos}`.trim() 
+                const agenteNombre = r.AsesorMAC
+                    ? `${r.AsesorMAC.nombres} ${r.AsesorMAC.apellidos}`.trim()
                     : (r.Usuarios?.rol?.toLowerCase() === 'mac' ? `${r.Usuarios.nombres} ${r.Usuarios.apellidos}`.trim() : 'Sin Asignar');
 
                 const _defectosNombres = new Set<string>();
                 const _responsablesNombres = new Set<string>();
                 const _productosNombres = new Set<string>();
-                
+
                 if (Array.isArray(r.productos_compra)) {
                     r.productos_compra.forEach((p: any) => {
                         p._grupo = getGrupoForProduct(p);
@@ -198,7 +238,7 @@ export default function IndicadoresMacPage() {
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                     });
                 }
-                
+
                 if (Array.isArray(r.productos_novedad)) {
                     r.productos_novedad.forEach((p: any) => {
                         p._grupo = getGrupoForProduct(p);
@@ -212,23 +252,23 @@ export default function IndicadoresMacPage() {
                             p.problemas.forEach((prob: any) => {
                                 if (prob.tipo_problema_id) {
                                     hasProblema = true;
-                                    const d = defectosData?.find(x => x.id == prob.tipo_problema_id)?.defecto || razonesData?.find(x => x.id == prob.tipo_problema_id)?.razon || `ID ${prob.tipo_problema_id}`;
-                                    _defectosNombres.add(d);
+                                    _defectosNombres.add(getNombreProblemaDirect(prob.tipo_problema_id));
                                 }
                                 if (prob.responsable_problema_id) {
                                     hasResp = true;
-                                    const resp = responsablesData?.find(x => x.id == prob.responsable_problema_id)?.responsable || `ID ${prob.responsable_problema_id}`;
-                                    _responsablesNombres.add(resp);
+                                    _responsablesNombres.add(
+                                        responsablesMap.get(String(prob.responsable_problema_id)) || `ID ${prob.responsable_problema_id}`
+                                    );
                                 }
                             });
                         }
                         if (!hasProblema && p.tipo_problema_id) {
-                             const d = defectosData?.find(x => x.id == p.tipo_problema_id)?.defecto || razonesData?.find(x => x.id == p.tipo_problema_id)?.razon || `ID ${p.tipo_problema_id}`;
-                            _defectosNombres.add(d);
+                            _defectosNombres.add(getNombreProblemaDirect(p.tipo_problema_id));
                         }
                         if (!hasResp && p.responsable_problema_id) {
-                             const resp = responsablesData?.find(x => x.id == p.responsable_problema_id)?.responsable || `ID ${p.responsable_problema_id}`;
-                            _responsablesNombres.add(resp);
+                            _responsablesNombres.add(
+                                responsablesMap.get(String(p.responsable_problema_id)) || `ID ${p.responsable_problema_id}`
+                            );
                         }
                     });
                 }
@@ -238,19 +278,12 @@ export default function IndicadoresMacPage() {
                 const mesCreacionKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
                 const clienteFinalOrPrincipal = r.cliente_final_nombre || r.cliente_nombre || 'Desconocido';
 
-                const canalVentaMap: Record<string, string> = {
-                    'canal_ditribuidor': 'Canal Distribuidor',
-                    'canal_distribuidor': 'Canal Distribuidor',
-                    'canal_exportador': 'Canal Exportador',
-                    'canal_constructor': 'Canal Constructor',
-                    'canal_propio_firplakhome': 'Canal Propio Firplakhome',
-                    'canal_propio_ecommerce': 'Canal Propio eCommerce'
-                };
-
                 return {
                     ...r,
-                    canal_venta: canalVentaMap[r.canal_venta] || r.canal_venta,
+                    canal_venta: CANAL_VENTA_MAP[r.canal_venta] || r.canal_venta,
                     estado,
+                    // ── Timestamps numéricos para filtros rápidos ──────────────
+                    _createdAtTs: createdAtTs,
                     _fechaCierre: fechaCierre,
                     _diasHabilesAbierta: diasHabilesAbierta,
                     _tiempoCierre: fechaCierre ? diasHabilesAbierta : null,
@@ -276,15 +309,23 @@ export default function IndicadoresMacPage() {
         }
     };
 
-    const getFilteredData = (excludeKeys: (keyof FilterState)[] = []) => {
+    // ── Filtros: comparar timestamps numéricos en vez de crear Date objects ──
+    const getFilteredData = useCallback((excludeKeys: (keyof FilterState)[] = []) => {
+        // Pre-calcular límites de fecha una sola vez (fuera del loop)
+        const fechaInicialTs = filters.fechaInicial ? new Date(filters.fechaInicial).getTime() : null;
+        const fechaFinalTs = filters.fechaFinal ? new Date(filters.fechaFinal).getTime() + 86400000 : null;
+
         return data.filter(d => {
-            if (!excludeKeys.includes('fechaInicial') && filters.fechaInicial && new Date(d.created_at) < new Date(filters.fechaInicial)) return false;
-            if (!excludeKeys.includes('fechaFinal') && filters.fechaFinal && new Date(d.created_at) > new Date(new Date(filters.fechaFinal).getTime() + 86400000)) return false;
+            // Comparar timestamps numéricos (sin crear Date en cada iteración)
+            const ts = (d as any)._createdAtTs as number;
+            if (!excludeKeys.includes('fechaInicial') && fechaInicialTs !== null && ts < fechaInicialTs) return false;
+            if (!excludeKeys.includes('fechaFinal') && fechaFinalTs !== null && ts > fechaFinalTs) return false;
+
             if (!excludeKeys.includes('estado') && filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
             if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0) {
                 const activeFilters = filters.canalVenta.map(f => f.toLowerCase());
                 const dCanal = (d.canal_venta || '').toLowerCase();
-                const match = activeFilters.some(f => 
+                const match = activeFilters.some(f =>
                     dCanal === f || dCanal.includes(f) || f.includes(dCanal) ||
                     (f === 'distribucion' && (dCanal.includes('distribuid') || dCanal.includes('ditribuid'))) ||
                     (f === 'constructor' && dCanal.includes('construct')) ||
@@ -295,37 +336,38 @@ export default function IndicadoresMacPage() {
             }
             if (!excludeKeys.includes('tipoSolicitud') && filters.tipoSolicitud.length > 0 && !filters.tipoSolicitud.includes(d.tipo_solicitud)) return false;
             if (!excludeKeys.includes('agenteMac') && filters.agenteMac.length > 0 && !filters.agenteMac.includes(d._agenteNombre || '')) return false;
-            
+
             if (!excludeKeys.includes('ciudades') && filters.ciudades.length > 0 && !filters.ciudades.includes(d._ciudad || '')) return false;
             if (!excludeKeys.includes('zonas') && filters.zonas.length > 0 && !filters.zonas.includes(d._zona || '')) return false;
             if (!excludeKeys.includes('clientes') && filters.clientes.length > 0 && !filters.clientes.includes(d._clientePrincipalFinal || '')) return false;
             if (!excludeKeys.includes('mesPresupuesto') && filters.mesPresupuesto.length > 0 && !filters.mesPresupuesto.includes(d._mesPresupuestoKey || '')) return false;
             if (!excludeKeys.includes('mesCreacion') && filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) return false;
-            
+
             if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.includes(f))) return false;
             if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.includes(f))) return false;
             if (!excludeKeys.includes('productos') && filters.productos.length > 0 && !filters.productos.some(f => d._productosNombres?.includes(f))) return false;
 
             return true;
         });
-    };
+    }, [data, filters]);
 
-    const filteredData = useMemo(() => getFilteredData(), [data, filters]);
-    const dataForDefectos = useMemo(() => getFilteredData(['defectos']), [data, filters]);
-    const dataForResponsables = useMemo(() => getFilteredData(['responsables']), [data, filters]);
-    const dataForCiudades = useMemo(() => getFilteredData(['ciudades']), [data, filters]);
-    const dataForZonas = useMemo(() => getFilteredData(['zonas']), [data, filters]);
-    const dataForClientes = useMemo(() => getFilteredData(['clientes']), [data, filters]);
-    const dataForProductos = useMemo(() => getFilteredData(['productos']), [data, filters]);
-    const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [data, filters]);
-    const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [data, filters]);
-    const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [data, filters]);
+    const filteredData = useMemo(() => getFilteredData(), [getFilteredData]);
+    const dataForDefectos = useMemo(() => getFilteredData(['defectos']), [getFilteredData]);
+    const dataForResponsables = useMemo(() => getFilteredData(['responsables']), [getFilteredData]);
+    const dataForCiudades = useMemo(() => getFilteredData(['ciudades']), [getFilteredData]);
+    const dataForZonas = useMemo(() => getFilteredData(['zonas']), [getFilteredData]);
+    const dataForClientes = useMemo(() => getFilteredData(['clientes']), [getFilteredData]);
+    const dataForProductos = useMemo(() => getFilteredData(['productos']), [getFilteredData]);
+    const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [getFilteredData]);
+    const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [getFilteredData]);
+    const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [getFilteredData]);
 
-    const handleFilterToggle = (key: keyof FilterState, value: string, e?: any) => {
+    // ── useCallback para evitar re-renders innecesarios en hijos ─────────────
+    const handleFilterToggle = useCallback((key: keyof FilterState, value: string, e?: any) => {
         setFilters(prev => {
             const isMulti = e?.ctrlKey || e?.metaKey;
             const currentArray = prev[key] as string[];
-            
+
             if (isMulti) {
                 if (currentArray.includes(value)) {
                     return { ...prev, [key]: currentArray.filter(v => v !== value) };
@@ -339,10 +381,10 @@ export default function IndicadoresMacPage() {
                 return { ...prev, [key]: [value] };
             }
         });
-    };
+    }, []);
 
     const confirmExport = () => {
-        let toExport = data; // Usamos todos los datos (base de datos)
+        let toExport = data;
         if (exportStartDate) {
             toExport = toExport.filter(d => new Date(d.created_at) >= new Date(exportStartDate + 'T00:00:00'));
         }
@@ -356,28 +398,22 @@ export default function IndicadoresMacPage() {
     const exportToExcel = (dataToExport: RegistroMAC[] = filteredData) => {
         const allRows: Record<string, any>[] = [];
 
-        // Crear mapas de lookup para resolver IDs a nombres
-        const razonesMap = new Map(razones.map(r => [String(r.id), r.razon]));
-        const responsablesMap = new Map(responsablesRef.map(r => [String(r.id), r.responsable]));
+        const razonesMapExport = new Map(razones.map(r => [String(r.id), r.razon]));
+        const responsablesMapExport = new Map(responsablesRef.map(r => [String(r.id), r.responsable]));
 
         dataToExport.forEach(d => {
-            // Construir fila base con todos los campos escalares
             const baseRow: Record<string, any> = {};
             Object.entries(d).forEach(([key, val]) => {
                 if (key.startsWith('_')) return;
                 if (key === 'productos_compra' || key === 'productos_novedad') return;
-                // Omitir IDs crudos y campos que formateamos manualmente
-                if (['cliente_id', 'cliente_final_id', 'cliente_nombre', 'cliente_final_nombre', 'canal_venta', 'fecha_compra', 'fecha_fabricacion'].includes(key)) return; 
-                if (val && typeof val === 'object') return; // Skip relaciones Supabase
+                if (['cliente_id', 'cliente_final_id', 'cliente_nombre', 'cliente_final_nombre', 'canal_venta', 'fecha_compra', 'fecha_fabricacion'].includes(key)) return;
+                if (val && typeof val === 'object') return;
                 baseRow[key] = val;
             });
 
-            // Asegurar que nombre y canal de venta sean legibles
             baseRow['Cliente_Principal'] = d.cliente_nombre || 'No definido';
             baseRow['Cliente_Final'] = d.cliente_final_nombre || 'No definido';
             baseRow['Canal_Venta'] = d.canal_venta || 'No definido';
-
-            // Agregar campos calculados
             baseRow['Agente_MAC'] = d._agenteNombre || 'Sin Asignar';
             baseRow['Ciudad'] = d._ciudad || 'No definida';
             baseRow['Zona'] = d._zona || 'No definida';
@@ -392,12 +428,10 @@ export default function IndicadoresMacPage() {
             const productosCompra = Array.isArray(d.productos_compra) ? d.productos_compra : [];
             const productosNovedad = Array.isArray(d.productos_novedad) ? d.productos_novedad : [];
 
-            // Aplanar productos novedad incluyendo sus problemas
-            // Cada problema dentro de un producto genera una fila separada
             const novedadRows: Record<string, any>[] = [];
             productosNovedad.forEach(pn => {
-                const problemas = Array.isArray(pn.problemas) && pn.problemas.length > 0 
-                    ? pn.problemas 
+                const problemas = Array.isArray(pn.problemas) && pn.problemas.length > 0
+                    ? pn.problemas
                     : [{ tipo_problema_id: '', responsable_problema_id: '' }];
 
                 problemas.forEach((prob: any) => {
@@ -406,21 +440,19 @@ export default function IndicadoresMacPage() {
                         'Novedad_SKU': pn.sku || pn.codigo || '',
                         'Novedad_Referencia': pn.referencia || pn.sku || '',
                         'Novedad_Descripcion': pn.descripcion || pn.nombre || '',
-                        'Novedad_Tipo_Problema': prob.tipo_problema_id ? (razonesMap.get(String(prob.tipo_problema_id)) || prob.tipo_problema_id) : '',
-                        'Novedad_Responsable_Problema': prob.responsable_problema_id ? (responsablesMap.get(String(prob.responsable_problema_id)) || prob.responsable_problema_id) : '',
+                        'Novedad_Tipo_Problema': prob.tipo_problema_id ? (razonesMapExport.get(String(prob.tipo_problema_id)) || prob.tipo_problema_id) : '',
+                        'Novedad_Responsable_Problema': prob.responsable_problema_id ? (responsablesMapExport.get(String(prob.responsable_problema_id)) || prob.responsable_problema_id) : '',
                         'Novedad_Fecha_Compra': pn.fecha_compra || '',
                         'Novedad_Fecha_Fabricacion': pn.fecha_fabricacion || '',
                     });
                 });
             });
 
-            // Determinar el máximo de filas necesarias
             const maxRows = Math.max(1, productosCompra.length, novedadRows.length);
 
             for (let i = 0; i < maxRows; i++) {
                 const row = { ...baseRow };
 
-                // Producto Compra
                 if (i < productosCompra.length) {
                     const pc = productosCompra[i];
                     row['Compra_Cantidad'] = pc.cantidad || 1;
@@ -438,9 +470,7 @@ export default function IndicadoresMacPage() {
                     row['Fecha_Fabricacion'] = (i < novedadRows.length ? novedadRows[i].Novedad_Fecha_Fabricacion : '') || '';
                 }
 
-                // Producto Novedad (ya aplanado con problemas)
                 if (i < novedadRows.length) {
-                    // Mantenemos solo las columnas de Novedad principales (sin repetir fechas)
                     row['Novedad_Cantidad'] = novedadRows[i].Novedad_Cantidad;
                     row['Novedad_SKU'] = novedadRows[i].Novedad_SKU;
                     row['Novedad_Referencia'] = novedadRows[i].Novedad_Referencia;
@@ -465,7 +495,7 @@ export default function IndicadoresMacPage() {
         const worksheet = XLSX.utils.json_to_sheet(allRows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Base de Datos MAC");
-        XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0,10)}.xlsx`);
+        XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
     const tabs = ['General MAC', 'Detalle MAC', 'Agentes MAC'];
@@ -481,7 +511,7 @@ export default function IndicadoresMacPage() {
                     <h1 className="text-xl font-black text-gray-800 tracking-tight">Indicadores MAC</h1>
                     <p className="text-xs text-gray-500 font-medium mt-1">Módulo de inteligencia de negocios para Mesa de Atención al Cliente</p>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-4 pb-3 md:pb-0">
                     <button
                         onClick={() => setShowExportModal(true)}
@@ -499,8 +529,8 @@ export default function IndicadoresMacPage() {
                                 onClick={() => setActiveTab(idx)}
                                 className={`
                                     px-5 py-3 text-xs font-bold whitespace-nowrap transition-colors border-b-2
-                                    ${activeTab === idx 
-                                        ? 'border-brand text-brand bg-gray-50/50' 
+                                    ${activeTab === idx
+                                        ? 'border-brand text-brand bg-gray-50/50'
                                         : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50/30'
                                     }
                                 `}
@@ -511,7 +541,7 @@ export default function IndicadoresMacPage() {
                     </div>
                 </div>
             </header>
-            
+
             {/* Breadcrumb de Filtros Activos y Limpiar */}
             {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0 || filters.canalVenta.length > 0) && (
                 <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
@@ -536,16 +566,16 @@ export default function IndicadoresMacPage() {
                         )))}
                     </div>
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={() => setIsModalOpen(true)}
                             className="text-xs font-bold bg-brandLight text-white px-3 py-1.5 rounded-lg hover:bg-brand transition-colors flex items-center gap-1.5 shadow-sm"
                         >
                             Ver {filteredData.length} registros
                         </button>
-                        <button 
+                        <button
                             onClick={() => setFilters(prev => ({
                                 ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: []
-                            }))} 
+                            }))}
                             className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
                         >
                             Restablecer filtros cruzados
@@ -557,26 +587,32 @@ export default function IndicadoresMacPage() {
             <main className="flex-1 p-6 overflow-auto space-y-4">
                 <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} />
 
-                {activeTab === 0 && (
-                    <CanalesVentaCard 
-                        data={filteredData} 
-                        dataForCanalVenta={dataForCanalVenta} 
-                        filters={filters} 
-                        onFilterToggle={handleFilterToggle} 
-                    />
-                )}
-                
+                {/* ── Lazy loading: sólo carga el tab activo ───────────────── */}
+                <Suspense fallback={<TabFallback />}>
+                    {activeTab === 0 && (
+                        <CanalesVentaCard
+                            data={filteredData}
+                            dataForCanalVenta={dataForCanalVenta}
+                            filters={filters}
+                            onFilterToggle={handleFilterToggle}
+                        />
+                    )}
+                </Suspense>
+
                 <div className="mt-4 transition-opacity duration-300">
-                    {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} dataForCanalVenta={dataForCanalVenta} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
-                    {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                    {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                    <Suspense fallback={<TabFallback />}>
+                        {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} dataForCanalVenta={dataForCanalVenta} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
+                        {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                        {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                    </Suspense>
                 </div>
             </main>
+
             {isModalOpen && (
-                <DetalleRadicadosModal 
-                    isOpen={isModalOpen} 
-                    onClose={() => setIsModalOpen(false)} 
-                    data={filteredData} 
+                <DetalleRadicadosModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    data={filteredData}
                 />
             )}
 
@@ -596,11 +632,11 @@ export default function IndicadoresMacPage() {
                             <p className="text-sm text-gray-600 mb-6">
                                 Selecciona el rango de fechas de creación de las solicitudes que deseas descargar. Si dejas los campos vacíos, se descargará toda la base de datos.
                             </p>
-                            
+
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Desde</label>
-                                    <input 
+                                    <input
                                         type="date"
                                         value={exportStartDate}
                                         onChange={e => setExportStartDate(e.target.value)}
@@ -609,7 +645,7 @@ export default function IndicadoresMacPage() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Hasta</label>
-                                    <input 
+                                    <input
                                         type="date"
                                         value={exportEndDate}
                                         onChange={e => setExportEndDate(e.target.value)}
@@ -619,13 +655,13 @@ export default function IndicadoresMacPage() {
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                                <button 
+                                <button
                                     onClick={() => setShowExportModal(false)}
                                     className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                                 >
                                     Cancelar
                                 </button>
-                                <button 
+                                <button
                                     onClick={confirmExport}
                                     className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
                                 >

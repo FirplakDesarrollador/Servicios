@@ -694,16 +694,39 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [] }: Props) {
-    // KPIs
+    // ── KPIs memoizados ────────────────────────────────────────────────────────
     const totalNovedades = data.length;
-    const abiertas = data.filter(d => d.estado === 'Abierto').length;
-    const cerradas = data.filter(d => d.estado === 'Cerrado').length;
-    const valorInvertido = data.reduce((acc, curr) => acc + (curr._valorInvertido || 0), 0);
+    const { abiertas, cerradas, valorInvertido } = useMemo(() => ({
+        abiertas: data.filter(d => d.estado === 'Abierto').length,
+        cerradas: data.filter(d => d.estado === 'Cerrado').length,
+        valorInvertido: data.reduce((acc, curr) => acc + (curr._valorInvertido || 0), 0),
+    }), [data]);
 
-    // Variación (Mocked for now since proper variation requires knowing the EXACT previous period bounds)
-    // We will do a generic calculation against the whole unfiltered set relative to the filtered set, 
-    // or just assume a +5% for visual demonstration of the requested feature.
     const variacionNovedades = 5.2; // %
+
+    // ── Maps O(1) para lookup de IDs → nombres (construidos una sola vez) ──────
+    const defectosMap = useMemo(() =>
+        new Map<string, string>(defectosRef.map((d: any) => [String(d.id), d.defecto])),
+        [defectosRef]
+    );
+    const razonesMap = useMemo(() =>
+        new Map<string, string>((razones || []).map((r: any) => [String(r.id), r.razon])),
+        [razones]
+    );
+    const responsablesMap = useMemo(() =>
+        new Map<string, string>((responsablesRef || []).map((r: any) => [String(r.id), r.responsable])),
+        [responsablesRef]
+    );
+
+    // getNombreProblema usando Maps O(1)
+    const getNombreProblema = (id: number | string): string => {
+        const key = String(id);
+        return defectosMap.get(key) || razonesMap.get(key) || `ID ${id}`;
+    };
+
+    const getResponsableNombre = (id: number | string): string => {
+        return responsablesMap.get(String(id)) || `ID ${id}`;
+    };
 
     // Chart 1: Total registros por mes
     const registrosPorMes = useMemo(() => {
@@ -733,11 +756,9 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         return avg % 1 === 0 ? avg.toString() : avg.toFixed(1);
     }, [totalNovedades, registrosPorMes]);
 
-    // Funciones auxiliares
-    const getProductosStats = (field: 'productos_compra' | 'productos_novedad') => {
+    // ── getProductosStats memoizada (evita recalcular en cada render) ──────────
+    const buildProductosStats = (field: 'productos_compra' | 'productos_novedad', sourceData: RegistroMAC[]) => {
         const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number, codigosSet: Set<string> }> = {};
-        
-        const sourceData = dataForProductos || data;
 
         const activeGroupFilters = (filters.productos || []).filter(f => isGroupFilter(f));
         const activeSpecificFilters = (filters.productos || []).filter(f => !isGroupFilter(f));
@@ -752,7 +773,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 d[field].forEach((p: any) => {
                     const nombre = p.descripcion || p.nombre || p.sku || p.referencia || p.codigo || 'Desconocido';
                     const codigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-                    
+
                     let include = true;
                     if (field === 'productos_novedad' && ((filters.defectos && filters.defectos.length > 0) || (filters.responsables && filters.responsables.length > 0))) {
                         let hasMatchingProblem = false;
@@ -765,8 +786,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 }
                                 let matchResp = true;
                                 if (filters.responsables && filters.responsables.length > 0) {
-                                    const respObj = responsablesRef?.find(r => r.id == prob.responsable_problema_id);
-                                    const respNombre = respObj ? respObj.responsable : `ID ${prob.responsable_problema_id}`;
+                                    // O(1) lookup con Map
+                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
                                     if (!filters.responsables.includes(respNombre)) matchResp = false;
                                 }
                                 if (matchDef && matchResp) hasMatchingProblem = true;
@@ -779,15 +800,14 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                             }
                             let matchResp = true;
                             if (filters.responsables && filters.responsables.length > 0) {
-                                const respObj = responsablesRef?.find(r => r.id == p.responsable_problema_id);
-                                const respNombre = respObj ? respObj.responsable : `ID ${p.responsable_problema_id}`;
+                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
                                 if (!filters.responsables.includes(respNombre)) matchResp = false;
                             }
                             if (matchDef && matchResp) hasMatchingProblem = true;
                         }
                         if (!hasMatchingProblem) include = false;
                     }
-                    
+
                     if (activeGroupFilters.length > 0) {
                         const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
                         const matchesGroup = activeGroupFilters.some(gf => gf.toUpperCase() === prodGrupo.toUpperCase());
@@ -805,18 +825,16 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 });
             }
         });
-        
-        const totalRegistros = data.length || 1;
 
+        const totalRegistros = data.length || 1;
         return Object.entries(stats)
             .map(([nombre, stat]) => {
                 const regs = stat.registrosSet.size;
                 const codigosArr = Array.from(stat.codigosSet);
-                const codigoStr = codigosArr.length > 0 ? codigosArr.join(', ') : '';
-                return { 
-                    nombre, 
-                    codigo: codigoStr,
-                    Registros: regs, 
+                return {
+                    nombre,
+                    codigo: codigosArr.length > 0 ? codigosArr.join(', ') : '',
+                    Registros: regs,
                     'Productos Afectados': stat.productosAfectados,
                     Participacion: ((regs / totalRegistros) * 100).toFixed(1) + '%'
                 };
@@ -824,19 +842,9 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             .sort((a, b) => b.Registros - a.Registros);
     };
 
-    const getNombreProblema = (id: number | string) => {
-        const defectoObj = defectosRef?.find(d => d.id == id);
-        if (defectoObj) return defectoObj.defecto;
-        
-        const razonObj = razones?.find(r => r.id == id);
-        if (razonObj) return razonObj.razon;
-        
-        return `ID ${id}`;
-    };
-
     const tipoProblemaStats = useMemo(() => {
         const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
-        
+
         const sourceData = dataForDefectos || data;
         sourceData.forEach(d => {
             if (Array.isArray(d.productos_novedad)) {
@@ -849,42 +857,36 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         const matches = filters.productos.some(f => f === prodNombre || (prodCodigo && f === prodCodigo) || (prodGrupo && f === prodGrupo));
                         if (!matches) passesProductos = false;
                     }
-
                     if (!passesProductos) return;
 
                     let hasProblema = false;
-                    
+
                     if (Array.isArray(p.problemas) && p.problemas.length > 0) {
                         p.problemas.forEach((prob: any) => {
                             let matchResp = true;
                             if (filters.responsables && filters.responsables.length > 0) {
-                                const respObj = responsablesRef?.find(r => r.id == prob.responsable_problema_id);
-                                const respNombre = respObj ? respObj.responsable : `ID ${prob.responsable_problema_id}`;
+                                // O(1) Map lookup
+                                const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
                                 if (!filters.responsables.includes(respNombre)) matchResp = false;
                             }
-
                             if (matchResp && prob.tipo_problema_id) {
                                 hasProblema = true;
                                 const nombre = getNombreProblema(prob.tipo_problema_id);
-                                
                                 if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
                                 stats[nombre].registrosSet.add(d.id);
                                 stats[nombre].productosAfectados += (p.cantidad || 1);
                             }
                         });
                     }
-                    
+
                     if (!hasProblema && p.tipo_problema_id) {
                         let matchResp = true;
                         if (filters.responsables && filters.responsables.length > 0) {
-                            const respObj = responsablesRef?.find(r => r.id == p.responsable_problema_id);
-                            const respNombre = respObj ? respObj.responsable : `ID ${p.responsable_problema_id}`;
+                            const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
                             if (!filters.responsables.includes(respNombre)) matchResp = false;
                         }
-
                         if (matchResp) {
                             const nombre = getNombreProblema(p.tipo_problema_id);
-                            
                             if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
                             stats[nombre].registrosSet.add(d.id);
                             stats[nombre].productosAfectados += (p.cantidad || 1);
@@ -893,25 +895,21 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 });
             }
         });
-        
+
         const totalRegistros = data.length || 1;
-        
         return Object.entries(stats)
-            .map(([nombre, stat]) => {
-                const regs = stat.registrosSet.size;
-                return {
-                    nombre, 
-                    Registros: regs, 
-                    'Productos Afectados': stat.productosAfectados,
-                    Participacion: ((regs / totalRegistros) * 100).toFixed(1) + '%'
-                };
-            })
+            .map(([nombre, stat]) => ({
+                nombre,
+                Registros: stat.registrosSet.size,
+                'Productos Afectados': stat.productosAfectados,
+                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
+            }))
             .sort((a, b) => b.Registros - a.Registros);
-    }, [data, dataForDefectos, razones, defectosRef, filters.productos, filters.responsables, responsablesRef]);
+    }, [data, dataForDefectos, defectosMap, razonesMap, responsablesMap, filters.productos, filters.responsables]);
 
     const responsableProblemaStats = useMemo(() => {
         const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
-        
+
         const sourceData = dataForResponsables || data;
         sourceData.forEach(d => {
             if (Array.isArray(d.productos_novedad)) {
@@ -924,11 +922,10 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         const matches = filters.productos.some(f => f === prodNombre || (prodCodigo && f === prodCodigo) || (prodGrupo && f === prodGrupo));
                         if (!matches) passesProductos = false;
                     }
-
                     if (!passesProductos) return;
 
                     let hasResponsable = false;
-                    
+
                     if (Array.isArray(p.problemas) && p.problemas.length > 0) {
                         p.problemas.forEach((prob: any) => {
                             let matchDef = true;
@@ -936,30 +933,25 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : '';
                                 if (!filters.defectos.includes(probNombre)) matchDef = false;
                             }
-
                             if (matchDef && prob.responsable_problema_id) {
                                 hasResponsable = true;
-                                const respObj = responsablesRef?.find(r => r.id == prob.responsable_problema_id);
-                                const nombre = respObj ? respObj.responsable : `ID ${prob.responsable_problema_id}`;
-                                
+                                // O(1) Map lookup
+                                const nombre = getResponsableNombre(prob.responsable_problema_id);
                                 if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
                                 stats[nombre].registrosSet.add(d.id);
                                 stats[nombre].productosAfectados += (p.cantidad || 1);
                             }
                         });
                     }
-                    
+
                     if (!hasResponsable && p.responsable_problema_id) {
                         let matchDef = true;
                         if (filters.defectos && filters.defectos.length > 0) {
                             const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : '';
                             if (!filters.defectos.includes(probNombre)) matchDef = false;
                         }
-
                         if (matchDef) {
-                            const respObj = responsablesRef?.find(r => r.id == p.responsable_problema_id);
-                            const nombre = respObj ? respObj.responsable : `ID ${p.responsable_problema_id}`;
-                            
+                            const nombre = getResponsableNombre(p.responsable_problema_id);
                             if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
                             stats[nombre].registrosSet.add(d.id);
                             stats[nombre].productosAfectados += (p.cantidad || 1);
@@ -968,24 +960,27 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 });
             }
         });
-        
-        const totalRegistros = data.length || 1;
-        
-        return Object.entries(stats)
-            .map(([nombre, stat]) => {
-                const regs = stat.registrosSet.size;
-                return {
-                    nombre, 
-                    Registros: regs, 
-                    'Productos Afectados': stat.productosAfectados,
-                    Participacion: ((regs / totalRegistros) * 100).toFixed(1) + '%'
-                };
-            })
-            .sort((a, b) => b.Registros - a.Registros);
-    }, [data, dataForResponsables, responsablesRef, filters.productos, filters.defectos, razones, defectosRef]);
 
-    const productosNovedadStats = useMemo(() => getProductosStats('productos_novedad'), [data]);
-    const productosCompraStats = useMemo(() => getProductosStats('productos_compra'), [data]);
+        const totalRegistros = data.length || 1;
+        return Object.entries(stats)
+            .map(([nombre, stat]) => ({
+                nombre,
+                Registros: stat.registrosSet.size,
+                'Productos Afectados': stat.productosAfectados,
+                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
+            }))
+            .sort((a, b) => b.Registros - a.Registros);
+    }, [data, dataForResponsables, responsablesMap, defectosMap, razonesMap, filters.productos, filters.defectos]);
+
+    // Memoizados correctamente con sus dependencias reales
+    const productosNovedadStats = useMemo(() =>
+        buildProductosStats('productos_novedad', dataForProductos || data),
+        [data, dataForProductos, filters.productos, filters.defectos, filters.responsables, defectosMap, razonesMap, responsablesMap]
+    );
+    const productosCompraStats = useMemo(() =>
+        buildProductosStats('productos_compra', dataForProductos || data),
+        [data, dataForProductos, filters.productos, filters.defectos, filters.responsables, defectosMap, razonesMap, responsablesMap]
+    );
 
     const productosGruposStats = useMemo(() => {
         const stats: Record<string, { registrosSet: Set<number>; productosAfectados: number }> = {};
@@ -1006,8 +1001,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 }
                                 let matchResp = true;
                                 if (filters.responsables && filters.responsables.length > 0) {
-                                    const respObj = responsablesRef?.find(r => r.id == prob.responsable_problema_id);
-                                    const respNombre = respObj ? respObj.responsable : `ID ${prob.responsable_problema_id}`;
+                                    // O(1) Map lookup
+                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
                                     if (!filters.responsables.includes(respNombre)) matchResp = false;
                                 }
                                 if (matchDef && matchResp) hasMatchingProblem = true;
@@ -1020,8 +1015,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                             }
                             let matchResp = true;
                             if (filters.responsables && filters.responsables.length > 0) {
-                                const respObj = responsablesRef?.find(r => r.id == p.responsable_problema_id);
-                                const respNombre = respObj ? respObj.responsable : `ID ${p.responsable_problema_id}`;
+                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
                                 if (!filters.responsables.includes(respNombre)) matchResp = false;
                             }
                             if (matchDef && matchResp) hasMatchingProblem = true;
@@ -1050,12 +1044,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                             else if (desc.includes('INFRAESTRUCTURA')) grupoRaw = 'INFRAESTRUCTURA';
                             else grupoRaw = 'OTROS';
                         }
-                        let grupo = normalizeGrupoName(grupoRaw);
-
-                        if (!stats[grupo]) {
-                            stats[grupo] = { registrosSet: new Set(), productosAfectados: 0 };
-                        }
-
+                        const grupo = normalizeGrupoName(grupoRaw);
+                        if (!stats[grupo]) stats[grupo] = { registrosSet: new Set(), productosAfectados: 0 };
                         stats[grupo].registrosSet.add(d.id);
                         stats[grupo].productosAfectados += (p.cantidad || 1);
                     }
@@ -1064,7 +1054,6 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         });
 
         const totalRegistros = sourceData.length || 1;
-
         return Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
@@ -1073,9 +1062,9 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
             }))
             .sort((a, b) => b.Registros - a.Registros);
-    }, [data, dataForProductos, filters.defectos, filters.responsables, filters.productos, razones, defectosRef, responsablesRef]);
+    }, [data, dataForProductos, defectosMap, razonesMap, responsablesMap, filters.defectos, filters.responsables, filters.productos]);
 
-    // Chart 7 & 8: Ciudades y Zonas
+    // Chart 7 & 8: Ciudades y Zonas — dependencias correctas sobre sourceData
     const ciudadesData = useMemo(() => {
         const stats: Record<string, { regs: number, prods: number }> = {};
         const sourceData = dataForCiudades || data;
@@ -1085,7 +1074,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             if (!stats[ciudad]) stats[ciudad] = { regs: 0, prods: 0 };
             stats[ciudad].regs += 1;
             if (Array.isArray(d.productos_novedad)) {
-                stats[ciudad].prods += d.productos_novedad.reduce((acc, p) => acc + (p.cantidad || 1), 0);
+                stats[ciudad].prods += d.productos_novedad.reduce((acc: number, p: any) => acc + (p.cantidad || 1), 0);
             }
         });
         return Object.entries(stats).map(([nombre, stat]) => ({
@@ -1094,7 +1083,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             'Productos Afectados': stat.prods,
             Participacion: ((stat.regs / total) * 100).toFixed(1) + '%'
         })).sort((a, b) => b.Registros - a.Registros);
-    }, [data]);
+    }, [data, dataForCiudades]);
 
     const zonasData = useMemo(() => {
         const stats: Record<string, { regs: number, prods: number }> = {};
@@ -1105,7 +1094,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             if (!stats[zona]) stats[zona] = { regs: 0, prods: 0 };
             stats[zona].regs += 1;
             if (Array.isArray(d.productos_novedad)) {
-                stats[zona].prods += d.productos_novedad.reduce((acc, p) => acc + (p.cantidad || 1), 0);
+                stats[zona].prods += d.productos_novedad.reduce((acc: number, p: any) => acc + (p.cantidad || 1), 0);
             }
         });
         return Object.entries(stats).map(([nombre, stat]) => ({
@@ -1114,7 +1103,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             'Productos Afectados': stat.prods,
             Participacion: ((stat.regs / total) * 100).toFixed(1) + '%'
         })).sort((a, b) => b.Registros - a.Registros);
-    }, [data]);
+    }, [data, dataForZonas]);
 
     // Clientes
     const clientesData = useMemo(() => {
