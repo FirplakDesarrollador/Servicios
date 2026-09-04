@@ -1,3 +1,11 @@
+export interface ProductItem {
+    grupo: string;
+    medida: string;
+    observaciones: string;
+    cantidadPersonas?: number;
+    tieneCalentadorGas?: boolean;
+}
+
 export interface FormularioClienteModel {
     // Información Personal
     tipoPersona: 'Persona Natural' | 'Persona Jurídica';
@@ -13,13 +21,14 @@ export interface FormularioClienteModel {
     puntoReferencia?: string;
     tipoServicio: string;
 
-    // Información del Producto
+    // Información de Productos Múltiples
+    productos?: ProductItem[];
+
+    // Legacy / Fallback Fields (kept for backwards compatibility during transition)
     grupo?: string;
     medida?: string;
     observaciones?: string;
-
-    // Hidromasajes specific fields
-    cantidadPersonas?: number; // 2 or 4
+    cantidadPersonas?: number;
     tieneCalentadorGas?: boolean;
 
     // Documentos
