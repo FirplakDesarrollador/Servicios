@@ -43,9 +43,22 @@ export interface GridRow {
   costingCode?: string;
   salesEmployee?: string;
   lineStatus?: string;
+  treeType?: string;
 }
 
-export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice' }) {
+const getRowTextColor = (treeType?: string) => {
+  if (treeType === 'i' || treeType === 'S') return 'text-red-600 font-bold';
+  if (treeType === 'I') return 'text-slate-500 font-medium italic';
+  return 'text-slate-800 font-medium';
+};
+
+export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinimizeChange }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice', onMinimizeChange?: (isMin: boolean) => void }) {
+  const [mode, setMode] = useState<'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice'>(initialMode);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
   // ── Form State (Initially EMPTY for Consultation) ─────────────────────────────
   // Header Left
   const [cardCode, setCardCode] = useState('');
@@ -55,9 +68,11 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [currency, setCurrency] = useState('COP');
 
   // Header Right
-  const [docSeries, setDocSeries] = useState(
-    mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : mode === 'Invoice' ? 'NAL-FEN8' : 'Cot-Nal'
-  );
+  const [docSeries, setDocSeries] = useState('');
+  
+  useEffect(() => {
+    setDocSeries(mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : mode === 'Invoice' ? 'NAL-FEN8' : 'Cot-Nal');
+  }, [mode]);
   const [docNum, setDocNum] = useState('');
   const [docStatus, setDocStatus] = useState('');
   const [postingDate, setPostingDate] = useState('');
@@ -153,7 +168,41 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isComentariosModalOpen, setIsComentariosModalOpen] = useState(false);
   const [isMapaRelacionesModalOpen, setIsMapaRelacionesModalOpen] = useState(false);
+  const [relationshipNodes, setRelationshipNodes] = useState<any[]>([]);
+  const [isLoadingMap, setIsLoadingMap] = useState(false);
   const [isDocumentViewerOpen, setIsDocumentViewerOpen] = useState(false);
+  const [isPOExpanded, setIsPOExpanded] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  useEffect(() => {
+    if (onMinimizeChange) {
+      onMinimizeChange(isMinimized);
+    }
+  }, [isMinimized, onMinimizeChange]);
+
+  // Fetch dynamic relationship map from SAP Service Layer
+  useEffect(() => {
+    if (isMapaRelacionesModalOpen) {
+      const fetchMap = async () => {
+        setIsLoadingMap(true);
+        try {
+          const res = await fetch(`/api/sap/relationship-map?docNum=${docNum}&type=${mode}`);
+          const data = await res.json();
+          if (data.nodes) {
+            setRelationshipNodes(data.nodes);
+          } else {
+            setRelationshipNodes([]);
+          }
+        } catch (error) {
+          console.error("Failed to fetch relationship map:", error);
+          setRelationshipNodes([]);
+        } finally {
+          setIsLoadingMap(false);
+        }
+      };
+      fetchMap();
+    }
+  }, [isMapaRelacionesModalOpen, docNum, mode]);
 
   // Modals & Search State
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -219,7 +268,14 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
   }, []);
 
   // ── Search Real SAP Document by Orden de Venta / DocNum ──────────────────────
-  const handleSearchSapDocument = async (queryNum?: string) => {
+  const navigateToDocument = (targetDocNum: string, targetMode: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice') => {
+    setIsMapaRelacionesModalOpen(false);
+    setMode(targetMode);
+    setDocNum(targetDocNum);
+    handleSearchSapDocument(targetDocNum, targetMode);
+  };
+
+  const handleSearchSapDocument = async (queryNum?: string, overrideMode?: string) => {
     const searchTarget = (queryNum || docNum || ordenVenta || '').trim();
     if (!searchTarget) {
       setStatusMessage('✖ Ingrese un número de Documento para consultar en SAP Business One.');
@@ -227,12 +283,14 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       return;
     }
 
+    const targetMode = overrideMode || mode;
+
     try {
       setIsLoading(true);
       setStatusMessage(`● Consultando documento Nº ${searchTarget} en SAP Business One Service Layer...`);
       setStatusType('info');
 
-      const res = await fetch(`/api/sap/quotations?docNum=${encodeURIComponent(searchTarget.trim())}&type=${mode}`);
+      const res = await fetch(`/api/sap/quotations?docNum=${encodeURIComponent(searchTarget.trim())}&type=${targetMode}`);
       const data = await res.json();
 
       if (!res.ok || !data.success || !data.document) {
@@ -487,7 +545,8 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
             whsCode: line.WarehouseCode || 'PT-01',
             costingCode: line.CostingCode || line.CostingCode2 || line.CostingCode3 || '',
             salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
-            lineStatus: line.LineStatus === 'bost_Open' || line.LineStatus === 'O' ? 'Abierto' : 'Cerrado'
+            lineStatus: line.LineStatus === 'bost_Open' || line.LineStatus === 'O' ? 'Abierto' : 'Cerrado',
+            treeType: line.TreeType || ''
           }));
 
           // Add 1 empty row at the end
@@ -505,12 +564,13 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
             whsCode: 'PT-01',
             costingCode: '',
             salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
-            lineStatus: 'Abierto'
+            lineStatus: 'Abierto',
+            treeType: ''
           });
 
           setRows(mappedLines);
         } else {
-          setRows([{ id: '1', itemCode: '', description: '', barCode: '', quantity: 1, unitMsr: 'UND', price: 0, discount: 0, taxCode: 'IVA 19%', total: 0, whsCode: 'PT-01', costingCode: '', salesEmployee: sapDoc._SalesEmployeeName || 'Firplak', lineStatus: 'Abierto' }]);
+          setRows([{ id: '1', itemCode: '', description: '', barCode: '', quantity: 1, unitMsr: 'UND', price: 0, discount: 0, taxCode: 'IVA 19%', total: 0, whsCode: 'PT-01', costingCode: '', salesEmployee: sapDoc._SalesEmployeeName || 'Firplak', lineStatus: 'Abierto', treeType: '' }]);
         }
       }
 
@@ -663,6 +723,22 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
       setStatusType('error');
     }
   };
+
+  if (isMinimized) {
+    return (
+      <div 
+        className="fixed bottom-0 left-8 bg-gradient-to-r from-[#D97706] to-[#F59E0B] text-white px-4 py-2 rounded-t-lg font-bold text-xs cursor-pointer shadow-[0_-4px_10px_rgba(0,0,0,0.2)] border border-b-0 border-amber-600 flex items-center justify-between gap-4 hover:from-amber-500 hover:to-amber-400 z-50 w-64 transition-all"
+        onClick={() => setIsMinimized(false)}
+      >
+        <span className="truncate">
+          {mode === 'Invoice' ? 'Factura de deudores' : mode === 'ProductionOrder' ? 'Orden de fabricación' : mode === 'Order' ? 'Orden de venta' : mode === 'Delivery' ? 'Entrega' : 'Oferta de ventas'}
+        </span>
+        <div className="flex items-center gap-1 opacity-80">
+          <span className="hover:bg-white/20 px-1.5 rounded" title="Restaurar">□</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-[#CBD5E1] text-slate-800 font-sans p-2 select-none min-h-screen relative">
@@ -1169,10 +1245,21 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                 ? 'Entrega' 
                 : 'Oferta de ventas'}
             </span>
-            <div className="flex items-center gap-1 opacity-80">
-              <span className="hover:opacity-100 cursor-pointer">_</span>
-              <span className="hover:opacity-100 cursor-pointer">□</span>
-              <span className="hover:opacity-100 cursor-pointer">✕</span>
+            <div className="flex items-center gap-2 opacity-90 text-sm">
+              <span 
+                className="hover:bg-white/20 px-1.5 rounded cursor-pointer transition-colors" 
+                title="Minimizar"
+                onClick={() => setIsMinimized(true)}
+              >
+                _
+              </span>
+              <span 
+                className="hover:bg-red-500 hover:text-white px-1.5 rounded cursor-pointer transition-colors" 
+                title="Cerrar"
+                onClick={() => window.location.href = '/consultas-sap'}
+              >
+                ✕
+              </span>
             </div>
           </div>
 
@@ -1875,7 +1962,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                                 type="text"
                                 value={row.itemCode}
                                 onChange={e => handleRowChange(row.id, 'itemCode', e.target.value)}
-                                className="w-full px-1.5 py-1 bg-transparent outline-none font-semibold text-slate-800 focus:bg-amber-50"
+                                className={`w-full px-1.5 py-1 bg-transparent outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
                                 placeholder="Escriba código..."
                               />
                               <button 
@@ -1897,7 +1984,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                               type="text"
                               value={row.description}
                               onChange={e => handleRowChange(row.id, 'description', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent outline-none text-slate-700 focus:bg-amber-50"
+                              className={`w-full px-1.5 py-1 bg-transparent outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
                               placeholder="Descripción del artículo..."
                             />
                           </td>
@@ -1908,7 +1995,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                               type="text"
                               value={row.barCode || ''}
                               onChange={e => handleRowChange(row.id, 'barCode', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent outline-none text-slate-500 text-center"
+                              className={`w-full px-1.5 py-1 bg-transparent outline-none text-center ${getRowTextColor(row.treeType)}`}
                               placeholder="Código de barra"
                             />
                           </td>
@@ -1920,7 +2007,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                               min="1"
                               value={row.quantity}
                               onChange={e => handleRowChange(row.id, 'quantity', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-right font-medium outline-none focus:bg-amber-50"
+                              className={`w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
                             />
                           </td>
 
@@ -1930,7 +2017,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                               type="text"
                               value={row.unitMsr || 'UND'}
                               onChange={e => handleRowChange(row.id, 'unitMsr', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
+                              className={`w-full px-1.5 py-1 bg-transparent text-center outline-none ${getRowTextColor(row.treeType)}`}
                             />
                           </td>
 
@@ -1940,7 +2027,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                               type="number"
                               value={row.price}
                               onChange={e => handleRowChange(row.id, 'price', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-right font-medium outline-none focus:bg-amber-50"
+                              className={`w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
                             />
                           </td>
 
@@ -1966,7 +2053,7 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                           </td>
 
                           {/* Total */}
-                          <td className="p-1.5 text-right font-bold text-slate-800 bg-slate-50/50 border-r border-slate-200">
+                          <td className={`p-1.5 text-right bg-slate-50/50 border-r border-slate-200 ${getRowTextColor(row.treeType)}`}>
                             {formatMoney(row.total)}
                           </td>
 
@@ -2630,6 +2717,13 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
             {/* Main Graph View Canvas */}
             <div className="p-6 bg-white flex-1 overflow-auto relative min-h-[440px] text-[11px] font-sans">
               
+              {isLoadingMap && (
+                <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+                  <span className="ml-3 text-sm font-bold text-slate-700">Cargando relaciones...</span>
+                </div>
+              )}
+
               {/* Top Left: Socios de negocios Card */}
               <div className="absolute top-4 left-4 w-44 border border-slate-400 rounded-sm bg-white shadow-md z-10">
                 <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
@@ -2643,127 +2737,62 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
 
               {/* Dynamic Tree Flow Container */}
               {(() => {
-                const currentDoc = docNum || ordenVenta || '162517';
-                
-                // Determine document data based on active document
-                let qNum = '5795';
-                let qDate = '28/08/2026';
-                let qTotal = '4370250.90';
+                const formatDate = (dStr: string | Date | undefined) => {
+                  if (!dStr) return '';
+                  const s = String(dStr);
+                  if (s.length === 8 && /^\d+$/.test(s)) {
+                    return `${s.substring(6,8)}/${s.substring(4,6)}/${s.substring(0,4)}`;
+                  }
+                  return s;
+                };
 
-                let poNum = '10073750';
-                let poItem = rows[0]?.itemCode && rows[0]?.itemCode !== 'Escriba código...' ? rows[0].itemCode : 'VBAN05-0051-000-0439';
-                let poStatus = 'Planif.';
-                let poDate = '07/09/2026';
+                const quoteNode = relationshipNodes.find(n => n.DocType === 'Quotation');
+                const orderNode = relationshipNodes.find(n => n.DocType === 'Order');
+                const deliveryNode = relationshipNodes.find(n => n.DocType === 'Delivery');
+                const invoiceNode = relationshipNodes.find(n => n.DocType === 'Invoice');
+                const poNodes = relationshipNodes.filter(n => n.DocType === 'ProductionOrder');
 
-                let soNum = currentDoc;
-                let soDate = postingDate ? postingDate.split('-').reverse().join('/') : '29/08/2026';
-                let soTotal = subtotalRows > 0 ? (subtotalRows * 1.19) : 4382656.95;
+                const hasQuote = !!quoteNode;
+                const qNum = quoteNode?.DocNum || '';
+                const qDate = formatDate(quoteNode?.DocDate);
+                const qTotal = quoteNode?.DocTotal || 0;
 
-                let hasDel = false;
-                let delNum = '91279';
-                let delDate = '31/08/2026';
-                let delTotal = '4382656.95';
+                const hasOrder = !!orderNode;
+                const soNum = orderNode?.DocNum || docNum;
+                const soDate = orderNode ? formatDate(orderNode.DocDate) : (postingDate ? postingDate.split('-').reverse().join('/') : '');
+                const soTotal = orderNode?.DocTotal || (subtotalRows > 0 ? (subtotalRows * 1.19) : 0);
 
-                let hasInv = false;
-                let invNum = '156832';
-                let invDate = '31/08/2026';
-                let invTotal = '4382656.95';
+                const hasDel = !!deliveryNode;
+                const delNum = deliveryNode?.DocNum || '';
+                const delDate = formatDate(deliveryNode?.DocDate);
+                const delTotal = deliveryNode?.DocTotal || 0;
 
-                // Specific SAP B1 Document Relationship Chains
-                if (currentDoc === '162517') {
-                  qNum = '5797';
-                  qDate = '28/08/2026';
-                  qTotal = '2552900.00';
+                const hasInv = !!invoiceNode;
+                const invNum = invoiceNode?.DocNum || '';
+                const invDate = formatDate(invoiceNode?.DocDate);
+                const invTotal = invoiceNode?.DocTotal || 0;
 
-                  poNum = '10073751';
-                  poItem = 'VBAN12-0011-000-0437';
-                  poStatus = 'Liberado';
-                  poDate = '04/09/2026';
+                const multiplePOs = poNodes.length > 1;
+                const multiplePOsList = poNodes.map(po => ({
+                  num: po.DocNum,
+                  item: 'Múltiple/Desconocido', // No item details from mega query
+                  status: po.CANCELED === 'C' ? 'Cerrado' : po.CANCELED === 'L' ? 'Cerrado' : 'Planif.',
+                  date: formatDate(po.DocDate)
+                }));
+                const firstPO = poNodes[0];
+                const poNum = firstPO?.DocNum || '';
+                const poDate = formatDate(firstPO?.DocDate);
+                const poStatus = firstPO ? (firstPO.CANCELED === 'C' ? 'Cerrado' : 'Planif.') : '';
+                const poItem = 'Múltiple/Desconocido';
 
-                  soNum = '162517';
-                  soDate = '29/08/2026';
-                  soTotal = 2552900.00;
+                const totalNodes = (hasQuote ? 1 : 0) + 1 + (hasDel ? 1 : 0) + (hasInv ? 1 : 0);
 
-                  hasDel = false;
-                  hasInv = false;
-                } else if (currentDoc === '162516') {
-                  qNum = '5795';
-                  qDate = '28/08/2026';
-                  qTotal = '4370250.90';
-
-                  poNum = '10073750';
-                  poItem = 'VBAN05-0051-000-0439';
-                  poStatus = 'Planif.';
-                  poDate = '07/09/2026';
-
-                  soNum = '162516';
-                  soDate = '29/08/2026';
-                  soTotal = 4382656.95;
-
-                  hasDel = true;
-                  delNum = '91279';
-                  delDate = '31/08/2026';
-                  delTotal = '4382656.95';
-
-                  hasInv = true;
-                  invNum = '156832';
-                  invDate = '31/08/2026';
-                  invTotal = '4382656.95';
-                } else if (currentDoc === '91277' || currentDoc === '156830' || currentDoc === '162361' || comments.includes('5730')) {
-                  qNum = '5730';
-                  qDate = '25/08/2026';
-                  qTotal = '5475860.21';
-
-                  poNum = '10073748';
-                  poItem = 'VROP01-0019-000-0100';
-                  poStatus = 'Liberado';
-                  poDate = '28/08/2026';
-
-                  soNum = '162361';
-                  soDate = '26/08/2026';
-                  soTotal = 5475860.21;
-
-                  hasDel = true;
-                  delNum = '91277';
-                  delDate = '31/08/2026';
-                  delTotal = '5475860.21';
-
-                  hasInv = mode === 'Invoice' || currentDoc === '156830';
-                  invNum = '156830';
-                  invDate = '31/08/2026';
-                  invTotal = '5475860.21';
-                } else if (currentDoc === '162561' || comments.includes('5800')) {
-                  qNum = '5800';
-                  qDate = '31/08/2026';
-                  qTotal = '3814033.30';
-
-                  poNum = '10073752';
-                  poItem = 'VBAN05-0051-000-0439';
-                  poStatus = 'Planif.';
-                  poDate = '08/09/2026';
-
-                  soNum = '162561';
-                  soDate = '31/08/2026';
-                  soTotal = 3814033.30;
-
-                  hasDel = false;
-                  hasInv = false;
-                } else if (mode === 'Delivery') {
-                  hasDel = true;
-                  delNum = currentDoc;
-                } else if (mode === 'Invoice') {
-                  hasDel = true;
-                  hasInv = true;
-                  invNum = currentDoc;
-                }
-
-                const totalNodes = 3 + (hasDel ? 1 : 0) + (hasInv ? 1 : 0);
 
                 return (
-                  <div className="pt-16 pb-4 flex items-center justify-center min-w-[750px]">
+                  <div className="pt-8 pb-12 flex items-center justify-center min-w-[750px]">
                     <div className={`grid ${
-                      totalNodes === 3 ? 'grid-cols-3 max-w-2xl gap-10' : totalNodes === 4 ? 'grid-cols-4 max-w-3xl gap-8' : 'grid-cols-5 max-w-4xl gap-6'
-                    } items-center relative w-full px-4`}>
+                      totalNodes === 2 ? 'grid-cols-2 max-w-xl gap-x-10' : totalNodes === 3 ? 'grid-cols-3 max-w-3xl gap-x-10' : 'grid-cols-4 max-w-5xl gap-x-8'
+                    } gap-y-16 items-center relative w-full px-4`}>
                       
                       {/* SVG Connecting Arrows overlay */}
                       <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
@@ -2771,30 +2800,116 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                           <marker id="sap-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                             <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
                           </marker>
+                          <marker id="sap-yellow-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#EAB308" />
+                          </marker>
                         </defs>
                         
-                        {/* Arrow 1: Oferta -> Orden de Fabricacion */}
-                        <line x1={totalNodes === 3 ? "28%" : totalNodes === 4 ? "20%" : "18%"} y1="50%" x2={totalNodes === 3 ? "37%" : totalNodes === 4 ? "27%" : "23%"} y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                        {/* ── ROW 2 ARROWS (Marketing Flow) ── */}
+                        {/* We use percentage positions assuming they align with grid cols */}
+                        {/* Y position for Row 2 centers. Since Row 1 has content and Row 2 has content, the Y center of Row 2 is approximately 75% or we can just draw them in the grid cells */}
                         
-                        {/* Arrow 2: Orden de Fabricación <-> Orden de Venta */}
-                        <line x1={totalNodes === 3 ? "62%" : totalNodes === 4 ? "47%" : "38%"} y1="50%" x2={totalNodes === 3 ? "71%" : totalNodes === 4 ? "54%" : "43%"} y2="50%" stroke="#EAB308" strokeWidth="2.5" markerEnd="url(#sap-arrow)" />
+                        {/* Arrow 1: Oferta -> Orden de Venta */}
+                        <line x1={totalNodes === 2 ? "35%" : totalNodes === 3 ? "24%" : "18%"} y1="75%" x2={totalNodes === 2 ? "65%" : totalNodes === 3 ? "42%" : "32%"} y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
                         
-                        {/* Arrow 3: Orden de Venta -> Entrega */}
+                        {/* Arrow 2: Orden de Venta -> Entrega */}
                         {hasDel && (
-                          <line x1={totalNodes === 4 ? "74%" : "58%"} y1="50%" x2={totalNodes === 4 ? "81%" : "63%"} y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                          <line x1={totalNodes === 3 ? "58%" : "43%"} y1="75%" x2={totalNodes === 3 ? "76%" : "57%"} y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
                         )}
                         
-                        {/* Arrow 4: Entrega -> Factura */}
+                        {/* Arrow 3: Entrega -> Factura */}
                         {hasInv && (
-                          <line x1="78%" y1="50%" x2="83%" y2="50%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
+                          <line x1="68%" y1="75%" x2="82%" y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
                         )}
                       </svg>
 
+                      {/* ── ROW 1 ── */}
+                      {/* Column 2: Orden de Fabricación */}
+                      <div className="col-start-2 z-10 flex flex-col items-center relative">
+                        {/* Yellow Arrow pointing down to Orden de Venta */}
+                        <svg className="absolute top-full w-4 h-16 overflow-visible pointer-events-none" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                          <line x1="2" y1="0" x2="2" y2="55" stroke="#EAB308" strokeWidth="3" markerEnd="url(#sap-yellow-arrow)" />
+                        </svg>
+
+                        {isPOExpanded && multiplePOsList.length > 0 ? (
+                          <div 
+                            className="flex flex-col gap-4 cursor-pointer"
+                            onDoubleClick={() => setIsPOExpanded(false)}
+                            title="Doble clic para contraer"
+                          >
+                            {multiplePOsList.map((po, idx) => (
+                              <div 
+                                key={idx} 
+                                className="w-40 border rounded-sm bg-white shadow-md relative border-slate-400 hover:ring-2 hover:ring-amber-300 transition-all"
+                                onDoubleClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateToDocument(po.num, 'ProductionOrder');
+                                }}
+                                title="Doble clic para abrir documento"
+                              >
+                                <div className="bg-[#8FB0D8] relative z-10 text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
+                                  <span>Orden de fabricación</span>
+                                </div>
+                                <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right relative z-10 bg-white">
+                                  <p className="font-bold text-slate-900">{po.num}</p>
+                                  <p className="text-[9px] text-slate-600 truncate" title={po.item}>{po.item}</p>
+                                  <p className="text-[9px] text-slate-600">Estándar</p>
+                                  <p className="text-[9px] text-slate-600">{po.status}</p>
+                                  <p className="text-[9px] text-slate-500">{po.date}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div 
+                            className={`w-40 border rounded-sm bg-white shadow-md relative z-10 ${multiplePOs ? 'cursor-pointer hover:ring-2 hover:ring-amber-300' : ''} ${
+                              mode === 'ProductionOrder' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
+                            }`}
+                            onDoubleClick={() => {
+                              if (multiplePOs) {
+                                setIsPOExpanded(true);
+                              } else {
+                                navigateToDocument(poNum, 'ProductionOrder');
+                              }
+                            }}
+                            title={multiplePOs ? "Doble clic para expandir órdenes" : "Doble clic para abrir documento"}
+                          >
+                            {/* Stacked background cards for multiple POs */}
+                            {multiplePOs && (
+                              <>
+                                <div className="absolute top-1 -right-1 w-full h-full bg-white border border-slate-400 rounded-sm -z-20 shadow-sm pointer-events-none"></div>
+                                <div className="absolute top-2 -right-2 w-full h-full bg-white border border-slate-400 rounded-sm -z-30 shadow-sm pointer-events-none"></div>
+                                <div className="absolute top-3 -right-3 w-full h-full bg-white border border-slate-400 rounded-sm -z-40 shadow-sm pointer-events-none"></div>
+                              </>
+                            )}
+                            <div className={`${mode === 'ProductionOrder' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} relative z-10 text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
+                              <span>Orden de fabricación</span>
+                            </div>
+                            <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right relative z-10 bg-white">
+                              <p className="font-bold text-slate-900">{poNum}</p>
+                              <p className="text-[9px] text-slate-600 truncate" title={poItem}>{poItem}</p>
+                              <p className="text-[9px] text-slate-600">Estándar</p>
+                              <p className="text-[9px] text-slate-600">{poStatus}</p>
+                              <p className="text-[9px] text-slate-500">{poDate}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Filler for other columns in Row 1 to keep grid balanced */}
+                      {totalNodes >= 3 && <div className="col-start-3"></div>}
+                      {totalNodes === 4 && <div className="col-start-4"></div>}
+
+                      {/* ── ROW 2 ── */}
                       {/* Column 1: Oferta de ventas */}
-                      <div className="z-10 flex flex-col items-center">
-                        <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
-                          mode === 'Quotation' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                        }`}>
+                      <div className="col-start-1 row-start-2 z-10 flex flex-col items-center">
+                        <div 
+                          className={`w-40 border rounded-sm bg-white shadow-md relative cursor-pointer hover:ring-2 transition-all ${
+                            mode === 'Quotation' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
+                          }`}
+                          onDoubleClick={() => navigateToDocument(mode === 'Quotation' ? (docNum || qNum) : qNum, 'Quotation')}
+                          title="Doble clic para abrir documento"
+                        >
                           <div className={`${mode === 'Quotation' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
                             <span>Oferta de ventas</span>
                             <span className="text-[10px]" title="Cerrado">🔒</span>
@@ -2807,29 +2922,15 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                         </div>
                       </div>
 
-                      {/* Column 2: Orden de fabricación */}
-                      <div className="z-10 flex flex-col items-center">
-                        <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
-                          mode === 'ProductionOrder' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                        }`}>
-                          <div className={`${mode === 'ProductionOrder' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                            <span>Orden de fabricación</span>
-                          </div>
-                          <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right">
-                            <p className="font-bold text-slate-900">{poNum}</p>
-                            <p className="text-[9px] text-slate-600 truncate">{poItem}</p>
-                            <p className="text-[9px] text-slate-600">Estándar</p>
-                            <p className="text-[9px] text-slate-600">{poStatus}</p>
-                            <p className="text-[9px] text-slate-500">{poDate}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Column 3: Orden de venta (ACTIVE Node Highlight if in Order mode or default) */}
-                      <div className="z-10 flex flex-col items-center">
-                        <div className={`w-40 border-2 rounded-sm bg-white shadow-xl relative ${
-                          mode === 'Order' || (!hasDel && !hasInv) ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                        }`}>
+                      {/* Column 2: Orden de venta (Main flow node) */}
+                      <div className="col-start-2 row-start-2 z-10 flex flex-col items-center">
+                        <div 
+                          className={`w-40 border-2 rounded-sm bg-white shadow-xl relative cursor-pointer hover:ring-2 transition-all ${
+                            mode === 'Order' || (!hasDel && !hasInv) ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
+                          }`}
+                          onDoubleClick={() => navigateToDocument(soNum, 'Order')}
+                          title="Doble clic para abrir documento"
+                        >
                           <div className={`${mode === 'Order' || (!hasDel && !hasInv) ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-amber-300 flex items-center justify-between`}>
                             <span>Orden de venta</span>
                             <span className="text-[10px]" title="Cerrado">🔒</span>
@@ -2842,12 +2943,16 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                         </div>
                       </div>
 
-                      {/* Column 4: Entrega (Optional) */}
+                      {/* Column 3: Entrega (Optional) */}
                       {hasDel && (
-                        <div className="z-10 flex flex-col items-center">
-                          <div className={`w-40 border rounded-sm bg-white shadow-md relative ${
-                            mode === 'Delivery' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                          }`}>
+                        <div className="col-start-3 row-start-2 z-10 flex flex-col items-center">
+                          <div 
+                            className={`w-40 border rounded-sm bg-white shadow-md relative cursor-pointer hover:ring-2 transition-all ${
+                              mode === 'Delivery' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
+                            }`}
+                            onDoubleClick={() => navigateToDocument(delNum, 'Delivery')}
+                            title="Doble clic para abrir documento"
+                          >
                             <div className={`${mode === 'Delivery' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
                               <span>Entrega</span>
                               <div className="flex items-center gap-1 text-[9px]">
@@ -2864,12 +2969,16 @@ export default function OfertaDeVenta({ mode = 'Quotation' }: { mode?: 'Quotatio
                         </div>
                       )}
 
-                      {/* Column 5: Factura de deudores (Optional) */}
+                      {/* Column 4: Factura de deudores (Optional) */}
                       {hasInv && (
-                        <div className="z-10 flex flex-col items-center">
-                          <div className={`w-40 border rounded-sm bg-white shadow-md relative overflow-hidden ${
-                            mode === 'Invoice' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                          }`}>
+                        <div className="col-start-4 row-start-2 z-10 flex flex-col items-center">
+                          <div 
+                            className={`w-40 border rounded-sm bg-white shadow-md relative overflow-hidden cursor-pointer hover:ring-2 transition-all ${
+                              mode === 'Invoice' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
+                            }`}
+                            onDoubleClick={() => navigateToDocument(invNum, 'Invoice')}
+                            title="Doble clic para abrir documento"
+                          >
                             <div className={`${mode === 'Invoice' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
                               <span>Factura de deudores</span>
                               <div className="flex items-center gap-1 text-[9px]">

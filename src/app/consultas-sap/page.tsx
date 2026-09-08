@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Server, ArrowLeft, FileText, Factory, Package, Truck, Receipt, Boxes, ChevronRight, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import OfertaDeVenta from '@/components/sap/OfertaDeVenta';
+import LDMCostos from '@/components/sap/LDMCostos';
 
 export default function ConsultasSapPage() {
   const router = useRouter();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [isAppMinimized, setIsAppMinimized] = useState(false);
 
   const sapModules = [
     {
@@ -62,6 +64,16 @@ export default function ConsultasSapPage() {
       active: true
     },
     {
+      id: 'ldm-costos',
+      title: 'LDM Costos',
+      description: 'Costo actual de producto terminado por lista de materiales.',
+      icon: Boxes,
+      color: 'bg-gradient-to-tr from-cyan-500 to-blue-600 text-white',
+      badge: 'Nuevo',
+      badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
+      active: true
+    },
+    {
       id: 'inventario-sap',
       title: 'Stock e Inventario SAP',
       description: 'Consulta de stock por almacenes y artículos en SAP.',
@@ -105,7 +117,9 @@ export default function ConsultasSapPage() {
                 : selectedModule === 'factura-cliente'
                 ? 'Consultas SAP — Factura de Clientes'
                 : selectedModule === 'oferta-venta'
-                ? 'Consultas SAP — Oferta de Ventas' 
+                ? 'Consultas SAP — Oferta de Ventas'
+                : selectedModule === 'ldm-costos'
+                ? 'Consultas SAP — LDM Costos'
                 : 'Consultas SAP'}
             </h1>
           </div>
@@ -191,15 +205,20 @@ export default function ConsultasSapPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
           >
-            <OfertaDeVenta 
-              mode={
-                selectedModule === 'orden-fabricacion' ? 'ProductionOrder' :
-                selectedModule === 'orden-venta' ? 'Order' :
-                selectedModule === 'entrega-despacho' ? 'Delivery' :
-                selectedModule === 'factura-cliente' ? 'Invoice' :
-                'Quotation'
-              } 
-            />
+            {selectedModule === 'ldm-costos' ? (
+              <LDMCostos onMinimizeChange={setIsAppMinimized} />
+            ) : (
+              <OfertaDeVenta 
+                mode={
+                  selectedModule === 'orden-fabricacion' ? 'ProductionOrder' :
+                  selectedModule === 'orden-venta' ? 'Order' :
+                  selectedModule === 'entrega-despacho' ? 'Delivery' :
+                  selectedModule === 'factura-cliente' ? 'Invoice' :
+                  'Quotation'
+                } 
+                onMinimizeChange={setIsAppMinimized}
+              />
+            )}
           </motion.div>
         )}
       </main>
