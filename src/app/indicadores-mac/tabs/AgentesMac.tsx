@@ -156,7 +156,7 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                 <KpiCard title="% Cierre" value={porcCierre} suffix="%" />
                 <KpiCard title="% Cumplim." value={porcCumplimiento} suffix="%" />
                 <KpiCard title="Tiempo Prom." value={tiempoPromedioCierre} suffix="d" />
-                <KpiCard title="Val. Invertido" value={valorInvertidoTotal} prefix="$" />
+                <KpiCard title="Val. Invertido" value={valorInvertidoTotal.toLocaleString('es-CO')} prefix="$" />
             </div>
 
             {/* Tabla de Seguimiento */}

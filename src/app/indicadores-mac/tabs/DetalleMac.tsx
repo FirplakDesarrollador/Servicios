@@ -75,8 +75,11 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
         ? cerradas.reduce((acc, curr) => acc + (curr._tiempoCierre || 0), 0) / cerradas.length 
         : 0;
 
-    const cumplieronObjetivo = cerradas.filter(d => (d._tiempoCierre || 0) <= 15).length;
-    const porcCumplimiento = cerradas.length > 0 ? (cumplieronObjetivo / cerradas.length) * 100 : 0;
+    const fueraSla = dataConRiesgo.filter(d => {
+        const diasHabiles = d._tiempoCierre !== null ? d._tiempoCierre : d._diasHabilesAbierta;
+        return diasHabiles > 15;
+    }).length;
+    const porcCumplimiento = total > 0 ? ((total - fueraSla) / total) * 100 : 0;
 
     const backlog = abiertas.length;
     const enRiesgoODemandante = abiertas.filter(d => d._estadoRiesgo === 'Riesgo de demanda' || d._estadoRiesgo === 'Demandante').length;
@@ -274,7 +277,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
                 <KpiCard title="Total Solicitudes" value={total} />
                 <KpiCard title="Cerradas" value={cerradas.length} subtitle={`${porcCierre.toFixed(1)}% de cierre`} />
-                <KpiCard title="Costo Promedio" value={costoPromedio} prefix="$" />
+                <KpiCard title="Costo Promedio" value={costoPromedio.toLocaleString('es-CO', { maximumFractionDigits: 1 })} prefix="$" />
                 <KpiCard title="Tiempo Prom. Cierre" value={tiempoPromedioCierre} suffix=" días" subtitle="Días hábiles" />
                 <KpiCard title="% Cumplimiento" value={porcCumplimiento} suffix="%" />
                 <KpiCard title="Backlog Operativo" value={backlog} />
@@ -295,7 +298,14 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                 <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#374151', fontWeight: '500' }} />
                                 <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20} name="Solicitudes">
+                                <Bar 
+                                    dataKey="value" 
+                                    radius={[0, 4, 4, 0]} 
+                                    maxBarSize={20} 
+                                    name="Solicitudes"
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('estadoRiesgo', data.payload?.name || data.name, e)}
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                >
                                     {riesgoData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}

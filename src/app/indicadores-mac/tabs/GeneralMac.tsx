@@ -48,9 +48,9 @@ const normalizeGrupoName = (g: string): string => {
     if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
     if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
     if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
-    if (norm.includes('HIDROPOR')) return 'HIDROPOR';
+    if (norm.includes('HIDROPOR')) return 'HIDROMASAJES';
     if (norm.includes('MPDIRECT')) return 'MPDIRECT';
-    if (norm.includes('HIDROEMP')) return 'HIDROEMP';
+    if (norm.includes('HIDROEMP')) return 'HIDROMASAJES';
     return norm;
 };
 
@@ -1269,7 +1269,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             {/* Tarjetas KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
                 <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
-                <KpiCard title="Valor Invertido" value={valorInvertido} prefix="$" />
+                <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
                 <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                 <KpiCard title="Solicitudes Cerradas" value={cerradas} />
                 <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />

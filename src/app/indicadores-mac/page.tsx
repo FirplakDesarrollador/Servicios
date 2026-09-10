@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
+
 import { supabase } from '@/lib/supabase';
-import { RegistroMAC, FilterState } from './types';
+import { RegistroMAC, FilterState, QRRRecord } from './types';
 import Filters from './components/Filters';
 import { DownloadIcon, XIcon, ListFilterIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
@@ -14,6 +15,9 @@ const GeneralMac = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: 
 const CanalesVentaCard = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: m.CanalesVentaCard })));
 const DetalleMac = lazy(() => import('./tabs/DetalleMac'));
 const AgentesMac = lazy(() => import('./tabs/AgentesMac'));
+const InformeMac = lazy(() => import('./tabs/InformeMac'));
+const AnalisisMac = lazy(() => import('./tabs/AnalisisMac'));
+const QrrMac = lazy(() => import('./tabs/QrrMac'));
 
 // ── Helpers para normalización de grupo ────────────────────────────────────
 const normalizeGrupo = (g: string): string => {
@@ -25,9 +29,9 @@ const normalizeGrupo = (g: string): string => {
     if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
     if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
     if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
-    if (norm.includes('HIDROPOR')) return 'HIDROPOR';
+    if (norm.includes('HIDROPOR')) return 'HIDROMASAJES';
     if (norm.includes('MPDIRECT')) return 'MPDIRECT';
-    if (norm.includes('HIDROEMP')) return 'HIDROEMP';
+    if (norm.includes('HIDROEMP')) return 'HIDROMASAJES';
     return norm;
 };
 
@@ -61,12 +65,53 @@ export default function IndicadoresMacPage() {
     const [activeTab, setActiveTab] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // ── QRR State (localStorage persistence) ────────────────────────────────
+    const [qrrRecords, setQrrRecords] = useState<QRRRecord[]>([]);
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('mac_qrr_records');
+            if (stored) setQrrRecords(JSON.parse(stored));
+        } catch (e) { /* ignore */ }
+    }, []);
+
+    const handleAddQRR = useCallback((partial: Partial<QRRRecord>) => {
+        const newRec: QRRRecord = {
+            id: crypto.randomUUID ? crypto.randomUUID() : `qrr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            fechaInicio: new Date().toISOString().split('T')[0],
+            origen: 'Análisis de indicadores',
+            referencia: '',
+            responsable: '',
+            problema: '',
+            numCasos: 0,
+            numUnidades: 0,
+            impactoDinero: 0,
+            accion: '',
+            plazo: '',
+            estado: 'pendiente',
+            fechaCompromiso: '',
+            avancePorcentaje: 0,
+            ultimaActualizacion: new Date().toISOString().split('T')[0],
+            observaciones: '',
+            evidencia: '',
+            registrosAsociados: [],
+            prioridad: 'seguimiento',
+            ...partial,
+        };
+        setQrrRecords(prev => {
+            const next = [...prev, newRec];
+            localStorage.setItem('mac_qrr_records', JSON.stringify(next));
+            return next;
+        });
+        // Switch to QRR tab
+        setActiveTab(5);
+    }, []);
+
     const [filters, setFilters] = useState<FilterState>({
         fechaInicial: '2026-07-03',
         fechaFinal: new Date().toISOString().split('T')[0],
         estado: [],
         canalVenta: [],
-        tipoSolicitud: ['Garantía'],
+        tipoSolicitud: [],
         agenteMac: [],
         defectos: [],
         productos: [],
@@ -165,9 +210,9 @@ export default function IndicadoresMacPage() {
                 if (upperDesc.includes('BAÑO') || upperDesc.includes('BANO') || upperDesc.includes('LAVAMANOS') || upperDesc.includes('LVM') || upperDesc.includes('MUEBLE') || upperDesc.includes('MBLE') || upperDesc.includes('OSLO') || upperDesc.includes('SIENA') || upperDesc.includes('KOA') || upperDesc.includes('SODER') || upperDesc.includes('MALI')) return 'BAÑOS';
                 if (upperDesc.includes('HIDROMASAJE') || upperDesc.includes('SPA') || upperDesc.includes('TINA') || upperDesc.includes('PULSADOR') || upperDesc.includes('CATALUÑA') || upperDesc.includes('ISLA')) return 'HIDROMASAJES';
                 if (upperDesc.includes('LAVARROPAS') || upperDesc.includes('ROPAS') || upperDesc.includes('ROPA')) return 'ROPAS';
-                if (upperDesc.includes('HIDROPOR')) return 'HIDROPOR';
+                if (upperDesc.includes('HIDROPOR')) return 'HIDROMASAJES';
                 if (upperDesc.includes('MPDIRECT')) return 'MPDIRECT';
-                if (upperDesc.includes('HIDROEMP')) return 'HIDROEMP';
+                if (upperDesc.includes('HIDROEMP')) return 'HIDROMASAJES';
                 if (upperDesc.includes('REPUESTO') || upperDesc.includes('REPOSICION')) return 'REPUESTOS';
                 if (upperDesc.includes('INFRAESTRUCTURA') || upperDesc.includes('PATA') || upperDesc.includes('PISO')) return 'INFRAESTRUCTURA';
 
@@ -498,7 +543,7 @@ export default function IndicadoresMacPage() {
         XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
-    const tabs = ['General MAC', 'Detalle MAC', 'Agentes MAC'];
+    const tabs = ['General MAC', 'Detalle MAC', 'Agentes MAC', 'Informe', 'Análisis', 'QRR'];
 
     if (loading) {
         return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div></div>;
@@ -604,6 +649,9 @@ export default function IndicadoresMacPage() {
                         {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} dataForCanalVenta={dataForCanalVenta} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
                         {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                         {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                        {activeTab === 3 && <InformeMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                        {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
+                        {activeTab === 5 && <QrrMac data={filteredData} prevData={data} filters={filters} qrrRecords={qrrRecords} setQrrRecords={setQrrRecords} />}
                     </Suspense>
                 </div>
             </main>
