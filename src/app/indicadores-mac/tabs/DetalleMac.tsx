@@ -298,7 +298,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                 <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#374151', fontWeight: '500' }} />
                                 <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Bar 
+                                <Bar isAnimationActive={false} 
                                     dataKey="value" 
                                     radius={[0, 4, 4, 0]} 
                                     maxBarSize={20} 
@@ -324,7 +324,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                 <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} hide domain={[0, 100]} />
                                 <RechartsTooltip content={<CustomPresupuestoTooltip />} cursor={{ fill: '#f9fafb' }} />
                                 <Legend />
-                                <Bar 
+                                <Bar isAnimationActive={false} 
                                     yAxisId="left" 
                                     dataKey="Presupuesto" 
                                     fill={COLORS.brandLight} 
@@ -333,7 +333,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                     onClick={(data: any, index: number, e: any) => onFilterToggle('mesPresupuesto', data.payload?.mesKey || data.mesKey, e)}
                                     className="cursor-pointer hover:opacity-80 transition-opacity"
                                 />
-                                <Bar 
+                                <Bar isAnimationActive={false} 
                                     yAxisId="left" 
                                     dataKey="CerradasEnSLA" 
                                     fill={COLORS.brand} 
@@ -342,7 +342,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                     onClick={(data: any, index: number, e: any) => onFilterToggle('mesPresupuesto', data.payload?.mesKey || data.mesKey, e)}
                                     className="cursor-pointer hover:opacity-80 transition-opacity"
                                 />
-                                <Line yAxisId="right" type="monotone" dataKey="Cumplimiento" stroke="#000000" strokeWidth={3} dot={{ r: 4 }} name="% Cumplimiento">
+                                <Line isAnimationActive={false} yAxisId="right" type="monotone" dataKey="Cumplimiento" stroke="#000000" strokeWidth={3} dot={{ r: 4 }} name="% Cumplimiento">
                                     <LabelList dataKey="Cumplimiento" position="top" formatter={(val: any) => `${val}%`} style={{ fill: '#374151', fontSize: 11, fontWeight: 'bold' }} offset={10} />
                                 </Line>
                             </ComposedChart>

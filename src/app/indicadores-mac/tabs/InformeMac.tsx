@@ -724,7 +724,7 @@ export default function InformeMac({ data, prevData, filters, setFilters, onFilt
                                 <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(v: any) => `$${(Number(v) / 1000000).toFixed(0)}M`} />
                                 <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '10px 14px' }} />
                                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                                <Bar 
+                                <Bar isAnimationActive={false} 
                                     yAxisId="left" 
                                     dataKey="casos" 
                                     name="Casos" 
@@ -736,7 +736,7 @@ export default function InformeMac({ data, prevData, filters, setFilters, onFilt
                                 >
                                     <LabelList dataKey="casos" position="top" style={{ fill: BRAND, fontSize: 10, fontWeight: 'bold' }} />
                                 </Bar>
-                                <Bar 
+                                <Bar isAnimationActive={false} 
                                     yAxisId="right" 
                                     dataKey="inversion" 
                                     name="Inversión $" 
@@ -802,7 +802,7 @@ export default function InformeMac({ data, prevData, filters, setFilters, onFilt
                                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(v: any) => `$${(Number(v) / 1000000).toFixed(0)}M`} />
                                 <YAxis dataKey="grupo" type="category" width={110} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280', fontWeight: 600 }} />
                                 <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }} formatter={(v: any) => fmt$(Number(v))} />
-                                <Bar 
+                                <Bar isAnimationActive={false} 
                                     dataKey="inversion" 
                                     name="Inversión $" 
                                     radius={[0, 4, 4, 0]} 
@@ -918,7 +918,7 @@ export default function InformeMac({ data, prevData, filters, setFilters, onFilt
                                 <YAxis type="number" dataKey="y" name="Inversión" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(v: any) => `$${(Number(v) / 1000000).toFixed(0)}M`} label={{ value: 'Inversión $ →', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 10, fill: '#9ca3af', fontWeight: 600 } }} />
                                 <ZAxis type="number" dataKey="z" range={[40, 400]} name="Unidades" />
                                 <RechartsTooltip content={<ScatterTooltip />} />
-                                <Scatter name="Referencias" data={scatterData} fill={BRAND} fillOpacity={0.7}>
+                                <Scatter isAnimationActive={false} name="Referencias" data={scatterData} fill={BRAND} fillOpacity={0.7}>
                                     {scatterData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                 </Scatter>
                             </ScatterChart>

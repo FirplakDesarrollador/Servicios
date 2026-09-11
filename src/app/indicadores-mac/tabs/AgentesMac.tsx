@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { RegistroMAC, FilterState } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { SearchIcon, DownloadIcon, SaveIcon, AlertCircleIcon, ExternalLinkIcon } from 'lucide-react';
+import { SearchIcon, DownloadIcon, SaveIcon, AlertCircleIcon, ExternalLinkIcon, AlertTriangleIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface Props {
@@ -55,6 +55,10 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
             .sort((a, b) => (b._diasHabilesAbierta || 0) - (a._diasHabilesAbierta || 0))
             .slice(0, 10);
     }, [abiertas]);
+
+    const incompleteData = useMemo(() => {
+        return data.filter(d => (!d._defectosNombres || d._defectosNombres.length === 0) || (!d._responsablesNombres || d._responsablesNombres.length === 0));
+    }, [data]);
 
     // Tabla de seguimiento
     const exportData = useMemo(() => {
@@ -238,6 +242,53 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                     </table>
                 </div>
             </div>
+
+            {incompleteData.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-rose-100 overflow-hidden">
+                    <div className="bg-rose-50 px-4 py-3 border-b border-rose-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangleIcon className="w-5 h-5 text-rose-500" />
+                            <h3 className="text-xs font-black text-rose-700 uppercase tracking-wider">Casos con Datos Faltantes (Problema o Responsable)</h3>
+                        </div>
+                        <span className="text-[10px] font-bold text-rose-500 bg-rose-100 px-2 py-1 rounded-full">{incompleteData.length} registros</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr>
+                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Radicado</th>
+                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Estado</th>
+                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Faltante</th>
+                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Agente MAC</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {incompleteData.map(d => {
+                                    const mProblema = !d._defectosNombres || d._defectosNombres.length === 0;
+                                    const mResponsable = !d._responsablesNombres || d._responsablesNombres.length === 0;
+                                    return (
+                                        <tr key={d.id} className="hover:bg-rose-50/30 transition-colors border-b border-gray-50">
+                                            <td className="p-3 text-xs font-bold">
+                                                <a href={`/ver-registro/${d.id}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline flex items-center gap-1">
+                                                    {d.consecutivo} <ExternalLinkIcon className="w-3 h-3 text-gray-400" />
+                                                </a>
+                                            </td>
+                                            <td className="p-3 text-xs font-semibold text-gray-600">{d.estado}</td>
+                                            <td className="p-3 text-[10px]">
+                                                <div className="flex flex-col gap-1">
+                                                    {mProblema && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-rose-50 text-rose-600 border border-rose-100">Tipo de Problema</span>}
+                                                    {mResponsable && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-orange-50 text-orange-600 border border-orange-100">Responsable</span>}
+                                                </div>
+                                            </td>
+                                            <td className="p-3 text-xs text-gray-600 font-semibold">{d._agenteNombre || '-'}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Suspense, lazy, useTransition } from 'react';
 
 import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState, QRRRecord } from './types';
@@ -64,6 +64,7 @@ export default function IndicadoresMacPage() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
 
     // ── QRR State (localStorage persistence) ────────────────────────────────
     const [qrrRecords, setQrrRecords] = useState<QRRRecord[]>([]);
@@ -103,7 +104,9 @@ export default function IndicadoresMacPage() {
             return next;
         });
         // Switch to QRR tab
-        setActiveTab(5);
+        startTransition(() => {
+            setActiveTab(5);
+        });
     }, []);
 
     const [filters, setFilters] = useState<FilterState>({
@@ -409,22 +412,24 @@ export default function IndicadoresMacPage() {
 
     // ── useCallback para evitar re-renders innecesarios en hijos ─────────────
     const handleFilterToggle = useCallback((key: keyof FilterState, value: string, e?: any) => {
-        setFilters(prev => {
-            const isMulti = e?.ctrlKey || e?.metaKey;
-            const currentArray = prev[key] as string[];
+        startTransition(() => {
+            setFilters(prev => {
+                const isMulti = e?.ctrlKey || e?.metaKey;
+                const currentArray = prev[key] as string[];
 
-            if (isMulti) {
-                if (currentArray.includes(value)) {
-                    return { ...prev, [key]: currentArray.filter(v => v !== value) };
+                if (isMulti) {
+                    if (currentArray.includes(value)) {
+                        return { ...prev, [key]: currentArray.filter(v => v !== value) };
+                    } else {
+                        return { ...prev, [key]: [...currentArray, value] };
+                    }
                 } else {
-                    return { ...prev, [key]: [...currentArray, value] };
+                    if (currentArray.length === 1 && currentArray[0] === value) {
+                        return { ...prev, [key]: [] };
+                    }
+                    return { ...prev, [key]: [value] };
                 }
-            } else {
-                if (currentArray.length === 1 && currentArray[0] === value) {
-                    return { ...prev, [key]: [] };
-                }
-                return { ...prev, [key]: [value] };
-            }
+            });
         });
     }, []);
 
@@ -571,7 +576,7 @@ export default function IndicadoresMacPage() {
                         {tabs.map((tab, idx) => (
                             <button
                                 key={idx}
-                                onClick={() => setActiveTab(idx)}
+                                onClick={() => startTransition(() => setActiveTab(idx))}
                                 className={`
                                     px-5 py-3 text-xs font-bold whitespace-nowrap transition-colors border-b-2
                                     ${activeTab === idx

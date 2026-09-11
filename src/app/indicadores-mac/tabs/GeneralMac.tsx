@@ -116,7 +116,7 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
                 <div className="w-[60%] h-full flex items-center justify-center min-h-[200px]">
                     <ResponsiveContainer width="100%" height="95%">
                         <PieChart>
-                            <Pie 
+                            <Pie isAnimationActive={false} 
                                 data={data} 
                                 nameKey="nombre" 
                                 dataKey="Registros" 
@@ -1286,7 +1286,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                                 <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                                 <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Bar 
+                                <Bar isAnimationActive={false} 
                                     dataKey="Registros" 
                                     radius={[4, 4, 0, 0]} 
                                     maxBarSize={60}
@@ -1320,7 +1320,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         itemStyle={{ fontSize: '10px', padding: '2px 0' }}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                                    <Bar 
+                                    <Bar isAnimationActive={false} 
                                         dataKey="Registros" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16}
@@ -1332,7 +1332,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         ))}
                                         <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 9 }} />
                                     </Bar>
-                                    <Bar 
+                                    <Bar isAnimationActive={false} 
                                         dataKey="Productos Afectados" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16} 
@@ -1366,7 +1366,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         itemStyle={{ fontSize: '10px', padding: '2px 0' }}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                                    <Bar 
+                                    <Bar isAnimationActive={false} 
                                         dataKey="Registros" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16}
@@ -1378,7 +1378,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         ))}
                                         <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 9 }} />
                                     </Bar>
-                                    <Bar 
+                                    <Bar isAnimationActive={false} 
                                         dataKey="Productos Afectados" 
                                         radius={[0, 4, 4, 0]} 
                                         maxBarSize={16} 
@@ -1439,10 +1439,10 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                                 <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '10px 14px' }} />
                                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                                <Bar dataKey="Registros" fill="#254153" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                                <Bar isAnimationActive={false} dataKey="Registros" fill="#254153" radius={[4, 4, 0, 0]} maxBarSize={45}>
                                     <LabelList dataKey="Registros" position="top" style={{ fill: '#254153', fontSize: 11, fontWeight: 'bold' }} />
                                 </Bar>
-                                <Bar dataKey="Productos Afectados" fill="#c96a4e" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                                <Bar isAnimationActive={false} dataKey="Productos Afectados" fill="#c96a4e" radius={[4, 4, 0, 0]} maxBarSize={45}>
                                     <LabelList dataKey="Productos Afectados" position="top" style={{ fill: '#c96a4e', fontSize: 10, fontWeight: 'bold' }} />
                                 </Bar>
                             </BarChart>
@@ -1469,10 +1469,10 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                                 <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '10px 14px' }} />
                                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                                <Bar dataKey="Registros" fill="#749094" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                                <Bar isAnimationActive={false} dataKey="Registros" fill="#749094" radius={[4, 4, 0, 0]} maxBarSize={45}>
                                     <LabelList dataKey="Registros" position="top" style={{ fill: '#749094', fontSize: 11, fontWeight: 'bold' }} />
                                 </Bar>
-                                <Bar dataKey="Productos Afectados" fill="#c96a4e" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                                <Bar isAnimationActive={false} dataKey="Productos Afectados" fill="#c96a4e" radius={[4, 4, 0, 0]} maxBarSize={45}>
                                     <LabelList dataKey="Productos Afectados" position="top" style={{ fill: '#c96a4e', fontSize: 10, fontWeight: 'bold' }} />
                                 </Bar>
                             </BarChart>

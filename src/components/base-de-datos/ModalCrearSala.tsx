@@ -39,6 +39,9 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
     const [citySearch, setCitySearch] = useState('');
     const cityDropdownRef = useRef<HTMLDivElement>(null);
 
+    const [selectedPais, setSelectedPais] = useState<string>('');
+    const availablePaises = useMemo(() => Array.from(new Set(ciudades.map(c => c.pais).filter(Boolean))).sort(), [ciudades]);
+
     // Form states
     const [formData, setFormData] = useState({
         tipo_de_cliente: '',
@@ -80,6 +83,7 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
             nit: '',
         });
         setGeoInfo({ pais: '', departamento: '', zona: '', coordinador: '' });
+        setSelectedPais('');
     };
 
     const fetchInitialData = async () => {
@@ -163,8 +167,10 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
                 zona: selected.zona || '',
                 coordinador: selected.coordinador_nombre || ''
             });
+            setSelectedPais(selected.pais || '');
         } else {
             setGeoInfo({ pais: '', departamento: '', zona: '', coordinador: '' });
+            setSelectedPais('');
         }
         setIsCityDropdownOpen(false);
         setCitySearch('');
@@ -173,12 +179,16 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
     const selectedCityData = ciudades.find(c => c.id.toString() === formData.ciudad_id);
     const filteredCiudades = useMemo(() => {
         const query = citySearch.trim().toLowerCase();
-        if (!query) return ciudades;
+        let list = ciudades;
+        if (selectedPais) {
+            list = list.filter(c => c.pais === selectedPais);
+        }
+        if (!query) return list;
 
-        return ciudades.filter(city => 
+        return list.filter(city => 
             String(city.ciudad || '').toLowerCase().includes(query)
         );
-    }, [ciudades, citySearch]);
+    }, [ciudades, citySearch, selectedPais]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -455,7 +465,23 @@ export default function ModalCrearSala({ isOpen, onClose, onSuccess }: ModalCrea
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1"><label className="text-[9px] font-black uppercase tracking-tighter text-slate-400 ml-1">País</label><div className="h-10 bg-slate-50 border border-slate-100 rounded-lg px-3 flex items-center text-xs font-bold text-slate-500 italic">{geoInfo.pais || '---'}</div></div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black uppercase tracking-tighter text-slate-400 ml-1">País</label>
+                                                <select
+                                                    value={selectedPais}
+                                                    onChange={(e) => {
+                                                        setSelectedPais(e.target.value);
+                                                        setFormData(prev => ({ ...prev, ciudad_id: '' }));
+                                                        setGeoInfo(prev => ({ ...prev, departamento: '', zona: '', coordinador: '' }));
+                                                    }}
+                                                    className="w-full h-10 bg-slate-50 border border-slate-100 rounded-lg px-3 text-xs font-bold text-slate-600 focus:outline-none focus:border-indigo-300 focus:bg-white transition-all cursor-pointer"
+                                                >
+                                                    <option value="">Todos</option>
+                                                    {availablePaises.map((pais: any) => (
+                                                        <option key={pais} value={pais}>{pais}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                             <div className="space-y-1"><label className="text-[9px] font-black uppercase tracking-tighter text-slate-400 ml-1">Zona</label><div className="h-10 bg-slate-50 border border-slate-100 rounded-lg px-3 flex items-center text-xs font-bold text-slate-500 italic">{geoInfo.zona || '---'}</div></div>
                                             <div className="col-span-2 space-y-1"><label className="text-[9px] font-black uppercase tracking-tighter text-slate-400 ml-1">Departamento</label><div className="h-10 bg-slate-50 border border-slate-100 rounded-lg px-3 flex items-center text-xs font-bold text-slate-500 italic">{geoInfo.departamento || '---'}</div></div>
                                         </div>
