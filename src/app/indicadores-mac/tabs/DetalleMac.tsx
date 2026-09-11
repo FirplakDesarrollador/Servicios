@@ -303,8 +303,6 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                     radius={[0, 4, 4, 0]} 
                                     maxBarSize={20} 
                                     name="Solicitudes"
-                                    onClick={(data: any, index: number, e: any) => onFilterToggle('estadoRiesgo', data.payload?.name || data.name, e)}
-                                    className="cursor-pointer hover:opacity-80 transition-opacity"
                                 >
                                     {riesgoData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
