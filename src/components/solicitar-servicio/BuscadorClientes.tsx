@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, X, Loader2, MapPin, Phone, User as UserIcon, Building2, CreditCard } from 'lucide-react';
+import { Search, X, Loader2, MapPin, Phone, User as UserIcon, Building2, CreditCard, UserCheck, Eraser } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ModalCrearSala from '@/components/base-de-datos/ModalCrearSala';
 
 interface BuscadorClientesProps {
     canalVenta: string;
@@ -16,6 +17,19 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [userProfile, setUserProfile] = useState<any>(null);
+    const [showCrearSala, setShowCrearSala] = useState(false);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { data } = await supabase.from('Usuarios').select('id, rol').eq('user_id', session.user.id).single();
+                setUserProfile(data);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     useEffect(() => {
         const search = async () => {
@@ -26,16 +40,27 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
 
             setLoading(true);
             try {
-                // Search in query_ubicaciones view as requested
-                // Criteria: cliente_nombre, nit, cliente_nit, direccion
-                const { data, error } = await supabase
-                    .from('query_ubicaciones')
-                    .select('*')
-                    .or(`cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`)
-                    .limit(20);
+                // Search in both views to consolidate "Payer/Client" and "Location"
+                const words = searchTerm.trim().split(/\s+/).filter(Boolean);
 
-                if (error) throw error;
-                setResults(data || []);
+                let uQuery = supabase.from('query_ubicaciones_fast').select('*');
+
+                words.forEach(word => {
+                    uQuery = uQuery.or(`nombre.ilike.%${word}%,cliente_nombre.ilike.%${word}%,nit.ilike.%${word}%,direccion.ilike.%${word}%`);
+                });
+
+                if (userProfile?.rol === 'comercial') {
+                    uQuery = uQuery.eq('asesor_id', userProfile.id);
+                }
+
+                const ubicacionesRes = await uQuery.limit(40);
+
+                if (ubicacionesRes.error) throw ubicacionesRes.error;
+
+                // Normalize results
+                const normUbicaciones = (ubicacionesRes.data || []).map(u => ({ ...u, _type: 'ubicacion' }));
+
+                setResults(normUbicaciones);
                 setSearchError(null);
             } catch (err: any) {
                 console.error('Error searching clients:', err);
@@ -47,7 +72,7 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
 
         const timer = setTimeout(search, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm]);
+    }, [searchTerm, userProfile]);
 
     return (
         <motion.div
@@ -112,15 +137,32 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                                     onClick={() => onSelect(item)}
                                     className="flex flex-col p-4 bg-slate-50 hover:bg-brand/5 border border-slate-100 rounded-2xl transition-all text-left group"
                                 >
-                                    <span className="font-black text-brand uppercase tracking-tight mb-2 group-hover:translate-x-1 transition-transform">
-                                        {item.nombre || item.cliente_nombre}
-                                    </span>
+                                    <div className="flex flex-col mb-2">
+                                        <span className="font-black text-brand uppercase tracking-tight group-hover:translate-x-1 transition-transform">
+                                            {item.cliente_nombre}
+                                        </span>
+                                        {item.nombre && item.nombre !== item.cliente_nombre && (
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                {item.nombre}
+                                            </span>
+                                        )}
+                                        {item._type === 'consumidor' && (
+                                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1">
+                                                (Cliente Final)
+                                            </span>
+                                        )}
+                                    </div>
 
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        {item._type === 'consumidor' && (
+                                            <div className="flex items-center gap-1.5 text-[10px] text-blue-600 font-bold uppercase col-span-2 mb-1">
+                                                Persona Natural / Cliente Directo
+                                            </div>
+                                        )}
                                         {(item.nit || item.cliente_nit) && (
                                             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase">
                                                 <CreditCard className="w-3 h-3 text-slate-400" />
-                                                NIT: {item.nit || item.cliente_nit}
+                                                {item._type === 'consumidor' ? 'Cédula' : 'NIT'}: {item.nit || item.cliente_nit}
                                             </div>
                                         )}
                                         {item.nombre_contacto && (
@@ -147,6 +189,12 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                                                 {item.direccion}
                                             </div>
                                         )}
+                                        {item.asesor_comercial_nombre && (
+                                            <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase col-span-2 mt-1 py-1 border-t border-slate-100">
+                                                <UserCheck className="w-3 h-3 text-emerald-500" />
+                                                Asesor: {item.asesor_comercial_nombre}
+                                            </div>
+                                        )}
                                     </div>
                                 </button>
                             ))
@@ -156,44 +204,40 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                             </div>
                         ) : (
                             <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-50 px-10 leading-relaxed">
-                                Ingrese al menos 3 caracteres para buscar {canalVenta === 'canal_constructor' ? 'obras' : 'distribuidores'}
+                                Ingrese al menos 3 caracteres para buscar {canalVenta === 'canal_constructor' ? 'obras' : 'clientes o distribuidores'}
                             </div>
                         )}
                     </div>
 
                     {/* Footer / Create Link */}
-                    <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            ¿No encuentras el registro?
-                        </p>
-                        <button className="text-xs font-black text-brand uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2">
-                            <Building2 className="w-3 h-3" />
-                            Crear {canalVenta === 'canal_constructor' ? 'Nueva Obra' : 'Nuevo Distribuidor'}
-                        </button>
-                    </div>
+                    {userProfile?.rol !== 'comercial' && (
+                        <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                ¿No encuentras el registro?
+                            </p>
+                            <button 
+                                onClick={() => setShowCrearSala(true)}
+                                className="text-xs font-black text-brand uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2"
+                            >
+                                <Building2 className="w-3 h-3" />
+                                Crear {canalVenta === 'canal_constructor' ? 'Nueva Obra' : 'Nuevo Distribuidor'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </motion.div>
+            
+            {showCrearSala && (
+                <ModalCrearSala
+                    isOpen={showCrearSala}
+                    onClose={() => setShowCrearSala(false)}
+                    onSuccess={() => {
+                        setShowCrearSala(false);
+                        // Opcional: podrías recargar o auto-seleccionar el cliente creado, pero por ahora solo cerrar.
+                    }}
+                />
+            )}
         </motion.div>
     );
 }
 
-function Eraser(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-            <path d="m22 21-14 0" />
-            <path d="m18 11-4.7 4.7" />
-        </svg>
-    )
-}

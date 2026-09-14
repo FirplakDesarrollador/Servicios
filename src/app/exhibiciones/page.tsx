@@ -1,8 +1,5 @@
 'use client'
 
-// Disable caching for this page to prevent loading state issues
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -48,139 +45,106 @@ export default function ExhibicionesPage() {
         }
     }, [])
 
-    // Load user data and salas (only on mount)
+    // Load user data
     useEffect(() => {
         isMountedRef.current = true
 
-        async function loadData() {
+        async function loadProfile() {
             if (!isMountedRef.current) return
-
-            console.log('[Exhibiciones] Starting data load...')
-            if (isMountedRef.current) setLoading(true)
-
             try {
-                // Get session
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-                console.log('[Exhibiciones] Session check:', { hasSession: !!session, error: sessionError })
-
+                const { data: { session } } = await supabase.auth.getSession()
                 if (!session) {
-                    console.log('[Exhibiciones] No session, redirecting to login')
                     router.push('/login')
                     return
                 }
 
-                if (!isMountedRef.current) return
-
-                // Get user profile
-                console.log('[Exhibiciones] Fetching profile for uid:', session.user.id)
                 const { data: profile, error: profileError } = await supabase
                     .from('Usuarios')
                     .select('id, rol, id_colaboradores')
-                    .eq('uid', session.user.id)
+                    .eq('user_id', session.user.id)
                     .maybeSingle()
 
-                console.log('[Exhibiciones] Profile query result:', { profile, error: profileError })
-
-                if (profileError) {
-                    console.error('[Exhibiciones] Profile error details:', {
-                        message: profileError.message,
-                        details: profileError.details,
-                        hint: profileError.hint,
-                        code: profileError.code
-                    })
-                    if (isMountedRef.current) setLoading(false)
+                if (profileError || !profile) {
+                    console.error('[Exhibiciones] Profile error:', profileError)
                     return
                 }
 
-                if (!profile) {
-                    console.error('[Exhibiciones] No profile found for user')
-                    if (isMountedRef.current) setLoading(false)
-                    return
+                if (isMountedRef.current) {
+                    setUserId(profile.id)
+                    setUserRole(profile.rol)
+                    setUserColaboradores(profile.id_colaboradores || [])
                 }
+                
+                // Always load all advisors for everyone once
+                const { data: asesoresData } = await supabase
+                    .from('Usuarios')
+                    .select('id, display_name')
+                    .in('rol', ['comercial', 'mac', 'coordinador_comercial', 'director_comercial', 'ecommerce'])
+                    .order('display_name', { ascending: true })
 
-                if (!isMountedRef.current) return
-
-                console.log('[Exhibiciones] Profile loaded successfully:', { id: profile.id, rol: profile.rol })
-                setUserId(profile.id)
-                setUserRole(profile.rol)
-                setUserColaboradores(profile.id_colaboradores || [])
-
-                // Load ALL salas (we'll filter by estadoActivo in the UI)
-                console.log('[Exhibiciones] Loading all salas for userId:', profile.id, 'rol:', profile.rol)
-
-                let query = supabase
-                    .from('query_ubicaciones')
-                    .select('*')
-
-                // Role-based filtering
-                const rolesLimitados = ['comercial', 'promotor', 'asesor_tecnico']
-                if (rolesLimitados.includes(profile.rol)) {
-                    const asesorIds = [profile.id, ...(profile.id_colaboradores || [])]
-                    console.log('[Exhibiciones] Applying role-based filter for asesor_id:', asesorIds)
-                    query = query.in('asesor_id', asesorIds)
-                }
-
-                const { data: salasData, error: salasError } = await query
-
-                if (salasError) {
-                    console.error('[Exhibiciones] Error loading salas:', {
-                        message: salasError.message,
-                        details: salasError.details,
-                        hint: salasError.hint,
-                        code: salasError.code
-                    })
-                    if (isMountedRef.current) setLoading(false)
-                    return
-                }
-
-                if (!isMountedRef.current) return
-
-                console.log('[Exhibiciones] Salas loaded:', salasData?.length || 0)
-                if (salasData && salasData.length > 0) {
-                    console.log('[Exhibiciones] First sala sample:', salasData[0])
-                }
-                setSalas(salasData || [])
-
-                // Load asesores if needed
-                const rolesConFiltroAsesor = ['desarrollador', 'mac', 'coordinador_comercial', 'director_comercial', 'gerente']
-                if (rolesConFiltroAsesor.includes(profile.rol)) {
-                    const { data: asesoresData } = await supabase
-                        .from('Usuarios')
-                        .select('id, display_name')
-                        .in('rol', ['comercial', 'mac', 'coordinador_comercial', 'director_comercial', 'ecommerce'])
-                        .order('display_name', { ascending: true })
-
-                    if (asesoresData && isMountedRef.current) {
-                        setAsesores(asesoresData)
-                    }
+                if (asesoresData && isMountedRef.current) {
+                    setAsesores(asesoresData)
                 }
 
             } catch (error) {
-                console.error('[Exhibiciones] Unexpected error:', error)
-                if (isMountedRef.current) setLoading(false)
-            } finally {
-                if (isMountedRef.current) {
-                    console.log('[Exhibiciones] Setting loading to false')
-                    setLoading(false)
-                }
+                console.error('[Exhibiciones] Unexpected profile error:', error)
             }
         }
 
-        loadData()
+        loadProfile()
 
-        // Cleanup function
         return () => {
             isMountedRef.current = false
         }
-    }, []) // Only run on mount, not when estadoActivo changes
+    }, [router])
+
+    // Load salas when user or estadoActivo changes
+    useEffect(() => {
+        if (!userId || !userRole) return
+
+        let isActive = true
+        async function loadSalas() {
+            setLoading(true)
+            try {
+                let query = supabase
+                    .from('query_ubicaciones')
+                    .select('*')
+                    .eq('activo', estadoActivo)
+                    .in('cliente_tipo', ['Distribuidor', 'Propio'])
+
+                if (['comercial', 'promotor', 'asesor_tecnico'].includes(userRole)) {
+                    const validIds = [userId!, ...(userColaboradores || [])]
+                    query = query.in('asesor_id', validIds)
+                }
+
+                const { data: salasData, error: salasError } = await query.limit(3000)
+
+                if (salasError) {
+                    console.error('[Exhibiciones] Error loading salas:', salasError)
+                    if (isActive) setLoading(false)
+                    return
+                }
+
+                if (isActive) {
+                    setSalas(salasData || [])
+                }
+            } catch (error) {
+                console.error('[Exhibiciones] Unexpected salas error:', error)
+            } finally {
+                if (isActive) setLoading(false)
+            }
+        }
+
+        loadSalas()
+
+        return () => {
+            isActive = false
+        }
+    }, [userId, userRole, userColaboradores, estadoActivo])
 
     // Filter salas (now includes estadoActivo filter)
     const filteredSalas = useMemo(() => {
         return salas.filter(sala => {
-            // Filter by estadoActivo
-            if (sala.activo !== estadoActivo) {
-                return false
-            }
 
             // Búsqueda avanzada
             if (busqueda) {
@@ -238,12 +202,13 @@ export default function ExhibicionesPage() {
         window.location.reload()
     }
 
-    const rolesConFiltroAsesor = ['desarrollador', 'mac', 'coordinador_comercial', 'director_comercial', 'gerente']
+    const rolesConFiltroAsesor = ['everyone'] // Dummy value
+
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand/5 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-brand to-brand-dark text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -271,13 +236,13 @@ export default function ExhibicionesPage() {
                     <div className="flex flex-wrap gap-4 items-end">
                         {/* Estado */}
                         <div className="flex-shrink-0">
-                            <label className="block text-xs font-medium text-[#254153] mb-1">
+                            <label className="block text-xs font-medium text-brand mb-1">
                                 Estado del cliente
                             </label>
                             <select
                                 value={estadoActivo ? 'true' : 'false'}
                                 onChange={(e) => setEstadoActivo(e.target.value === 'true')}
-                                className="w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#254153] focus:border-[#254153]"
+                                className="w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
                             >
                                 <option value="true">Activo</option>
                                 <option value="false">Inactivo</option>
@@ -298,8 +263,9 @@ export default function ExhibicionesPage() {
                             />
                         </div>
 
-                        {/* Filtro por asesor */}
-                        {rolesConFiltroAsesor.includes(userRole) && (
+                        {/* Filtro por asesor - Now for everyone */}
+                        {true && (
+
                             <div className="flex-shrink-0">
                                 <label className="block text-xs font-medium text-[#254153] mb-1">
                                     Filtrar por asesor
@@ -341,7 +307,7 @@ export default function ExhibicionesPage() {
                         {/* Clear button */}
                         <button
                             onClick={handleClearFilters}
-                            className="p-2 text-[#254153] hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-brand hover:bg-brand/5 rounded-lg transition-colors"
                             title="Limpiar filtros"
                         >
                             <Eraser className="w-8 h-8" />
@@ -365,7 +331,7 @@ export default function ExhibicionesPage() {
                 {/* Loading */}
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153]"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
                     </div>
                 ) : (
                     /* Salas list */

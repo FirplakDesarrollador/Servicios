@@ -1,0 +1,50 @@
+import { NextResponse } from 'next/server';
+import { createSapQuotation, fetchSapQuotationByDocNum } from '@/lib/sapServiceLayer';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const docNum = searchParams.get('docNum');
+    const docType = searchParams.get('type') || undefined;
+
+    if (!docNum) {
+      return NextResponse.json({ error: 'Param docNum is required' }, { status: 400 });
+    }
+
+    const docResult = await fetchSapQuotationByDocNum(docNum, docType as any);
+    if (!docResult) {
+      return NextResponse.json({ success: false, message: 'Documento no encontrado en SAP B1' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, document: docResult });
+  } catch (error: any) {
+    console.error('Error fetching SAP quotation:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { CardCode, DocumentLines, Comments, DocDueDate } = body;
+
+    if (!CardCode || !DocumentLines || DocumentLines.length === 0) {
+      return NextResponse.json(
+        { error: 'CardCode and DocumentLines are required' },
+        { status: 400 }
+      );
+    }
+
+    const sapResult = await createSapQuotation({
+      CardCode,
+      DocumentLines,
+      Comments,
+      DocDueDate
+    });
+
+    return NextResponse.json({ success: true, result: sapResult });
+  } catch (error: any) {
+    console.error('Error posting SAP quotation:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
