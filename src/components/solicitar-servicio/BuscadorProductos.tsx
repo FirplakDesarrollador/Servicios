@@ -13,14 +13,14 @@ interface BuscadorProductosProps {
 }
 
 const GRUPOS = [
-    'BANO', 'BANERA', 'COCINAS', 'EXHIBIDOR', 'HIDROEMP', 'HIDROPOR',
+    'TODOS', 'BANO', 'BANERA', 'COCINAS', 'EXHIBIDOR', 'HIDROEMP', 'HIDROPOR',
     'MPDIRECT', 'PLOMERIA', 'REPUESTO', 'ROPAS', 'SERVICIOS',
     'ZOCALOS', 'QUARTZSTONE', 'GRIFERIA'
 ];
 
 export default function BuscadorProductos({ productosSeleccionados, onAdd, onRemove, onClose }: BuscadorProductosProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [grupo, setGrupo] = useState<string>('HIDROPOR');
+    const [grupo, setGrupo] = useState<string>('TODOS');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
             try {
                 let query = supabase.from('Productos').select('*');
 
-                if (grupo) {
+                if (grupo && grupo !== 'TODOS') {
                     query = query.eq('grupo', grupo);
                 }
 
