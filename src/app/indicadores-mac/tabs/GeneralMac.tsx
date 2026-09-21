@@ -1480,6 +1480,35 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     </div>
                 </div>
             </div>
+
+            {/* Tabla de Radicados y Comentarios */}
+            <div className="mt-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Radicados y Comentarios</h3>
+                <div className="overflow-y-auto max-h-[400px] custom-scrollbar">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-gray-50">
+                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 rounded-tl-lg whitespace-nowrap">Radicado</th>
+                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 rounded-tr-lg">Comentario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.length === 0 ? (
+                                <tr>
+                                    <td colSpan={2} className="px-4 py-8 text-center text-xs text-gray-400">No hay datos disponibles</td>
+                                </tr>
+                            ) : (
+                                data.map((d, i) => (
+                                    <tr key={d.id || i} className={i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'}>
+                                        <td className="px-4 py-3 text-xs font-bold text-gray-800 whitespace-nowrap border-b border-gray-100 align-top">{d.consecutivo || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100">{d.comentarios || 'Sin comentarios'}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }
