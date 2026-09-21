@@ -238,6 +238,43 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
         XLSX.writeFile(workbook, `Detalle_MAC_${new Date().toISOString().slice(0,10)}.xlsx`);
     };
 
+    // Agent Data Aggregation
+    const agentsData = useMemo(() => {
+        const totalRegistros = dataConRiesgo.length;
+        if (totalRegistros === 0) return [];
+        
+        const agentMap: Record<string, { total: number, cerradosSla: number, cerradosTotal: number }> = {};
+        
+        dataConRiesgo.forEach(d => {
+            const agent = d._agenteNombre || 'Sin Asignar';
+            if (!agentMap[agent]) {
+                agentMap[agent] = { total: 0, cerradosSla: 0, cerradosTotal: 0 };
+            }
+            agentMap[agent].total++;
+            
+            if (d.estado === 'Cerrado') {
+                agentMap[agent].cerradosTotal++;
+                const diasHabiles = d._tiempoCierre !== null ? d._tiempoCierre : (d._diasHabilesAbierta || 0);
+                if (diasHabiles <= 15) {
+                    agentMap[agent].cerradosSla++;
+                }
+            }
+        });
+        
+        return Object.entries(agentMap)
+            .map(([nombre, metrics]) => {
+                const cumplimientoSLA = metrics.cerradosTotal > 0 ? (metrics.cerradosSla / metrics.cerradosTotal) * 100 : 0;
+                return {
+                    nombre,
+                    cantidad: metrics.total,
+                    porcentaje: (metrics.total / totalRegistros) * 100,
+                    cerrados: metrics.cerradosTotal,
+                    cumplimientoSLA: cumplimientoSLA
+                };
+            })
+            .sort((a, b) => b.cantidad - a.cantidad);
+    }, [dataConRiesgo]);
+
     const exportData = useMemo(() => {
         const termLow = searchTerm.toLowerCase();
         const tipoLow = searchTipoProblema.toLowerCase();
@@ -348,6 +385,46 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
+                </div>
+            </div>
+
+            {/* Rendimiento por Agentes MAC */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Rendimiento por Agente MAC</h3>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-gray-100 text-[10px] uppercase tracking-wider text-gray-400">
+                                <th className="p-3 font-semibold">Agente MAC</th>
+                                <th className="p-3 font-semibold text-center">Registros</th>
+                                <th className="p-3 font-semibold text-center">% sobre Total</th>
+                                <th className="p-3 font-semibold text-center">Casos Cerrados</th>
+                                <th className="p-3 font-semibold text-center">Cierre en SLA (Cumplimiento)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {agentsData.map((ag) => (
+                                <tr key={ag.nombre} className="hover:bg-gray-50/50 transition-colors">
+                                    <td className="p-3 text-xs font-bold text-gray-800">{ag.nombre}</td>
+                                    <td className="p-3 text-xs text-center text-gray-600">{ag.cantidad}</td>
+                                    <td className="p-3 text-xs text-center font-medium text-gray-700">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span className="w-10 text-right">{ag.porcentaje.toFixed(1)}%</span>
+                                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-brand" style={{ width: `${ag.porcentaje}%` }} />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-3 text-xs text-center text-gray-600">{ag.cerrados}</td>
+                                    <td className="p-3 text-xs text-center font-medium">
+                                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${ag.cumplimientoSLA >= 85 ? 'bg-emerald-100 text-emerald-700' : ag.cumplimientoSLA >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                            {ag.cumplimientoSLA.toFixed(1)}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

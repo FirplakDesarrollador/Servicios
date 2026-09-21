@@ -449,3 +449,44 @@ export async function createSapQuotation(quotationData: {
   console.log('[SAP Service Layer] Quotation creada exitosamente! DocNum:', data.DocNum, 'DocEntry:', data.DocEntry);
   return data;
 }
+
+/**
+ * Search for documents by CardCode or CardName
+ */
+export async function searchSapDocumentsList(query: string, docType: string) {
+  const cookie = await getSapSessionCookie();
+  
+  let endpoint = 'Orders';
+  if (docType === 'Quotation') endpoint = 'Quotations';
+  else if (docType === 'Delivery') endpoint = 'DeliveryNotes';
+  else if (docType === 'Invoice') endpoint = 'Invoices';
+  else if (docType === 'ProductionOrder') endpoint = 'ProductionOrders';
+
+  // For Production Orders, the field is CustomerCode. For others, CardCode/CardName
+  let filterStr = ``;
+  if (endpoint === 'ProductionOrders') {
+    filterStr = `CustomerCode eq '${query}' or startswith(ProductDescription, '${query}')`;
+  } else {
+    filterStr = `CardCode eq '${query}' or startswith(CardName, '${query}') or startswith(NumAtCard, '${query}')`;
+  }
+
+  // Use a select to minimize payload and optimize
+  const url = `${SAP_BASE_URL}/${endpoint}?` + new URLSearchParams({
+    $filter: filterStr,
+    $select: endpoint === 'ProductionOrders' 
+      ? 'DocumentNumber,ItemNo,ProductDescription,PlannedQuantity,CustomerCode,PostingDate,DueDate,ProductionOrderStatus' 
+      : 'DocNum,DocDate,DocDueDate,CardCode,CardName,DocTotal,DocCurrency,NumAtCard,DocumentStatus',
+    $orderby: endpoint === 'ProductionOrders' ? 'DocumentNumber desc' : 'DocNum desc',
+    $top: '50'
+  }).toString();
+
+  const res = await fetch(url, { headers: { 'Cookie': cookie } });
+  
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Error buscando documentos en SAP: ${err}`);
+  }
+  
+  const data = await res.json();
+  return data.value || [];
+}

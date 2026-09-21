@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
-import { createSapQuotation, fetchSapQuotationByDocNum } from '@/lib/sapServiceLayer';
+import { createSapQuotation, fetchSapQuotationByDocNum, searchSapDocumentsList } from '@/lib/sapServiceLayer';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const docNum = searchParams.get('docNum');
-    const docType = searchParams.get('type') || undefined;
+    const docType = searchParams.get('type') || 'Order';
+    const search = searchParams.get('search');
+
+    if (search) {
+      const docList = await searchSapDocumentsList(search, docType);
+      return NextResponse.json({ success: true, documents: docList });
+    }
 
     if (!docNum) {
-      return NextResponse.json({ error: 'Param docNum is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Param docNum or search is required' }, { status: 400 });
     }
 
     const docResult = await fetchSapQuotationByDocNum(docNum, docType as any);

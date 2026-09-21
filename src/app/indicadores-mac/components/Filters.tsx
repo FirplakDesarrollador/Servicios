@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { FilterState, RegistroMAC } from '../types';
+import { supabase } from '@/lib/supabase';
 
 interface FiltersProps {
     filters: FilterState;
@@ -9,13 +10,29 @@ interface FiltersProps {
 }
 
 export default function Filters({ filters, setFilters, data, activeTab }: FiltersProps) {
-    const opcionesTipo = useMemo(() => [
-        'Garantía',
-        'Documento Sagrilaft',
-        'Reclamo',
-        'Atención',
-        'Venta'
-    ], []);
+    const [dbOpcionesTipo, setDbOpcionesTipo] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchTipos = async () => {
+            try {
+                const { data: dbData } = await supabase.from('Tipo_Solicitud').select('TipoSolicitud').eq('activo', true);
+                if (dbData) {
+                    const fromTable = dbData.map(d => d.TipoSolicitud).filter((t): t is string => typeof t === 'string' && t.trim() !== '');
+                    setDbOpcionesTipo(fromTable.sort());
+                }
+            } catch(e) {
+                console.error("Error fetching tipos de solicitud:", e);
+            }
+        };
+        fetchTipos();
+    }, []);
+
+    const dataDerivedTipos = useMemo(() => {
+        const tipos = data.map(d => d.tipo_solicitud).filter(Boolean) as string[];
+        return Array.from(new Set(tipos)).sort();
+    }, [data]);
+
+    const opcionesTipo = dbOpcionesTipo.length > 0 ? dbOpcionesTipo : dataDerivedTipos;
     const opcionesAgentes = useMemo(() => {
         const agentes = data.map(d => d._agenteNombre).filter(Boolean) as string[];
         return Array.from(new Set(agentes)).sort();
