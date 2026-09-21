@@ -1500,7 +1500,21 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                             ) : (
                                 data.map((d, i) => (
                                     <tr key={d.id || i} className={i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'}>
-                                        <td className="px-4 py-3 text-xs font-bold text-gray-800 whitespace-nowrap border-b border-gray-100 align-top">{d.consecutivo || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-xs font-bold text-gray-800 whitespace-nowrap border-b border-gray-100 align-top">
+                                            {d.consecutivo ? (
+                                                <a 
+                                                    href={`/ver-registro/${d.id}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                    title={`Ver detalles del radicado ${d.consecutivo}`}
+                                                >
+                                                    {d.consecutivo}
+                                                </a>
+                                            ) : (
+                                                'N/A'
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100">{d.comentarios || 'Sin comentarios'}</td>
                                     </tr>
                                 ))
