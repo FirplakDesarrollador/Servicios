@@ -208,6 +208,10 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   
+  const [isDocListModalOpen, setIsDocListModalOpen] = useState(false);
+  const [docListResults, setDocListResults] = useState<any[]>([]);
+  const [isDocListLoading, setIsDocListLoading] = useState(false);
+  
   const [activeRowIdForSearch, setActiveRowIdForSearch] = useState<string | null>(null);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState('');
@@ -541,7 +545,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
             price: line.UnitPrice || 0,
             discount: line.DiscountPercent || 0,
             taxCode: line.TaxCode || 'IVA 19%',
-            total: line.LineTotal || (line.Quantity * line.UnitPrice),
+            total: (sapDoc.DocCurrency === 'USD') ? (line.RowTotalFC || (line.Quantity * line.UnitPrice)) : (line.LineTotal || (line.Quantity * line.UnitPrice)),
             whsCode: line.WarehouseCode || 'PT-01',
             costingCode: line.CostingCode || line.CostingCode2 || line.CostingCode3 || '',
             salesEmployee: sapDoc._SalesEmployeeName || 'Firplak',
@@ -575,6 +579,14 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       }
 
       setHeaderDiscountPct(sapDoc.DiscountPercent || 0);
+      
+      let expenses = 0;
+      if (sapDoc.DocumentAdditionalExpenses && sapDoc.DocumentAdditionalExpenses.length > 0) {
+        expenses = sapDoc.DocumentAdditionalExpenses.reduce((sum: number, exp: any) => sum + ((sapDoc.DocCurrency === 'USD') ? (exp.LineTotalFC || exp.LineTotalSys || 0) : (exp.LineTotal || 0)), 0);
+      } else {
+        expenses = (sapDoc.DocCurrency === 'USD') ? (sapDoc.TotalExpensesFC || sapDoc.TotalExpenses || 0) : (sapDoc.TotalExpenses || 0);
+      }
+      setAdditionalExpenses(expenses);
 
       setStatusMessage(`✔ Información de ${data.document.documentType === 'Order' ? 'Orden' : 'Oferta'} de Venta Nº ${sapDoc.DocNum} cargada exitosamente desde SAP B1.`);
       setStatusType('success');
@@ -651,17 +663,60 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
     setIsCustomerModalOpen(false);
   };
 
+  const handleCustomerSearchShortcut = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const target = e.currentTarget;
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      if (target.value.startsWith('*')) {
+        e.preventDefault();
+        const query = target.value.substring(1);
+        
+        setIsDocListLoading(true);
+        setIsDocListModalOpen(true);
+        try {
+          const res = await fetch(`/api/sap/quotations?search=${encodeURIComponent(query)}&type=${mode}`);
+          const data = await res.json();
+          if (data.success) {
+            setDocListResults(data.documents || []);
+          } else {
+            setDocListResults([]);
+          }
+        } catch (error) {
+          console.error('Error searching docs:', error);
+          setDocListResults([]);
+        } finally {
+          setIsDocListLoading(false);
+        }
+      }
+    }
+  };
+
   // Subtotal & Totals
   const subtotalRows = rows.reduce((sum, r) => sum + (r.total || 0), 0);
   const headerDiscountAmount = subtotalRows * (headerDiscountPct / 100);
   const subtotalAfterDiscount = subtotalRows - headerDiscountAmount;
-  const vatTax = (subtotalAfterDiscount + Number(additionalExpenses || 0)) * 0.19;
+  
+  // Calcular IVA de forma dinámica según el código de impuesto de cada línea
+  const vatTaxRows = rows.reduce((sum, r) => {
+    if (!r.itemCode) return sum;
+    const isExempt = r.taxCode === 'IVAEXE' || r.taxCode === 'EXENTO' || String(r.taxCode).toUpperCase().includes('EXE');
+    const is5Percent = r.taxCode === 'IVA 5%';
+    const rate = isExempt ? 0 : (is5Percent ? 0.05 : 0.19);
+    const rowNet = (r.total || 0) * (1 - (headerDiscountPct / 100));
+    return sum + (rowNet * rate);
+  }, 0);
+  
+  // Asumir que los gastos adicionales toman el 19% a menos que todas las líneas sean exentas
+  const hasTaxableLines = rows.some(r => r.itemCode && !(r.taxCode === 'IVAEXE' || r.taxCode === 'EXENTO' || String(r.taxCode).toUpperCase().includes('EXE')));
+  const vatTaxExpenses = Number(additionalExpenses || 0) * (hasTaxableLines ? 0.19 : 0);
+  
+  const vatTax = vatTaxRows + vatTaxExpenses;
   const grandTotal = subtotalAfterDiscount + Number(additionalExpenses || 0) + vatTax;
 
   const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', {
+    const isUSD = currency === 'USD' || currency === '$';
+    return new Intl.NumberFormat(isUSD ? 'en-US' : 'es-CO', {
       style: 'currency',
-      currency: 'COP',
+      currency: isUSD ? 'USD' : 'COP',
       minimumFractionDigits: 2
     }).format(amount);
   };
@@ -1411,7 +1466,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
                 <div className="flex items-center gap-2">
                   <label className="w-36 text-slate-600 text-right">Cliente</label>
-                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} onKeyDown={handleCustomerSearchShortcut} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1438,6 +1493,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                       type="text"
                       value={cardCode}
                       onChange={e => setCardCode(e.target.value)}
+                      onKeyDown={handleCustomerSearchShortcut}
                       className="w-full bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-600"
                     />
                     <button 
@@ -1457,6 +1513,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   type="text"
                   value={cardName}
                   onChange={e => setCardName(e.target.value)}
+                  onKeyDown={handleCustomerSearchShortcut}
                   className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
                 />
               </div>
@@ -1486,6 +1543,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   type="text"
                   value={refNumber}
                   onChange={e => setRefNumber(e.target.value)}
+                  onKeyDown={handleCustomerSearchShortcut}
                   className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
                 />
               </div>
@@ -2442,6 +2500,76 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
           Luis Guillermo Esteban | 01/09/2026 | 12:25 p.m.
         </span>
       </div>
+
+      {/* 🗂️ Document List Modal */}
+      {isDocListModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-[#334155] text-white px-4 py-2 font-bold text-xs flex justify-between items-center">
+              <span>SAP B1 - Lista de Pedidos de cliente</span>
+              <button onClick={() => setIsDocListModalOpen(false)} className="hover:text-amber-300">✕</button>
+            </div>
+            <div className="p-3">
+              <div className="border border-slate-300 rounded overflow-hidden">
+                <div className="max-h-80 overflow-y-auto">
+                  <table className="w-full text-left text-xs whitespace-nowrap">
+                    <thead className="bg-slate-100 border-b sticky top-0">
+                      <tr>
+                        <th className="p-2 font-semibold">#</th>
+                        <th className="p-2 font-semibold">Fecha</th>
+                        <th className="p-2 font-semibold">Cliente</th>
+                        <th className="p-2 font-semibold">Nombre del Cliente</th>
+                        <th className="p-2 font-semibold text-right">Total del documento</th>
+                        <th className="p-2 font-semibold">Ref OC/COT</th>
+                        <th className="p-2 font-semibold">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isDocListLoading ? (
+                        <tr>
+                          <td colSpan={7} className="text-center p-8 text-slate-500 font-medium">Cargando documentos...</td>
+                        </tr>
+                      ) : docListResults.length > 0 ? (
+                        docListResults.map((doc, idx) => (
+                          <tr 
+                            key={idx} 
+                            onClick={() => {
+                              handleSearchSapDocument(String(doc.DocNum || doc.DocumentNumber));
+                              setIsDocListModalOpen(false);
+                            }}
+                            className="border-b last:border-b-0 hover:bg-amber-100/50 cursor-pointer transition-colors"
+                          >
+                            <td className="p-2 font-bold text-slate-800">{doc.DocNum || doc.DocumentNumber}</td>
+                            <td className="p-2 text-slate-600">{doc.DocDate || doc.PostingDate}</td>
+                            <td className="p-2 text-slate-600 font-medium">{doc.CardCode || doc.CustomerCode}</td>
+                            <td className="p-2 text-slate-600 truncate max-w-[200px]">{doc.CardName || doc.ProductDescription}</td>
+                            <td className="p-2 text-right font-bold text-slate-700">{(doc.DocTotal !== undefined ? formatMoney(doc.DocTotal) : doc.PlannedQuantity)}</td>
+                            <td className="p-2 text-slate-600">{doc.NumAtCard || '-'}</td>
+                            <td className="p-2 text-slate-600">{doc.DocumentStatus || doc.ProductionOrderStatus || 'bost_Open'}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="text-center p-8 text-slate-500 font-medium">No se encontraron documentos relacionados a la búsqueda.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div className="mt-3 flex justify-end gap-2">
+                <button 
+                  onClick={() => setIsDocListModalOpen(false)}
+                  className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded border border-slate-300 shadow-sm text-xs"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Customer Search Modal ─────────────────────────────────────────────── */}
       {isCustomerModalOpen && (
