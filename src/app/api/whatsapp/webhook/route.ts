@@ -39,9 +39,26 @@ export async function POST(request: Request) {
 
             for (const message of value.messages) {
               const wa_id = message.from; // Phone number
-              const text_body = message.text?.body;
               const wam_id = message.id;
               
+              // Extract text body from various message formats
+              let text_body = message.text?.body;
+              if (!text_body) {
+                if (message.type === 'image') text_body = message.image?.caption || '📷 Imagen';
+                else if (message.type === 'audio') text_body = message.audio?.voice ? '🎤 Mensaje de voz' : '🎵 Audio';
+                else if (message.type === 'video') text_body = message.video?.caption || '🎥 Video';
+                else if (message.type === 'document') text_body = message.document?.filename ? `📄 ${message.document.filename}` : '📄 Documento';
+                else if (message.type === 'sticker') text_body = '💟 Sticker';
+                else if (message.type === 'location') text_body = '📍 Ubicación';
+                else if (message.type === 'interactive') {
+                  text_body = message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || 'Respuesta interactiva';
+                } else if (message.type === 'button') {
+                  text_body = message.button?.text || 'Botón';
+                } else {
+                  text_body = message.caption || 'Mensaje de WhatsApp';
+                }
+              }
+
               // Find contact name from the contacts array
               let contactName = 'Unknown';
               const contact = value.contacts.find((c: any) => c.wa_id === wa_id);
@@ -49,80 +66,77 @@ export async function POST(request: Request) {
                 contactName = contact.profile.name;
               }
 
-              if (text_body) {
-                // Check if message was already created by our system (outbound message/template sent by us)
-                const { data: existingWam } = await supabase
-                  .from('whatsapp_messages')
-                  .select('id, sender')
-                  .eq('wam_id', wam_id)
-                  .maybeSingle();
+              // Check if message was already created by our system (outbound message/template sent by us)
+              const { data: existingWam } = await supabase
+                .from('whatsapp_messages')
+                .select('id, sender')
+                .eq('wam_id', wam_id)
+                .maybeSingle();
 
-                if (existingWam && existingWam.sender === 'me') {
-                  // Ignore outbound messages sent by our system so they remain unassigned (null)
-                  continue;
-                }
+              if (existingWam && existingWam.sender === 'me') {
+                // Ignore outbound messages sent by our system so they remain unassigned (null)
+                continue;
+              }
 
-                // Find or create chat
-                let { data: chat, error: chatFindError } = await supabase
+              // Find or create chat
+              let { data: chat, error: chatFindError } = await supabase
+                .from('whatsapp_chats')
+                .select('id, unread_count, responsable')
+                .eq('phone_number', wa_id)
+                .maybeSingle();
+
+              let chatId = chat?.id;
+
+              if (!chat) {
+                // If chat did not exist, it's an incoming customer message -> auto-assign Round-Robin
+                const autoAssignedResponsable = await getNextAssignedAsesor();
+                const { data: newChat, error: createError } = await supabase
                   .from('whatsapp_chats')
-                  .select('id, unread_count, responsable')
-                  .eq('phone_number', wa_id)
+                  .insert([{
+                    phone_number: wa_id,
+                    contact_name: contactName,
+                    last_message: text_body,
+                    last_message_time: new Date().toISOString(),
+                    unread_count: 1,
+                    responsable: autoAssignedResponsable
+                  }])
+                  .select()
                   .single();
-
-                let chatId = chat?.id;
-
-                if (!chat) {
-                  // If chat did not exist, it's an incoming customer message -> auto-assign Round-Robin
-                  const autoAssignedResponsable = await getNextAssignedAsesor();
-                  const { data: newChat, error: createError } = await supabase
-                    .from('whatsapp_chats')
-                    .insert([{
-                      phone_number: wa_id,
-                      contact_name: contactName,
-                      last_message: text_body,
-                      last_message_time: new Date().toISOString(),
-                      unread_count: 1,
-                      responsable: autoAssignedResponsable
-                    }])
-                    .select()
-                    .single();
-                  
-                  if (!createError && newChat) {
-                    chatId = newChat.id;
-                  }
-                } else {
-                  // Update existing chat
-                  // AUTO-ASSIGN ONLY IF:
-                  // 1) The chat has NO responsable currently (null)
-                  // AND 2) The chat has unread_count > 0 (meaning customer wrote to us / replied)
-                  let updatedResponsable = chat.responsable;
-                  if (!chat.responsable && (chat.unread_count || 0) > 0) {
-                    updatedResponsable = await getNextAssignedAsesor();
-                  }
-
-                  await supabase
-                    .from('whatsapp_chats')
-                    .update({
-                      contact_name: contactName !== 'Unknown' ? contactName : undefined,
-                      last_message: text_body,
-                      last_message_time: new Date().toISOString(),
-                      ...(updatedResponsable ? { responsable: updatedResponsable } : {})
-                    })
-                    .eq('id', chatId);
+                
+                if (!createError && newChat) {
+                  chatId = newChat.id;
+                }
+              } else {
+                // Update existing chat
+                // AUTO-ASSIGN: If the chat currently has no responsable assigned, assign via Round-Robin
+                let updatedResponsable = chat.responsable;
+                if (!chat.responsable) {
+                  updatedResponsable = await getNextAssignedAsesor();
                 }
 
-                // Insert message
-                if (chatId) {
-                  await supabase
-                    .from('whatsapp_messages')
-                    .insert([{
-                      chat_id: chatId,
-                      wam_id: wam_id,
-                      text_body: text_body,
-                      sender: 'them',
-                      status: 'received'
-                    }]);
-                }
+                await supabase
+                  .from('whatsapp_chats')
+                  .update({
+                    contact_name: contactName !== 'Unknown' ? contactName : undefined,
+                    last_message: text_body,
+                    last_message_time: new Date().toISOString(),
+                    unread_count: (chat.unread_count || 0) + 1,
+                    responsable: updatedResponsable
+                  })
+                  .eq('id', chatId);
+              }
+
+              // Insert message
+              if (chatId) {
+                await supabase
+                  .from('whatsapp_messages')
+                  .insert([{
+                    chat_id: chatId,
+                    wam_id: wam_id,
+                    text_body: text_body,
+                    sender: 'them',
+                    status: 'received'
+                  }]);
               }
             }
           }
