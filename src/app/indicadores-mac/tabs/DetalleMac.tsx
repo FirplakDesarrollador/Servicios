@@ -35,7 +35,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
     const deferredTipoProblema = useDeferredValue(searchTipoProblema);
     const deferredResponsable = useDeferredValue(searchResponsable);
 
-    const applyLocalSearch = React.useCallback((dataset: any[]) => {
+    const applyLocalSearch = React.useCallback((dataset: RegistroMAC[]): RegistroMAC[] => {
         const termLow = deferredSearchTerm.toLowerCase();
         const tipoLow = deferredTipoProblema.toLowerCase();
         const respLow = deferredResponsable.toLowerCase();
@@ -77,7 +77,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
         : 0;
 
     const fueraSla = dataConRiesgo.filter(d => {
-        const diasHabiles = d._tiempoCierre !== null ? d._tiempoCierre : d._diasHabilesAbierta;
+        const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
         return diasHabiles > 15;
     }).length;
     const porcCumplimiento = total > 0 ? ((total - fueraSla) / total) * 100 : 0;
@@ -146,7 +146,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
             if (!meses[mesKey]) meses[mesKey] = { pres: 0, cerrEnSla: 0, fueraSla: 0, pendientes: 0 };
             meses[mesKey].pres += 1;
 
-            const diasHabiles = d._tiempoCierre !== null ? d._tiempoCierre : d._diasHabilesAbierta;
+            const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
             
             if (d.estado === 'Cerrado') {
                 if (diasHabiles <= 15) {
@@ -255,7 +255,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
             
             if (d.estado === 'Cerrado') {
                 agentMap[agent].cerradosTotal++;
-                const diasHabiles = d._tiempoCierre !== null ? d._tiempoCierre : (d._diasHabilesAbierta || 0);
+                const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
                 if (diasHabiles <= 15) {
                     agentMap[agent].cerradosSla++;
                 }
@@ -524,7 +524,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                                     <td className="p-3 text-xs bg-purple-50/30">
                                         {(d._defectosNombres || []).length > 0 ? (
                                             <div className="flex flex-col gap-1 max-w-[180px]">
-                                                {(d._defectosNombres || []).slice(0, 2).map((def, idx) => (
+                                                {(d._defectosNombres || []).slice(0, 2).map((def: string, idx: number) => (
                                                     <span
                                                         key={idx}
                                                         className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 truncate"
@@ -545,7 +545,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                                     <td className="p-3 text-xs bg-amber-50/30">
                                         {(d._responsablesNombres || []).length > 0 ? (
                                             <div className="flex flex-col gap-1 max-w-[180px]">
-                                                {(d._responsablesNombres || []).slice(0, 2).map((res, idx) => (
+                                                {(d._responsablesNombres || []).slice(0, 2).map((res: string, idx: number) => (
                                                     <span
                                                         key={idx}
                                                         className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 truncate"
