@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useDeferredValue } from 'react';
 import { RegistroMAC, FilterState } from '../types';
 import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
@@ -10,6 +10,7 @@ interface Props {
     prevData: RegistroMAC[];
     filters: FilterState;
     dataForMesPresupuesto?: RegistroMAC[];
+    dataForEstadoRiesgo?: RegistroMAC[];
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
 }
@@ -23,45 +24,45 @@ const COLORS = {
     brandLight: '#749094'
 };
 
-// Parsear fecha segura: para strings tipo "2026-07-15" (solo fecha) se crea en hora local
-// para evitar desfase por zona horaria UTC
-function parseDateSafe(dateStr: string | null | undefined): Date | null {
-    if (!dateStr) return null;
-    // Si es solo fecha (YYYY-MM-DD) sin hora, parsear manualmente en hora local
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        return new Date(y, m - 1, d);
-    }
-    return new Date(dateStr);
-}
+// Remove redundant parseDateSafe and calcularRiesgo
 
-// Calcular días hábiles y estado de riesgo para un registro
-function calcularRiesgo(d: RegistroMAC): { diasHabiles: number; estadoRiesgo: 'Excelente' | 'Regular' | 'Riesgo de demanda' | 'Demandante' } {
-    const createdAt = new Date(d.created_at);
-    const fechaVerif = parseDateSafe((d as any).fecha_verificacion);
-    const fechaReferencia = fechaVerif || new Date();
-    const diasHabiles = getBusinessDaysDifference(createdAt, fechaReferencia);
-    
-    let estadoRiesgo: 'Excelente' | 'Regular' | 'Riesgo de demanda' | 'Demandante' = 'Excelente';
-    if (diasHabiles > 20) estadoRiesgo = 'Demandante';
-    else if (diasHabiles >= 16) estadoRiesgo = 'Riesgo de demanda';
-    else if (diasHabiles >= 11) estadoRiesgo = 'Regular';
-    
-    return { diasHabiles, estadoRiesgo };
-}
-
-export default function DetalleMac({ data, prevData, filters, dataForMesPresupuesto, setFilters, onFilterToggle }: Props) {
+export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoRiesgo, prevData, filters, setFilters, onFilterToggle }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchTipoProblema, setSearchTipoProblema] = useState('');
     const [searchResponsable, setSearchResponsable] = useState('');
 
-    // Datos enriquecidos con cálculo dinámico de riesgo
-    const dataConRiesgo = useMemo(() => {
-        return data.map(d => {
-            const { diasHabiles, estadoRiesgo } = calcularRiesgo(d);
-            return { ...d, _diasHabilesAbierta: diasHabiles, _estadoRiesgo: estadoRiesgo, _tiempoCierre: d.estado === 'Cerrado' ? diasHabiles : null };
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+    const deferredTipoProblema = useDeferredValue(searchTipoProblema);
+    const deferredResponsable = useDeferredValue(searchResponsable);
+
+    const applyLocalSearch = React.useCallback((dataset: any[]) => {
+        const termLow = deferredSearchTerm.toLowerCase();
+        const tipoLow = deferredTipoProblema.toLowerCase();
+        const respLow = deferredResponsable.toLowerCase();
+
+        if (!termLow && !tipoLow && !respLow) return dataset;
+
+        return dataset.filter(d => {
+            if (termLow && !(
+                (d.consecutivo || '').toLowerCase().includes(termLow) ||
+                (d.cliente_final_nombre || '').toLowerCase().includes(termLow) ||
+                (d.cliente_nombre || '').toLowerCase().includes(termLow)
+            )) return false;
+            
+            if (tipoLow && !(
+                (d._defectosNombres || []).some((def: string) => def.toLowerCase().includes(tipoLow))
+            )) return false;
+            
+            if (respLow && !(
+                (d._responsablesNombres || []).some((res: string) => res.toLowerCase().includes(respLow))
+            )) return false;
+            
+            return true;
         });
-    }, [data]);
+    }, [searchTerm, searchTipoProblema, searchResponsable]);
+
+    // Datos con filtro local aplicado
+    const dataConRiesgo = useMemo(() => applyLocalSearch(data), [data, applyLocalSearch]);
 
     // KPIs Base
     const total = dataConRiesgo.length;
@@ -98,19 +99,22 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
 
     // Chart: Estado de Riesgo
     const riesgoData = useMemo(() => {
+        const sourceData = dataForEstadoRiesgo ? applyLocalSearch(dataForEstadoRiesgo) : dataConRiesgo;
+        
+        const abiertasParaRiesgo = sourceData.filter((d: any) => d.estado === 'Abierto');
         const counts = { 'Excelente': 0, 'Regular': 0, 'Riesgo de demanda': 0, 'Demandante': 0 };
-        abiertas.forEach(d => {
+        abiertasParaRiesgo.forEach(d => {
             if (counts[d._estadoRiesgo as keyof typeof counts] !== undefined) {
                 counts[d._estadoRiesgo as keyof typeof counts]++;
             }
         });
         return [
-            { name: 'Excelente (1-10)', value: counts['Excelente'], color: COLORS.excelente },
-            { name: 'Regular (11-15)', value: counts['Regular'], color: COLORS.regular },
-            { name: 'Riesgo (16-20)', value: counts['Riesgo de demanda'], color: COLORS.riesgo },
-            { name: 'Demandante (>20)', value: counts['Demandante'], color: COLORS.demandante },
+            { name: 'Excelente (1-10)', value: counts['Excelente'], color: COLORS.excelente, rawKey: 'Excelente' },
+            { name: 'Regular (11-15)', value: counts['Regular'], color: COLORS.regular, rawKey: 'Regular' },
+            { name: 'Riesgo (16-20)', value: counts['Riesgo de demanda'], color: COLORS.riesgo, rawKey: 'Riesgo de demanda' },
+            { name: 'Demandante (>20)', value: counts['Demandante'], color: COLORS.demandante, rawKey: 'Demandante' },
         ];
-    }, [abiertas]);
+    }, [dataConRiesgo, dataForEstadoRiesgo, applyLocalSearch]);
 
     // Presupuesto de Cierre
     // Presupuesto = mes donde se espera cerrar (created_at + 15 días hábiles)
@@ -132,10 +136,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
             }
         }
 
-        const sourceData = dataForMesPresupuesto ? dataForMesPresupuesto.map(d => {
-            const { diasHabiles, estadoRiesgo } = calcularRiesgo(d);
-            return { ...d, _diasHabilesAbierta: diasHabiles, _estadoRiesgo: estadoRiesgo, _tiempoCierre: d.estado === 'Cerrado' ? diasHabiles : null };
-        }) : dataConRiesgo;
+        const sourceData = dataForMesPresupuesto ? applyLocalSearch(dataForMesPresupuesto) : dataConRiesgo;
 
         sourceData.forEach(d => {
             const created = new Date(d.created_at);
@@ -178,7 +179,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                 Cumplimiento: parseFloat(cumplimiento)
             };
         });
-    }, [dataConRiesgo, filters.fechaInicial, filters.fechaFinal]);
+    }, [dataConRiesgo, dataForMesPresupuesto, filters.fechaInicial, filters.fechaFinal, applyLocalSearch]);
 
     const CustomPresupuestoTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
@@ -268,6 +269,7 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                     nombre,
                     cantidad: metrics.total,
                     porcentaje: (metrics.total / totalRegistros) * 100,
+                    abiertos: metrics.total - metrics.cerradosTotal,
                     cerrados: metrics.cerradosTotal,
                     cumplimientoSLA: cumplimientoSLA
                 };
@@ -276,27 +278,8 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
     }, [dataConRiesgo]);
 
     const exportData = useMemo(() => {
-        const termLow = searchTerm.toLowerCase();
-        const tipoLow = searchTipoProblema.toLowerCase();
-        const respLow = searchResponsable.toLowerCase();
-        return dataConRiesgo.filter(d => {
-            // Búsqueda por radicado/cliente
-            if (termLow && !(
-                d.consecutivo.toLowerCase().includes(termLow) ||
-                (d.cliente_final_nombre || '').toLowerCase().includes(termLow) ||
-                (d.cliente_nombre || '').toLowerCase().includes(termLow)
-            )) return false;
-            // Búsqueda por tipo de problema (cualquier defecto del registro)
-            if (tipoLow && !(
-                (d._defectosNombres || []).some(def => def.toLowerCase().includes(tipoLow))
-            )) return false;
-            // Búsqueda por responsable
-            if (respLow && !(
-                (d._responsablesNombres || []).some(res => res.toLowerCase().includes(respLow))
-            )) return false;
-            return true;
-        });
-    }, [dataConRiesgo, searchTerm, searchTipoProblema, searchResponsable]);
+        return [...dataConRiesgo].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }, [dataConRiesgo]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
@@ -340,6 +323,8 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                     radius={[0, 4, 4, 0]} 
                                     maxBarSize={20} 
                                     name="Solicitudes"
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('estadoRiesgo', data.payload?.rawKey || data.rawKey, e)}
                                 >
                                     {riesgoData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -398,13 +383,19 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                 <th className="p-3 font-semibold">Agente MAC</th>
                                 <th className="p-3 font-semibold text-center">Registros</th>
                                 <th className="p-3 font-semibold text-center">% sobre Total</th>
+                                <th className="p-3 font-semibold text-center">Casos Abiertos</th>
                                 <th className="p-3 font-semibold text-center">Casos Cerrados</th>
                                 <th className="p-3 font-semibold text-center">Cierre en SLA (Cumplimiento)</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {agentsData.map((ag) => (
-                                <tr key={ag.nombre} className="hover:bg-gray-50/50 transition-colors">
+                                <tr 
+                                    key={ag.nombre} 
+                                    className="hover:bg-gray-50/80 transition-colors cursor-pointer"
+                                    onClick={(e) => onFilterToggle('agenteMac', ag.nombre, e)}
+                                    title={`Filtrar por agente ${ag.nombre}`}
+                                >
                                     <td className="p-3 text-xs font-bold text-gray-800">{ag.nombre}</td>
                                     <td className="p-3 text-xs text-center text-gray-600">{ag.cantidad}</td>
                                     <td className="p-3 text-xs text-center font-medium text-gray-700">
@@ -415,7 +406,8 @@ export default function DetalleMac({ data, prevData, filters, dataForMesPresupue
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="p-3 text-xs text-center text-gray-600">{ag.cerrados}</td>
+                                    <td className="p-3 text-xs text-center font-bold text-amber-600">{ag.abiertos}</td>
+                                    <td className="p-3 text-xs text-center font-bold text-emerald-600">{ag.cerrados}</td>
                                     <td className="p-3 text-xs text-center font-medium">
                                         <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${ag.cumplimientoSLA >= 85 ? 'bg-emerald-100 text-emerald-700' : ag.cumplimientoSLA >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                                             {ag.cumplimientoSLA.toFixed(1)}%

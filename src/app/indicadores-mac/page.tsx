@@ -124,6 +124,7 @@ export default function IndicadoresMacPage() {
         clientes: [],
         mesPresupuesto: [],
         mesCreacion: [],
+        estadoRiesgo: [],
     });
 
     useEffect(() => {
@@ -154,7 +155,7 @@ export default function IndicadoresMacPage() {
                 supabase.from('defectos').select('id, defecto'),
                 supabase.from('responsable_queja').select('id, responsable'),
                 supabase.from('zonas').select('id, zona'),
-                supabase.from('Productos').select('Nombre, sku, grupo'),
+                supabase.from('Productos').select('nombre, sku, grupo, planta'),
             ]);
 
             if (registrosResult.error) throw registrosResult.error;
@@ -172,11 +173,18 @@ export default function IndicadoresMacPage() {
             // ── Pre-construir Maps de lookup O(1) ────────────────────────────
             const skuToGrupoMap = new Map<string, string>();
             const nombreToGrupoMap = new Map<string, string>();
+            const skuToPlantaMap = new Map<string, string>();
+            const nombreToPlantaMap = new Map<string, string>();
             productosCatalogData.forEach((prod: any) => {
                 if (prod.grupo) {
                     const grupoVal = String(prod.grupo).trim().toUpperCase();
                     if (prod.sku) skuToGrupoMap.set(String(prod.sku).trim().toLowerCase(), grupoVal);
-                    if (prod.Nombre) nombreToGrupoMap.set(String(prod.Nombre).trim().toLowerCase(), grupoVal);
+                    if (prod.nombre) nombreToGrupoMap.set(String(prod.nombre).trim().toLowerCase(), grupoVal);
+                }
+                if (prod.planta) {
+                    const plantaVal = String(prod.planta).trim().toUpperCase();
+                    if (prod.sku) skuToPlantaMap.set(String(prod.sku).trim().toLowerCase(), plantaVal);
+                    if (prod.nombre) nombreToPlantaMap.set(String(prod.nombre).trim().toLowerCase(), plantaVal);
                 }
             });
 
@@ -201,7 +209,7 @@ export default function IndicadoresMacPage() {
                 const code = String(p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '').trim().toLowerCase();
                 if (code && skuToGrupoMap.has(code)) return normalizeGrupo(skuToGrupoMap.get(code)!);
 
-                const desc = String(p.descripcion || p.nombre || p.Nombre || p.producto || '').trim().toLowerCase();
+                const desc = String(p.descripcion || p.nombre || p.producto || '').trim().toLowerCase();
                 if (desc && nombreToGrupoMap.has(desc)) return normalizeGrupo(nombreToGrupoMap.get(desc)!);
 
                 for (const [nombreKey, grupoVal] of nombreToGrupoMap.entries()) {
@@ -220,6 +228,32 @@ export default function IndicadoresMacPage() {
                 if (upperDesc.includes('INFRAESTRUCTURA') || upperDesc.includes('PATA') || upperDesc.includes('PISO')) return 'INFRAESTRUCTURA';
 
                 return 'OTROS';
+            };
+
+            const normalizePlantaName = (planta: string) => {
+                const p = String(planta).toUpperCase().trim();
+                if (p === 'MBL') return 'MUEBLES';
+                if (p === 'PC') return 'MARMOL';
+                if (p === 'KIT') return 'KIT';
+                if (p === 'FVHM' || p === 'FVHMP' || p === 'FV') return 'FIBRA';
+                return p;
+            };
+
+            const getPlantaForProduct = (p: any) => {
+                let rawPlanta = p.planta || p._planta || '';
+                if (rawPlanta) return normalizePlantaName(rawPlanta);
+
+                const code = String(p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '').trim().toLowerCase();
+                if (code && skuToPlantaMap.has(code)) return normalizePlantaName(skuToPlantaMap.get(code)!);
+
+                const desc = String(p.descripcion || p.nombre || p.producto || '').trim().toLowerCase();
+                if (desc && nombreToPlantaMap.has(desc)) return normalizePlantaName(nombreToPlantaMap.get(desc)!);
+
+                for (const [nombreKey, plantaVal] of nombreToPlantaMap.entries()) {
+                    if (nombreKey && (desc.includes(nombreKey) || nombreKey.includes(desc))) return normalizePlantaName(plantaVal);
+                }
+
+                return 'NO DEFINIDA';
             };
 
             // ── Pre-convertir `created_at` a timestamp numérico ──────────────
@@ -290,8 +324,10 @@ export default function IndicadoresMacPage() {
                 if (Array.isArray(r.productos_novedad)) {
                     r.productos_novedad.forEach((p: any) => {
                         p._grupo = getGrupoForProduct(p);
+                        p._planta = getPlantaForProduct(p);
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
                         if (p._grupo) _productosNombres.add(p._grupo);
+                        if (p._planta) _productosNombres.add(`PL:${p._planta}`);
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                         let hasProblema = false;
@@ -390,6 +426,7 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('clientes') && filters.clientes.length > 0 && !filters.clientes.includes(d._clientePrincipalFinal || '')) return false;
             if (!excludeKeys.includes('mesPresupuesto') && filters.mesPresupuesto.length > 0 && !filters.mesPresupuesto.includes(d._mesPresupuestoKey || '')) return false;
             if (!excludeKeys.includes('mesCreacion') && filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) return false;
+            if (!excludeKeys.includes('estadoRiesgo') && filters.estadoRiesgo.length > 0 && !filters.estadoRiesgo.includes(d._estadoRiesgo || '')) return false;
 
             if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.includes(f))) return false;
             if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.includes(f))) return false;
@@ -409,6 +446,7 @@ export default function IndicadoresMacPage() {
     const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [getFilteredData]);
     const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [getFilteredData]);
     const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [getFilteredData]);
+    const dataForEstadoRiesgo = useMemo(() => getFilteredData(['estadoRiesgo']), [getFilteredData]);
 
     // ── useCallback para evitar re-renders innecesarios en hijos ─────────────
     const handleFilterToggle = useCallback((key: keyof FilterState, value: string, e?: any) => {
@@ -555,7 +593,7 @@ export default function IndicadoresMacPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans">
+        <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans" style={{ zoom: 0.8 }}>
             <header className="bg-white border-b border-gray-200 px-6 pt-4 flex flex-col md:flex-row md:items-center justify-between sticky top-0 z-20 shadow-sm gap-4">
                 <div className="pb-2 md:pb-4">
                     <h1 className="text-xl font-black text-gray-800 tracking-tight">Indicadores MAC</h1>
@@ -606,14 +644,22 @@ export default function IndicadoresMacPage() {
                             { key: 'clientes', label: 'Cliente' },
                             { key: 'mesPresupuesto', label: 'Mes SLA' },
                             { key: 'mesCreacion', label: 'Mes Ingreso' },
-                        ].map(f => (filters[f.key as keyof FilterState] as string[]).map((val: string, idx: number) => (
-                            <span key={`${f.key}-${idx}`} className="bg-brand text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5 shadow-sm animate-fade-in">
-                                {f.label}: {val}
-                                <button onClick={() => setFilters(prev => ({ ...prev, [f.key]: (prev[f.key as keyof FilterState] as string[]).filter(v => v !== val) }))} className="hover:text-red-300 transition-colors">
-                                    <XIcon className="w-3.5 h-3.5" />
-                                </button>
-                            </span>
-                        )))}
+                        ].map(f => (filters[f.key as keyof FilterState] as string[]).map((val: string, idx: number) => {
+                            let displayLabel = f.label;
+                            let displayVal = val;
+                            if (f.key === 'productos' && val.startsWith('PL:')) {
+                                displayLabel = 'Planta';
+                                displayVal = val.substring(3);
+                            }
+                            return (
+                                <span key={`${f.key}-${idx}`} className="bg-brand text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5 shadow-sm animate-fade-in">
+                                    {displayLabel}: {displayVal}
+                                    <button onClick={() => setFilters(prev => ({ ...prev, [f.key]: (prev[f.key as keyof FilterState] as string[]).filter(v => v !== val) }))} className="hover:text-red-300 transition-colors">
+                                        <XIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                </span>
+                            );
+                        }))}
                     </div>
                     <div className="flex items-center gap-3">
                         <button
@@ -635,24 +681,36 @@ export default function IndicadoresMacPage() {
             )}
 
             <main className="flex-1 p-6 overflow-auto space-y-4">
-                <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} />
+                {activeTab !== 0 && activeTab !== 4 && (
+                    <div className="mb-2">
+                        <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={false} />
+                    </div>
+                )}
 
-                {/* ── Lazy loading: sólo carga el tab activo ───────────────── */}
-                <Suspense fallback={<TabFallback />}>
-                    {activeTab === 0 && (
-                        <CanalesVentaCard
-                            data={filteredData}
-                            dataForCanalVenta={dataForCanalVenta}
-                            filters={filters}
-                            onFilterToggle={handleFilterToggle}
-                        />
-                    )}
-                </Suspense>
-
-                <div className="mt-4 transition-opacity duration-300">
+                <div className="mt-2 transition-opacity duration-300">
                     <Suspense fallback={<TabFallback />}>
-                        {activeTab === 0 && <GeneralMac data={filteredData} dataForDefectos={dataForDefectos} dataForResponsables={dataForResponsables} dataForCiudades={dataForCiudades} dataForZonas={dataForZonas} dataForClientes={dataForClientes} dataForProductos={dataForProductos} dataForMesCreacion={dataForMesCreacion} dataForCanalVenta={dataForCanalVenta} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} razones={razones} defectosRef={defectosRef} responsablesRef={responsablesRef} />}
-                        {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                        {activeTab === 0 && (
+                            <GeneralMac
+                                data={filteredData}
+                                dataForDefectos={dataForDefectos}
+                                dataForResponsables={dataForResponsables}
+                                dataForCiudades={dataForCiudades}
+                                dataForZonas={dataForZonas}
+                                dataForClientes={dataForClientes}
+                                dataForProductos={dataForProductos}
+                                dataForMesCreacion={dataForMesCreacion}
+                                dataForCanalVenta={dataForCanalVenta}
+                                prevData={data}
+                                filters={filters}
+                                setFilters={setFilters}
+                                onFilterToggle={handleFilterToggle}
+                                razones={razones}
+                                defectosRef={defectosRef}
+                                responsablesRef={responsablesRef}
+                                filtersComponent={<Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={true} />}
+                            />
+                        )}
+                        {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                         {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                         {activeTab === 3 && <InformeMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                         {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}

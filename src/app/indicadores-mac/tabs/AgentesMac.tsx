@@ -56,6 +56,10 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
             .slice(0, 10);
     }, [abiertas]);
 
+    const now = new Date();
+    const currentMesPresupuestoKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const porCerrarPresupuesto = abiertas.filter(d => d._mesPresupuestoKey === currentMesPresupuestoKey);
+
     const incompleteData = useMemo(() => {
         return data.filter(d => (!d._defectosNombres || d._defectosNombres.length === 0) || (!d._responsablesNombres || d._responsablesNombres.length === 0));
     }, [data]);
@@ -96,7 +100,7 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
 
     const KpiCard = ({ title, value, suffix = '', prefix = '' }: any) => (
         <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[60px]">
-            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
+            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5" title={title}>{title}</h3>
             <div className="text-lg font-black text-gray-800 leading-tight">
                 {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
             </div>
@@ -153,9 +157,10 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
             )}
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                 <KpiCard title="Registradas" value={total} />
                 <KpiCard title="Abiertas" value={abiertas.length} />
+                <KpiCard title="Ppto. a Cerrar" value={porCerrarPresupuesto.length} />
                 <KpiCard title="Cerradas" value={cerradas.length} />
                 <KpiCard title="% Cierre" value={porcCierre} suffix="%" />
                 <KpiCard title="% Cumplim." value={porcCumplimiento} suffix="%" />

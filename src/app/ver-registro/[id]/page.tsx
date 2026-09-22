@@ -86,7 +86,7 @@ export default function VerRegistroPage() {
     const fetchGlobalOptions = async () => {
         try {
             const [resRazones, resResp, resVend] = await Promise.all([
-                supabase.from('razones_queja').select('*').order('razon'),
+                supabase.from('defectos').select('*').order('defecto'),
                 supabase.from('responsable_queja').select('*').order('responsable'),
                 supabase.from('Usuarios').select('id, display_name, nombres, apellidos, rol').order('display_name')
             ]);
@@ -1376,9 +1376,9 @@ function ClasificacionTab({
     const [editClasificacionProductos, setEditClasificacionProductos] = useState<any[]>(registro.productos_novedad || []);
     const [globalClasificacion, setGlobalClasificacion] = useState({
         vendedor_id: registro.vendedor_id || '',
-        valor_servicio: registro.valor_servicio || '',
-        valor_flete: registro.valor_flete || '',
-        valor_producto: registro.valor_producto || '',
+        valor_servicio: registro.valor_servicio ?? '',
+        valor_flete: registro.valor_flete ?? '',
+        valor_producto: registro.valor_producto ?? '',
         responsable_atraso: registro.responsable_atraso || '',
         area_responsable: registro.area_responsable || '',
         fecha_verificacion: registro.fecha_verificacion || '',
@@ -1440,10 +1440,10 @@ function ClasificacionTab({
             if (!newName?.trim()) return;
             
             try {
-                const { data: maxData } = await supabase.from('razones_queja').select('id').order('id', { ascending: false }).limit(1);
+                const { data: maxData } = await supabase.from('defectos').select('id').order('id', { ascending: false }).limit(1);
                 const nextId = (maxData && maxData.length > 0) ? Number(maxData[0].id) + 1 : 1;
 
-                const { data, error } = await supabase.from('razones_queja').insert({ id: nextId, razon: newName.trim() }).select().single();
+                const { data, error } = await supabase.from('defectos').insert({ id: nextId, defecto: newName.trim() }).select().single();
                 if (error) throw error;
                 if (data) {
                     setLocalRazones(prev => [...prev, data]);
@@ -1562,15 +1562,15 @@ function ClasificacionTab({
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-100 pt-5">
                             <div>
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Servicio</label>
-                                <input type="number" value={globalClasificacion.valor_servicio} onChange={(e) => handleGlobalClasificacionChange('valor_servicio', Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <input type="number" value={globalClasificacion.valor_servicio} onChange={(e) => handleGlobalClasificacionChange('valor_servicio', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Flete</label>
-                                <input type="number" value={globalClasificacion.valor_flete} onChange={(e) => handleGlobalClasificacionChange('valor_flete', Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <input type="number" value={globalClasificacion.valor_flete} onChange={(e) => handleGlobalClasificacionChange('valor_flete', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Producto</label>
-                                <input type="number" value={globalClasificacion.valor_producto} onChange={(e) => handleGlobalClasificacionChange('valor_producto', Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <input type="number" value={globalClasificacion.valor_producto} onChange={(e) => handleGlobalClasificacionChange('valor_producto', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Total</label>
@@ -1632,7 +1632,7 @@ function ClasificacionTab({
                                                                 <span className="text-[9px] text-slate-400 block mb-1">Defecto</span>
                                                                 <select value={prob.tipo_problema_id || ''} onChange={(e) => handleDefectoChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-md p-2 text-xs outline-none focus:border-[#254153]">
                                                                     <option value="">Seleccione...</option>
-                                                                    {localRazones.map(r => <option key={r.id} value={r.id}>{r.razon}</option>)}
+                                                                    {localRazones.map(r => <option key={r.id} value={r.id}>{r.defecto}</option>)}
                                                                     <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Defecto...</option>
                                                                 </select>
                                                             </div>

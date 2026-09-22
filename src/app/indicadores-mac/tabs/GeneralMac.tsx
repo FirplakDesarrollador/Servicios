@@ -20,10 +20,10 @@ interface Props {
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
     razones?: any[];
+    filtersComponent?: React.ReactNode;
 }
 
 const COLORS = ['#254153', '#749094', '#e8e2d5', '#f5f1ea', '#d3b99f', '#c96a4e', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
-
 const isGroupFilter = (str: string) => {
     if (!str) return false;
     const u = str.toUpperCase().trim();
@@ -37,6 +37,20 @@ const isGroupFilter = (str: string) => {
         'HIDROPOR', 'MPDIRECT', 'HIDROEMP',
         'OTROS', 'LAVAMANOS', 'LAVAPLATOS', 'MUEBLES'
     ].includes(u);
+};
+
+const productMatchesFilters = (p: any, filtersArr: string[] | undefined) => {
+    if (!filtersArr || filtersArr.length === 0) return true;
+    const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
+    const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
+    const prodGrupo = p._grupo || p.grupo || p.grupo_producto || 'OTROS';
+    const prodPlanta = p._planta || 'NO DEFINIDA';
+    
+    return filtersArr.some(f => {
+        if (f.startsWith('PL:')) return f === `PL:${prodPlanta}`;
+        if (isGroupFilter(f)) return f === prodGrupo;
+        return f === prodNombre || (prodCodigo && f === prodCodigo);
+    });
 };
 
 const normalizeGrupoName = (g: string): string => {
@@ -428,6 +442,83 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
         </div>
     );
 };
+// ─── Plantas de Producto Table Card ────────────────────────────────────────────
+const PlantasProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle, activeFilters = [] }: {
+    title: string;
+    data: Array<{ nombre: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
+    maxHeight?: number;
+    onFilterToggle: any;
+    activeFilters?: string[];
+}) => {
+    const [q, setQ] = React.useState('');
+    const filtered = q.trim()
+        ? data.filter(item => item.nombre.toLowerCase().includes(q.toLowerCase()))
+        : data;
+
+    return (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{title}</h3>
+                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                    {filtered.length}/{data.length} plantas
+                </span>
+            </div>
+            <div className="relative mb-3">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <input
+                    type="text"
+                    value={q}
+                    onChange={e => setQ(e.target.value)}
+                    placeholder="Buscar planta..."
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                />
+                {q && (
+                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                )}
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: `${maxHeight}px` }}>
+                {filtered.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
+                ) : (
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-gray-50">
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Planta</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right rounded-tr-lg">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map((item, i) => {
+                                const isSelected = activeFilters.includes(`PL:${item.nombre}`);
+                                return (
+                                    <tr 
+                                        key={item.nombre} 
+                                        onClick={(e) => onFilterToggle('productos', `PL:${item.nombre}`, e)}
+                                        className={`cursor-pointer transition-colors ${i !== filtered.length - 1 ? 'border-b border-gray-50' : ''} ${isSelected ? 'bg-[#254153]/10 hover:bg-[#254153]/20' : 'hover:bg-slate-50'}`}
+                                    >
+                                        <td className="px-3 py-3 text-xs font-bold text-gray-800">{item.nombre}</td>
+                                        <td className="px-3 py-3 text-xs font-semibold text-gray-700 text-right">{item.Registros}</td>
+                                        <td className="px-3 py-3 text-xs font-bold text-[#c96a4e] text-right">{item['Productos Afectados']}</td>
+                                        <td className="px-3 py-3 text-[10px] font-medium text-gray-500 text-right">{item.Participacion}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // ─── Grupos de Producto Table Card ─────────────────────────────────────────────
 const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle, activeFilters = [] }: {
     title: string;
@@ -693,7 +784,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [] }: Props) {
+export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [], filtersComponent }: Props) {
     // ── KPIs memoizados ────────────────────────────────────────────────────────
     const totalNovedades = data.length;
     const { abiertas, cerradas, valorInvertido } = useMemo(() => ({
@@ -849,14 +940,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         sourceData.forEach(d => {
             if (Array.isArray(d.productos_novedad)) {
                 d.productos_novedad.forEach((p: any) => {
-                    let passesProductos = true;
-                    if (filters.productos && filters.productos.length > 0) {
-                        const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
-                        const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-                        const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
-                        const matches = filters.productos.some(f => f === prodNombre || (prodCodigo && f === prodCodigo) || (prodGrupo && f === prodGrupo));
-                        if (!matches) passesProductos = false;
-                    }
+                    let passesProductos = productMatchesFilters(p, filters.productos);
                     if (!passesProductos) return;
 
                     let hasProblema = false;
@@ -914,14 +998,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         sourceData.forEach(d => {
             if (Array.isArray(d.productos_novedad)) {
                 d.productos_novedad.forEach((p: any) => {
-                    let passesProductos = true;
-                    if (filters.productos && filters.productos.length > 0) {
-                        const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
-                        const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-                        const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
-                        const matches = filters.productos.some(f => f === prodNombre || (prodCodigo && f === prodCodigo) || (prodGrupo && f === prodGrupo));
-                        if (!matches) passesProductos = false;
-                    }
+                    let passesProductos = productMatchesFilters(p, filters.productos);
                     if (!passesProductos) return;
 
                     let hasResponsable = false;
@@ -1023,14 +1100,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         if (!hasMatchingProblem) include = false;
                     }
 
-                    if (filters.productos && filters.productos.length > 0) {
-                        const specificProdFilters = filters.productos.filter(f => !isGroupFilter(f));
-                        if (specificProdFilters.length > 0) {
-                            const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || p.codigo || '';
-                            const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-                            const matchesSpecific = specificProdFilters.some(f => f === prodNombre || (prodCodigo && f === prodCodigo));
-                            if (!matchesSpecific) include = false;
-                        }
+                    if (include && !productMatchesFilters(p, filters.productos)) {
+                        include = false;
                     }
 
                     if (include) {
@@ -1048,6 +1119,71 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         if (!stats[grupo]) stats[grupo] = { registrosSet: new Set(), productosAfectados: 0 };
                         stats[grupo].registrosSet.add(d.id);
                         stats[grupo].productosAfectados += (p.cantidad || 1);
+                    }
+                });
+            }
+        });
+
+        const totalRegistros = sourceData.length || 1;
+        return Object.entries(stats)
+            .map(([nombre, stat]) => ({
+                nombre,
+                Registros: stat.registrosSet.size,
+                'Productos Afectados': stat.productosAfectados,
+                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
+            }))
+            .sort((a, b) => b.Registros - a.Registros);
+    }, [data, dataForProductos, defectosMap, razonesMap, responsablesMap, filters.defectos, filters.responsables, filters.productos]);
+
+    const productosPlantasStats = useMemo(() => {
+        const stats: Record<string, { registrosSet: Set<number>; productosAfectados: number }> = {};
+        const sourceData = dataForProductos || data;
+
+        sourceData.forEach(d => {
+            if (Array.isArray(d.productos_novedad)) {
+                d.productos_novedad.forEach((p: any) => {
+                    let include = true;
+                    if ((filters.defectos && filters.defectos.length > 0) || (filters.responsables && filters.responsables.length > 0)) {
+                        let hasMatchingProblem = false;
+                        if (Array.isArray(p.problemas) && p.problemas.length > 0) {
+                            p.problemas.forEach((prob: any) => {
+                                let matchDef = true;
+                                if (filters.defectos && filters.defectos.length > 0) {
+                                    const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : '';
+                                    if (!filters.defectos.includes(probNombre)) matchDef = false;
+                                }
+                                let matchResp = true;
+                                if (filters.responsables && filters.responsables.length > 0) {
+                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
+                                    if (!filters.responsables.includes(respNombre)) matchResp = false;
+                                }
+                                if (matchDef && matchResp) hasMatchingProblem = true;
+                            });
+                        } else {
+                            let matchDef = true;
+                            if (filters.defectos && filters.defectos.length > 0) {
+                                const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : '';
+                                if (!filters.defectos.includes(probNombre)) matchDef = false;
+                            }
+                            let matchResp = true;
+                            if (filters.responsables && filters.responsables.length > 0) {
+                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
+                                if (!filters.responsables.includes(respNombre)) matchResp = false;
+                            }
+                            if (matchDef && matchResp) hasMatchingProblem = true;
+                        }
+                        if (!hasMatchingProblem) include = false;
+                    }
+
+                    if (include && !productMatchesFilters(p, filters.productos)) {
+                        include = false;
+                    }
+
+                    if (include) {
+                        const planta = p._planta || 'NO DEFINIDA';
+                        if (!stats[planta]) stats[planta] = { registrosSet: new Set(), productosAfectados: 0 };
+                        stats[planta].registrosSet.add(d.id);
+                        stats[planta].productosAfectados += (p.cantidad || 1);
                     }
                 });
             }
@@ -1266,14 +1402,37 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
     return (
         <div className="space-y-4 animate-fade-in">
-            {/* Tarjetas KPI */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
-                <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
-                <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
-                <KpiCard title="Solicitudes Abiertas" value={abiertas} />
-                <KpiCard title="Solicitudes Cerradas" value={cerradas} />
-                <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
-            </div>
+            {filtersComponent ? (
+                <div className="flex flex-col lg:flex-row gap-6 mb-2">
+                    <div className="w-full lg:w-64 xl:w-72 shrink-0">
+                        {filtersComponent}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-4">
+                        <CanalesVentaCard
+                            data={data}
+                            dataForCanalVenta={dataForCanalVenta || data}
+                            filters={filters}
+                            onFilterToggle={onFilterToggle}
+                        />
+                        {/* Tarjetas KPI */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
+                            <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
+                            <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
+                            <KpiCard title="Solicitudes Abiertas" value={abiertas} />
+                            <KpiCard title="Solicitudes Cerradas" value={cerradas} />
+                            <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
+                    <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
+                    <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
+                    <KpiCard title="Solicitudes Abiertas" value={abiertas} />
+                    <KpiCard title="Solicitudes Cerradas" value={cerradas} />
+                    <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
+                </div>
+            )}
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                 {/* Chart 1: Registros por mes */}
@@ -1396,12 +1555,15 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
                 {/* Chart 6: Productos de Compra */}
                 <ProductTable title="Productos de Compra" data={productosCompraStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
 
                 {/* Chart 7: Productos con Novedad */}
                 <ProductTable title="Productos con Novedad" data={productosNovedadStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
+
+                {/* Chart 9: Plantas */}
+                <PlantasProductoTableCard title="Plantas de Producto" data={productosPlantasStats} maxHeight={440} onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
 
                 {/* Chart 8: Grupos de Producto */}
                 <GruposProductoTableCard title="Grupos de Producto" data={productosGruposStats} maxHeight={440} onFilterToggle={onFilterToggle} activeFilters={filters.productos} />

@@ -66,6 +66,7 @@ export interface FilterState {
     clientes: string[];
     mesPresupuesto: string[];
     mesCreacion: string[];
+    estadoRiesgo: string[];
 }
 
 // ── Tipos para ANÁLISIS y QRR ──────────────────────────────────────────────
