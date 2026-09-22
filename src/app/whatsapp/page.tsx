@@ -18,7 +18,7 @@ export default function WhatsAppPage() {
   const [newMessageTemplate, setNewMessageTemplate] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResponsableFilter, setSelectedResponsableFilter] = useState('todos');
-  const [asesoresList, setAsesoresList] = useState<string[]>(['Xime', 'Tati', 'Adrew']);
+  const [asesoresList, setAsesoresList] = useState<string[]>(['Xime', 'Tati', 'Andrew']);
   const [isAsesoresModalOpen, setIsAsesoresModalOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [asesorFilterSearch, setAsesorFilterSearch] = useState('');
@@ -85,7 +85,7 @@ export default function WhatsAppPage() {
       .eq('activo', true)
       .order('nombre', { ascending: true });
     if (data && data.length > 0) {
-      setAsesoresList(data.map(a => a.nombre));
+      setAsesoresList(data.map(a => a.nombre?.trim()).filter(Boolean));
     }
   };
 
@@ -632,7 +632,7 @@ export default function WhatsAppPage() {
                       title={chat.responsable || 'Sin asignar'}
                     >
                       <option value="">Sin asignar</option>
-                      {asesoresList.map((r) => (
+                      {Array.from(new Set([...asesoresList, ...(chat.responsable ? [chat.responsable] : [])])).map((r) => (
                         <option key={r} value={r}>{r}</option>
                       ))}
                     </select>
@@ -710,7 +710,7 @@ export default function WhatsAppPage() {
                       className="bg-transparent text-xs font-bold text-indigo-700 outline-none cursor-pointer border-none p-0 focus:ring-0"
                     >
                       <option value="">-- Sin Responsable --</option>
-                      {asesoresList.map((r) => (
+                      {Array.from(new Set([...asesoresList, ...(activeChat.responsable ? [activeChat.responsable] : [])])).map((r) => (
                         <option key={r} value={r}>
                           {r}
                         </option>
