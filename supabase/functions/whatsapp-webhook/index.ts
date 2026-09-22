@@ -9,6 +9,47 @@ const supabase = createClient(
 
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN") ?? "Frp!2026_wH4ts4p_v3r1fy_T0k3n";
 
+const DEFAULT_ASESORES = ['Xime', 'Tati', 'Andrew'];
+
+async function getNextAssignedAsesor(supabaseClient: any): Promise<string> {
+  try {
+    let asesorNames: string[] = [];
+    const { data: asesores } = await supabaseClient
+      .from('whatsapp_asesores')
+      .select('nombre')
+      .eq('activo', true)
+      .order('created_at', { ascending: true });
+
+    if (asesores && asesores.length > 0) {
+      asesorNames = asesores.map((a: any) => a.nombre?.trim()).filter(Boolean);
+    }
+
+    if (asesorNames.length === 0) {
+      asesorNames = DEFAULT_ASESORES;
+    }
+
+    const { data: stateRows } = await supabaseClient
+      .from('whatsapp_assignment_state')
+      .select('last_index')
+      .eq('id', 1)
+      .maybeSingle();
+
+    let lastIndex = stateRows?.last_index ?? -1;
+    const nextIndex = (lastIndex + 1) % asesorNames.length;
+    const selectedAsesor = asesorNames[nextIndex];
+
+    await supabaseClient
+      .from('whatsapp_assignment_state')
+      .upsert({ id: 1, last_index: nextIndex, updated_at: new Date().toISOString() });
+
+    console.log(`[StrictRoundRobin] Last Index: ${lastIndex} -> Next: ${nextIndex} -> Assigned: "${selectedAsesor}"`);
+    return selectedAsesor;
+  } catch (error) {
+    console.error('[StrictRoundRobin] Exception:', error);
+    return DEFAULT_ASESORES[0];
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 serve(async (req) => {
   // ── GET: Meta webhook verification challenge ───────────────────────────────
@@ -57,15 +98,19 @@ serve(async (req) => {
           if (msg.type === "text") {
             textBody = msg.text?.body ?? "";
           } else if (msg.type === "image") {
-            textBody = "📷 Imagen";
+            textBody = msg.image?.caption || "📷 Imagen";
           } else if (msg.type === "audio") {
-            textBody = "🎤 Audio";
+            textBody = msg.audio?.voice ? "🎤 Mensaje de voz" : "🎵 Audio";
           } else if (msg.type === "video") {
-            textBody = "🎬 Video";
+            textBody = msg.video?.caption || "🎥 Video";
           } else if (msg.type === "document") {
-            textBody = "📄 Documento";
+            textBody = msg.document?.filename ? `📄 ${msg.document.filename}` : "📄 Documento";
           } else if (msg.type === "location") {
             textBody = "📍 Ubicación";
+          } else if (msg.type === "interactive") {
+            textBody = msg.interactive?.button_reply?.title || msg.interactive?.list_reply?.title || "Respuesta interactiva";
+          } else if (msg.type === "button") {
+            textBody = msg.button?.text || "Botón";
           } else {
             textBody = `[${msg.type}]`;
           }
@@ -73,58 +118,77 @@ serve(async (req) => {
           // Get contact name from profile info if available
           const contactName = value.contacts?.[0]?.profile?.name ?? "Unknown";
 
-          // ── Upsert chat ────────────────────────────────────────────────────
-          const { data: chat, error: chatError } = await supabase
+          // ── Fetch existing chat ────────────────────────────────────────────
+          const { data: existingChat } = await supabase
             .from("whatsapp_chats")
-            .upsert(
-              {
+            .select("id, unread_count, responsable")
+            .eq("phone_number", phoneNumber)
+            .maybeSingle();
+
+          let responsable = existingChat?.responsable;
+          if (!responsable) {
+            responsable = await getNextAssignedAsesor(supabase);
+          }
+
+          let chatId = existingChat?.id;
+
+          if (!existingChat) {
+            const { data: newChat, error: chatError } = await supabase
+              .from("whatsapp_chats")
+              .insert({
                 phone_number:      phoneNumber,
                 contact_name:      contactName,
                 last_message:      textBody,
                 last_message_time: timestamp,
-                // Increment unread_count: we use a raw expression via rpc if needed,
-                // but for simplicity we fetch first then update
-              },
-              { onConflict: "phone_number" }
-            )
-            .select("id, unread_count")
-            .single();
+                unread_count:      1,
+                responsable:       responsable
+              })
+              .select("id")
+              .single();
 
-          if (chatError) {
-            console.error("Error upserting chat:", chatError);
-            continue;
+            if (chatError) {
+              console.error("Error creating chat:", chatError);
+              continue;
+            }
+            chatId = newChat.id;
+          } else {
+            const { error: updateError } = await supabase
+              .from("whatsapp_chats")
+              .update({
+                unread_count:      (existingChat.unread_count ?? 0) + 1,
+                last_message:      textBody,
+                last_message_time: timestamp,
+                contact_name:      contactName !== "Unknown" ? contactName : undefined,
+                responsable:       responsable
+              })
+              .eq("id", existingChat.id);
+
+            if (updateError) {
+              console.error("Error updating chat:", updateError);
+            }
           }
 
-          // Increment unread_count separately
-          await supabase
-            .from("whatsapp_chats")
-            .update({
-              unread_count:      (chat.unread_count ?? 0) + 1,
-              last_message:      textBody,
-              last_message_time: timestamp,
-              contact_name:      contactName,
-            })
-            .eq("id", chat.id);
-
           // ── Insert message ─────────────────────────────────────────────────
-          const { error: msgError } = await supabase
-            .from("whatsapp_messages")
-            .upsert(
-              {
-                chat_id:    chat.id,
-                wam_id:  messageId,
-                text_body:  textBody,
-                sender:     "them",
-                status:     "received",
-                created_at: timestamp,
-              },
-              { onConflict: "wam_id" }
-            );
+          if (chatId) {
+            const { error: msgError } = await supabase
+              .from("whatsapp_messages")
+              .upsert(
+                {
+                  chat_id:    chatId,
+                  wam_id:     messageId,
+                  text_body:  textBody,
+                  sender:     "them",
+                  status:     "received",
+                  created_at: timestamp,
+                },
+                { onConflict: "wam_id" }
+              );
 
-          if (msgError) {
-            console.error("Error inserting message:", msgError);
-          } else {
-            console.log(`✅ Message saved from ${phoneNumber}: "${textBody}"`);
+            if (msgError) {
+              console.error("Error inserting message:", msgError);
+            } else {
+              console.log(`✅ Message saved from ${phoneNumber}: "${textBody}"`);
+            }
           }
         }
       }
