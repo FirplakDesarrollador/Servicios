@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
+import { getNextAssignedAsesor, normalizePhoneNumber } from '@/lib/whatsappAssignment';
 
 export async function POST(request: Request) {
   try {
@@ -10,8 +10,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'phone_number and template_name are required' }, { status: 400 });
     }
 
-    // Clean phone number
-    const cleanPhone = phone_number.replace(/\D/g, '');
+    // Standardize phone number (57 prefix for Colombian numbers)
+    const cleanPhone = normalizePhoneNumber(phone_number);
+    const altPhone = cleanPhone.startsWith('57') ? cleanPhone.slice(2) : `57${cleanPhone}`;
 
     // 1. Find or create chat
     let chat_id;
@@ -19,8 +20,8 @@ export async function POST(request: Request) {
     
     const { data: existingChats, error: chatError } = await supabase
       .from('whatsapp_chats')
-      .select('id, contact_name')
-      .eq('phone_number', cleanPhone);
+      .select('id, contact_name, phone_number')
+      .in('phone_number', [cleanPhone, altPhone]);
 
     if (chatError) {
       throw chatError;
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
     if (existingChats && existingChats.length > 0) {
       chat_id = existingChats[0].id;
       contact_name = existingChats[0].contact_name;
+      if (existingChats[0].phone_number !== cleanPhone) {
+        await supabase.from('whatsapp_chats').update({ phone_number: cleanPhone }).eq('id', chat_id);
+      }
     } else {
       // Outbound initiated chat defaults to unassigned (null)
       const { data: newChat, error: newChatError } = await supabase

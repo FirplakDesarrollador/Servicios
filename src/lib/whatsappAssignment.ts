@@ -3,6 +3,19 @@ import { supabase } from '@/lib/supabase';
 const DEFAULT_ASESORES = ['Xime', 'Tati', 'Andrew'];
 
 /**
+ * Normalizes phone numbers so Colombian numbers (10 digits starting with 3)
+ * always have the 57 country prefix, matching Meta's international format.
+ */
+export function normalizePhoneNumber(phone: string): string {
+  if (!phone) return '';
+  let clean = phone.replace(/\D/g, '');
+  if (clean.length === 10 && clean.startsWith('3')) {
+    clean = '57' + clean;
+  }
+  return clean;
+}
+
+/**
  * Calculates the next asesor to be assigned using a strict, sequential Round-Robin algorithm.
  * Uses a persistent counter (`whatsapp_assignment_state`) to guarantee strict 1-by-1 order:
  * Asesor 1 -> Asesor 2 -> Asesor 3 -> Asesor 1 -> Asesor 2...

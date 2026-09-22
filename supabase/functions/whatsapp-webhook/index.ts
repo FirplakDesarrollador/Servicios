@@ -50,6 +50,15 @@ async function getNextAssignedAsesor(supabaseClient: any): Promise<string> {
   }
 }
 
+function normalizePhoneNumber(phone: string): string {
+  if (!phone) return '';
+  let clean = phone.replace(/\D/g, '');
+  if (clean.length === 10 && clean.startsWith('3')) {
+    clean = '57' + clean;
+  }
+  return clean;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 serve(async (req) => {
   // ── GET: Meta webhook verification challenge ───────────────────────────────
@@ -89,7 +98,9 @@ serve(async (req) => {
       // ── 1. Handle incoming messages ────────────────────────────────────────
       if (value.messages && value.messages.length > 0) {
         for (const msg of value.messages) {
-          const phoneNumber = msg.from; // e.g. "573001234567"
+          const rawPhone = msg.from; // e.g. "573001234567"
+          const phoneNumber = normalizePhoneNumber(rawPhone);
+          const altPhone = phoneNumber.startsWith('57') ? phoneNumber.slice(2) : `57${phoneNumber}`;
           const messageId   = msg.id;
           const timestamp   = new Date(parseInt(msg.timestamp) * 1000).toISOString();
 
@@ -118,12 +129,13 @@ serve(async (req) => {
           // Get contact name from profile info if available
           const contactName = value.contacts?.[0]?.profile?.name ?? "Unknown";
 
-          // ── Fetch existing chat ────────────────────────────────────────────
-          const { data: existingChat } = await supabase
+          // ── Fetch existing chat (matching 57... or 10-digit) ───────────────
+          const { data: existingChats } = await supabase
             .from("whatsapp_chats")
-            .select("id, unread_count, responsable")
-            .eq("phone_number", phoneNumber)
-            .maybeSingle();
+            .select("id, phone_number, unread_count, responsable")
+            .in("phone_number", [phoneNumber, altPhone]);
+
+          const existingChat = existingChats && existingChats.length > 0 ? existingChats[0] : null;
 
           let responsable = existingChat?.responsable;
           if (!responsable) {
@@ -155,6 +167,7 @@ serve(async (req) => {
             const { error: updateError } = await supabase
               .from("whatsapp_chats")
               .update({
+                phone_number:      phoneNumber, // Unify to international format
                 unread_count:      (existingChat.unread_count ?? 0) + 1,
                 last_message:      textBody,
                 last_message_time: timestamp,
