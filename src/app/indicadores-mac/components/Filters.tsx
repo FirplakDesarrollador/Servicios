@@ -7,9 +7,10 @@ interface FiltersProps {
     setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
     data: RegistroMAC[];
     activeTab: number;
+    isVertical?: boolean;
 }
 
-export default function Filters({ filters, setFilters, data, activeTab }: FiltersProps) {
+export default function Filters({ filters, setFilters, data, activeTab, isVertical }: FiltersProps) {
     const [dbOpcionesTipo, setDbOpcionesTipo] = useState<string[]>([]);
 
     useEffect(() => {
@@ -58,8 +59,8 @@ export default function Filters({ filters, setFilters, data, activeTab }: Filter
     const labelClass = "block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1";
 
     return (
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end mb-6">
-            <div className="flex-1 min-w-[150px]">
+        <div className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex ${isVertical ? 'flex-col gap-4 h-full' : 'flex-wrap gap-4 items-end mb-6'}`}>
+            <div className={isVertical ? 'w-full' : 'flex-1 min-w-[150px]'}>
                 <label className={labelClass}>Fecha Inicial</label>
                 <input 
                     type="date" 
@@ -68,7 +69,7 @@ export default function Filters({ filters, setFilters, data, activeTab }: Filter
                     onChange={(e) => handleFilterChange('fechaInicial', e.target.value)}
                 />
             </div>
-            <div className="flex-1 min-w-[150px]">
+            <div className={isVertical ? 'w-full' : 'flex-1 min-w-[150px]'}>
                 <label className={labelClass}>Fecha Final</label>
                 <input 
                     type="date" 
@@ -78,7 +79,7 @@ export default function Filters({ filters, setFilters, data, activeTab }: Filter
                 />
             </div>
 
-            <div className="flex-1 min-w-[150px]">
+            <div className={isVertical ? 'w-full' : 'flex-1 min-w-[150px]'}>
                 <label className={labelClass}>Estado</label>
                 <select 
                     className={selectClass}
@@ -91,7 +92,7 @@ export default function Filters({ filters, setFilters, data, activeTab }: Filter
                 </select>
             </div>
 
-            <div className="flex-1 min-w-[150px]">
+            <div className={isVertical ? 'w-full' : 'flex-1 min-w-[150px]'}>
                 <label className={labelClass}>Tipo de Solicitud</label>
                 <select 
                     className={selectClass}
@@ -104,7 +105,7 @@ export default function Filters({ filters, setFilters, data, activeTab }: Filter
             </div>
 
             {(activeTab === 1 || activeTab === 2) && (
-                <div className="flex-1 min-w-[150px]">
+                <div className={isVertical ? 'w-full' : 'flex-1 min-w-[150px]'}>
                     <label className={labelClass}>Agente MAC</label>
                     <select 
                         className={selectClass}
