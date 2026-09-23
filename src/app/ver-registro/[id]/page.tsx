@@ -86,7 +86,7 @@ export default function VerRegistroPage() {
     const fetchGlobalOptions = async () => {
         try {
             const [resRazones, resResp, resVend] = await Promise.all([
-                supabase.from('defectos').select('*').order('defecto'),
+                supabase.from('razones_queja').select('*').order('razon'),
                 supabase.from('responsable_queja').select('*').order('responsable'),
                 supabase.from('Usuarios').select('id, display_name, nombres, apellidos, rol').order('display_name')
             ]);
@@ -1440,10 +1440,10 @@ function ClasificacionTab({
             if (!newName?.trim()) return;
             
             try {
-                const { data: maxData } = await supabase.from('defectos').select('id').order('id', { ascending: false }).limit(1);
+                const { data: maxData } = await supabase.from('razones_queja').select('id').order('id', { ascending: false }).limit(1);
                 const nextId = (maxData && maxData.length > 0) ? Number(maxData[0].id) + 1 : 1;
 
-                const { data, error } = await supabase.from('defectos').insert({ id: nextId, defecto: newName.trim() }).select().single();
+                const { data, error } = await supabase.from('razones_queja').insert({ id: nextId, razon: newName.trim() }).select().single();
                 if (error) throw error;
                 if (data) {
                     setLocalRazones(prev => [...prev, data]);
@@ -1632,7 +1632,7 @@ function ClasificacionTab({
                                                                 <span className="text-[9px] text-slate-400 block mb-1">Defecto</span>
                                                                 <select value={prob.tipo_problema_id || ''} onChange={(e) => handleDefectoChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-md p-2 text-xs outline-none focus:border-[#254153]">
                                                                     <option value="">Seleccione...</option>
-                                                                    {localRazones.map(r => <option key={r.id} value={r.id}>{r.defecto}</option>)}
+                                                                    {localRazones.map(r => <option key={r.id} value={r.id}>{r.razon}</option>)}
                                                                     <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Defecto...</option>
                                                                 </select>
                                                             </div>
