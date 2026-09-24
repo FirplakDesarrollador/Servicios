@@ -378,15 +378,15 @@ export default function InformeMac({ data, filters }: Props) {
         // Buscar el producto mas afectado del top problem
         let probSubProdName = 'Varios';
         if (topProbUnidades && topProbUnidades.subProducts) {
-             const subProds = Array.from(topProbUnidades.subProducts.values()).sort((a:any, b:any) => b.unidadesNovedad - a.unidadesNovedad);
-             if (subProds.length > 0) probSubProdName = subProds[0].name;
+             const subProds: any[] = Array.from(topProbUnidades.subProducts.values()).sort((a: any, b: any) => b.unidadesNovedad - a.unidadesNovedad);
+             if (subProds.length > 0) probSubProdName = (subProds[0] as any)?.name || 'Varios';
         }
         
         // Buscar responsable del top problem
         let probRespName = 'Varios';
         if (topProbUnidades && topProbUnidades.subResponsibles) {
-             const subResp = Array.from(topProbUnidades.subResponsibles.values()).sort((a:any, b:any) => b.unidadesNovedad - a.unidadesNovedad);
-             if (subResp.length > 0) probRespName = subResp[0].name;
+             const subResp: any[] = Array.from(topProbUnidades.subResponsibles.values()).sort((a: any, b: any) => b.unidadesNovedad - a.unidadesNovedad);
+             if (subResp.length > 0) probRespName = (subResp[0] as any)?.name || 'Varios';
         }
 
         // Problemas en crecimiento
@@ -542,7 +542,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                                     <RechartsTooltip 
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: number, name: string) => [fmtPct(val), name]}
+                                        formatter={(val: any, name: any) => [fmtPct(Number(val) || 0), String(name || '')]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <ReferenceLine y={META_CALIDAD} stroke="#c96a4e" strokeDasharray="3 3" label={{ position: 'top', value: 'Meta Calidad 1%', fill: '#c96a4e', fontSize: 10 }} />
@@ -561,7 +561,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={fmtN} />
                                     <RechartsTooltip 
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: number) => fmtN(val)}
+                                        formatter={(val: any) => fmtN(Number(val) || 0)}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <Bar yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} />
@@ -578,7 +578,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000000).toFixed(1)}M`} />
                                     <RechartsTooltip 
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: number) => fmt$(val)}
+                                        formatter={(val: any) => fmt$(Number(val) || 0)}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <Bar yAxisId="left" dataKey="ventasTotales" name="$ Venta" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} />
@@ -611,53 +611,53 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     
                                     return (
                                         <tr key={m.name} className="hover:bg-slate-50">
-                                            <td className="p-3 font-medium text-[#1d1d1b]">{m.monthLabel}</td>
-                                            <td className="p-3 text-right">{fmtN(m.unidadesVendidas)}</td>
-                                            <td className="p-3 text-right font-bold text-[#c96a4e]">{fmtN(m.unidadesNovedad)}</td>
-                                            <td className="p-3 text-right">
-                                                <div className={`font-bold ${m.pctNovedad > META_CALIDAD ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctNovedad)}</div>
-                                                {m.varPctNovedad !== null && (
-                                                    <div className="text-[9px] text-slate-400 font-medium mt-0.5" title="Variación vs mes anterior">
-                                                        {novTrendIcon} {m.varPctNovedad > 0 ? '+' : ''}{m.varPctNovedad.toFixed(2)} pp
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="p-3 text-right">
-                                                <div className={`font-bold ${m.pctInversion > META_ECONOMICA ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctInversion)}</div>
-                                                {m.varPctInversion !== null && (
-                                                    <div className="text-[9px] text-slate-400 font-medium mt-0.5" title="Variación vs mes anterior">
-                                                        {invTrendIcon} {m.varPctInversion > 0 ? '+' : ''}{m.varPctInversion.toFixed(2)} pp
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {/* EVOLUCIÓN MENSUAL DE PROBLEMAS */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                <div className="p-6 border-b border-slate-100">
-                    <h3 className="text-sm font-black text-[#254153] uppercase flex items-center gap-2 mb-2">
-                        <TrendingUpIcon className="w-4 h-4 text-[#749094]" />
-                        Evolución Mensual de Problemas
-                    </h3>
-                    <p className="text-xs text-slate-500">Comportamiento de los defectos mes a mes en cantidad de unidades afectadas.</p>
-                </div>
-                <div className="h-80 w-full p-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.problemMonthlyEvol} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <RechartsTooltip 
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                formatter={(val: number, name: string) => [fmtN(val), name]}
-                            />
+                                             <td className="p-3 font-medium text-[#1d1d1b]">{m.monthLabel}</td>
+                                             <td className="p-3 text-right">{fmtN(m.unidadesVendidas)}</td>
+                                             <td className="p-3 text-right font-bold text-[#c96a4e]">{fmtN(m.unidadesNovedad)}</td>
+                                             <td className="p-3 text-right">
+                                                 <div className={`font-bold ${m.pctNovedad > META_CALIDAD ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctNovedad)}</div>
+                                                 {m.varPctNovedad !== null && (
+                                                     <div className="text-[9px] text-slate-400 font-medium mt-0.5" title="Variación vs mes anterior">
+                                                         {novTrendIcon} {m.varPctNovedad > 0 ? '+' : ''}{m.varPctNovedad.toFixed(2)} pp
+                                                     </div>
+                                                 )}
+                                             </td>
+                                             <td className="p-3 text-right">
+                                                 <div className={`font-bold ${m.pctInversion > META_ECONOMICA ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctInversion)}</div>
+                                                 {m.varPctInversion !== null && (
+                                                     <div className="text-[9px] text-slate-400 font-medium mt-0.5" title="Variación vs mes anterior">
+                                                         {invTrendIcon} {m.varPctInversion > 0 ? '+' : ''}{m.varPctInversion.toFixed(2)} pp
+                                                     </div>
+                                                 )}
+                                             </td>
+                                         </tr>
+                                     );
+                                 })}
+                             </tbody>
+                         </table>
+                     </div>
+                 </div>
+             </div>
+ 
+             {/* EVOLUCIÓN MENSUAL DE PROBLEMAS */}
+             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                 <div className="p-6 border-b border-slate-100">
+                     <h3 className="text-sm font-black text-[#254153] uppercase flex items-center gap-2 mb-2">
+                         <TrendingUpIcon className="w-4 h-4 text-[#749094]" />
+                         Evolución Mensual de Problemas
+                     </h3>
+                     <p className="text-xs text-slate-500">Comportamiento de los defectos mes a mes en cantidad de unidades afectadas.</p>
+                 </div>
+                 <div className="h-80 w-full p-4">
+                     <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={analytics.problemMonthlyEvol} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                             <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                             <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                             <RechartsTooltip 
+                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                 formatter={(val: any, name: any) => [fmtN(Number(val) || 0), String(name || '')]}
+                             />
                             <Legend wrapperStyle={{ fontSize: '12px' }} />
                             {analytics.problemNames.slice(0, 15).map((prob, idx) => (
                                 <Bar key={prob} dataKey={prob} name={prob} stackId="a" fill={COLORS[idx % COLORS.length]} />
