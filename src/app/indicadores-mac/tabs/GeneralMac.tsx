@@ -139,7 +139,6 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
                                 innerRadius="65%" 
                                 outerRadius="90%" 
                                 paddingAngle={2}
-                                isAnimationActive={true}
                                 stroke="none"
                                 onClick={(data: any, index: number, e: any) => onFilterToggle(filterKey as keyof FilterState, data.payload?.nombre || data.nombre || data.name, e)}
                                 className="cursor-pointer"

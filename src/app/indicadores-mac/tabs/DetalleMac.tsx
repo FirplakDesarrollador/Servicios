@@ -524,7 +524,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                                     <td className="p-3 text-xs bg-purple-50/30">
                                         {(d._defectosNombres || []).length > 0 ? (
                                             <div className="flex flex-col gap-1 max-w-[180px]">
-                                                {(d._defectosNombres || []).slice(0, 2).map((def, idx) => (
+                                                {(d._defectosNombres || []).slice(0, 2).map((def: string, idx: number) => (
                                                     <span
                                                         key={idx}
                                                         className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 truncate"
@@ -545,7 +545,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                                     <td className="p-3 text-xs bg-amber-50/30">
                                         {(d._responsablesNombres || []).length > 0 ? (
                                             <div className="flex flex-col gap-1 max-w-[180px]">
-                                                {(d._responsablesNombres || []).slice(0, 2).map((res, idx) => (
+                                                {(d._responsablesNombres || []).slice(0, 2).map((res: string, idx: number) => (
                                                     <span
                                                         key={idx}
                                                         className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 truncate"

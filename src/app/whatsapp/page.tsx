@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
@@ -26,6 +26,7 @@ export default function WhatsAppPage() {
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [showContactInfo, setShowContactInfo] = useState(false);
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -660,33 +661,43 @@ export default function WhatsAppPage() {
         </div>
       </div>
 
-      {/* ── Main Chat Area ── */}
-      <div className="flex-1 flex flex-col min-w-0 p-4 lg:p-6 pb-0 lg:pb-0">
+      {/* ── Main Chat Area & Info Panel ── */}
+      <div className="flex-1 flex min-w-0 min-h-0 p-4 lg:p-6 pb-0 lg:pb-0 gap-4">
         {activeChat ? (
-          // This card must fill remaining height: flex-1 + min-h-0 is the key
-          <div className="flex-1 flex flex-col min-h-0 bg-white/80 backdrop-blur-xl rounded-t-3xl shadow-lg border border-b-0 border-white overflow-hidden relative">
+          <>
+          {/* Main Chat Column */}
+          <div className="flex-1 h-full flex flex-col min-h-0 bg-white/80 backdrop-blur-xl rounded-t-3xl shadow-lg border border-b-0 border-white overflow-hidden relative transition-all duration-300">
 
             {/* Glow effects */}
             <div className="pointer-events-none absolute top-0 left-0 w-64 h-64 bg-indigo-300/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
             <div className="pointer-events-none absolute bottom-0 right-0 w-64 h-64 bg-emerald-300/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
 
             {/* Chat header */}
-            <div className="shrink-0 h-[68px] bg-white/95 border-b border-gray-100 flex items-center px-6 justify-between z-10 shadow-sm">
+            <div 
+              className="shrink-0 h-[68px] bg-white/95 border-b border-gray-100 flex items-center px-6 justify-between z-10 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => setShowContactInfo(!showContactInfo)}
+            >
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm">
-                    {(activeChat.contact_name && activeChat.contact_name !== 'Unknown') ? activeChat.contact_name.charAt(0).toUpperCase() : activeChat.phone_number?.slice(-2)}
-                  </div>
+                  {activeChat.contact_avatar ? (
+                     <img src={activeChat.contact_avatar} alt="Avatar" className="w-11 h-11 rounded-full object-cover shadow-sm" />
+                  ) : (
+                    <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm text-lg">
+                      {(activeChat.contact_name && activeChat.contact_name !== 'Unknown') ? activeChat.contact_name.charAt(0).toUpperCase() : String(activeChat.phone_number || '').slice(-2)}
+                    </div>
+                  )}
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
                 </div>
-                <div>
-                  <h2 className="font-bold text-slate-800">
-                    {activeChat.contact_name && activeChat.contact_name !== 'Unknown' ? activeChat.contact_name : `+${activeChat.phone_number}`}
+                <div className="flex flex-col">
+                  <h2 className="font-bold text-slate-800 text-[15px] leading-tight">
+                    +{activeChat.phone_number}
                   </h2>
-                  <p className="text-xs text-emerald-500 font-medium">En línea</p>
+                  <p className="text-xs text-slate-500 font-medium leading-tight">
+                    {activeChat.contact_name && activeChat.contact_name !== 'Unknown' ? `~${activeChat.contact_name}` : 'En línea'}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                 {/* Asignarme Button */}
                 {currentUserName && activeChat.responsable !== currentUserName && (
                   <button
@@ -737,7 +748,7 @@ export default function WhatsAppPage() {
                 return (
                   <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[75%] rounded-2xl shadow-sm overflow-hidden ${isMe
-                      ? 'bg-indigo-600 text-white rounded-tr-sm'
+                      ? 'bg-indigo-50 border border-indigo-100 text-slate-800 rounded-tr-sm'
                       : 'bg-white text-slate-800 border border-gray-100 rounded-tl-sm'
                     }`}>
                       {/* Image */}
@@ -762,7 +773,7 @@ export default function WhatsAppPage() {
                       {/* Document */}
                       {hasMedia && isDoc && (
                         <a href={msg.media_url} target="_blank" rel="noreferrer"
-                          className={`flex items-center gap-2 px-4 pt-3 hover:underline ${isMe ? 'text-white' : 'text-indigo-600'}`}>
+                          className={`flex items-center gap-2 px-4 pt-3 hover:underline text-indigo-600`}>
                           <span className="text-2xl">📄</span>
                           <span className="text-sm truncate">{msg.media_filename || 'Documento'}</span>
                         </a>
@@ -770,13 +781,13 @@ export default function WhatsAppPage() {
                       {/* Text body */}
                       <div className="px-4 py-2.5">
                         {msg.text_body && !['Imagen','Audio','Video','Documento','Nota de voz'].includes(msg.text_body) && (
-                          <p className={`text-[14px] leading-relaxed whitespace-pre-wrap break-words ${isMe ? 'text-white' : 'text-slate-700'}`}>
+                          <p className={`text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words text-slate-800`}>
                             {msg.text_body}
                           </p>
                         )}
-                        <div className={`flex items-center justify-end gap-1 mt-0.5 ${isMe ? 'opacity-75' : 'opacity-50'}`}>
+                        <div className={`flex items-center justify-end gap-1 mt-0.5 text-slate-500`}>
                           <span className="text-[10px] font-medium">{formatTime(msg.created_at)}</span>
-                          {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-blue-300' : ''}`} />}
+                          {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-blue-500' : 'text-slate-400'}`} />}
                         </div>
                       </div>
                     </div>
@@ -864,6 +875,77 @@ export default function WhatsAppPage() {
               </form>
             </div>
           </div>
+
+          {/* ── Contact Info Sidebar ── */}
+          {showContactInfo && (
+            <div className="w-[340px] h-full shrink-0 bg-[#0b141a] text-gray-200 rounded-t-3xl overflow-y-auto flex flex-col border-l border-white/10 shadow-xl transition-all duration-300 animate-in slide-in-from-right-8">
+              {/* Sidebar Header */}
+              <div className="h-[68px] shrink-0 flex items-center px-6 border-b border-white/10 bg-[#202c33]">
+                <button onClick={() => setShowContactInfo(false)} className="mr-4 hover:bg-white/10 p-2 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-300" />
+                </button>
+                <h2 className="text-[15px] font-medium text-gray-100">Info. del contacto</h2>
+              </div>
+              
+              {/* Profile Details */}
+              <div className="flex flex-col items-center pt-8 pb-6 bg-[#111b21] border-b border-white/10">
+                {activeChat.contact_avatar ? (
+                    <img src={activeChat.contact_avatar} alt="Avatar" className="w-48 h-48 rounded-full object-cover shadow-2xl mb-5 border-4 border-[#202c33]" />
+                ) : (
+                    <div className="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-2xl text-6xl mb-5 border-4 border-[#202c33]">
+                    {(activeChat.contact_name && activeChat.contact_name !== 'Unknown') ? activeChat.contact_name.charAt(0).toUpperCase() : String(activeChat.phone_number || '').slice(-2)}
+                    </div>
+                )}
+                <h2 className="text-2xl font-normal text-gray-100 mb-1">
+                  +{activeChat.phone_number}
+                </h2>
+                <p className="text-[15px] text-gray-400 mb-6">
+                  {activeChat.contact_name && activeChat.contact_name !== 'Unknown' ? `~${activeChat.contact_name}` : ''}
+                </p>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center gap-4">
+                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
+                    <Phone className="w-6 h-6 text-emerald-500" />
+                    <span className="text-[11px] font-medium">Llamar</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
+                    <Video className="w-6 h-6 text-emerald-500" />
+                    <span className="text-[11px] font-medium">Video</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
+                    <UserPlus className="w-6 h-6 text-emerald-500" />
+                    <span className="text-[11px] font-medium">Añadir</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
+                    <Search className="w-6 h-6 text-emerald-500" />
+                    <span className="text-[11px] font-medium">Buscar</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Notes Section */}
+              <div className="p-4 bg-[#111b21] border-b border-white/10 mt-2 hover:bg-[#202c33] cursor-pointer transition-colors flex justify-between items-center">
+                <span className="text-emerald-500 text-[15px]">Añade notas sobre tu cliente</span>
+                <Edit2 className="w-5 h-5 text-gray-400" />
+              </div>
+
+              {/* Media Section */}
+              <div className="p-4 bg-[#111b21] border-b border-white/10 mt-2 cursor-pointer transition-colors">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-gray-300 text-[14px]">Archivos, enlaces y documentos</span>
+                  <span className="text-gray-400 text-[14px]">0</span>
+                </div>
+              </div>
+              
+              {/* Starred Messages */}
+              <div className="p-4 bg-[#111b21] border-b border-white/10 mt-2 hover:bg-[#202c33] cursor-pointer transition-colors flex items-center gap-4">
+                <Star className="w-5 h-5 text-gray-400" />
+                <span className="text-gray-300 text-[15px]">Mensajes destacados</span>
+              </div>
+            </div>
+          )}
+          </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center p-12 bg-white/60 rounded-3xl border border-white shadow-sm max-w-md">
