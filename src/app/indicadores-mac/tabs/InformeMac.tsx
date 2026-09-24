@@ -226,7 +226,7 @@ export default function InformeMac({ data, filters }: Props) {
             const date = new Date(r.created_at);
             const mKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             const inv = ((r as any).valor_servicio || 0) + ((r as any).valor_flete || 0) + ((r as any).valor_producto || 0);
-            const zKey = r.Ubicaciones?.ciudades?.zonas?.zona?.toUpperCase() || 'SIN ZONA';
+            const zKey = (r as any).Ubicaciones?.ciudades?.zonas?.zona?.toUpperCase() || 'SIN ZONA';
             const cKey = r.Ubicaciones?.ciudades?.ciudad?.toUpperCase() || 'SIN CIUDAD';
             
             inversionMac += inv;
@@ -245,7 +245,7 @@ export default function InformeMac({ data, filters }: Props) {
             cObj.registros += 1;
             cObj.inversion += inv;
 
-            const responsableGlobal = r.area_responsable || r.responsable_atraso || 'SIN ASIGNAR';
+            const responsableGlobal = (r as any).area_responsable || (r as any).responsable_atraso || 'SIN ASIGNAR';
             const respObj = getOrCreate(byResponsible, responsableGlobal);
             respObj.registros += 1;
             respObj.inversion += inv;
