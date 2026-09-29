@@ -85,6 +85,36 @@ export async function fetchSapBusinessPartners(searchQuery?: string) {
 }
 
 /**
+ * Fetch the result of a saved SQL Query (User Query) in SAP B1, recorriendo todas las páginas.
+ */
+export async function fetchSapSqlQuery(queryName: string) {
+  const cookie = await getSapSessionCookie();
+
+  let url: string | null = `${SAP_BASE_URL}/SQLQueries('${queryName}')/List`;
+  const allRows: any[] = [];
+
+  while (url) {
+    const res = await fetch(url, {
+      headers: { 'Cookie': cookie },
+      signal: AbortSignal.timeout(45000),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Error consultando SQLQuery '${queryName}' de SAP: ${err}`);
+    }
+
+    const data = await res.json();
+    allRows.push(...(data.value || []));
+
+    const nextLink = data['odata.nextLink'] as string | undefined;
+    url = nextLink ? `${SAP_BASE_URL}/${nextLink}` : null;
+  }
+
+  return allRows;
+}
+
+/**
  * Fetch Items (Artículos OITM) from SAP
  */
 export async function fetchSapItems(searchQuery?: string) {
