@@ -4,12 +4,13 @@ import { RegistroMAC, FilterState } from '../types';
 import { supabase } from '@/lib/supabase';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
-    Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+    Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LabelList,
     LineChart, Line, ReferenceLine
 } from 'recharts';
 import {
     AlertTriangleIcon, CheckCircle2Icon, XCircleIcon, 
-    TrendingUpIcon, AlertCircleIcon, ChevronDownIcon, ChevronUpIcon
+    TrendingUpIcon, AlertCircleIcon, ChevronDownIcon, ChevronUpIcon,
+    DollarSign, FileText, Package, Briefcase, AlertOctagon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -20,6 +21,8 @@ interface Props {
     filters: FilterState;
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
+    filtersComponent?: React.ReactNode;
+    dataForCanalVenta?: RegistroMAC[];
 }
 
 interface VentaRecord {
@@ -48,6 +51,10 @@ const fmtPct = (v: number | null) => {
     if (v === null || isNaN(v)) return '—';
     return `${v.toFixed(2)}%`;
 };
+const normalizeZoneName = (z: string | undefined | null): string => {
+    if (!z) return 'SIN ZONA';
+    return String(z).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+};
 
 const normalizeGrupoName = (g: string): string => {
     if (!g) return 'OTROS';
@@ -55,13 +62,24 @@ const normalizeGrupoName = (g: string): string => {
     if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'COCINAS';
     if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES'].includes(norm)) return 'BAÑOS';
     if (['HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA'].includes(norm)) return 'HIDROMASAJES';
-    if (['REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'REPUESTOS';
+    if (['REPUESTO', 'REPUESTOS', 'REPOSICION', 'MPDIRECT'].includes(norm)) return 'COMERCIALIZADOS';
     if (['LAVARROPAS', 'ROPA', 'ROPAS'].includes(norm)) return 'ROPAS';
     if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'INFRAESTRUCTURA';
     if (norm.includes('HIDROPOR')) return 'HIDROMASAJES';
-    if (norm.includes('MPDIRECT')) return 'MPDIRECT';
+    if (norm.includes('MPDIRECT')) return 'COMERCIALIZADOS';
     if (norm.includes('HIDROEMP')) return 'HIDROMASAJES';
     return norm;
+};
+
+const normalizeCanalName = (g: string): string => {
+    if (!g) return 'No Definido';
+    const norm = String(g).trim().toLowerCase();
+    if (norm.includes('distribu')) return 'Distribución';
+    if (norm.includes('constructor')) return 'Constructor';
+    if (norm.includes('exportador') || norm.includes('exportacion')) return 'Exportaciones';
+    if (norm.includes('b2c') || norm.includes('propio') || norm.includes('ecommerce') || norm.includes('firplakhome')) return 'Canal Propio';
+    if (norm.includes('especial')) return 'Ventas Especiales';
+    return g;
 };
 
 const getGrupoFromProduct = (p: any): string => {
@@ -107,10 +125,10 @@ function useSortable<T extends Record<string, any>>(data: T[], defaultKey: strin
 }
 
 // ── Componente Principal ───────────────────────────────────────────────────
-export default function InformeMac({ data, filters }: Props) {
+export default function InformeMac({ data, prevData, filters, filtersComponent, onFilterToggle, dataForCanalVenta }: Props) {
     const [ventas, setVentas] = useState<VentaRecord[]>([]);
     const [loadingVentas, setLoadingVentas] = useState(false);
-    const [metricView, setMetricView] = useState<'porcentajes' | 'unidades' | 'inversion'>('porcentajes');
+    const [metricView, setMetricView] = useState<'porcentajes' | 'unidades' | 'inversion'>('unidades');
     const [expandedProblem, setExpandedProblem] = useState<string | null>(null);
 
     // 1. Cargar Ventas
@@ -122,7 +140,7 @@ export default function InformeMac({ data, filters }: Props) {
             try {
                 const { data: vData, error } = await supabase
                     .from('Ventas')
-                    .select('fecha_contabilizacion, cantidad, valor_total, familia, codigo_articulo, descripcion_articulo, zona, ciudad, tipo_documento, vendedor_senior, tipo_venta')
+                    .select('fecha_contabilizacion, cantidad, valor_total, familia, codigo_articulo, descripcion_articulo, zona, ciudad, tipo_documento, vendedor_senior, tipo_venta, grupo_cliente')
                     .gte('fecha_contabilizacion', filters.fechaInicial)
                     .lte('fecha_contabilizacion', filters.fechaFinal);
 
@@ -153,9 +171,31 @@ export default function InformeMac({ data, filters }: Props) {
                 const normFam = normalizeGrupoName(v.familia);
                 if (!filters.productos.map(p => normalizeGrupoName(p)).includes(normFam)) return false;
             }
+            if (filters.canalVenta && filters.canalVenta.length > 0) {
+                const activeNorms = filters.canalVenta.map(f => normalizeCanalName(f));
+                const vNorm = normalizeCanalName(v.grupo_cliente);
+                if (!activeNorms.includes(vNorm)) return false;
+            }
             return true;
         });
     }, [ventas, filters]);
+
+    // Ventas filtradas por todo EXCEPTO canalVenta (para mantener visibles todos los canales)
+    const ventasForCanal = useMemo(() => {
+        return ventas.filter(v => {
+            if (filters.ciudades.length > 0 && v.ciudad) {
+                if (!filters.ciudades.map(c => c.toLowerCase()).includes(v.ciudad.toLowerCase())) return false;
+            }
+            if (filters.zonas.length > 0 && v.zona) {
+                if (!filters.zonas.map(z => z.toLowerCase()).includes(v.zona.toLowerCase())) return false;
+            }
+            if (filters.productos.length > 0) {
+                const normFam = normalizeGrupoName(v.familia);
+                if (!filters.productos.map(p => normalizeGrupoName(p)).includes(normFam)) return false;
+            }
+            return true;
+        });
+    }, [ventas, filters.ciudades, filters.zonas, filters.productos]);
 
     // 3. Procesar y Agrupar Datos (Cruce Real)
     const analytics = useMemo(() => {
@@ -170,6 +210,7 @@ export default function InformeMac({ data, filters }: Props) {
         const byProduct = new Map<string, any>();
         const byZone = new Map<string, any>();
         const byCity = new Map<string, any>();
+        const byCanalVenta = new Map<string, any>();
         
         // Estructuras para Tipo de Problema y Responsable
         const byProblem = new Map<string, any>();
@@ -202,8 +243,9 @@ export default function InformeMac({ data, filters }: Props) {
             const mKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             const gKey = normalizeGrupoName(v.familia);
             const pKey = `${v.codigo_articulo || 'N/A'} - ${v.descripcion_articulo || 'Sin Nombre'}`;
-            const zKey = (v.zona || 'SIN ZONA').toUpperCase();
+            const zKey = normalizeZoneName(v.zona);
             const cKey = (v.ciudad || 'SIN CIUDAD').toUpperCase();
+            const canalKey = normalizeCanalName(v.grupo_cliente);
 
             [
                 getOrCreate(monthly, mKey),
@@ -226,14 +268,17 @@ export default function InformeMac({ data, filters }: Props) {
             const date = new Date(r.created_at);
             const mKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             const inv = ((r as any).valor_servicio || 0) + ((r as any).valor_flete || 0) + ((r as any).valor_producto || 0);
-            const zKey = (r as any).Ubicaciones?.ciudades?.zonas?.zona?.toUpperCase() || 'SIN ZONA';
+            const zKey = normalizeZoneName((r as any)._zona || (r as any).Ubicaciones?.ciudades?.zonas?.zona);
             const cKey = r.Ubicaciones?.ciudades?.ciudad?.toUpperCase() || 'SIN CIUDAD';
+            const canalKey = normalizeCanalName(r.canal_venta);
             
             inversionMac += inv;
 
             const mObj = getOrCreate(monthly, mKey);
             const zObj = getOrCreate(byZone, zKey);
             const cObj = getOrCreate(byCity, cKey);
+            const canalObj = getOrCreate(byCanalVenta, canalKey);
+            
             if(!problemMonthlyEvolution.has(mKey)) {
                 problemMonthlyEvolution.set(mKey, { monthKey: mKey });
             }
@@ -245,24 +290,37 @@ export default function InformeMac({ data, filters }: Props) {
             cObj.registros += 1;
             cObj.inversion += inv;
 
-            const responsableGlobal = (r as any).area_responsable || (r as any).responsable_atraso || 'SIN ASIGNAR';
-            const respObj = getOrCreate(byResponsible, responsableGlobal);
-            respObj.registros += 1;
-            respObj.inversion += inv;
+
 
             if (Array.isArray(r.productos_novedad)) {
+                const seenGroups = new Set<string>();
+                const seenProducts = new Set<string>();
                 r.productos_novedad.forEach((p: any) => {
                     const cant = p.cantidad || 1;
                     unidadesNovedad += cant;
                     mObj.unidadesNovedad += cant;
                     zObj.unidadesNovedad += cant;
                     cObj.unidadesNovedad += cant;
+                    
+                    const responsableProb = p.responsable || 'SIN ASIGNAR';
+                    const respObj = getOrCreate(byResponsible, responsableProb);
                     respObj.unidadesNovedad += cant;
+                    respObj.registros += 1;
+                    respObj.inversion += (inv / r.productos_novedad.length);
 
                     const gKey = getGrupoFromProduct(p);
                     const pKey = `${p.codigo || 'N/A'} - ${p.descripcion || p.nombre || 'Sin Nombre'}`;
                     const gObj = getOrCreate(byGroup, gKey);
                     const prObj = getOrCreate(byProduct, pKey);
+
+                    if (!seenGroups.has(gKey)) {
+                        seenGroups.add(gKey);
+                        gObj.registros += 1;
+                    }
+                    if (!seenProducts.has(pKey)) {
+                        seenProducts.add(pKey);
+                        prObj.registros += 1;
+                    }
 
                     gObj.unidadesNovedad += cant;
                     gObj.inversion += (inv / r.productos_novedad.length);
@@ -287,7 +345,7 @@ export default function InformeMac({ data, filters }: Props) {
                     probProd.registros += 1;
                     
                     // Drill-Down: Responsables dentro del problema
-                    const probResp = getOrCreate(probObj.subResponsibles, responsableGlobal);
+                    const probResp = getOrCreate(probObj.subResponsibles, responsableProb);
                     probResp.unidadesNovedad += cant;
                     probResp.inversion += (inv / r.productos_novedad.length);
                     probResp.registros += 1;
@@ -304,9 +362,10 @@ export default function InformeMac({ data, filters }: Props) {
         // Computed totals
         const pctNovedad = unidadesVendidas > 0 ? (unidadesNovedad / unidadesVendidas) * 100 : 0;
         const pctInversion = ventasTotales > 0 ? (inversionMac / ventasTotales) * 100 : 0;
+        const pctCasos = unidadesVendidas > 0 ? (registrosNovedad / unidadesVendidas) * 100 : 0;
 
         const kpis = {
-            unidadesVendidas, ventasTotales, registrosNovedad, unidadesNovedad, inversionMac, pctNovedad, pctInversion
+            unidadesVendidas, ventasTotales, registrosNovedad, unidadesNovedad, inversionMac, pctNovedad, pctInversion, pctCasos
         };
 
         const computePct = (arr: any[]) => {
@@ -315,18 +374,22 @@ export default function InformeMac({ data, filters }: Props) {
                 const prev = idx > 0 ? sorted[idx - 1] : null;
                 const pctNov = i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : (i.unidadesNovedad > 0 ? 100 : 0);
                 const pctInv = i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : (i.inversion > 0 ? 100 : 0);
+                const pctReg = i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : (i.registros > 0 ? 100 : 0);
                 
                 let varPctNovedad = null;
                 let varPctInversion = null;
+                let varPctCasos = null;
                 
                 if (prev) {
                     const prevPctNov = prev.unidadesVendidas > 0 ? (prev.unidadesNovedad / prev.unidadesVendidas) * 100 : (prev.unidadesNovedad > 0 ? 100 : 0);
                     const prevPctInv = prev.ventasTotales > 0 ? (prev.inversion / prev.ventasTotales) * 100 : (prev.inversion > 0 ? 100 : 0);
+                    const prevPctReg = prev.unidadesVendidas > 0 ? (prev.registros / prev.unidadesVendidas) * 100 : (prev.registros > 0 ? 100 : 0);
                     varPctNovedad = pctNov - prevPctNov;
                     varPctInversion = pctInv - prevPctInv;
+                    varPctCasos = pctReg - prevPctReg;
                 }
 
-                return { ...i, pctNovedad: pctNov, pctInversion: pctInv, varPctNovedad, varPctInversion };
+                return { ...i, pctNovedad: pctNov, pctInversion: pctInv, pctCasos: pctReg, varPctNovedad, varPctInversion, varPctCasos };
             });
         };
 
@@ -353,12 +416,62 @@ export default function InformeMac({ data, filters }: Props) {
             products: computePct(Array.from(byProduct.values())).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad),
             zones: computePct(Array.from(byZone.values())).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad),
             cities: computePct(Array.from(byCity.values())).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad),
-            problems: Array.from(byProblem.values()).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad),
+            problems: Array.from(byProblem.values()).sort((a,b) => b.registros - a.registros),
             responsibles: Array.from(byResponsible.values()).sort((a,b) => b.registros - a.registros),
             byProductMap: byProduct
         };
 
     }, [filteredVentas, data]);
+
+    // 4. Procesar Canales de Venta (Mantiene TODOS los canales ignorando el filtro actual)
+    const analyticsCanales = useMemo(() => {
+        const byCanalVenta = new Map<string, any>();
+        const getOrCreate = (map: Map<string, any>, key: string) => {
+            if (!map.has(key)) {
+                map.set(key, { 
+                    name: key, 
+                    unidadesVendidas: 0, ventasTotales: 0, 
+                    registros: 0, unidadesNovedad: 0, inversion: 0
+                });
+            }
+            return map.get(key);
+        };
+
+        ventasForCanal.forEach(v => {
+            const canalKey = normalizeCanalName(v.grupo_cliente);
+            const obj = getOrCreate(byCanalVenta, canalKey);
+            obj.unidadesVendidas += (v.cantidad || 0);
+            obj.ventasTotales += (v.valor_total || 0);
+        });
+
+        const sourceData = dataForCanalVenta || prevData; // Si no hay dataForCanalVenta, usamos prevData
+        sourceData.forEach(r => {
+            const inv = ((r as any).valor_servicio || 0) + ((r as any).valor_flete || 0) + ((r as any).valor_producto || 0);
+            const canalKey = normalizeCanalName(r.canal_venta);
+            const canalObj = getOrCreate(byCanalVenta, canalKey);
+            
+            canalObj.registros += 1;
+            canalObj.inversion += inv;
+
+            if (Array.isArray(r.productos_novedad)) {
+                r.productos_novedad.forEach((p: any) => {
+                    const cant = p.cantidad || 1;
+                    canalObj.unidadesNovedad += cant;
+                });
+            }
+        });
+
+        const computePct = (arr: any[]) => {
+            return arr.map(i => {
+                const pctNov = i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : (i.unidadesNovedad > 0 ? 100 : 0);
+                const pctInv = i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : (i.inversion > 0 ? 100 : 0);
+                const pctReg = i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : (i.registros > 0 ? 100 : 0);
+                return { ...i, pctNovedad: pctNov, pctInversion: pctInv, pctRegistros: pctReg };
+            });
+        };
+
+        return computePct(Array.from(byCanalVenta.values())).sort((a,b) => b.ventasTotales - a.ventasTotales);
+    }, [ventasForCanal, dataForCanalVenta, prevData]);
 
     const kpis = analytics.kpis;
 
@@ -401,8 +514,8 @@ export default function InformeMac({ data, filters }: Props) {
             }
         }
 
-        const text = `Durante el período se registraron ${fmtN(kpis.registrosNovedad)} novedades, correspondientes a ${fmtN(kpis.unidadesNovedad)} unidades afectadas sobre ${fmtN(kpis.unidadesVendidas)} unidades vendidas, representando una incidencia de ${fmtPct(kpis.pctNovedad)}, frente a una meta máxima de 1%. 
-        
+        const text = `Durante el período seleccionado se generaron ${fmt$(kpis.ventasTotales)} en ventas, correspondientes a ${fmtN(kpis.unidadesVendidas)} unidades vendidas, y una inversión MAC de ${fmt$(kpis.inversionMac)}. Se registraron ${fmtN(kpis.registrosNovedad)} casos de novedad (incidencia de casos del ${fmtPct(kpis.pctCasos)}), que afectaron a ${fmtN(kpis.unidadesNovedad)} unidades (incidencia de producto del ${fmtPct(kpis.pctNovedad)}), ambas frente a la meta del 1.00%. La inversión representó el ${fmtPct(kpis.pctInversion)} de las ventas, dentro de la meta del 0.50%.
+
 El principal tipo de problema fue **${topProbUnidades.name}**, con ${fmtN(topProbUnidades.unidadesNovedad)} unidades afectadas y ${fmt$(topProbUnidades.inversion)} de inversión. 
 
 Este problema se concentró principalmente en el producto **${probSubProdName}** y estuvo asociado al responsable **${probRespName}**, según la clasificación registrada en MAC.
@@ -427,96 +540,255 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
     return (
         <div className="space-y-6 pb-24">
             
-            {/* ENCABEZADO Y SEMÁFORO */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <div>
-                    <h2 className="text-2xl font-black text-[#254153]">Gestión de Calidad Corporativa</h2>
-                    <p className="text-sm text-[#749094]">Cruce de Indicadores MAC vs. Ventas Reales</p>
+            {/* ENCABEZADO SUPERIOR CON FILTROS Y KPIS JUNTOS */}
+            <div className="flex flex-col lg:flex-row gap-6">
+                
+                {/* FILTROS (IZQUIERDA) */}
+                {filtersComponent && (
+                    <div className="w-full lg:w-[260px] shrink-0">
+                        {filtersComponent}
+                    </div>
+                )}
+                
+                {/* KPIs EJECUTIVOS (DERECHA) */}
+                <div className="flex-1 min-w-0">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                        
+                        {/* BLOQUE DE MÉTRICAS PEQUEÑAS (Izquierda) */}
+                        <div className="lg:col-span-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {/* VENTAS */}
+                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+                                <div className="flex flex-col justify-center">
+                                    <span className="text-[9px] font-bold text-[#749094] uppercase tracking-wider mb-0.5">Ventas</span>
+                                    <span className="text-[17px] font-black text-[#254153] leading-none">{fmt$(kpis.ventasTotales)}</span>
+                                </div>
+                                <div className="p-1.5 bg-emerald-50 rounded-lg shrink-0">
+                                    <DollarSign className="w-4 h-4 text-emerald-600" />
+                                </div>
+                            </div>
+                            
+                            {/* INVERSIÓN MAC */}
+                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+                                <div className="flex flex-col justify-center">
+                                    <span className="text-[9px] font-bold text-[#749094] uppercase tracking-wider mb-0.5">Inversión MAC</span>
+                                    <span className="text-[17px] font-black text-[#254153] leading-none">{fmt$(kpis.inversionMac)}</span>
+                                </div>
+                                <div className="p-1.5 bg-slate-100 rounded-lg shrink-0">
+                                    <Briefcase className="w-4 h-4 text-[#254153]" />
+                                </div>
+                            </div>
+
+                            {/* UNIDADES VENDIDAS */}
+                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+                                <div className="flex flex-col justify-center">
+                                    <span className="text-[9px] font-bold text-[#749094] uppercase tracking-wider mb-0.5">Unds Vendidas</span>
+                                    <span className="text-[17px] font-black text-[#254153] leading-none">{fmtN(kpis.unidadesVendidas)}</span>
+                                </div>
+                                <div className="p-1.5 bg-blue-50 rounded-lg shrink-0">
+                                    <Package className="w-4 h-4 text-blue-500" />
+                                </div>
+                            </div>
+
+                            {/* UNIDADES CON NOVEDAD */}
+                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+                                <div className="flex flex-col justify-center">
+                                    <span className="text-[9px] font-bold text-[#749094] uppercase tracking-wider mb-0.5">Unds con Novedad</span>
+                                    <span className="text-[17px] font-black text-[#1d1d1b] leading-none">{fmtN(kpis.unidadesNovedad)}</span>
+                                </div>
+                                <div className="p-1.5 bg-red-50 rounded-lg shrink-0">
+                                    <AlertOctagon className="w-4 h-4 text-red-500" />
+                                </div>
+                            </div>
+
+                            {/* REGISTROS DE NOVEDAD */}
+                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+                                <div className="flex flex-col justify-center">
+                                    <span className="text-[9px] font-bold text-[#749094] uppercase tracking-wider mb-0.5">Registros Novedad</span>
+                                    <span className="text-[17px] font-black text-[#1d1d1b] leading-none">{fmtN(kpis.registrosNovedad)}</span>
+                                </div>
+                                <div className="p-1.5 bg-orange-50 rounded-lg shrink-0">
+                                    <FileText className="w-4 h-4 text-orange-500" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BLOQUE DE PORCENTAJES (Derecha) */}
+                        <div className="lg:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {/* % PRODUCTO CON NOVEDAD */}
+                            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#254153] flex flex-col justify-between h-full">
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#254153] uppercase tracking-wider mb-1">% Producto con Novedad</span>
+                                    <div className="flex items-baseline mb-2">
+                                        <span className="text-xl font-black text-[#1d1d1b]">{kpis.pctNovedad.toFixed(2)}%</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1 text-[10px]">
+                                    <div className="flex justify-between text-slate-500 font-medium">
+                                        <span>Meta</span>
+                                        <span>≤ {META_CALIDAD.toFixed(2)}%</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-500 font-medium">
+                                        <span>Desviación</span>
+                                        <span>{(kpis.pctNovedad - META_CALIDAD) > 0 ? '+' : ''}{(kpis.pctNovedad - META_CALIDAD).toFixed(2)} pp</span>
+                                    </div>
+                                    <div className={`mt-1 py-1 px-2 rounded-md font-bold text-center ${kpis.pctNovedad <= META_CALIDAD ? 'bg-[#f5f1ea] text-[#254153]' : 'bg-red-50 text-red-700'}`}>
+                                        {kpis.pctNovedad <= META_CALIDAD ? 'Dentro de meta' : 'Sobre meta'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* % CASOS CON NOVEDAD */}
+                            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#254153] flex flex-col justify-between h-full">
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#254153] uppercase tracking-wider mb-1">% Casos con Novedad</span>
+                                    <div className="flex items-baseline mb-2">
+                                        <span className="text-xl font-black text-[#1d1d1b]">{kpis.pctCasos.toFixed(2)}%</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1 text-[10px]">
+                                    <div className="flex justify-between text-slate-500 font-medium">
+                                        <span>Meta</span>
+                                        <span>≤ {META_CALIDAD.toFixed(2)}%</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-500 font-medium">
+                                        <span>Desviación</span>
+                                        <span>{(kpis.pctCasos - META_CALIDAD) > 0 ? '+' : ''}{(kpis.pctCasos - META_CALIDAD).toFixed(2)} pp</span>
+                                    </div>
+                                    <div className={`mt-1 py-1 px-2 rounded-md font-bold text-center ${kpis.pctCasos <= META_CALIDAD ? 'bg-[#f5f1ea] text-[#254153]' : 'bg-red-50 text-red-700'}`}>
+                                        {kpis.pctCasos <= META_CALIDAD ? 'Dentro de meta' : 'Sobre meta'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* % INVERSIÓN / VENTA */}
+                            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#254153] flex flex-col justify-between h-full">
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#254153] uppercase tracking-wider mb-1">% Inversión / Venta</span>
+                                    <div className="flex items-baseline mb-2">
+                                        <span className="text-xl font-black text-[#1d1d1b]">{kpis.pctInversion.toFixed(2)}%</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1 text-[10px]">
+                                    <div className="flex justify-between text-slate-500 font-medium">
+                                        <span>Meta</span>
+                                        <span>≤ {META_ECONOMICA.toFixed(2)}%</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-500 font-medium">
+                                        <span>Desviación</span>
+                                        <span>{(kpis.pctInversion - META_ECONOMICA) > 0 ? '+' : ''}{(kpis.pctInversion - META_ECONOMICA).toFixed(2)} pp</span>
+                                    </div>
+                                    <div className={`mt-1 py-1 px-2 rounded-md font-bold text-center ${kpis.pctInversion <= META_ECONOMICA ? 'bg-[#f5f1ea] text-[#254153]' : 'bg-red-50 text-red-700'}`}>
+                                        {kpis.pctInversion <= META_ECONOMICA ? 'Dentro de meta' : 'Sobre meta'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    {/* RESUMEN EJECUTIVO TEXTUAL (Full Width) */}
+                    <div className="mt-6 bg-[#f5f1ea] p-4 rounded-xl shadow-sm text-xs text-[#1d1d1b] leading-relaxed border border-[#e8e2d5]">
+                        <span className="font-bold text-[#254153] uppercase tracking-wider block mb-1">Lectura Ejecutiva</span>
+                        Durante el período seleccionado se generaron <strong>{fmt$(kpis.ventasTotales)}</strong> en ventas, correspondientes a <strong>{fmtN(kpis.unidadesVendidas)}</strong> unidades vendidas, y una inversión MAC de <strong>{fmt$(kpis.inversionMac)}</strong>. La incidencia de producto con novedad fue <strong>{kpis.pctNovedad.toFixed(2)}%</strong>, {kpis.pctNovedad <= META_CALIDAD ? 'dentro de' : 'superando'} la meta del {META_CALIDAD.toFixed(2)}%. La inversión representó el <strong>{kpis.pctInversion.toFixed(2)}%</strong> de las ventas, {kpis.pctInversion <= META_ECONOMICA ? 'dentro de' : 'superando'} la meta del {META_ECONOMICA.toFixed(2)}%.
+                    </div>
                 </div>
-                <div className="flex gap-4">
-                    <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Calidad de Producto</span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl font-black text-[#1d1d1b]">{fmtPct(kpis.pctNovedad)}</span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${kpis.pctNovedad <= META_CALIDAD ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                {kpis.pctNovedad <= META_CALIDAD ? <CheckCircle2Icon className="w-3 h-3" /> : <XCircleIcon className="w-3 h-3" />}
-                                {fmtPct(kpis.pctNovedad)}
-                            </span>
-                        </div>
-                    </div>
-                    <div className="w-px h-10 bg-slate-200"></div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Impacto Económico</span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl font-black text-[#1d1d1b]">{fmtPct(kpis.pctInversion)}</span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${kpis.pctInversion <= META_ECONOMICA ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                {kpis.pctInversion <= META_ECONOMICA ? <CheckCircle2Icon className="w-3 h-3" /> : <XCircleIcon className="w-3 h-3" />}
-                                {fmtPct(kpis.pctInversion)}
-                            </span>
-                        </div>
-                    </div>
+
+            </div>
+
+            {/* PARTICIPACIÓN POR CANALES DE VENTA */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm mb-8">
+                <div className="flex items-center gap-2 mb-6">
+                    <h3 className="text-sm font-black text-[#254153] uppercase tracking-wider">Canales de Venta</h3>
+                    <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">(% de Participación)</span>
+                </div>
+
+                {/* STACKED PROGRESS BAR */}
+                <div className="w-full h-2 flex rounded-full overflow-hidden mb-6 bg-slate-100 relative">
+                    {analyticsCanales.map((c: any, i: number) => {
+                        const totalVentasAllCanales = analyticsCanales.reduce((acc, curr) => acc + curr.ventasTotales, 0);
+                        const pct = totalVentasAllCanales > 0 ? (c.ventasTotales / totalVentasAllCanales) * 100 : 0;
+                        if (pct === 0) return null;
+                        const color = COLORS[i % COLORS.length];
+                        return (
+                            <div 
+                                key={c.name} 
+                                onClick={() => onFilterToggle('canalVenta', c.name)}
+                                style={{ width: `${pct}%`, backgroundColor: color }}
+                                className={`h-full border-r-2 border-white last:border-0 relative group cursor-pointer transition-opacity ${filters.canalVenta && filters.canalVenta.length > 0 && !filters.canalVenta.includes(c.name) ? 'opacity-30' : 'opacity-100'}`}
+                            >
+                                {/* Tooltip */}
+                                <div className="opacity-0 group-hover:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#121c22] text-white text-[10px] p-2.5 rounded-lg whitespace-nowrap z-10 transition-opacity pointer-events-none shadow-lg border border-slate-700">
+                                    <div className="flex justify-between gap-6 mb-2 border-b border-slate-700 pb-1.5">
+                                        <strong className="text-white font-bold">{c.name}</strong>
+                                        <span className="text-blue-400 font-black">{pct.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex justify-between gap-6">
+                                            <span className="text-slate-400">Total en Ventas:</span>
+                                            <span className="font-bold text-white">{fmt$(c.ventasTotales)}</span>
+                                        </div>
+                                        <div className="flex justify-between gap-6">
+                                            <span className="text-slate-400">Unidades con Novedad:</span>
+                                            <span className="font-bold text-orange-400">{fmtN(c.unidadesNovedad)} unds</span>
+                                        </div>
+                                        <div className="flex justify-between gap-6">
+                                            <span className="text-slate-400">Casos (Registros):</span>
+                                            <span className="font-bold text-blue-400">{fmtN(c.registros)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* CARDS GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {analyticsCanales.map((c: any, i: number) => {
+                        const totalVentasAllCanales = analyticsCanales.reduce((acc, curr) => acc + curr.ventasTotales, 0);
+                        const pct = totalVentasAllCanales > 0 ? (c.ventasTotales / totalVentasAllCanales) * 100 : 0;
+                        const color = COLORS[i % COLORS.length];
+                        const isActive = filters.canalVenta && filters.canalVenta.includes(c.name);
+                        return (
+                            <div 
+                                key={c.name} 
+                                onClick={() => onFilterToggle('canalVenta', c.name)}
+                                className={`p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all cursor-pointer ${isActive ? 'border-[#254153] ring-1 ring-[#254153]' : 'border-slate-200'} ${filters.canalVenta && filters.canalVenta.length > 0 && !isActive ? 'opacity-40 hover:opacity-100' : 'opacity-100'}`}
+                            >
+                                {/* Header */}
+                                <div className="flex justify-between items-center mb-2.5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                        <span className="text-[11px] font-bold text-[#254153] truncate">{c.name}</span>
+                                    </div>
+                                    <span className="text-[11px] font-black text-[#1d1d1b] shrink-0">{pct.toFixed(1)}%</span>
+                                </div>
+                                
+                                {/* Mini Progress Bar */}
+                                <div className="w-full h-1.5 bg-slate-100 rounded-full mb-3.5 overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                                </div>
+                                
+                                {/* Footer Metrics */}
+                                <div className="flex flex-col gap-1.5 pt-1 border-t border-slate-50">
+                                    <div className="flex justify-between items-center text-[10px]">
+                                        <span className="text-slate-500">Ventas: <strong className="text-[#254153]">{fmt$(c.ventasTotales)}</strong></span>
+                                        <span className="text-slate-500">Inv MAC: <strong className={c.pctInversion <= META_ECONOMICA ? 'text-emerald-600' : 'text-red-600'}>{fmt$(c.inversion)} ({fmtPct(c.pctInversion)})</strong></span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px]">
+                                        <span className="text-slate-500">Unds: <strong className="text-[#254153]">{fmtN(c.unidadesVendidas)}</strong></span>
+                                        <span className="text-slate-500">Novedad: <strong className={c.pctNovedad <= META_CALIDAD ? 'text-emerald-600' : 'text-red-600'}>{fmtN(c.unidadesNovedad)} unds ({fmtPct(c.pctNovedad)})</strong></span>
+                                    </div>
+                                    <div className="flex justify-end items-center text-[10px]">
+                                        <span className="text-slate-500">Casos: <strong className={c.pctRegistros <= META_CALIDAD ? 'text-[#254153]' : 'text-red-600'}>{fmtN(c.registros)} reg. ({fmtPct(c.pctRegistros)})</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* RESUMEN EJECUTIVO TEXTUAL */}
-            <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl shadow-sm">
-                <h3 className="text-sm font-black text-indigo-900 uppercase mb-3 flex items-center gap-2">
-                    <AlertCircleIcon className="w-4 h-4" />
-                    Resumen Ejecutivo
-                </h3>
-                <p className="text-indigo-900 leading-relaxed text-sm whitespace-pre-wrap font-medium">
-                    {execSummary.text}
-                </p>
-            </div>
-
-            {/* REVISIÓN EJECUTIVA (Top 10 List) */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                <h3 className="text-sm font-black text-[#254153] uppercase mb-4">Revisión Ejecutiva</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">1. Principal Problema (Unds)</span>
-                        <span className="block text-sm font-black text-[#c96a4e] truncate" title={execSummary.topProbUnidades?.name}>{execSummary.topProbUnidades?.name || 'N/A'}</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">2. Principal Problema ($)</span>
-                        <span className="block text-sm font-black text-red-600 truncate" title={execSummary.topProbDinero?.name}>{execSummary.topProbDinero?.name || 'N/A'}</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">3. Producto más afectado</span>
-                        <span className="block text-sm font-black text-[#1d1d1b] truncate" title={execSummary.topProd?.name}>{execSummary.topProd?.name || 'N/A'}</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">4. Producto más costoso</span>
-                        <span className="block text-sm font-black text-[#1d1d1b] truncate" title={execSummary.topProdDinero?.name}>{execSummary.topProdDinero?.name || 'N/A'}</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">5. Responsable Principal</span>
-                        <span className="block text-sm font-black text-[#1d1d1b] truncate" title={execSummary.topResp?.name}>{execSummary.topResp?.name || 'N/A'}</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">6. Zona Mayor Incidencia</span>
-                        <span className="block text-sm font-black text-[#1d1d1b] truncate" title={execSummary.topZone?.name}>{execSummary.topZone?.name || 'N/A'}</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">7. Ciudad Mayor Incidencia</span>
-                        <span className="block text-sm font-black text-[#1d1d1b] truncate" title={execSummary.topCity?.name}>{execSummary.topCity?.name || 'N/A'}</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase">8. Problemas en Crecimiento</span>
-                        <span className="block text-xs font-black text-red-600 truncate" title={execSummary.probUp.join(', ')}>
-                            {execSummary.probUp.length > 0 ? execSummary.probUp.slice(0,2).join(', ') + (execSummary.probUp.length > 2 ? '...' : '') : 'Ninguno'}
-                        </span>
-                    </div>
-                    <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                        <span className="block text-[10px] font-bold text-red-400 uppercase">9. Productos Fuera de Meta (1%)</span>
-                        <span className="block text-xl font-black text-red-600">{analytics.products.filter(p => p.pctNovedad > 1.0).length}</span>
-                    </div>
-                    <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                        <span className="block text-[10px] font-bold text-red-400 uppercase">10. Productos Mayor a Impacto (0.50%)</span>
-                        <span className="block text-xl font-black text-red-600">{analytics.products.filter(p => p.pctInversion > 0.5).length}</span>
-                    </div>
-                </div>
-            </div>
 
             {/* COMPORTAMIENTO MES A MES */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col xl:flex-row">
@@ -527,9 +799,9 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                             Comportamiento Mes a Mes
                         </h3>
                         <div className="flex bg-slate-100 p-1 rounded-lg">
-                            <button onClick={() => setMetricView('porcentajes')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'porcentajes' ? 'bg-white text-[#254153] shadow-sm' : 'text-slate-500 hover:text-[#254153]'}`}>Porcentajes</button>
                             <button onClick={() => setMetricView('unidades')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'unidades' ? 'bg-white text-[#254153] shadow-sm' : 'text-slate-500 hover:text-[#254153]'}`}>Unidades</button>
                             <button onClick={() => setMetricView('inversion')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'inversion' ? 'bg-white text-[#254153] shadow-sm' : 'text-slate-500 hover:text-[#254153]'}`}>Inversión</button>
+                            <button onClick={() => setMetricView('porcentajes')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'porcentajes' ? 'bg-white text-[#254153] shadow-sm' : 'text-slate-500 hover:text-[#254153]'}`}>Porcentajes</button>
                         </div>
                     </div>
 
@@ -554,7 +826,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                         )}
                         {metricView === 'unidades' && (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={analytics.monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <BarChart data={analytics.monthly} margin={{ top: 30, right: 10, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                     <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                                     <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={fmtN} />
@@ -564,8 +836,15 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                         formatter={(val: number) => fmtN(val)}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                    <Bar yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} />
-                                    <Bar yAxisId="right" dataKey="unidadesNovedad" name="Unidades Novedad" fill="#c96a4e" radius={[4,4,0,0]} barSize={20} />
+                                    <Bar yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20}>
+                                        <LabelList dataKey="unidadesVendidas" position="top" fill="#94a3b8" fontSize={9} formatter={fmtN} />
+                                    </Bar>
+                                    <Bar yAxisId="right" dataKey="unidadesNovedad" name="Unidades Novedad" fill="#c96a4e" radius={[4,4,0,0]} barSize={20}>
+                                        <LabelList dataKey="unidadesNovedad" position="top" fill="#c96a4e" fontSize={9} formatter={fmtN} />
+                                    </Bar>
+                                    <Bar yAxisId="right" dataKey="registros" name="Cantidad Casos" fill="#3b82f6" radius={[4,4,0,0]} barSize={20}>
+                                        <LabelList dataKey="registros" position="top" fill="#3b82f6" fontSize={9} formatter={fmtN} />
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
@@ -600,7 +879,9 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <th className="p-3 font-bold text-[#749094]">Mes</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Casos</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Casos</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
                                 </tr>
                             </thead>
@@ -614,11 +895,20 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                             <td className="p-3 font-medium text-[#1d1d1b]">{m.monthLabel}</td>
                                             <td className="p-3 text-right">{fmtN(m.unidadesVendidas)}</td>
                                             <td className="p-3 text-right font-bold text-[#c96a4e]">{fmtN(m.unidadesNovedad)}</td>
+                                            <td className="p-3 text-right font-bold text-[#3b82f6]">{fmtN(m.registros)}</td>
                                             <td className="p-3 text-right">
                                                 <div className={`font-bold ${m.pctNovedad > META_CALIDAD ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctNovedad)}</div>
                                                 {m.varPctNovedad !== null && (
                                                     <div className="text-[9px] text-slate-400 font-medium mt-0.5" title="Variación vs mes anterior">
                                                         {novTrendIcon} {m.varPctNovedad > 0 ? '+' : ''}{m.varPctNovedad.toFixed(2)} pp
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <div className={`font-bold ${m.pctCasos > META_CALIDAD ? 'text-red-600' : 'text-[#254153]'}`}>{fmtPct(m.pctCasos)}</div>
+                                                {m.varPctCasos !== null && (
+                                                    <div className="text-[9px] text-slate-400 font-medium mt-0.5" title="Variación vs mes anterior">
+                                                        {m.varPctCasos > 0.05 ? '↑' : (m.varPctCasos < -0.05 ? '↓' : '→')} {m.varPctCasos > 0 ? '+' : ''}{m.varPctCasos.toFixed(2)} pp
                                                     </div>
                                                 )}
                                             </td>
@@ -639,34 +929,76 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                 </div>
             </div>
 
-            {/* EVOLUCIÓN MENSUAL DE PROBLEMAS */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                <div className="p-6 border-b border-slate-100">
-                    <h3 className="text-sm font-black text-[#254153] uppercase flex items-center gap-2 mb-2">
-                        <TrendingUpIcon className="w-4 h-4 text-[#749094]" />
-                        Evolución Mensual de Problemas
-                    </h3>
-                    <p className="text-xs text-slate-500">Comportamiento de los defectos mes a mes en cantidad de unidades afectadas.</p>
+            {/* TABLAS GENERALES CON CRUCE DE VENTAS */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h3 className="text-sm font-black text-[#254153] uppercase">Comportamiento por Grupo de Producto</h3>
+                    </div>
+                    <div className="flex-1 overflow-auto p-0">
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                            <thead className="bg-white sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th className="p-3 font-bold text-[#749094]">Grupo</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Registros</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Casos Reg.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {analytics.groups.filter(g => g.unidadesNovedad > 0).map(g => (
+                                    <tr key={g.name} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-3 font-medium text-[#1d1d1b]">{g.name}</td>
+                                        <td className="p-3 text-right">{fmtN(g.registros)}</td>
+                                        <td className="p-3 text-right font-medium text-slate-500">{fmtPct(g.pctCasos)}</td>
+                                        <td className="p-3 text-right">{fmtN(g.unidadesVendidas)}</td>
+                                        <td className="p-3 text-right font-medium text-[#c96a4e]">{fmtN(g.unidadesNovedad)}</td>
+                                        <td className="p-3 text-right font-bold">{fmtPct(g.pctNovedad)}</td>
+                                        <td className="p-3 text-right font-bold">{fmtPct(g.pctInversion)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div className="h-80 w-full p-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.problemMonthlyEvol} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <RechartsTooltip 
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                formatter={(val: number, name: string) => [fmtN(val), name]}
-                            />
-                            <Legend wrapperStyle={{ fontSize: '12px' }} />
-                            {analytics.problemNames.slice(0, 15).map((prob, idx) => (
-                                <Bar key={prob} dataKey={prob} name={prob} stackId="a" fill={COLORS[idx % COLORS.length]} />
-                            ))}
-                        </BarChart>
-                    </ResponsiveContainer>
+
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h3 className="text-sm font-black text-[#254153] uppercase">Comportamiento por Zona</h3>
+                    </div>
+                    <div className="flex-1 overflow-auto p-0">
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                            <thead className="bg-white sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th className="p-3 font-bold text-[#749094]">Zona</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Registros</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Casos Reg.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {analytics.zones.filter(z => z.unidadesNovedad > 0).map(z => (
+                                    <tr key={z.name} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-3 font-medium text-[#1d1d1b]">{z.name}</td>
+                                        <td className="p-3 text-right">{fmtN(z.registros)}</td>
+                                        <td className="p-3 text-right font-medium text-slate-500">{fmtPct(z.pctCasos)}</td>
+                                        <td className="p-3 text-right">{fmtN(z.unidadesVendidas)}</td>
+                                        <td className="p-3 text-right font-medium text-[#c96a4e]">{fmtN(z.unidadesNovedad)}</td>
+                                        <td className="p-3 text-right font-bold">{fmtPct(z.pctNovedad)}</td>
+                                        <td className="p-3 text-right font-bold">{fmtPct(z.pctInversion)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
             {/* ANÁLISIS COMPLETO: TIPO DE PROBLEMA */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
@@ -679,6 +1011,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                 <th className="p-3 font-bold text-[#749094] w-10"></th>
                                 <th className="p-3 font-bold text-[#749094]">Tipo de Problema</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">Registros</th>
+                                <th className="p-3 font-bold text-[#749094] text-right">% Casos Reg.</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">Unidades Afectadas</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">% del Total Nov.</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">$ Inversión</th>
@@ -697,6 +1030,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                         </td>
                                         <td className="p-3 font-black text-[#1d1d1b]">{p.name}</td>
                                         <td className="p-3 text-right">{fmtN(p.registros)}</td>
+                                        <td className="p-3 text-right font-medium text-slate-500">{kpis.registrosNovedad > 0 ? fmtPct((p.registros / kpis.registrosNovedad)*100) : '0%'}</td>
                                         <td className="p-3 text-right font-bold text-[#c96a4e]">{fmtN(p.unidadesNovedad)}</td>
                                         <td className="p-3 text-right font-medium text-slate-500">{kpis.unidadesNovedad > 0 ? fmtPct((p.unidadesNovedad / kpis.unidadesNovedad)*100) : '0%'}</td>
                                         <td className="p-3 text-right font-bold text-red-600">{fmt$(p.inversion)}</td>
@@ -704,7 +1038,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     </tr>
                                     {expandedProblem === p.name && (
                                         <tr className="bg-slate-50">
-                                            <td colSpan={7} className="p-6">
+                                            <td colSpan={8} className="p-6">
                                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                                     {/* Drill-Down Productos */}
                                                     <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
@@ -776,68 +1110,6 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                 </div>
             </div>
             
-            {/* TABLAS GENERALES CON CRUCE DE VENTAS */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]">
-                    <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                        <h3 className="text-sm font-black text-[#254153] uppercase">Comportamiento por Grupo de Producto</h3>
-                    </div>
-                    <div className="flex-1 overflow-auto p-0">
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                            <thead className="bg-white sticky top-0 shadow-sm z-10">
-                                <tr>
-                                    <th className="p-3 font-bold text-[#749094]">Grupo</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {analytics.groups.map(g => (
-                                    <tr key={g.name} className="hover:bg-slate-50 transition-colors">
-                                        <td className="p-3 font-medium text-[#1d1d1b]">{g.name}</td>
-                                        <td className="p-3 text-right">{fmtN(g.unidadesVendidas)}</td>
-                                        <td className="p-3 text-right font-medium text-[#c96a4e]">{fmtN(g.unidadesNovedad)}</td>
-                                        <td className="p-3 text-right font-bold">{fmtPct(g.pctNovedad)}</td>
-                                        <td className="p-3 text-right font-bold">{fmtPct(g.pctInversion)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]">
-                    <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                        <h3 className="text-sm font-black text-[#254153] uppercase">Comportamiento por Zona</h3>
-                    </div>
-                    <div className="flex-1 overflow-auto p-0">
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                            <thead className="bg-white sticky top-0 shadow-sm z-10">
-                                <tr>
-                                    <th className="p-3 font-bold text-[#749094]">Zona</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {analytics.zones.map(z => (
-                                    <tr key={z.name} className="hover:bg-slate-50 transition-colors">
-                                        <td className="p-3 font-medium text-[#1d1d1b]">{z.name}</td>
-                                        <td className="p-3 text-right">{fmtN(z.unidadesVendidas)}</td>
-                                        <td className="p-3 text-right font-medium text-[#c96a4e]">{fmtN(z.unidadesNovedad)}</td>
-                                        <td className="p-3 text-right font-bold">{fmtPct(z.pctNovedad)}</td>
-                                        <td className="p-3 text-right font-bold">{fmtPct(z.pctInversion)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
 
         </div>
     );

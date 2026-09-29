@@ -59,7 +59,7 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
     const labelClass = "block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1";
 
     return (
-        <div className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex ${isVertical ? 'flex-col gap-4 h-full' : 'flex-wrap gap-4 items-end mb-6'}`}>
+        <div className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex ${isVertical ? 'flex-col gap-4' : 'flex-wrap gap-4 items-end mb-6'}`}>
             <div className={isVertical ? 'w-full' : 'flex-1 min-w-[150px]'}>
                 <label className={labelClass}>Fecha Inicial</label>
                 <input 
