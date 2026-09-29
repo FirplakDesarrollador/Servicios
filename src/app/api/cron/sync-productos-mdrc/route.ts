@@ -5,6 +5,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 const SAP_QUERY = 'fir_productos_mdrc';
 const BATCH_SIZE = 200;
 
+// El sync completo tarda ~90s (15k filas paginadas de a 20 en SAP).
+export const maxDuration = 300;
+
 // El enum product_group en Supabase no tiene tildes/eñes (ej. BANO, BANERA),
 // pero SAP devuelve "BAÑO", "BAÑERA". Se normaliza quitando diacríticos.
 function normalizeGrupo(value: string): string {

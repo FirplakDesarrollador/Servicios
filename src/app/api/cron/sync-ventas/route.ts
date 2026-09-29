@@ -6,6 +6,9 @@ const VENTAS_URL = process.env.VENTAS_URL!;
 const VENTAS_API_KEY = process.env.VENTAS_API_KEY!;
 const BATCH_SIZE = 500;
 
+// Descarga ~60MB e inserta ~46k filas: tarda ~75s.
+export const maxDuration = 300;
+
 function toNumber(v: any): number | null {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
