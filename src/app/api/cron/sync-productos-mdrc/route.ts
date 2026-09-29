@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchSapSqlQuery } from '@/lib/sapServiceLayer';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 const SAP_QUERY = 'fir_productos_mdrc';
 const BATCH_SIZE = 200;
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     let upserted = 0;
     for (let i = 0; i < mapped.length; i += BATCH_SIZE) {
       const batch = mapped.slice(i, i + BATCH_SIZE);
-      const { error } = await supabaseAdmin
+      const { error } = await getSupabaseAdmin()
         .from('Productos')
         .upsert(batch, { onConflict: 'sku' });
 

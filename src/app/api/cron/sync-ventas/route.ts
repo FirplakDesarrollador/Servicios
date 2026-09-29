@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 // El túnel de Cloudflare cambia de URL al reiniciarse: se actualiza en la variable, no en el código.
 const VENTAS_URL = process.env.VENTAS_URL!;
@@ -97,13 +97,13 @@ export async function GET(request: Request) {
     const mapped = rows.map(mapRow);
 
     // Reemplaza toda la tabla: borra todo e inserta lo fresco del endpoint.
-    const { error: deleteError } = await supabaseAdmin.from('Ventas').delete().gte('id', 0);
+    const { error: deleteError } = await getSupabaseAdmin().from('Ventas').delete().gte('id', 0);
     if (deleteError) throw new Error(`Error borrando Ventas: ${deleteError.message}`);
 
     let inserted = 0;
     for (let i = 0; i < mapped.length; i += BATCH_SIZE) {
       const batch = mapped.slice(i, i + BATCH_SIZE);
-      const { error } = await supabaseAdmin.from('Ventas').insert(batch);
+      const { error } = await getSupabaseAdmin().from('Ventas').insert(batch);
       if (error) {
         console.error(`[sync-ventas] Error en insert (batch ${i}):`, error.message);
       } else {
