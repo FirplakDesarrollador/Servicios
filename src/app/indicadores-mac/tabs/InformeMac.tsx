@@ -246,7 +246,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             const pKey = `${v.codigo_articulo || 'N/A'} - ${v.descripcion_articulo || 'Sin Nombre'}`;
             const zKey = normalizeZoneName(v.zona);
             const cKey = (v.ciudad || 'SIN CIUDAD').toUpperCase();
-            const canalKey = normalizeCanalName(v.grupo_cliente);
+            const canalKey = normalizeCanalName(v.grupo_cliente || '');
 
             [
                 getOrCreate(monthly, mKey),
@@ -439,7 +439,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         };
 
         ventasForCanal.forEach(v => {
-            const canalKey = normalizeCanalName(v.grupo_cliente);
+            const canalKey = normalizeCanalName(v.grupo_cliente || '');
             const obj = getOrCreate(byCanalVenta, canalKey);
             obj.unidadesVendidas += (v.cantidad || 0);
             obj.ventasTotales += (v.valor_total || 0);
