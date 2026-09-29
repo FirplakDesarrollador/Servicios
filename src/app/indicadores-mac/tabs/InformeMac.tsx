@@ -37,6 +37,7 @@ interface VentaRecord {
     tipo_documento: string;
     vendedor_senior: string;
     tipo_venta: string;
+    grupo_cliente?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -173,7 +174,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             }
             if (filters.canalVenta && filters.canalVenta.length > 0) {
                 const activeNorms = filters.canalVenta.map(f => normalizeCanalName(f));
-                const vNorm = normalizeCanalName(v.grupo_cliente);
+                const vNorm = normalizeCanalName(v.grupo_cliente || '');
                 if (!activeNorms.includes(vNorm)) return false;
             }
             return true;
