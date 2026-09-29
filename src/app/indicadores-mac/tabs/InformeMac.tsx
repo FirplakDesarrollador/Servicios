@@ -492,15 +492,15 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         // Buscar el producto mas afectado del top problem
         let probSubProdName = 'Varios';
         if (topProbUnidades && topProbUnidades.subProducts) {
-             const subProds = Array.from(topProbUnidades.subProducts.values()).sort((a:any, b:any) => b.unidadesNovedad - a.unidadesNovedad);
-             if (subProds.length > 0) probSubProdName = subProds[0].name;
+             const subProds = (Array.from(topProbUnidades.subProducts.values()) as any[]).sort((a: any, b: any) => (b.unidadesNovedad || 0) - (a.unidadesNovedad || 0));
+             if (subProds.length > 0 && subProds[0]?.name) probSubProdName = subProds[0].name;
         }
         
         // Buscar responsable del top problem
         let probRespName = 'Varios';
         if (topProbUnidades && topProbUnidades.subResponsibles) {
-             const subResp = Array.from(topProbUnidades.subResponsibles.values()).sort((a:any, b:any) => b.unidadesNovedad - a.unidadesNovedad);
-             if (subResp.length > 0) probRespName = subResp[0].name;
+             const subResp = (Array.from(topProbUnidades.subResponsibles.values()) as any[]).sort((a: any, b: any) => (b.unidadesNovedad || 0) - (a.unidadesNovedad || 0));
+             if (subResp.length > 0 && subResp[0]?.name) probRespName = subResp[0].name;
         }
 
         // Problemas en crecimiento
@@ -815,7 +815,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                                     <RechartsTooltip 
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: number, name: string) => [fmtPct(val), name]}
+                                        formatter={(val: any, name: any) => [fmtPct(Number(val) || 0), String(name || '')]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <ReferenceLine y={META_CALIDAD} stroke="#c96a4e" strokeDasharray="3 3" label={{ position: 'top', value: 'Meta Calidad 1%', fill: '#c96a4e', fontSize: 10 }} />
@@ -830,21 +830,21 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                 <BarChart data={analytics.monthly} margin={{ top: 30, right: 10, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                     <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={fmtN} />
-                                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={fmtN} />
+                                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v: any) => fmtN(Number(v) || 0)} />
+                                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v: any) => fmtN(Number(v) || 0)} />
                                     <RechartsTooltip 
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: number) => fmtN(val)}
+                                        formatter={(val: any, name: any) => [fmtN(Number(val) || 0), String(name || '')]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <Bar yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20}>
-                                        <LabelList dataKey="unidadesVendidas" position="top" fill="#94a3b8" fontSize={9} formatter={fmtN} />
+                                        <LabelList dataKey="unidadesVendidas" position="top" fill="#94a3b8" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
                                     </Bar>
                                     <Bar yAxisId="right" dataKey="unidadesNovedad" name="Unidades Novedad" fill="#c96a4e" radius={[4,4,0,0]} barSize={20}>
-                                        <LabelList dataKey="unidadesNovedad" position="top" fill="#c96a4e" fontSize={9} formatter={fmtN} />
+                                        <LabelList dataKey="unidadesNovedad" position="top" fill="#c96a4e" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
                                     </Bar>
                                     <Bar yAxisId="right" dataKey="registros" name="Cantidad Casos" fill="#3b82f6" radius={[4,4,0,0]} barSize={20}>
-                                        <LabelList dataKey="registros" position="top" fill="#3b82f6" fontSize={9} formatter={fmtN} />
+                                        <LabelList dataKey="registros" position="top" fill="#3b82f6" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -858,7 +858,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000000).toFixed(1)}M`} />
                                     <RechartsTooltip 
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: number) => fmt$(val)}
+                                        formatter={(val: any, name: any) => [fmt$(Number(val) || 0), String(name || '')]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <Bar yAxisId="left" dataKey="ventasTotales" name="$ Venta" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} />
