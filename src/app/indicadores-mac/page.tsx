@@ -538,10 +538,12 @@ export default function IndicadoresMacPage() {
                     novedadRows.push({
                         'Novedad_Cantidad': pn.cantidad || 1,
                         'Novedad_SKU': pn.sku || pn.codigo || '',
-                        'Novedad_Referencia': pn.referencia || pn.sku || '',
+                        'Novedad_Referencia': pn.referencia || pn.sku || pn.codigo || '',
                         'Novedad_Descripcion': pn.descripcion || pn.nombre || '',
+                        'Novedad_Grupo': pn.grupo || '',
                         'Novedad_Familia': pn.familia || '',
                         'Novedad_Planta': pn.planta || '',
+                        'Novedad_Medidas': pn.medidas || '',
                         'Novedad_Tipo_Problema': prob.tipo_problema_id ? (razonesMapExport.get(String(prob.tipo_problema_id)) || prob.tipo_problema_id) : '',
                         'Novedad_Responsable_Problema': prob.responsable_problema_id ? (responsablesMapExport.get(String(prob.responsable_problema_id)) || prob.responsable_problema_id) : '',
                         'Novedad_Fecha_Compra': pn.fecha_compra || '',
@@ -577,8 +579,10 @@ export default function IndicadoresMacPage() {
                     row['Novedad_SKU'] = novedadRows[i].Novedad_SKU;
                     row['Novedad_Referencia'] = novedadRows[i].Novedad_Referencia;
                     row['Novedad_Descripcion'] = novedadRows[i].Novedad_Descripcion;
+                    row['Novedad_Grupo'] = novedadRows[i].Novedad_Grupo;
                     row['Novedad_Familia'] = novedadRows[i].Novedad_Familia;
                     row['Novedad_Planta'] = novedadRows[i].Novedad_Planta;
+                    row['Novedad_Medidas'] = novedadRows[i].Novedad_Medidas;
                     row['Novedad_Tipo_Problema'] = novedadRows[i].Novedad_Tipo_Problema;
                     row['Novedad_Responsable_Problema'] = novedadRows[i].Novedad_Responsable_Problema;
                 } else {
@@ -586,8 +590,10 @@ export default function IndicadoresMacPage() {
                     row['Novedad_SKU'] = '';
                     row['Novedad_Referencia'] = '';
                     row['Novedad_Descripcion'] = '';
+                    row['Novedad_Grupo'] = '';
                     row['Novedad_Familia'] = '';
                     row['Novedad_Planta'] = '';
+                    row['Novedad_Medidas'] = '';
                     row['Novedad_Tipo_Problema'] = '';
                     row['Novedad_Responsable_Problema'] = '';
                     row['Novedad_Fecha_Compra'] = '';
