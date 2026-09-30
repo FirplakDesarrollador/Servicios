@@ -480,7 +480,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                                         <div className="flex items-center justify-center gap-3">
                                             <span className="text-sm font-black text-gray-700 w-4 text-center">{ag.radicadosHoy}</span>
                                             <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                <div className={`h-full transition-all ${ag.metaCumplidaRadicados ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: \`\${Math.min((ag.radicadosHoy / 3) * 100, 100)}%\` }} />
+                                                <div className={`h-full transition-all ${ag.metaCumplidaRadicados ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.radicadosHoy / 3) * 100, 100)}%` }} />
                                             </div>
                                             {ag.metaCumplidaRadicados && <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
                                         </div>
@@ -489,7 +489,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                                         <div className="flex items-center justify-center gap-3">
                                             <span className="text-sm font-black text-gray-700 w-4 text-center">{ag.cerradosHoy}</span>
                                             <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                <div className={`h-full transition-all ${ag.metaCumplidaCerrados ? 'bg-teal-500' : 'bg-amber-400'}`} style={{ width: \`\${Math.min((ag.cerradosHoy / 3) * 100, 100)}%\` }} />
+                                                <div className={`h-full transition-all ${ag.metaCumplidaCerrados ? 'bg-teal-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.cerradosHoy / 3) * 100, 100)}%` }} />
                                             </div>
                                             {ag.metaCumplidaCerrados && <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
                                         </div>
