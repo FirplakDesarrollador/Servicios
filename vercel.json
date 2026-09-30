@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync-productos-mdrc",
+      "path": "/api/cron/sync-productos",
       "schedule": "0 11 * * 1"
     },
     {

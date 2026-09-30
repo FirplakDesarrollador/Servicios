@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { fetchSapSqlQuery } from '@/lib/sapServiceLayer';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { fetchApiSap } from '@/lib/apiSap';
 
-const SAP_QUERY = 'fir_productos_mdrc';
-const BATCH_SIZE = 200;
+const BATCH_SIZE = 500;
 
-// El sync completo tarda ~90s (15k+ filas paginadas de a 20 en SAP).
 export const maxDuration = 300;
 
 // Valores del enum product_group en Supabase. Un valor fuera de esta lista hace
@@ -32,6 +30,8 @@ function normalizeGrupo(value: unknown): string {
 
 type ProductoRow = { sku: string; nombre: string; grupo: string; planta?: string };
 
+// Solo se sincronizan sku, nombre, grupo y planta. El resto de columnas de Productos
+// (precio, código de barras, colores, diseños, medidas) no se tocan.
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   const secret = process.env.CRON_SECRET;
@@ -42,13 +42,17 @@ export async function GET(request: Request) {
   const startTime = Date.now();
 
   try {
-    const rows = await fetchSapSqlQuery(SAP_QUERY);
-    console.log(`[sync-productos-mdrc] Filas recibidas de SAP: ${rows.length}`);
+    const rows = await fetchApiSap('/productos_supabase');
+    console.log(`[sync-productos] Filas recibidas: ${rows.length}`);
 
-    // Si el query en SAP cambia de columnas, abortar en vez de escribir basura.
-    const faltantes = ['sku', 'nombre', 'grupo', 'planta'].filter(c => rows[0] && !(c in rows[0]));
+    if (rows.length === 0) {
+      throw new Error('productos_supabase devolvió 0 filas; no se actualiza nada');
+    }
+
+    // Si el endpoint cambia de columnas, abortar en vez de escribir basura.
+    const faltantes = ['sku', 'nombre', 'grupo', 'planta'].filter(c => !(c in rows[0]));
     if (faltantes.length) {
-      throw new Error(`El query ${SAP_QUERY} no trae las columnas: ${faltantes.join(', ')}`);
+      throw new Error(`productos_supabase no trae las columnas: ${faltantes.join(', ')}`);
     }
 
     // Deduplica por SKU (quitando espacios) y separa filas con grupo desconocido.
@@ -59,7 +63,8 @@ export async function GET(request: Request) {
       if (!sku) continue;
       const grupo = normalizeGrupo(r.grupo);
       if (!GRUPOS_VALIDOS.has(grupo)) {
-        gruposDesconocidos[grupo || '(vacío)'] = (gruposDesconocidos[grupo || '(vacío)'] ?? 0) + 1;
+        const k = grupo || '(vacío)';
+        gruposDesconocidos[k] = (gruposDesconocidos[k] ?? 0) + 1;
         continue;
       }
       const planta = String(r.planta ?? '').trim();
@@ -71,7 +76,7 @@ export async function GET(request: Request) {
     if (searchParams.get('dry') === '1') {
       return NextResponse.json({
         success: true,
-        sap_total: rows.length,
+        recibidas: rows.length,
         a_sincronizar: productos.length,
         grupos_desconocidos: gruposDesconocidos,
         sample: productos[0] ?? null,
@@ -91,7 +96,7 @@ export async function GET(request: Request) {
           .from('Productos')
           .upsert(batch, { onConflict: 'sku' });
         if (error) {
-          console.error(`[sync-productos-mdrc] Error en upsert (batch ${i}):`, error.message);
+          console.error(`[sync-productos] Error en upsert (batch ${i}):`, error.message);
           errores.push(error.message);
         } else {
           upserted += batch.length;
@@ -102,18 +107,18 @@ export async function GET(request: Request) {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     const result = {
       success: errores.length === 0,
-      sap_total: rows.length,
+      recibidas: rows.length,
       upserted,
       sin_planta: sinPlanta.length,
       grupos_desconocidos: gruposDesconocidos,
       errores: errores.slice(0, 5),
       elapsed_seconds: elapsed,
     };
-    console.log('[sync-productos-mdrc] Completado:', JSON.stringify(result));
+    console.log('[sync-productos] Completado:', JSON.stringify(result));
 
     return NextResponse.json(result, { status: errores.length ? 500 : 200 });
   } catch (error: any) {
-    console.error('[sync-productos-mdrc] Error:', error.message);
+    console.error('[sync-productos] Error:', error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

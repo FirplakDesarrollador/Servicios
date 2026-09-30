@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { fetchApiSap } from '@/lib/apiSap';
 
-// El túnel de Cloudflare cambia de URL al reiniciarse: se actualiza en la variable, no en el código.
-const VENTAS_URL = process.env.VENTAS_URL!;
-const VENTAS_API_KEY = process.env.VENTAS_API_KEY!;
 const BATCH_SIZE = 500;
 
 // Descarga ~60MB e inserta ~46k filas: tarda ~75s.
@@ -77,22 +75,16 @@ export async function GET(request: Request) {
   const startTime = Date.now();
 
   try {
-    const res = await fetch(VENTAS_URL, {
-      headers: { 'api-key': VENTAS_API_KEY },
-      signal: AbortSignal.timeout(60000),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Error consultando ventasmac (${res.status}): ${err}`);
-    }
-
-    const data = await res.json();
-    const rows = data.response || [];
+    const rows = await fetchApiSap('/ventasmac');
 
     const { searchParams } = new URL(request.url);
     if (searchParams.get('dry') === '1') {
       return NextResponse.json({ success: true, total: rows.length, sample: rows[0] ?? null });
+    }
+
+    // Una respuesta vacía casi seguro es una falla de la API: no se borra la tabla.
+    if (rows.length === 0) {
+      throw new Error('ventasmac devolvió 0 filas; no se reemplaza la tabla Ventas');
     }
 
     const mapped = rows.map(mapRow);
