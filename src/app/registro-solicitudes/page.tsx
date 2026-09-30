@@ -200,8 +200,8 @@ export default function RegistroSolicitudesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans p-4 md:p-8 pb-20">
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-4 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-gray-100 pb-3">
+    <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans p-3 md:p-5 pb-20">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-3 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-gray-100 pb-2.5">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/')}
@@ -211,7 +211,7 @@ export default function RegistroSolicitudesPage() {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+            <h1 className="text-lg md:text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
               <FileText className="w-5 h-5 text-brand hidden sm:block" />
               Registro Solicitudes
             </h1>
@@ -318,7 +318,7 @@ export default function RegistroSolicitudesPage() {
           <AnimatePresence mode="popLayout">
             {filteredRegistros.length > 0 ? (
               <motion.div 
-                className="flex flex-col gap-4"
+                className="flex flex-col gap-2"
               >
                 {filteredRegistros.map((registro, index) => (
                   <RegistroCard 
