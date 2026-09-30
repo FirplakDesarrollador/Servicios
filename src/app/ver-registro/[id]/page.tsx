@@ -585,7 +585,20 @@ export default function VerRegistroPage() {
                                                     }
                                                 }
                                                 if (hasProductError) {
-                                                    missingFields.push('Defecto y Responsable por cada Producto');
+                                                    missingFields.push('Defecto y Responsable por cada Producto de Novedad');
+                                                }
+
+                                                // Validar Familia y Planta con opciones válidas del clasificador
+                                                const validFamilias = ['Cocinas','Hidroterapia','Baño','Labores','Servicios','Plomeria','Cuidado&Mantenimiento','Griferia'];
+                                                const validPlantas = ['Marmol','Muebles','Fibra','Comercializado','Servicios','RTM','Quarztone'];
+                                                const faltaFamilia = (productos as any[]).some((p: any) => !validFamilias.includes(p.familia));
+                                                const faltaPlanta = (productos as any[]).some((p: any) => !validPlantas.includes(p.planta));
+                                                if (faltaFamilia && faltaPlanta) {
+                                                    missingFields.push('Familia y Planta por cada Producto de Novedad (pestana Clasificacion)');
+                                                } else if (faltaFamilia) {
+                                                    missingFields.push('Familia por cada Producto de Novedad (pestana Clasificacion)');
+                                                } else if (faltaPlanta) {
+                                                    missingFields.push('Planta por cada Producto de Novedad (pestana Clasificacion)');
                                                 }
                                             }
 
@@ -1360,6 +1373,26 @@ function ComentariosTab({ registro }: { registro: any }) {
 // ----------------------------------------------------------------------
 // Componente de Pestaña: Clasificación
 // ----------------------------------------------------------------------
+const FAMILIA_OPTIONS = [
+    'Cocinas',
+    'Hidroterapia',
+    'Baño',
+    'Labores',
+    'Servicios',
+    'Plomeria',
+    'Cuidado&Mantenimiento',
+    'Griferia',
+];
+
+const PLANTA_OPTIONS = [
+    'Marmol',
+    'Muebles',
+    'Fibra',
+    'Comercializado',
+    'Servicios',
+    'RTM',
+    'Quarztone',
+];
 function ClasificacionTab({ 
     registro, 
     usuariosList, 
@@ -1481,6 +1514,17 @@ function ClasificacionTab({
     };
 
     const handleSaveClasificacion = async () => {
+        // Validación: si se ingresa fecha de verificación (cierre), Familia y Planta son obligatorios
+        if (globalClasificacion.fecha_verificacion) {
+            const missing = editClasificacionProductos.findIndex(
+                (p: any) => !p.familia || !p.planta
+            );
+            if (missing !== -1) {
+                alert(`El producto #${missing + 1} (${editClasificacionProductos[missing]?.referencia || editClasificacionProductos[missing]?.sku || 'Sin Referencia'}) requiere Familia y Planta para poder cerrar el radicado.`);
+                return;
+            }
+        }
+
         setIsSavingClasificacion(true);
         try {
             const parseNum = (val: any) => {
@@ -1613,6 +1657,52 @@ function ClasificacionTab({
                                         <div>
                                             <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha Fabricación</label>
                                             <input type="date" value={prod.fecha_fabricacion || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_fabricacion', e.target.value)} onPaste={(e) => handleDatePaste(e, (d) => updateClasificacionProduct(idx, 'fecha_fabricacion', d))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                        </div>
+                                    </div>
+
+                                    {/* Familia y Planta — obligatorios para cierre */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block flex items-center gap-1">
+                                                Familia
+                                                <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
+                                            </label>
+                                            <select
+                                                value={prod.familia || ''}
+                                                onChange={(e) => updateClasificacionProduct(idx, 'familia', e.target.value)}
+                                                className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
+                                                    globalClasificacion.fecha_verificacion && !prod.familia
+                                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-300'
+                                                        : 'border-[#e8e2d5] focus:border-[#254153] focus:ring-[#254153] hover:border-[#749094]/40'
+                                                }`}
+                                            >
+                                                <option value="">Seleccione familia...</option>
+                                                {FAMILIA_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                                            </select>
+                                            {globalClasificacion.fecha_verificacion && !prod.familia && (
+                                                <p className="text-[10px] text-red-500 mt-1">Requerido para cerrar el radicado</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block flex items-center gap-1">
+                                                Planta
+                                                <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
+                                            </label>
+                                            <select
+                                                value={prod.planta || ''}
+                                                onChange={(e) => updateClasificacionProduct(idx, 'planta', e.target.value)}
+                                                className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
+                                                    globalClasificacion.fecha_verificacion && !prod.planta
+                                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-300'
+                                                        : 'border-[#e8e2d5] focus:border-[#254153] focus:ring-[#254153] hover:border-[#749094]/40'
+                                                }`}
+                                            >
+                                                <option value="">Seleccione planta...</option>
+                                                {PLANTA_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                            {globalClasificacion.fecha_verificacion && !prod.planta && (
+                                                <p className="text-[10px] text-red-500 mt-1">Requerido para cerrar el radicado</p>
+                                            )}
                                         </div>
                                     </div>
 

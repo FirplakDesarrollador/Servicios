@@ -59,11 +59,11 @@ const normalizeGrupoName = (g: string): string => {
     if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
     if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
     if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
-    if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
+    if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION' || norm === 'MPDIRECT') return 'COMERCIALIZADOS';
     if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
     if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
     if (norm.includes('HIDROPOR')) return 'HIDROMASAJES';
-    if (norm.includes('MPDIRECT')) return 'MPDIRECT';
+    if (norm.includes('MPDIRECT')) return 'COMERCIALIZADOS';
     if (norm.includes('HIDROEMP')) return 'HIDROMASAJES';
     return norm;
 };

@@ -333,26 +333,30 @@ export default function IndicadoresMacPage() {
                         let hasProblema = false;
                         let hasResp = false;
                         if (Array.isArray(p.problemas)) {
-                            p.problemas.forEach((prob: any) => {
+                            p.problemas.forEach((prob: any, idx: number) => {
                                 if (prob.tipo_problema_id) {
                                     hasProblema = true;
-                                    _defectosNombres.add(getNombreProblemaDirect(prob.tipo_problema_id));
+                                    const nombreProblema = getNombreProblemaDirect(prob.tipo_problema_id);
+                                    _defectosNombres.add(nombreProblema);
+                                    if (idx === 0) p.defecto = nombreProblema;
                                 }
                                 if (prob.responsable_problema_id) {
                                     hasResp = true;
-                                    _responsablesNombres.add(
-                                        responsablesMap.get(String(prob.responsable_problema_id)) || `ID ${prob.responsable_problema_id}`
-                                    );
+                                    const nombreResp = responsablesMap.get(String(prob.responsable_problema_id)) || `ID ${prob.responsable_problema_id}`;
+                                    _responsablesNombres.add(nombreResp);
+                                    if (idx === 0) p.responsable = nombreResp;
                                 }
                             });
                         }
                         if (!hasProblema && p.tipo_problema_id) {
-                            _defectosNombres.add(getNombreProblemaDirect(p.tipo_problema_id));
+                            const nombreProblema = getNombreProblemaDirect(p.tipo_problema_id);
+                            _defectosNombres.add(nombreProblema);
+                            p.defecto = nombreProblema;
                         }
                         if (!hasResp && p.responsable_problema_id) {
-                            _responsablesNombres.add(
-                                responsablesMap.get(String(p.responsable_problema_id)) || `ID ${p.responsable_problema_id}`
-                            );
+                            const nombreResp = responsablesMap.get(String(p.responsable_problema_id)) || `ID ${p.responsable_problema_id}`;
+                            _responsablesNombres.add(nombreResp);
+                            p.responsable = nombreResp;
                         }
                     });
                 }
@@ -407,18 +411,26 @@ export default function IndicadoresMacPage() {
 
             if (!excludeKeys.includes('estado') && filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
             if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0) {
-                const activeFilters = filters.canalVenta.map(f => f.toLowerCase());
-                const dCanal = (d.canal_venta || '').toLowerCase();
+                const activeFilters = filters.canalVenta.map(f => f.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+                const dCanal = (d.canal_venta || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 const match = activeFilters.some(f =>
                     dCanal === f || dCanal.includes(f) || f.includes(dCanal) ||
-                    (f === 'distribucion' && (dCanal.includes('distribuid') || dCanal.includes('ditribuid'))) ||
-                    (f === 'constructor' && dCanal.includes('construct')) ||
-                    (f === 'exportaciones' && dCanal.includes('export')) ||
-                    (f === 'canal_propio' && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce')))
+                    (f.includes('distribucion') && (dCanal.includes('distribuid') || dCanal.includes('ditribuid'))) ||
+                    (f.includes('constructor') && dCanal.includes('construct')) ||
+                    (f.includes('exportacion') && dCanal.includes('export')) ||
+                    (f.includes('propio') || f.includes('b2c')) && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce') || dCanal.includes('b2c')) ||
+                    (f.includes('especial') && dCanal.includes('especial'))
                 );
                 if (!match) return false;
             }
-            if (!excludeKeys.includes('tipoSolicitud') && filters.tipoSolicitud.length > 0 && !filters.tipoSolicitud.includes(d.tipo_solicitud)) return false;
+            if (!excludeKeys.includes('tipoSolicitud') && filters.tipoSolicitud.length > 0) {
+                const normTipoSol = d.tipo_solicitud ? d.tipo_solicitud.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : '';
+                const match = filters.tipoSolicitud.some(f => {
+                    const normF = f.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                    return normTipoSol === normF || normTipoSol.includes(normF) || normF.includes(normTipoSol);
+                });
+                if (!match) return false;
+            }
             if (!excludeKeys.includes('agenteMac') && filters.agenteMac.length > 0 && !filters.agenteMac.includes(d._agenteNombre || '')) return false;
 
             if (!excludeKeys.includes('ciudades') && filters.ciudades.length > 0 && !filters.ciudades.includes(d._ciudad || '')) return false;
@@ -526,8 +538,12 @@ export default function IndicadoresMacPage() {
                     novedadRows.push({
                         'Novedad_Cantidad': pn.cantidad || 1,
                         'Novedad_SKU': pn.sku || pn.codigo || '',
-                        'Novedad_Referencia': pn.referencia || pn.sku || '',
+                        'Novedad_Referencia': pn.referencia || pn.sku || pn.codigo || '',
                         'Novedad_Descripcion': pn.descripcion || pn.nombre || '',
+                        'Novedad_Grupo': pn.grupo || '',
+                        'Novedad_Familia': pn.familia || '',
+                        'Novedad_Planta': pn.planta || '',
+                        'Novedad_Medidas': pn.medidas || '',
                         'Novedad_Tipo_Problema': prob.tipo_problema_id ? (razonesMapExport.get(String(prob.tipo_problema_id)) || prob.tipo_problema_id) : '',
                         'Novedad_Responsable_Problema': prob.responsable_problema_id ? (responsablesMapExport.get(String(prob.responsable_problema_id)) || prob.responsable_problema_id) : '',
                         'Novedad_Fecha_Compra': pn.fecha_compra || '',
@@ -563,6 +579,10 @@ export default function IndicadoresMacPage() {
                     row['Novedad_SKU'] = novedadRows[i].Novedad_SKU;
                     row['Novedad_Referencia'] = novedadRows[i].Novedad_Referencia;
                     row['Novedad_Descripcion'] = novedadRows[i].Novedad_Descripcion;
+                    row['Novedad_Grupo'] = novedadRows[i].Novedad_Grupo;
+                    row['Novedad_Familia'] = novedadRows[i].Novedad_Familia;
+                    row['Novedad_Planta'] = novedadRows[i].Novedad_Planta;
+                    row['Novedad_Medidas'] = novedadRows[i].Novedad_Medidas;
                     row['Novedad_Tipo_Problema'] = novedadRows[i].Novedad_Tipo_Problema;
                     row['Novedad_Responsable_Problema'] = novedadRows[i].Novedad_Responsable_Problema;
                 } else {
@@ -570,6 +590,10 @@ export default function IndicadoresMacPage() {
                     row['Novedad_SKU'] = '';
                     row['Novedad_Referencia'] = '';
                     row['Novedad_Descripcion'] = '';
+                    row['Novedad_Grupo'] = '';
+                    row['Novedad_Familia'] = '';
+                    row['Novedad_Planta'] = '';
+                    row['Novedad_Medidas'] = '';
                     row['Novedad_Tipo_Problema'] = '';
                     row['Novedad_Responsable_Problema'] = '';
                     row['Novedad_Fecha_Compra'] = '';
@@ -680,43 +704,62 @@ export default function IndicadoresMacPage() {
                 </div>
             )}
 
-            <main className="flex-1 p-6 overflow-auto space-y-4">
-                {activeTab !== 0 && activeTab !== 4 && (
-                    <div className="mb-2">
-                        <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={false} />
+            <main className="flex-1 p-6 overflow-auto">
+                {activeTab === 3 ? (
+                    <div className="transition-opacity duration-300">
+                        <Suspense fallback={<TabFallback />}>
+                            <InformeMac 
+                                data={filteredData} 
+                                prevData={data}
+                                dataForCanalVenta={dataForCanalVenta}
+                                filters={filters} 
+                                setFilters={setFilters} 
+                                onFilterToggle={handleFilterToggle} 
+                                filtersComponent={
+                                    <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={true} />
+                                }
+                            />
+                        </Suspense>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {activeTab !== 0 && activeTab !== 4 && (
+                            <div className="mb-2">
+                                <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={false} />
+                            </div>
+                        )}
+
+                        <div className="mt-2 transition-opacity duration-300">
+                            <Suspense fallback={<TabFallback />}>
+                                {activeTab === 0 && (
+                                    <GeneralMac
+                                        data={filteredData}
+                                        dataForDefectos={dataForDefectos}
+                                        dataForResponsables={dataForResponsables}
+                                        dataForCiudades={dataForCiudades}
+                                        dataForZonas={dataForZonas}
+                                        dataForClientes={dataForClientes}
+                                        dataForProductos={dataForProductos}
+                                        dataForMesCreacion={dataForMesCreacion}
+                                        dataForCanalVenta={dataForCanalVenta}
+                                        prevData={data}
+                                        filters={filters}
+                                        setFilters={setFilters}
+                                        onFilterToggle={handleFilterToggle}
+                                        razones={razones}
+                                        defectosRef={defectosRef}
+                                        responsablesRef={responsablesRef}
+                                        filtersComponent={<Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={true} />}
+                                    />
+                                )}
+                                {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
+                                {activeTab === 5 && <QrrMac data={filteredData} prevData={data} filters={filters} qrrRecords={qrrRecords} setQrrRecords={setQrrRecords} />}
+                            </Suspense>
+                        </div>
                     </div>
                 )}
-
-                <div className="mt-2 transition-opacity duration-300">
-                    <Suspense fallback={<TabFallback />}>
-                        {activeTab === 0 && (
-                            <GeneralMac
-                                data={filteredData}
-                                dataForDefectos={dataForDefectos}
-                                dataForResponsables={dataForResponsables}
-                                dataForCiudades={dataForCiudades}
-                                dataForZonas={dataForZonas}
-                                dataForClientes={dataForClientes}
-                                dataForProductos={dataForProductos}
-                                dataForMesCreacion={dataForMesCreacion}
-                                dataForCanalVenta={dataForCanalVenta}
-                                prevData={data}
-                                filters={filters}
-                                setFilters={setFilters}
-                                onFilterToggle={handleFilterToggle}
-                                razones={razones}
-                                defectosRef={defectosRef}
-                                responsablesRef={responsablesRef}
-                                filtersComponent={<Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={true} />}
-                            />
-                        )}
-                        {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                        {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                        {activeTab === 3 && <InformeMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                        {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
-                        {activeTab === 5 && <QrrMac data={filteredData} prevData={data} filters={filters} qrrRecords={qrrRecords} setQrrRecords={setQrrRecords} />}
-                    </Suspense>
-                </div>
             </main>
 
             {isModalOpen && (
