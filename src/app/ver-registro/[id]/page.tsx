@@ -572,6 +572,8 @@ export default function VerRegistroPage() {
                                                 missingFields.push('Productos con Novedad (al menos uno)');
                                             } else {
                                                 let hasProductError = false;
+                                                let hasFamiliaPlantaError = false;
+                                                let familiaPlantaProducto = '';
                                                 for (const prod of productos) {
                                                     if (!prod.problemas || prod.problemas.length === 0) {
                                                         hasProductError = true;
@@ -583,9 +585,17 @@ export default function VerRegistroPage() {
                                                             break;
                                                         }
                                                     }
+                                                    if (!prod.familia || !prod.planta) {
+                                                        hasFamiliaPlantaError = true;
+                                                        familiaPlantaProducto = prod.referencia || prod.sku || prod.nombre || 'Sin Referencia';
+                                                        break;
+                                                    }
                                                 }
                                                 if (hasProductError) {
                                                     missingFields.push('Defecto y Responsable por cada Producto');
+                                                }
+                                                if (hasFamiliaPlantaError) {
+                                                    missingFields.push(`Familia y Planta para el producto: ${familiaPlantaProducto} (ir a pestaña Clasificación)`);
                                                 }
                                             }
 
