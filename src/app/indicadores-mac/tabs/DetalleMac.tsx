@@ -335,6 +335,43 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
         };
     }, [data]);
 
+    // Tendencia Diaria (Histórico)
+    const tendenciaDiariaData = useMemo(() => {
+        const daysMap: Record<string, { dateStr: string, Radicados: number, Cerrados: number, Meta: number }> = {};
+        
+        // Asumimos 3 agentes como base para la meta total (3 * 3 = 9)
+        // Se puede hacer dinámico contando agentes distintos en el día, pero dejémoslo en 9 por ahora como la meta de equipo
+        const metaDiariaTotal = 9;
+
+        data.forEach(d => {
+            if (d.created_at) {
+                const dateStr = d.created_at.split('T')[0];
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Radicados++;
+            }
+            if (d.estado === 'Cerrado' && d.fecha_verificacion) {
+                // If it contains a T it's ISO, otherwise just take the start
+                const dateStr = d.fecha_verificacion.includes('T') ? d.fecha_verificacion.split('T')[0] : d.fecha_verificacion.split(' ')[0];
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Cerrados++;
+            }
+        });
+
+        // Generar un array ordenado por fecha
+        const sortedData = Object.values(daysMap).sort((a, b) => new Date(a.dateStr).getTime() - new Date(b.dateStr).getTime());
+        
+        // Tomar los últimos 15 días con actividad para no saturar el gráfico
+        return sortedData.slice(-15).map(d => {
+            // Ajustar zona horaria local para parseo
+            const parts = d.dateStr.split('-');
+            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            return {
+                ...d,
+                dia: dateObj.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+            };
+        });
+    }, [data]);
+
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
             <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
@@ -427,7 +464,98 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                 </div>
             </div>
 
-            {/* Rendimiento Diario (Hoy) */}
+            {/* Tendencia y Rendimiento Diario */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 xl:col-span-2">
+                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-brand" />
+                        Tendencia de Rendimiento Diario (Últimos 15 Días)
+                    </h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={tendenciaDiariaData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <RechartsTooltip 
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    cursor={{ fill: '#f9fafb' }}
+                                />
+                                <Legend />
+                                <Bar isAnimationActive={false} dataKey="Radicados" fill="#818cf8" radius={[4, 4, 0, 0]} name="Radicados al Día" />
+                                <Bar isAnimationActive={false} dataKey="Cerrados" fill="#2dd4bf" radius={[4, 4, 0, 0]} name="Cerrados al Día" />
+                                <Line isAnimationActive={false} type="monotone" dataKey="Meta" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta Equipo (9)" />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                            <Target className="w-4 h-4 text-brand" />
+                            Seguimiento de Hoy
+                        </h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex flex-col justify-center">
+                            <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider mb-1">Radicados Hoy</span>
+                            <div className="flex items-end gap-1.5">
+                                <span className="text-2xl font-black text-indigo-700 leading-none">{rendimientoHoy.radicadosTotalHoy}</span>
+                                <span className={`text-[9px] font-bold mb-0.5 ${rendimientoHoy.radicadosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    / {rendimientoHoy.metaEquipo}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="bg-teal-50 border border-teal-100 p-3 rounded-xl flex flex-col justify-center">
+                            <span className="text-[9px] font-bold text-teal-600 uppercase tracking-wider mb-1">Cerrados Hoy</span>
+                            <div className="flex items-end gap-1.5">
+                                <span className="text-2xl font-black text-teal-800 leading-none">{rendimientoHoy.cerradosTotalHoy}</span>
+                                <span className={`text-[9px] font-bold mb-0.5 ${rendimientoHoy.cerradosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    / {rendimientoHoy.metaEquipo}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto flex-1">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-100 text-[9px] uppercase tracking-wider text-gray-400">
+                                    <th className="p-2 font-semibold">Agente</th>
+                                    <th className="p-2 font-semibold text-center">Rad.</th>
+                                    <th className="p-2 font-semibold text-center">Cerr.</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {rendimientoHoy.agentes.map((ag) => (
+                                    <tr key={`hoy-${ag.nombre}`} className="hover:bg-gray-50/80 transition-colors">
+                                        <td className="p-2 text-[11px] font-bold text-gray-800 max-w-[100px] truncate" title={ag.nombre}>{ag.nombre.split(' ')[0]}</td>
+                                        <td className="p-2">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className={`text-xs font-black ${ag.metaCumplidaRadicados ? 'text-emerald-600' : 'text-amber-600'}`}>{ag.radicadosHoy}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className={`text-xs font-black ${ag.metaCumplidaCerrados ? 'text-teal-600' : 'text-amber-600'}`}>{ag.cerradosHoy}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {rendimientoHoy.agentes.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="p-4 text-center text-xs text-gray-400">Sin datos hoy</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Rendimiento por Agentes MAC (Histórico) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
