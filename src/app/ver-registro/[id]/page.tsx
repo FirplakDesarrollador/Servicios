@@ -588,17 +588,18 @@ export default function VerRegistroPage() {
                                                     missingFields.push('Defecto y Responsable por cada Producto de Novedad');
                                                 }
 
-                                                // Validar Familia y Planta por cada producto
-                                                productos.forEach((prod: any, idx: number) => {
-                                                    const ref = prod.referencia || prod.sku || prod.nombre || ('Producto #' + (idx + 1));
-                                                    if (!prod.familia && !prod.planta) {
-                                                        missingFields.push('Familia y Planta en: ' + ref + ' (pestana Clasificacion)');
-                                                    } else if (!prod.familia) {
-                                                        missingFields.push('Familia en: ' + ref + ' (pestana Clasificacion)');
-                                                    } else if (!prod.planta) {
-                                                        missingFields.push('Planta en: ' + ref + ' (pestana Clasificacion)');
-                                                    }
-                                                });
+                                                // Validar Familia y Planta con opciones válidas del clasificador
+                                                const validFamilias = ['Cocinas','Hidroterapia','Baño','Labores','Servicios','Plomeria','Cuidado&Mantenimiento','Griferia'];
+                                                const validPlantas = ['Marmol','Muebles','Fibra','Comercializado','Servicios','RTM','Quarztone'];
+                                                const faltaFamilia = (productos as any[]).some((p: any) => !validFamilias.includes(p.familia));
+                                                const faltaPlanta = (productos as any[]).some((p: any) => !validPlantas.includes(p.planta));
+                                                if (faltaFamilia && faltaPlanta) {
+                                                    missingFields.push('Familia y Planta por cada Producto de Novedad (pestana Clasificacion)');
+                                                } else if (faltaFamilia) {
+                                                    missingFields.push('Familia por cada Producto de Novedad (pestana Clasificacion)');
+                                                } else if (faltaPlanta) {
+                                                    missingFields.push('Planta por cada Producto de Novedad (pestana Clasificacion)');
+                                                }
                                             }
 
                                             if (missingFields.length > 0) {
