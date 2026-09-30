@@ -214,9 +214,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans flex flex-col">
-      <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-14 flex items-center px-6 justify-between shadow-md">
+      <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-12 flex items-center px-4 justify-between shadow-md">
         <div className="flex items-center">
-          <img src="/logo-firplak.png" alt="FIRPLAK" className="h-6 w-auto invert brightness-0" style={{ filter: 'brightness(0) invert(1)' }} />
+          <img src="/logo-firplak.png" alt="FIRPLAK" className="h-5 w-auto invert brightness-0" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
@@ -239,18 +239,18 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="pt-24 pb-10 px-4 sm:px-8 w-full max-w-[96%] xl:max-w-[1800px] mx-auto flex flex-col items-stretch">
+      <main className="pt-20 pb-8 px-3 sm:px-6 w-full max-w-[96%] xl:max-w-[1800px] mx-auto flex flex-col items-stretch">
         {/* Compact Profile Card */}
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-xl mx-auto bg-white p-4 py-4 rounded-xl border border-gray-200/80 shadow-sm mb-4 flex flex-row items-center justify-center text-left gap-4.5 relative overflow-hidden"
+          className="w-full max-w-lg mx-auto bg-white p-3 py-3 rounded-xl border border-gray-200/80 shadow-sm mb-3 flex flex-row items-center justify-center text-left gap-3.5 relative overflow-hidden"
         >
           {/* Decorative Background Blob */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand/5 rounded-full blur-3xl animate-pulse" />
 
           <div className="relative group shrink-0">
-            <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-100 shadow-sm overflow-hidden">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-100 shadow-sm overflow-hidden">
               <img
                 src={userPhoto || defaultPhoto}
                 alt={fullName}
@@ -264,12 +264,12 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col items-start min-w-0">
-            <h1 className="text-base font-black text-[#254153] tracking-tight leading-none mb-1">
+            <h1 className="text-sm font-black text-[#254153] tracking-tight leading-none mb-1">
               {isCliente ? '¡Bienvenido Cliente Firplak!' : '¡Bienvenido!'}
             </h1>
-            <p className="text-xs font-semibold text-slate-700 leading-tight mb-0.5">{fullName}</p>
-            <p className="text-[11px] font-semibold text-slate-400 mb-2 truncate w-full">{user.email}</p>
-            <span className="inline-block px-2.5 py-0.5 bg-brand/10 border border-brand/20 text-brand text-[8px] font-black uppercase tracking-[0.12em] rounded-full shadow-none">
+            <p className="text-[11px] font-semibold text-slate-700 leading-tight mb-0.5">{fullName}</p>
+            <p className="text-[10px] font-semibold text-slate-400 mb-1.5 truncate w-full">{user.email}</p>
+            <span className="inline-block px-2 py-0.5 bg-brand/10 border border-brand/20 text-brand text-[8px] font-black uppercase tracking-[0.12em] rounded-full shadow-none">
               {userRole}
             </span>
           </div>
@@ -282,15 +282,15 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ y: -1 }}
             onClick={copyFormLink}
-            className="w-full max-w-xl mx-auto bg-white border border-gray-200/80 p-3 px-4 rounded-xl shadow-sm hover:border-brand/40 hover:shadow-md hover:shadow-brand/5 transition-all mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 group cursor-pointer"
+            className="w-full max-w-lg mx-auto bg-white border border-gray-200/80 p-2.5 px-3 rounded-lg shadow-sm hover:border-brand/40 hover:shadow-md hover:shadow-brand/5 transition-all mb-5 flex flex-col sm:flex-row items-center justify-between gap-2.5 group cursor-pointer"
           >
             <div className="flex flex-col sm:flex-row items-center gap-2.5 text-center sm:text-left">
-              <div className="w-9 h-9 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform mx-auto sm:mx-0">
+              <div className="w-8 h-8 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-md flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform mx-auto sm:mx-0">
                 <Link className="w-3.5 h-3.5" />
               </div>
               <div className="text-left">
-                <div className="font-bold text-slate-800 text-xs leading-tight">Compartir Formulario de Cliente</div>
-                <div className="text-[11px] text-slate-400 font-medium">Copiar enlace para enviar a clientes</div>
+                <div className="font-bold text-slate-800 text-[11px] leading-tight">Compartir Formulario de Cliente</div>
+                <div className="text-[10px] text-slate-400 font-medium">Copiar enlace para enviar a clientes</div>
               </div>
             </div>
             <button className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[9px] uppercase tracking-wider transition-colors shrink-0">
@@ -300,7 +300,7 @@ export default function Home() {
         )}
 
         {/* Compact Action Grid */}
-        <div className="grid gap-4 w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 min-[1700px]:grid-cols-12 justify-center">
+        <div className="grid gap-3 w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 min-[1700px]:grid-cols-12 justify-center">
           {filteredItems.map((item, index) => (
             <motion.button
               key={item.title}
@@ -313,13 +313,13 @@ export default function Home() {
                 const route = routeMap[item.title];
                 if (route) router.push(route);
               }}
-              className="group flex flex-col items-center justify-center p-4 bg-white border border-gray-200/80 rounded-xl shadow-sm hover:shadow-md hover:border-brand/45 transition-all aspect-square w-full max-w-[150px] mx-auto relative overflow-hidden"
+              className="group flex flex-col items-center justify-center p-3 bg-white border border-gray-200/80 rounded-xl shadow-sm hover:shadow-md hover:border-brand/45 transition-all aspect-square w-full max-w-[130px] mx-auto relative overflow-hidden"
             >
-              <div className={`mb-3 p-3 rounded-xl ${item.color} shadow-none transition-transform group-hover:scale-105 flex items-center justify-center`}>
-                <item.icon className="w-5 h-5" strokeWidth={2.2} />
+              <div className={`mb-2.5 p-2.5 rounded-lg ${item.color} shadow-none transition-transform group-hover:scale-105 flex items-center justify-center`}>
+                <item.icon className="w-4 h-4" strokeWidth={2.2} />
               </div>
               <div className="flex flex-col items-center justify-center w-full">
-                <span className="text-[11px] font-semibold text-slate-600 tracking-wide text-center leading-snug group-hover:text-brand transition-colors">
+                <span className="text-[10px] font-semibold text-slate-600 tracking-wide text-center leading-snug group-hover:text-brand transition-colors">
                   {isCliente && item.title === 'Buscar servicio cerrado' ? 'Servicios Cerrados' : item.title}
                 </span>
               </div>
