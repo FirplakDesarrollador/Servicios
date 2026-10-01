@@ -86,6 +86,29 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
     const enRiesgoODemandante = abiertas.filter(d => d._estadoRiesgo === 'Riesgo de demanda' || d._estadoRiesgo === 'Demandante').length;
     const porcRiesgo = abiertas.length > 0 ? (enRiesgoODemandante / abiertas.length) * 100 : 0;
 
+    // Promedio de Ingreso
+    const diasEnRango = useMemo(() => {
+        if (filters.fechaInicial && filters.fechaFinal) {
+            const start = new Date(filters.fechaInicial);
+            const end = new Date(filters.fechaFinal);
+            const diff = end.getTime() - start.getTime();
+            const days = Math.ceil(diff / (1000 * 3600 * 24)) + 1;
+            return days > 0 ? days : 1;
+        } else if (dataConRiesgo.length > 0) {
+            const dates = dataConRiesgo.map(d => new Date(d.created_at).getTime()).filter(n => !isNaN(n));
+            if (dates.length > 0) {
+                const max = Math.max(...dates);
+                const min = Math.min(...dates);
+                const days = Math.ceil((max - min) / (1000 * 3600 * 24)) + 1;
+                return days > 0 ? days : 1;
+            }
+        }
+        return 1;
+    }, [filters.fechaInicial, filters.fechaFinal, dataConRiesgo]);
+
+    const promIngresoDia = total / diasEnRango;
+    const promIngresoSemana = promIngresoDia * 7;
+
     // Semáforo
     let semaforoColor = 'bg-red-500';
     let semaforoTexto = 'Crítico';
@@ -381,8 +404,10 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
     return (
         <div className="space-y-6 animate-fade-in">
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
                 <KpiCard title="Total Solicitudes" value={total} />
+                <KpiCard title="Prom. Ingreso Día" value={promIngresoDia} suffix=" rads" subtitle="Diario" />
+                <KpiCard title="Prom. Ingreso Sem" value={promIngresoSemana} suffix=" rads" subtitle="Semanal" />
                 <KpiCard title="Cerradas" value={cerradas.length} subtitle={`${porcCierre.toFixed(1)}% de cierre`} />
                 <KpiCard title="Costo Promedio" value={costoPromedio.toLocaleString('es-CO', { maximumFractionDigits: 1 })} prefix="$" />
                 <KpiCard title="Tiempo Prom. Cierre" value={tiempoPromedioCierre} suffix=" días" subtitle="Días hábiles" />
