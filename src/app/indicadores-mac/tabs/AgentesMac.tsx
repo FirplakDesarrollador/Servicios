@@ -65,8 +65,8 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
             const mProblema = !d._defectosNombres || d._defectosNombres.length === 0;
             const mResponsable = !d._responsablesNombres || d._responsablesNombres.length === 0;
             const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
-            const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.Familia);
-            const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.Planta);
+            const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.familia);
+            const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.planta);
             
             return mProblema || mResponsable || mFamilia || mPlanta;
         });
@@ -280,8 +280,8 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                                     const mProblema = !d._defectosNombres || d._defectosNombres.length === 0;
                                     const mResponsable = !d._responsablesNombres || d._responsablesNombres.length === 0;
                                     const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
-                                    const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.Familia);
-                                    const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.Planta);
+                                    const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.familia);
+                                    const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.planta);
 
                                     return (
                                         <tr key={d.id} className="hover:bg-rose-50/30 transition-colors border-b border-gray-50">
