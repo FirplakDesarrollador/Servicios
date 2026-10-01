@@ -335,46 +335,37 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
         };
     }, [data]);
 
-    // Tendencia Diaria (Histórico Últimos 15 días)
+    // Tendencia Diaria (Histórico Últimos 15 días con actividad)
     const tendenciaDiariaData = useMemo(() => {
         const metaDiariaTotal = 9;
-        const last15Days: { dateStr: string, dia: string, Radicados: number, Cerrados: number, Meta: number }[] = [];
+        const daysMap: Record<string, { dateStr: string, Radicados: number, Cerrados: number, Meta: number }> = {};
         
-        // Generar los últimos 15 días (en retroceso: hoy, ayer, antier...)
-        for (let i = 0; i < 15; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
-            
-            const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
-            const diaStr = `${d.getDate()} de ${monthNames[d.getMonth()]}`;
-            
-            last15Days.push({
-                dateStr,
-                dia: diaStr,
-                Radicados: 0,
-                Cerrados: 0,
-                Meta: metaDiariaTotal
-            });
-        }
-
         data.forEach(d => {
             if (d.created_at) {
                 const dateStr = d.created_at.split('T')[0];
-                const targetDay = last15Days.find(day => day.dateStr === dateStr);
-                if (targetDay) targetDay.Radicados++;
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Radicados++;
             }
             if (d.estado === 'Cerrado' && d.fecha_verificacion) {
                 const dateStr = d.fecha_verificacion.includes('T') ? d.fecha_verificacion.split('T')[0] : d.fecha_verificacion.split(' ')[0];
-                const targetDay = last15Days.find(day => day.dateStr === dateStr);
-                if (targetDay) targetDay.Cerrados++;
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Cerrados++;
             }
         });
 
-        return last15Days;
+        // Convertir a array y ordenar en forma DESCENDENTE (más reciente primero, es decir "en retroceso")
+        const sortedData = Object.values(daysMap).sort((a, b) => new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime());
+        
+        // Tomar los últimos 15 días con actividad y formatear la fecha
+        return sortedData.slice(0, 15).map(d => {
+            const parts = d.dateStr.split('-');
+            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+            return {
+                ...d,
+                dia: `${dateObj.getDate()} de ${monthNames[dateObj.getMonth()]}`
+            };
+        });
     }, [data]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
