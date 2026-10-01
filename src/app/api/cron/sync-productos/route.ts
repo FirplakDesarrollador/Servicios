@@ -42,17 +42,17 @@ export async function GET(request: Request) {
   const startTime = Date.now();
 
   try {
-    const rows = await fetchApiSap('/productos_supabase');
+    const rows = await fetchApiSap('/productos_mac');
     console.log(`[sync-productos] Filas recibidas: ${rows.length}`);
 
     if (rows.length === 0) {
-      throw new Error('productos_supabase devolvió 0 filas; no se actualiza nada');
+      throw new Error('productos_mac devolvió 0 filas; no se actualiza nada');
     }
 
     // Si el endpoint cambia de columnas, abortar en vez de escribir basura.
     const faltantes = ['sku', 'nombre', 'grupo', 'planta'].filter(c => !(c in rows[0]));
     if (faltantes.length) {
-      throw new Error(`productos_supabase no trae las columnas: ${faltantes.join(', ')}`);
+      throw new Error(`productos_mac no trae las columnas: ${faltantes.join(', ')}`);
     }
 
     // Deduplica por SKU (quitando espacios) y separa filas con grupo desconocido.
