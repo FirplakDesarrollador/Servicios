@@ -7,6 +7,7 @@ export interface RegistroMAC {
     estado: string; // 'Abierto', 'Cerrado'
     cerrada: boolean;
     prioridad: string;
+    fecha_verificacion?: string | null;
     valor_total?: number;
     cliente_id: number | null;
     cliente_nombre: string | null;

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useDeferredValue } from 'react';
 import { RegistroMAC, FilterState } from '../types';
 import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon, DownloadIcon, SearchIcon } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, MinusIcon, DownloadIcon, SearchIcon, Target, TrendingUp } from 'lucide-react';
 import { addBusinessDays, getBusinessDaysDifference } from '../utils/businessDays';
 
 interface Props {
@@ -281,6 +281,93 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
         return [...dataConRiesgo].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }, [dataConRiesgo]);
 
+    // Rendimiento Diario (Hoy)
+    const rendimientoHoy = useMemo(() => {
+        const today = new Date();
+        const isToday = (dateString: string | null | undefined) => {
+            if (!dateString) return false;
+            // Parse robustly handling string formats
+            const d = new Date(dateString);
+            if (isNaN(d.getTime())) return false;
+            return d.getDate() === today.getDate() && 
+                   d.getMonth() === today.getMonth() && 
+                   d.getFullYear() === today.getFullYear();
+        };
+
+        const agentMap: Record<string, { radicadosHoy: number, cerradosHoy: number }> = {};
+        let radicadosTotalHoy = 0;
+        let cerradosTotalHoy = 0;
+
+        // Process data (use raw data to ensure we catch today's even if filters exclude them, 
+        // OR use dataConRiesgo to respect current filters. The user said "al día", usually that respects the overall filter, 
+        // but if they filter by month they might not see 'hoy'. Let's use `data` directly for 'hoy' to be absolute).
+        data.forEach(d => {
+            const agent = d._agenteNombre || 'Sin Asignar';
+            if (!agentMap[agent]) agentMap[agent] = { radicadosHoy: 0, cerradosHoy: 0 };
+
+            if (isToday(d.created_at)) {
+                agentMap[agent].radicadosHoy++;
+                radicadosTotalHoy++;
+            }
+            if (d.estado === 'Cerrado' && isToday(d.fecha_verificacion)) {
+                agentMap[agent].cerradosHoy++;
+                cerradosTotalHoy++;
+            }
+        });
+
+        // Filter out 'Sin Asignar' if they have 0 for both to keep it clean
+        const agentesArray = Object.entries(agentMap)
+            .filter(([nombre, metrics]) => nombre !== 'Sin Asignar' || metrics.radicadosHoy > 0 || metrics.cerradosHoy > 0)
+            .map(([nombre, metrics]) => ({
+                nombre,
+                ...metrics,
+                metaCumplidaRadicados: metrics.radicadosHoy >= 3,
+                metaCumplidaCerrados: metrics.cerradosHoy >= 3
+            }));
+
+        const metaEquipo = agentesArray.filter(a => a.nombre !== 'Sin Asignar').length * 3 || 9;
+
+        return {
+            agentes: agentesArray,
+            radicadosTotalHoy,
+            cerradosTotalHoy,
+            metaEquipo
+        };
+    }, [data]);
+
+    // Tendencia Diaria (Histórico Últimos 15 días con actividad)
+    const tendenciaDiariaData = useMemo(() => {
+        const metaDiariaTotal = 9;
+        const daysMap: Record<string, { dateStr: string, Radicados: number, Cerrados: number, Meta: number }> = {};
+        
+        data.forEach(d => {
+            if (d.created_at) {
+                const dateStr = d.created_at.split('T')[0];
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Radicados++;
+            }
+            if (d.estado === 'Cerrado' && d.fecha_verificacion) {
+                const dateStr = d.fecha_verificacion.includes('T') ? d.fecha_verificacion.split('T')[0] : d.fecha_verificacion.split(' ')[0];
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Cerrados++;
+            }
+        });
+
+        // Convertir a array y ordenar en forma DESCENDENTE (más reciente primero, es decir "en retroceso")
+        const sortedData = Object.values(daysMap).sort((a, b) => new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime());
+        
+        // Tomar los últimos 15 días con actividad y formatear la fecha
+        return sortedData.slice(0, 15).map(d => {
+            const parts = d.dateStr.split('-');
+            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+            return {
+                ...d,
+                dia: `${dateObj.getDate()} de ${monthNames[dateObj.getMonth()]}`
+            };
+        });
+    }, [data]);
+
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
             <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
@@ -373,7 +460,177 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                 </div>
             </div>
 
-            {/* Rendimiento por Agentes MAC */}
+            {/* Tendencia y Rendimiento Diario */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 xl:col-span-2">
+                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-brand" />
+                        Tendencia de Rendimiento Diario (Últimos 15 Días)
+                    </h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={tendenciaDiariaData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <RechartsTooltip 
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    cursor={{ fill: '#f9fafb' }}
+                                />
+                                <Legend />
+                                <Bar isAnimationActive={false} dataKey="Radicados" fill="#818cf8" radius={[4, 4, 0, 0]} name="Radicados al Día" />
+                                <Bar isAnimationActive={false} dataKey="Cerrados" fill="#2dd4bf" radius={[4, 4, 0, 0]} name="Cerrados al Día" />
+                                <Line isAnimationActive={false} type="monotone" dataKey="Meta" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta Equipo (9)" />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                            <Target className="w-4 h-4 text-brand" />
+                            Seguimiento de Hoy
+                        </h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex flex-col justify-center">
+                            <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider mb-1">Radicados Hoy</span>
+                            <div className="flex items-end gap-1.5">
+                                <span className="text-2xl font-black text-indigo-700 leading-none">{rendimientoHoy.radicadosTotalHoy}</span>
+                                <span className={`text-[9px] font-bold mb-0.5 ${rendimientoHoy.radicadosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    / {rendimientoHoy.metaEquipo}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="bg-teal-50 border border-teal-100 p-3 rounded-xl flex flex-col justify-center">
+                            <span className="text-[9px] font-bold text-teal-600 uppercase tracking-wider mb-1">Cerrados Hoy</span>
+                            <div className="flex items-end gap-1.5">
+                                <span className="text-2xl font-black text-teal-800 leading-none">{rendimientoHoy.cerradosTotalHoy}</span>
+                                <span className={`text-[9px] font-bold mb-0.5 ${rendimientoHoy.cerradosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    / {rendimientoHoy.metaEquipo}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto flex-1">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-100 text-[9px] uppercase tracking-wider text-gray-400">
+                                    <th className="p-2 font-semibold">Agente</th>
+                                    <th className="p-2 font-semibold text-center">Rad.</th>
+                                    <th className="p-2 font-semibold text-center">Cerr.</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {rendimientoHoy.agentes.map((ag) => (
+                                    <tr key={`hoy-${ag.nombre}`} className="hover:bg-gray-50/80 transition-colors">
+                                        <td className="p-2 text-[11px] font-bold text-gray-800 max-w-[100px] truncate" title={ag.nombre}>{ag.nombre.split(' ')[0]}</td>
+                                        <td className="p-2">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className={`text-xs font-black ${ag.metaCumplidaRadicados ? 'text-emerald-600' : 'text-amber-600'}`}>{ag.radicadosHoy}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className={`text-xs font-black ${ag.metaCumplidaCerrados ? 'text-teal-600' : 'text-amber-600'}`}>{ag.cerradosHoy}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {rendimientoHoy.agentes.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="p-4 text-center text-xs text-gray-400">Sin datos hoy</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Rendimiento por Agentes MAC (Histórico) */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                        <Target className="w-4 h-4 text-brand" />
+                        Rendimiento Diario (Día Actual)
+                    </h3>
+                    <div className="flex gap-4">
+                        <div className="text-xs bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                            <span className="text-slate-500 font-semibold mr-1">Meta Equipo:</span>
+                            <span className="font-black text-brand">{rendimientoHoy.metaEquipo} Rad. / {rendimientoHoy.metaEquipo} Cerr.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">Total Radicados Hoy</span>
+                        <div className="flex items-end gap-2">
+                            <span className="text-2xl font-black text-indigo-700 leading-none">{rendimientoHoy.radicadosTotalHoy}</span>
+                            <span className={`text-[10px] font-bold mb-0.5 ${rendimientoHoy.radicadosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                / {rendimientoHoy.metaEquipo} meta
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-teal-50 border border-teal-100 p-4 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-1">Total Cerrados Hoy</span>
+                        <div className="flex items-end gap-2">
+                            <span className="text-2xl font-black text-teal-800 leading-none">{rendimientoHoy.cerradosTotalHoy}</span>
+                            <span className={`text-[10px] font-bold mb-0.5 ${rendimientoHoy.cerradosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                / {rendimientoHoy.metaEquipo} meta
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-gray-100 text-[10px] uppercase tracking-wider text-gray-400">
+                                <th className="p-3 font-semibold">Agente MAC</th>
+                                <th className="p-3 font-semibold text-center">Radicados Hoy (Meta: 3)</th>
+                                <th className="p-3 font-semibold text-center">Cerrados Hoy (Meta: 3)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {rendimientoHoy.agentes.map((ag) => (
+                                <tr key={`hoy-${ag.nombre}`} className="hover:bg-gray-50/80 transition-colors">
+                                    <td className="p-3 text-xs font-bold text-gray-800">{ag.nombre}</td>
+                                    <td className="p-3">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <span className="text-sm font-black text-gray-700 w-4 text-center">{ag.radicadosHoy}</span>
+                                            <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className={`h-full transition-all ${ag.metaCumplidaRadicados ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.radicadosHoy / 3) * 100, 100)}%` }} />
+                                            </div>
+                                            {ag.metaCumplidaRadicados && <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
+                                        </div>
+                                    </td>
+                                    <td className="p-3">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <span className="text-sm font-black text-gray-700 w-4 text-center">{ag.cerradosHoy}</span>
+                                            <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className={`h-full transition-all ${ag.metaCumplidaCerrados ? 'bg-teal-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.cerradosHoy / 3) * 100, 100)}%` }} />
+                                            </div>
+                                            {ag.metaCumplidaCerrados && <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {rendimientoHoy.agentes.length === 0 && (
+                                <tr>
+                                    <td colSpan={3} className="p-4 text-center text-xs text-gray-400">No hay datos para hoy</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Rendimiento por Agentes MAC (Histórico) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Rendimiento por Agente MAC</h3>
                 <div className="overflow-x-auto">
