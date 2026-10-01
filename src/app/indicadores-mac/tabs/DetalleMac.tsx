@@ -335,41 +335,46 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
         };
     }, [data]);
 
-    // Tendencia Diaria (Histórico)
+    // Tendencia Diaria (Histórico Últimos 15 días)
     const tendenciaDiariaData = useMemo(() => {
-        const daysMap: Record<string, { dateStr: string, Radicados: number, Cerrados: number, Meta: number }> = {};
-        
-        // Asumimos 3 agentes como base para la meta total (3 * 3 = 9)
-        // Se puede hacer dinámico contando agentes distintos en el día, pero dejémoslo en 9 por ahora como la meta de equipo
         const metaDiariaTotal = 9;
+        const last15Days: { dateStr: string, dia: string, Radicados: number, Cerrados: number, Meta: number }[] = [];
+        
+        // Generar los últimos 15 días (en retroceso: hoy, ayer, antier...)
+        for (let i = 0; i < 15; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+            
+            const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+            const diaStr = `${d.getDate()} de ${monthNames[d.getMonth()]}`;
+            
+            last15Days.push({
+                dateStr,
+                dia: diaStr,
+                Radicados: 0,
+                Cerrados: 0,
+                Meta: metaDiariaTotal
+            });
+        }
 
         data.forEach(d => {
             if (d.created_at) {
                 const dateStr = d.created_at.split('T')[0];
-                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
-                daysMap[dateStr].Radicados++;
+                const targetDay = last15Days.find(day => day.dateStr === dateStr);
+                if (targetDay) targetDay.Radicados++;
             }
             if (d.estado === 'Cerrado' && d.fecha_verificacion) {
-                // If it contains a T it's ISO, otherwise just take the start
                 const dateStr = d.fecha_verificacion.includes('T') ? d.fecha_verificacion.split('T')[0] : d.fecha_verificacion.split(' ')[0];
-                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
-                daysMap[dateStr].Cerrados++;
+                const targetDay = last15Days.find(day => day.dateStr === dateStr);
+                if (targetDay) targetDay.Cerrados++;
             }
         });
 
-        // Generar un array ordenado por fecha
-        const sortedData = Object.values(daysMap).sort((a, b) => new Date(a.dateStr).getTime() - new Date(b.dateStr).getTime());
-        
-        // Tomar los últimos 15 días con actividad para no saturar el gráfico
-        return sortedData.slice(-15).map(d => {
-            // Ajustar zona horaria local para parseo
-            const parts = d.dateStr.split('-');
-            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            return {
-                ...d,
-                dia: dateObj.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
-            };
-        });
+        return last15Days;
     }, [data]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
