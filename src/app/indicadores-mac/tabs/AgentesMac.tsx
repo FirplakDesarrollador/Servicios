@@ -61,7 +61,15 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
     const porCerrarPresupuesto = abiertas.filter(d => d._mesPresupuestoKey === currentMesPresupuestoKey);
 
     const incompleteData = useMemo(() => {
-        return data.filter(d => (!d._defectosNombres || d._defectosNombres.length === 0) || (!d._responsablesNombres || d._responsablesNombres.length === 0));
+        return data.filter(d => {
+            const mProblema = !d._defectosNombres || d._defectosNombres.length === 0;
+            const mResponsable = !d._responsablesNombres || d._responsablesNombres.length === 0;
+            const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
+            const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.Familia);
+            const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.Planta);
+            
+            return mProblema || mResponsable || mFamilia || mPlanta;
+        });
     }, [data]);
 
     // Tabla de seguimiento
@@ -253,7 +261,7 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                     <div className="bg-rose-50 px-4 py-3 border-b border-rose-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <AlertTriangleIcon className="w-5 h-5 text-rose-500" />
-                            <h3 className="text-xs font-black text-rose-700 uppercase tracking-wider">Casos con Datos Faltantes (Problema o Responsable)</h3>
+                            <h3 className="text-xs font-black text-rose-700 uppercase tracking-wider">Casos con Datos Faltantes (Problema, Responsable, Familia o Planta)</h3>
                         </div>
                         <span className="text-[10px] font-bold text-rose-500 bg-rose-100 px-2 py-1 rounded-full">{incompleteData.length} registros</span>
                     </div>
@@ -271,6 +279,10 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                                 {incompleteData.map(d => {
                                     const mProblema = !d._defectosNombres || d._defectosNombres.length === 0;
                                     const mResponsable = !d._responsablesNombres || d._responsablesNombres.length === 0;
+                                    const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
+                                    const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.Familia);
+                                    const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.Planta);
+
                                     return (
                                         <tr key={d.id} className="hover:bg-rose-50/30 transition-colors border-b border-gray-50">
                                             <td className="p-3 text-xs font-bold">
@@ -283,6 +295,8 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                                                 <div className="flex flex-col gap-1">
                                                     {mProblema && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-rose-50 text-rose-600 border border-rose-100">Tipo de Problema</span>}
                                                     {mResponsable && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-orange-50 text-orange-600 border border-orange-100">Responsable</span>}
+                                                    {mFamilia && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">Familia</span>}
+                                                    {mPlanta && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-purple-50 text-purple-600 border border-purple-100">Planta</span>}
                                                 </div>
                                             </td>
                                             <td className="p-3 text-xs text-gray-600 font-semibold">{d._agenteNombre || '-'}</td>
