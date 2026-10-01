@@ -60,18 +60,35 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
     const currentMesPresupuestoKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const porCerrarPresupuesto = abiertas.filter(d => d._mesPresupuestoKey === currentMesPresupuestoKey);
 
-    const incompleteData = useMemo(() => {
-        return data.filter(d => {
-            if (d.estado !== 'Abierto') return false;
+    const checkMissingData = (d: any) => {
+        const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
+        let mFamilia = !hasProductos;
+        let mPlanta = !hasProductos;
+        let mProblema = !hasProductos || (!d._defectosNombres || d._defectosNombres.length === 0);
+        let mResponsable = !hasProductos || (!d._responsablesNombres || d._responsablesNombres.length === 0);
 
-            const mProblema = !d._defectosNombres || d._defectosNombres.length === 0;
-            const mResponsable = !d._responsablesNombres || d._responsablesNombres.length === 0;
-            const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
-            const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.familia);
-            const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.planta);
-            
-            return mProblema || mResponsable || mFamilia || mPlanta;
-        });
+        if (hasProductos) {
+            for (const p of d.productos_novedad) {
+                if (!p.familia) mFamilia = true;
+                if (!p.planta) mPlanta = true;
+                
+                if (!p.problemas || p.problemas.length === 0) {
+                    mProblema = true;
+                    mResponsable = true;
+                } else {
+                    for (const prob of p.problemas) {
+                        if (!prob.tipo_problema_id) mProblema = true;
+                        if (!prob.responsable_problema_id) mResponsable = true;
+                    }
+                }
+            }
+        }
+        
+        return { mFamilia, mPlanta, mProblema, mResponsable, isMissing: mFamilia || mPlanta || mProblema || mResponsable };
+    };
+
+    const incompleteData = useMemo(() => {
+        return data.filter(d => checkMissingData(d).isMissing);
     }, [data]);
 
     // Tabla de seguimiento
@@ -279,11 +296,7 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                             </thead>
                             <tbody>
                                 {incompleteData.map(d => {
-                                    const mProblema = !d._defectosNombres || d._defectosNombres.length === 0;
-                                    const mResponsable = !d._responsablesNombres || d._responsablesNombres.length === 0;
-                                    const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
-                                    const mFamilia = !hasProductos || d.productos_novedad.some(p => !p.familia);
-                                    const mPlanta = !hasProductos || d.productos_novedad.some(p => !p.planta);
+                                    const { mProblema, mResponsable, mFamilia, mPlanta } = checkMissingData(d);
 
                                     return (
                                         <tr key={d.id} className="hover:bg-rose-50/30 transition-colors border-b border-gray-50">
