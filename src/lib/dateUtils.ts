@@ -51,13 +51,51 @@ export function isDateInRange(start: Date, end: Date, target: Date): boolean {
     return isWithinInterval(target, { start, end })
 }
 
+// Parse a database timestamp string (without timezone, e.g. "2026-05-22 08:30:00")
+// into a Date object representing the exact local time values in the current environment's local timezone.
+export function parseLocalTimestamp(dateStr: string | null): Date | null {
+    if (!dateStr) return null;
+    const cleaned = dateStr.replace(' ', 'T').replace('Z', '');
+    const parts = cleaned.split('T');
+    const dateParts = parts[0].split('-').map(Number);
+    const timeParts = parts[1] ? parts[1].split(':').map(Number) : [0, 0, 0];
+    
+    return new Date(
+        dateParts[0],
+        dateParts[1] - 1,
+        dateParts[2],
+        timeParts[0] || 0,
+        timeParts[1] || 0,
+        timeParts[2] || 0
+    );
+}
+
+// Convert a database timestamp string to a datetime-local input string (YYYY-MM-DDTHH:mm)
+export function formatToLocalInput(dateStr: string | null): string {
+    if (!dateStr) return '';
+    const cleaned = dateStr.replace(' ', 'T');
+    return cleaned.slice(0, 16);
+}
+
+// Convert a datetime-local input string to a database timestamp string (YYYY-MM-DD HH:mm:ss)
+export function formatFromLocalInput(localStr: string | null): string | null {
+    if (!localStr) return null;
+    const cleaned = localStr.replace('T', ' ');
+    if (cleaned.length === 16) {
+        return cleaned + ':00';
+    }
+    return cleaned;
+}
+
 // Filtrar visitas por fecha
 export function filterVisitasByDate(visitas: Visita[], targetDate: Date): Visita[] {
     return visitas.filter(visita => {
         if (!visita.fecha_hora_inicio) return false
 
-        const visitaStart = new Date(visita.fecha_hora_inicio)
-        const visitaEnd = visita.fecha_hora_fin ? new Date(visita.fecha_hora_fin) : visitaStart
+        const visitaStart = parseLocalTimestamp(visita.fecha_hora_inicio)
+        const visitaEnd = visita.fecha_hora_fin ? parseLocalTimestamp(visita.fecha_hora_fin) : visitaStart
+
+        if (!visitaStart || !visitaEnd) return false
 
         // Si no es recurrente, comparar fecha exacta
         if (!visita.recurrente) {
@@ -83,7 +121,8 @@ export function countVisitasByDate(visitas: Visita[], targetDate: Date): number 
 
 // Formatear hora
 export function formatTime(dateString: string): string {
-    const date = new Date(dateString)
+    const date = parseLocalTimestamp(dateString)
+    if (!date) return 'N/A'
     return format(date, 'HH:mm')
 }
 
@@ -91,3 +130,4 @@ export function formatTime(dateString: string): string {
 export function getStartOfWeek(date: Date): Date {
     return startOfWeek(date, { weekStartsOn: 1 }) // Lunes como inicio de semana
 }
+

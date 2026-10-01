@@ -1,0 +1,835 @@
+import React, { useMemo, useState, useDeferredValue } from 'react';
+import { RegistroMAC, FilterState } from '../types';
+import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import * as XLSX from 'xlsx';
+import { ArrowDownIcon, ArrowUpIcon, MinusIcon, DownloadIcon, SearchIcon, Target, TrendingUp } from 'lucide-react';
+import { addBusinessDays, getBusinessDaysDifference } from '../utils/businessDays';
+
+interface Props {
+    data: RegistroMAC[];
+    prevData: RegistroMAC[];
+    filters: FilterState;
+    dataForMesPresupuesto?: RegistroMAC[];
+    dataForEstadoRiesgo?: RegistroMAC[];
+    setFilters?: any;
+    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
+}
+
+const COLORS = {
+    excelente: '#10b981', // green-500
+    regular: '#f59e0b',   // amber-500
+    riesgo: '#f97316',    // orange-500
+    demandante: '#ef4444',// red-500
+    brand: '#254153',
+    brandLight: '#749094'
+};
+
+// Remove redundant parseDateSafe and calcularRiesgo
+
+export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoRiesgo, prevData, filters, setFilters, onFilterToggle }: Props) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTipoProblema, setSearchTipoProblema] = useState('');
+    const [searchResponsable, setSearchResponsable] = useState('');
+
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+    const deferredTipoProblema = useDeferredValue(searchTipoProblema);
+    const deferredResponsable = useDeferredValue(searchResponsable);
+
+    const applyLocalSearch = React.useCallback((dataset: RegistroMAC[]): RegistroMAC[] => {
+        const termLow = deferredSearchTerm.toLowerCase();
+        const tipoLow = deferredTipoProblema.toLowerCase();
+        const respLow = deferredResponsable.toLowerCase();
+
+        if (!termLow && !tipoLow && !respLow) return dataset;
+
+        return dataset.filter(d => {
+            if (termLow && !(
+                (d.consecutivo || '').toLowerCase().includes(termLow) ||
+                (d.cliente_final_nombre || '').toLowerCase().includes(termLow) ||
+                (d.cliente_nombre || '').toLowerCase().includes(termLow)
+            )) return false;
+            
+            if (tipoLow && !(
+                (d._defectosNombres || []).some((def: string) => def.toLowerCase().includes(tipoLow))
+            )) return false;
+            
+            if (respLow && !(
+                (d._responsablesNombres || []).some((res: string) => res.toLowerCase().includes(respLow))
+            )) return false;
+            
+            return true;
+        });
+    }, [searchTerm, searchTipoProblema, searchResponsable]);
+
+    // Datos con filtro local aplicado
+    const dataConRiesgo = useMemo(() => applyLocalSearch(data), [data, applyLocalSearch]);
+
+    // KPIs Base
+    const total = dataConRiesgo.length;
+    const abiertas = dataConRiesgo.filter(d => d.estado === 'Abierto');
+    const cerradas = dataConRiesgo.filter(d => d.estado === 'Cerrado');
+    const porcCierre = total > 0 ? (cerradas.length / total) * 100 : 0;
+    const valorInvertidoTotal = cerradas.reduce((acc, curr) => acc + (curr._valorInvertido || 0), 0);
+    const costoPromedio = cerradas.length > 0 ? valorInvertidoTotal / cerradas.length : 0;
+    
+    const tiempoPromedioCierre = cerradas.length > 0 
+        ? cerradas.reduce((acc, curr) => acc + (curr._tiempoCierre || 0), 0) / cerradas.length 
+        : 0;
+
+    const fueraSla = dataConRiesgo.filter(d => {
+        const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
+        return diasHabiles > 15;
+    }).length;
+    const porcCumplimiento = total > 0 ? ((total - fueraSla) / total) * 100 : 0;
+
+    const backlog = abiertas.length;
+    const enRiesgoODemandante = abiertas.filter(d => d._estadoRiesgo === 'Riesgo de demanda' || d._estadoRiesgo === 'Demandante').length;
+    const porcRiesgo = abiertas.length > 0 ? (enRiesgoODemandante / abiertas.length) * 100 : 0;
+
+    // Semáforo
+    let semaforoColor = 'bg-red-500';
+    let semaforoTexto = 'Crítico';
+    if (porcCumplimiento >= 95 && porcRiesgo < 10) {
+        semaforoColor = 'bg-green-500';
+        semaforoTexto = 'Óptimo';
+    } else if (porcCumplimiento >= 85 || (porcRiesgo >= 10 && porcRiesgo <= 20)) {
+        semaforoColor = 'bg-amber-500';
+        semaforoTexto = 'Atención';
+    }
+
+    // Chart: Estado de Riesgo
+    const riesgoData = useMemo(() => {
+        const sourceData = dataForEstadoRiesgo ? applyLocalSearch(dataForEstadoRiesgo) : dataConRiesgo;
+        
+        const abiertasParaRiesgo = sourceData.filter((d: any) => d.estado === 'Abierto');
+        const counts = { 'Excelente': 0, 'Regular': 0, 'Riesgo de demanda': 0, 'Demandante': 0 };
+        abiertasParaRiesgo.forEach(d => {
+            if (counts[d._estadoRiesgo as keyof typeof counts] !== undefined) {
+                counts[d._estadoRiesgo as keyof typeof counts]++;
+            }
+        });
+        return [
+            { name: 'Excelente (1-10)', value: counts['Excelente'], color: COLORS.excelente, rawKey: 'Excelente' },
+            { name: 'Regular (11-15)', value: counts['Regular'], color: COLORS.regular, rawKey: 'Regular' },
+            { name: 'Riesgo (16-20)', value: counts['Riesgo de demanda'], color: COLORS.riesgo, rawKey: 'Riesgo de demanda' },
+            { name: 'Demandante (>20)', value: counts['Demandante'], color: COLORS.demandante, rawKey: 'Demandante' },
+        ];
+    }, [dataConRiesgo, dataForEstadoRiesgo, applyLocalSearch]);
+
+    // Presupuesto de Cierre
+    // Presupuesto = mes donde se espera cerrar (created_at + 15 días hábiles)
+    // El radicado SIEMPRE pertenece a su mes objetivo (incluso si se cerró antes).
+    const presupuestoData = useMemo(() => {
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        
+        const meses: Record<string, { pres: number, cerrEnSla: number, fueraSla: number, pendientes: number }> = {};
+
+        const fechaIni = filters.fechaInicial ? new Date(filters.fechaInicial) : null;
+        const fechaFin = filters.fechaFinal ? new Date(filters.fechaFinal) : null;
+        if (fechaIni && fechaFin) {
+            const endWithBuffer = new Date(fechaFin.getFullYear(), fechaFin.getMonth() + 1, 1);
+            const current = new Date(fechaIni.getFullYear(), fechaIni.getMonth(), 1);
+            while (current <= endWithBuffer) {
+                const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                meses[key] = { pres: 0, cerrEnSla: 0, fueraSla: 0, pendientes: 0 };
+                current.setMonth(current.getMonth() + 1);
+            }
+        }
+
+        const sourceData = dataForMesPresupuesto ? applyLocalSearch(dataForMesPresupuesto) : dataConRiesgo;
+
+        sourceData.forEach(d => {
+            const created = new Date(d.created_at);
+            const fechaObjetivo = addBusinessDays(created, 15);
+            const mesKey = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (!meses[mesKey]) meses[mesKey] = { pres: 0, cerrEnSla: 0, fueraSla: 0, pendientes: 0 };
+            meses[mesKey].pres += 1;
+
+            const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
+            
+            if (d.estado === 'Cerrado') {
+                if (diasHabiles <= 15) {
+                    meses[mesKey].cerrEnSla += 1;
+                } else {
+                    meses[mesKey].fueraSla += 1; // Cerrado tarde
+                }
+            } else {
+                meses[mesKey].pendientes += 1; // Abierto
+                if (diasHabiles > 15) {
+                    meses[mesKey].fueraSla += 1; // Vencido
+                }
+            }
+        });
+
+        return Object.entries(meses).sort().filter(([, vals]) => vals.pres > 0).map(([mesKey, vals]) => {
+            const [year, monthStr] = mesKey.split('-');
+            const monthIdx = parseInt(monthStr, 10) - 1;
+            const mesLabel = monthNames[monthIdx] || mesKey;
+            
+            const cumplimiento = vals.pres > 0 ? (((vals.pres - vals.fueraSla) / vals.pres) * 100).toFixed(2) : "0.00";
+
+            return {
+                mesKey: mesKey,
+                mes: mesLabel, 
+                Presupuesto: vals.pres, 
+                CerradasEnSLA: vals.cerrEnSla,
+                FueraSLA: vals.fueraSla,
+                Pendientes: vals.pendientes,
+                Cumplimiento: parseFloat(cumplimiento)
+            };
+        });
+    }, [dataConRiesgo, dataForMesPresupuesto, filters.fechaInicial, filters.fechaFinal, applyLocalSearch]);
+
+    const CustomPresupuestoTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            return (
+                <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100 text-xs z-50 min-w-[200px]">
+                    <p className="font-black text-gray-800 mb-2 uppercase border-b pb-1">{label}</p>
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center text-gray-600">
+                            <span>Presupuesto:</span>
+                            <span className="font-bold text-gray-800">{data.Presupuesto}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-emerald-600">
+                            <span>Cerradas en SLA:</span>
+                            <span className="font-bold">{data.CerradasEnSLA}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-red-500">
+                            <span>Fuera del SLA:</span>
+                            <span className="font-bold">{data.FueraSLA}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-amber-500">
+                            <span>Pendientes:</span>
+                            <span className="font-bold">{data.Pendientes}</span>
+                        </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t flex justify-between items-center text-brand">
+                        <span className="font-black">Cumplimiento:</span>
+                        <span className="font-black">{data.Cumplimiento}%</span>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
+
+    // Export Excel
+    const exportToExcel = () => {
+        const rows = exportData.map(d => ({
+            'Número Radicado': d.consecutivo,
+            'Fecha Registro': new Date(d.created_at).toLocaleDateString(),
+            'Cliente': d.cliente_final_nombre || d.cliente_nombre,
+            'Canal': d.canal_venta,
+            'Tipo Solicitud': d.tipo_solicitud,
+            'Tipo Problema': (d._defectosNombres || []).join(' | ') || 'N/A',
+            'Responsable Problema': (d._responsablesNombres || []).join(' | ') || 'N/A',
+            'Agente MAC': d._agenteNombre,
+            'Estado': d.estado,
+            'Días Abierta': d._diasHabilesAbierta,
+            'Tiempo Cierre': d._tiempoCierre || '',
+            'Estado Riesgo': d._estadoRiesgo,
+            'Valor Invertido': d._valorInvertido
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Detalle MAC");
+        XLSX.writeFile(workbook, `Detalle_MAC_${new Date().toISOString().slice(0,10)}.xlsx`);
+    };
+
+    // Agent Data Aggregation
+    const agentsData = useMemo(() => {
+        const totalRegistros = dataConRiesgo.length;
+        if (totalRegistros === 0) return [];
+        
+        const agentMap: Record<string, { total: number, cerradosSla: number, cerradosTotal: number }> = {};
+        
+        dataConRiesgo.forEach(d => {
+            const agent = d._agenteNombre || 'Sin Asignar';
+            if (!agentMap[agent]) {
+                agentMap[agent] = { total: 0, cerradosSla: 0, cerradosTotal: 0 };
+            }
+            agentMap[agent].total++;
+            
+            if (d.estado === 'Cerrado') {
+                agentMap[agent].cerradosTotal++;
+                const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
+                if (diasHabiles <= 15) {
+                    agentMap[agent].cerradosSla++;
+                }
+            }
+        });
+        
+        return Object.entries(agentMap)
+            .map(([nombre, metrics]) => {
+                const cumplimientoSLA = metrics.cerradosTotal > 0 ? (metrics.cerradosSla / metrics.cerradosTotal) * 100 : 0;
+                return {
+                    nombre,
+                    cantidad: metrics.total,
+                    porcentaje: (metrics.total / totalRegistros) * 100,
+                    abiertos: metrics.total - metrics.cerradosTotal,
+                    cerrados: metrics.cerradosTotal,
+                    cumplimientoSLA: cumplimientoSLA
+                };
+            })
+            .sort((a, b) => b.cantidad - a.cantidad);
+    }, [dataConRiesgo]);
+
+    const exportData = useMemo(() => {
+        return [...dataConRiesgo].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }, [dataConRiesgo]);
+
+    // Rendimiento Diario (Hoy)
+    const rendimientoHoy = useMemo(() => {
+        const today = new Date();
+        const isToday = (dateString: string | null | undefined) => {
+            if (!dateString) return false;
+            // Parse robustly handling string formats
+            const d = new Date(dateString);
+            if (isNaN(d.getTime())) return false;
+            return d.getDate() === today.getDate() && 
+                   d.getMonth() === today.getMonth() && 
+                   d.getFullYear() === today.getFullYear();
+        };
+
+        const agentMap: Record<string, { radicadosHoy: number, cerradosHoy: number }> = {};
+        let radicadosTotalHoy = 0;
+        let cerradosTotalHoy = 0;
+
+        // Process data (use raw data to ensure we catch today's even if filters exclude them, 
+        // OR use dataConRiesgo to respect current filters. The user said "al día", usually that respects the overall filter, 
+        // but if they filter by month they might not see 'hoy'. Let's use `data` directly for 'hoy' to be absolute).
+        data.forEach(d => {
+            const agent = d._agenteNombre || 'Sin Asignar';
+            if (!agentMap[agent]) agentMap[agent] = { radicadosHoy: 0, cerradosHoy: 0 };
+
+            if (isToday(d.created_at)) {
+                agentMap[agent].radicadosHoy++;
+                radicadosTotalHoy++;
+            }
+            if (d.estado === 'Cerrado' && isToday(d.fecha_verificacion)) {
+                agentMap[agent].cerradosHoy++;
+                cerradosTotalHoy++;
+            }
+        });
+
+        // Filter out 'Sin Asignar' if they have 0 for both to keep it clean
+        const agentesArray = Object.entries(agentMap)
+            .filter(([nombre, metrics]) => nombre !== 'Sin Asignar' || metrics.radicadosHoy > 0 || metrics.cerradosHoy > 0)
+            .map(([nombre, metrics]) => ({
+                nombre,
+                ...metrics,
+                metaCumplidaRadicados: metrics.radicadosHoy >= 3,
+                metaCumplidaCerrados: metrics.cerradosHoy >= 3
+            }));
+
+        const metaEquipo = agentesArray.filter(a => a.nombre !== 'Sin Asignar').length * 3 || 9;
+
+        return {
+            agentes: agentesArray,
+            radicadosTotalHoy,
+            cerradosTotalHoy,
+            metaEquipo
+        };
+    }, [data]);
+
+    // Tendencia Diaria (Histórico Últimos 15 días con actividad)
+    const tendenciaDiariaData = useMemo(() => {
+        const metaDiariaTotal = 9;
+        const daysMap: Record<string, { dateStr: string, Radicados: number, Cerrados: number, Meta: number }> = {};
+        
+        data.forEach(d => {
+            if (d.created_at) {
+                const dateStr = d.created_at.split('T')[0];
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Radicados++;
+            }
+            if (d.estado === 'Cerrado' && d.fecha_verificacion) {
+                const dateStr = d.fecha_verificacion.includes('T') ? d.fecha_verificacion.split('T')[0] : d.fecha_verificacion.split(' ')[0];
+                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                daysMap[dateStr].Cerrados++;
+            }
+        });
+
+        // Convertir a array y ordenar en forma DESCENDENTE (más reciente primero, es decir "en retroceso")
+        const sortedData = Object.values(daysMap).sort((a, b) => new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime());
+        
+        // Tomar los últimos 15 días con actividad y formatear la fecha
+        return sortedData.slice(0, 15).map(d => {
+            const parts = d.dateStr.split('-');
+            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+            return {
+                ...d,
+                dia: `${dateObj.getDate()} de ${monthNames[dateObj.getMonth()]}`
+            };
+        });
+    }, [data]);
+
+    const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
+            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
+            <div className="text-lg font-black text-gray-800 leading-tight">
+                {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
+            </div>
+            {subtitle && <div className="mt-0.5 text-[9px] font-medium text-gray-400">{subtitle}</div>}
+        </div>
+    );
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            {/* KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <KpiCard title="Total Solicitudes" value={total} />
+                <KpiCard title="Cerradas" value={cerradas.length} subtitle={`${porcCierre.toFixed(1)}% de cierre`} />
+                <KpiCard title="Costo Promedio" value={costoPromedio.toLocaleString('es-CO', { maximumFractionDigits: 1 })} prefix="$" />
+                <KpiCard title="Tiempo Prom. Cierre" value={tiempoPromedioCierre} suffix=" días" subtitle="Días hábiles" />
+                <KpiCard title="% Cumplimiento" value={porcCumplimiento} suffix="%" />
+                <KpiCard title="Backlog Operativo" value={backlog} />
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Estado de Riesgo (Abiertas)</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={riesgoData}
+                                layout="vertical"
+                                margin={{ top: 10, right: 30, left: 50, bottom: 5 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                                <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#374151', fontWeight: '500' }} />
+                                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Bar isAnimationActive={false} 
+                                    dataKey="value" 
+                                    radius={[0, 4, 4, 0]} 
+                                    maxBarSize={20} 
+                                    name="Solicitudes"
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('estadoRiesgo', data.payload?.rawKey || data.rawKey, e)}
+                                >
+                                    {riesgoData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 xl:col-span-2">
+                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Presupuesto de Cierre</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={presupuestoData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} hide domain={[0, 100]} />
+                                <RechartsTooltip content={<CustomPresupuestoTooltip />} cursor={{ fill: '#f9fafb' }} />
+                                <Legend />
+                                <Bar isAnimationActive={false} 
+                                    yAxisId="left" 
+                                    dataKey="Presupuesto" 
+                                    fill={COLORS.brandLight} 
+                                    radius={[4, 4, 0, 0]} 
+                                    name="Presupuesto"
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('mesPresupuesto', data.payload?.mesKey || data.mesKey, e)}
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                />
+                                <Bar isAnimationActive={false} 
+                                    yAxisId="left" 
+                                    dataKey="CerradasEnSLA" 
+                                    fill={COLORS.brand} 
+                                    radius={[4, 4, 0, 0]} 
+                                    name="Cerradas en SLA"
+                                    onClick={(data: any, index: number, e: any) => onFilterToggle('mesPresupuesto', data.payload?.mesKey || data.mesKey, e)}
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                />
+                                <Line isAnimationActive={false} yAxisId="right" type="monotone" dataKey="Cumplimiento" stroke="#000000" strokeWidth={3} dot={{ r: 4 }} name="% Cumplimiento">
+                                    <LabelList dataKey="Cumplimiento" position="top" formatter={(val: any) => `${val}%`} style={{ fill: '#374151', fontSize: 11, fontWeight: 'bold' }} offset={10} />
+                                </Line>
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tendencia y Rendimiento Diario */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 xl:col-span-2">
+                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-brand" />
+                        Tendencia de Rendimiento Diario (Últimos 15 Días)
+                    </h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={tendenciaDiariaData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                <RechartsTooltip 
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    cursor={{ fill: '#f9fafb' }}
+                                />
+                                <Legend />
+                                <Bar isAnimationActive={false} dataKey="Radicados" fill="#818cf8" radius={[4, 4, 0, 0]} name="Radicados al Día" />
+                                <Bar isAnimationActive={false} dataKey="Cerrados" fill="#2dd4bf" radius={[4, 4, 0, 0]} name="Cerrados al Día" />
+                                <Line isAnimationActive={false} type="monotone" dataKey="Meta" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta Equipo (9)" />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                            <Target className="w-4 h-4 text-brand" />
+                            Seguimiento de Hoy
+                        </h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex flex-col justify-center">
+                            <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider mb-1">Radicados Hoy</span>
+                            <div className="flex items-end gap-1.5">
+                                <span className="text-2xl font-black text-indigo-700 leading-none">{rendimientoHoy.radicadosTotalHoy}</span>
+                                <span className={`text-[9px] font-bold mb-0.5 ${rendimientoHoy.radicadosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    / {rendimientoHoy.metaEquipo}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="bg-teal-50 border border-teal-100 p-3 rounded-xl flex flex-col justify-center">
+                            <span className="text-[9px] font-bold text-teal-600 uppercase tracking-wider mb-1">Cerrados Hoy</span>
+                            <div className="flex items-end gap-1.5">
+                                <span className="text-2xl font-black text-teal-800 leading-none">{rendimientoHoy.cerradosTotalHoy}</span>
+                                <span className={`text-[9px] font-bold mb-0.5 ${rendimientoHoy.cerradosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    / {rendimientoHoy.metaEquipo}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto flex-1">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-100 text-[9px] uppercase tracking-wider text-gray-400">
+                                    <th className="p-2 font-semibold">Agente</th>
+                                    <th className="p-2 font-semibold text-center">Rad.</th>
+                                    <th className="p-2 font-semibold text-center">Cerr.</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {rendimientoHoy.agentes.map((ag) => (
+                                    <tr key={`hoy-${ag.nombre}`} className="hover:bg-gray-50/80 transition-colors">
+                                        <td className="p-2 text-[11px] font-bold text-gray-800 max-w-[100px] truncate" title={ag.nombre}>{ag.nombre.split(' ')[0]}</td>
+                                        <td className="p-2">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className={`text-xs font-black ${ag.metaCumplidaRadicados ? 'text-emerald-600' : 'text-amber-600'}`}>{ag.radicadosHoy}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className={`text-xs font-black ${ag.metaCumplidaCerrados ? 'text-teal-600' : 'text-amber-600'}`}>{ag.cerradosHoy}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {rendimientoHoy.agentes.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="p-4 text-center text-xs text-gray-400">Sin datos hoy</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Rendimiento por Agentes MAC (Histórico) */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                        <Target className="w-4 h-4 text-brand" />
+                        Rendimiento Diario (Día Actual)
+                    </h3>
+                    <div className="flex gap-4">
+                        <div className="text-xs bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                            <span className="text-slate-500 font-semibold mr-1">Meta Equipo:</span>
+                            <span className="font-black text-brand">{rendimientoHoy.metaEquipo} Rad. / {rendimientoHoy.metaEquipo} Cerr.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">Total Radicados Hoy</span>
+                        <div className="flex items-end gap-2">
+                            <span className="text-2xl font-black text-indigo-700 leading-none">{rendimientoHoy.radicadosTotalHoy}</span>
+                            <span className={`text-[10px] font-bold mb-0.5 ${rendimientoHoy.radicadosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                / {rendimientoHoy.metaEquipo} meta
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-teal-50 border border-teal-100 p-4 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-1">Total Cerrados Hoy</span>
+                        <div className="flex items-end gap-2">
+                            <span className="text-2xl font-black text-teal-800 leading-none">{rendimientoHoy.cerradosTotalHoy}</span>
+                            <span className={`text-[10px] font-bold mb-0.5 ${rendimientoHoy.cerradosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                / {rendimientoHoy.metaEquipo} meta
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-gray-100 text-[10px] uppercase tracking-wider text-gray-400">
+                                <th className="p-3 font-semibold">Agente MAC</th>
+                                <th className="p-3 font-semibold text-center">Radicados Hoy (Meta: 3)</th>
+                                <th className="p-3 font-semibold text-center">Cerrados Hoy (Meta: 3)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {rendimientoHoy.agentes.map((ag) => (
+                                <tr key={`hoy-${ag.nombre}`} className="hover:bg-gray-50/80 transition-colors">
+                                    <td className="p-3 text-xs font-bold text-gray-800">{ag.nombre}</td>
+                                    <td className="p-3">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <span className="text-sm font-black text-gray-700 w-4 text-center">{ag.radicadosHoy}</span>
+                                            <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className={`h-full transition-all ${ag.metaCumplidaRadicados ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.radicadosHoy / 3) * 100, 100)}%` }} />
+                                            </div>
+                                            {ag.metaCumplidaRadicados && <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
+                                        </div>
+                                    </td>
+                                    <td className="p-3">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <span className="text-sm font-black text-gray-700 w-4 text-center">{ag.cerradosHoy}</span>
+                                            <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className={`h-full transition-all ${ag.metaCumplidaCerrados ? 'bg-teal-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.cerradosHoy / 3) * 100, 100)}%` }} />
+                                            </div>
+                                            {ag.metaCumplidaCerrados && <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {rendimientoHoy.agentes.length === 0 && (
+                                <tr>
+                                    <td colSpan={3} className="p-4 text-center text-xs text-gray-400">No hay datos para hoy</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Rendimiento por Agentes MAC (Histórico) */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Rendimiento por Agente MAC</h3>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-gray-100 text-[10px] uppercase tracking-wider text-gray-400">
+                                <th className="p-3 font-semibold">Agente MAC</th>
+                                <th className="p-3 font-semibold text-center">Registros</th>
+                                <th className="p-3 font-semibold text-center">% sobre Total</th>
+                                <th className="p-3 font-semibold text-center">Casos Abiertos</th>
+                                <th className="p-3 font-semibold text-center">Casos Cerrados</th>
+                                <th className="p-3 font-semibold text-center">Cierre en SLA (Cumplimiento)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {agentsData.map((ag) => (
+                                <tr 
+                                    key={ag.nombre} 
+                                    className="hover:bg-gray-50/80 transition-colors cursor-pointer"
+                                    onClick={(e) => onFilterToggle('agenteMac', ag.nombre, e)}
+                                    title={`Filtrar por agente ${ag.nombre}`}
+                                >
+                                    <td className="p-3 text-xs font-bold text-gray-800">{ag.nombre}</td>
+                                    <td className="p-3 text-xs text-center text-gray-600">{ag.cantidad}</td>
+                                    <td className="p-3 text-xs text-center font-medium text-gray-700">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span className="w-10 text-right">{ag.porcentaje.toFixed(1)}%</span>
+                                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-brand" style={{ width: `${ag.porcentaje}%` }} />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-3 text-xs text-center font-bold text-amber-600">{ag.abiertos}</td>
+                                    <td className="p-3 text-xs text-center font-bold text-emerald-600">{ag.cerrados}</td>
+                                    <td className="p-3 text-xs text-center font-medium">
+                                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${ag.cumplimientoSLA >= 85 ? 'bg-emerald-100 text-emerald-700' : ag.cumplimientoSLA >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                            {ag.cumplimientoSLA.toFixed(1)}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Tabla Detalle */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Detalle Operativo</h3>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{exportData.length} registros encontrados</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Buscar radicado / cliente */}
+                        <div className="relative">
+                            <SearchIcon className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Radicado o cliente..."
+                                className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs w-44 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-all"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                            )}
+                        </div>
+                        {/* Buscar tipo de problema */}
+                        <div className="relative">
+                            <SearchIcon className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Tipo de problema..."
+                                className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs w-44 focus:outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-400 transition-all"
+                                value={searchTipoProblema}
+                                onChange={e => setSearchTipoProblema(e.target.value)}
+                            />
+                            {searchTipoProblema && (
+                                <button onClick={() => setSearchTipoProblema('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                            )}
+                        </div>
+                        {/* Buscar responsable */}
+                        <div className="relative">
+                            <SearchIcon className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Responsable..."
+                                className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs w-40 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 transition-all"
+                                value={searchResponsable}
+                                onChange={e => setSearchResponsable(e.target.value)}
+                            />
+                            {searchResponsable && (
+                                <button onClick={() => setSearchResponsable('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                            )}
+                        </div>
+                        <button
+                            onClick={exportToExcel}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                        >
+                            <DownloadIcon className="w-4 h-4" /> Exportar a Excel
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                            <tr className="bg-gray-50">
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200 rounded-tl-lg">Radicado</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Fecha</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Cliente</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Canal</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Estado</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Agente</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200 text-center">Días</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Riesgo</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-purple-600 border-b border-gray-200 bg-purple-50/60">Tipo Problema</th>
+                                <th className="p-3 text-[10px] font-black uppercase text-amber-600 border-b border-gray-200 bg-amber-50/60 rounded-tr-lg">Responsable</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {exportData.slice(0, 100).map((d, i) => (
+                                <tr key={i} className={`hover:bg-gray-50/80 transition-colors border-b border-gray-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                    <td className="p-3 text-xs font-bold text-brand">{d.consecutivo}</td>
+                                    <td className="p-3 text-xs text-gray-600">{new Date(d.created_at).toLocaleDateString()}</td>
+                                    <td className="p-3 text-xs font-medium text-gray-800 max-w-[200px] truncate" title={d.cliente_final_nombre || d.cliente_nombre || 'N/A'}>{d.cliente_final_nombre || d.cliente_nombre || 'N/A'}</td>
+                                    <td className="p-3 text-xs text-gray-600">{d.canal_venta}</td>
+                                    <td className="p-3 text-xs">
+                                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${d.estado === 'Abierto' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                            {d.estado}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-xs text-gray-600">{d._agenteNombre}</td>
+                                    <td className="p-3 text-xs font-bold text-center text-gray-800">{d.estado === 'Abierto' ? d._diasHabilesAbierta : d._tiempoCierre}</td>
+                                    <td className="p-3 text-xs">
+                                        {d.estado === 'Abierto' && (
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold text-white
+                                                ${d._estadoRiesgo === 'Excelente' ? 'bg-[#10b981]' :
+                                                  d._estadoRiesgo === 'Regular' ? 'bg-[#f59e0b]' :
+                                                  d._estadoRiesgo === 'Riesgo de demanda' ? 'bg-[#f97316]' : 'bg-[#ef4444]'}`}
+                                            >
+                                                {d._estadoRiesgo}
+                                            </span>
+                                        )}
+                                    </td>
+                                    {/* ── Columna Tipo Problema ─────────────────────── */}
+                                    <td className="p-3 text-xs bg-purple-50/30">
+                                        {(d._defectosNombres || []).length > 0 ? (
+                                            <div className="flex flex-col gap-1 max-w-[180px]">
+                                                {(d._defectosNombres || []).slice(0, 2).map((def: string, idx: number) => (
+                                                    <span
+                                                        key={idx}
+                                                        className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 truncate"
+                                                        title={def}
+                                                    >
+                                                        {def}
+                                                    </span>
+                                                ))}
+                                                {(d._defectosNombres || []).length > 2 && (
+                                                    <span className="text-[10px] text-purple-400 font-medium">+{(d._defectosNombres || []).length - 2} más</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-300 text-[10px]">—</span>
+                                        )}
+                                    </td>
+                                    {/* ── Columna Responsable ───────────────────────── */}
+                                    <td className="p-3 text-xs bg-amber-50/30">
+                                        {(d._responsablesNombres || []).length > 0 ? (
+                                            <div className="flex flex-col gap-1 max-w-[180px]">
+                                                {(d._responsablesNombres || []).slice(0, 2).map((res: string, idx: number) => (
+                                                    <span
+                                                        key={idx}
+                                                        className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 truncate"
+                                                        title={res}
+                                                    >
+                                                        {res}
+                                                    </span>
+                                                ))}
+                                                {(d._responsablesNombres || []).length > 2 && (
+                                                    <span className="text-[10px] text-amber-400 font-medium">+{(d._responsablesNombres || []).length - 2} más</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-300 text-[10px]">—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {exportData.length > 100 && (
+                        <div className="p-4 text-center text-xs text-gray-500 bg-gray-50 border-t border-gray-100">
+                            Mostrando los primeros 100 registros de {exportData.length}. Utilice la exportación a Excel para ver todos los registros.
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
