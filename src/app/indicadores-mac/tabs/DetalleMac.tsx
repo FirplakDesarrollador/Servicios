@@ -332,7 +332,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                 agentMap[agent].radicadosHoy++;
                 radicadosTotalHoy++;
             }
-            if (d.estado === 'Cerrado' && isToday(d.fecha_cierre || d.fecha_verificacion)) {
+            if (d.estado === 'Cerrado' && isToday(d.fecha_verificacion)) {
                 agentMap[agent].cerradosHoy++;
                 cerradosTotalHoy++;
             }
@@ -361,36 +361,54 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
     // Tendencia Diaria (Histórico Últimos 15 días con actividad)
     const tendenciaDiariaData = useMemo(() => {
         const metaDiariaTotal = 9;
-        const daysMap: Record<string, { dateStr: string, Radicados: number, Cerrados: number, Meta: number }> = {};
+        const daysMap: Record<string, { dateStr: string, timestamp: number, Radicados: number, Cerrados: number, Meta: number }> = {};
         
+        const now = Date.now();
+
+        const parseAndAdd = (rawDate: string, type: 'Radicados' | 'Cerrados') => {
+            if (!rawDate) return;
+            const dateStr = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
+            
+            // Validar que sea un string de fecha válido
+            const d = new Date(dateStr + "T00:00:00"); 
+            const ts = d.getTime();
+            
+            if (isNaN(ts)) return;
+            // Ignorar fechas en el futuro (márgen de 1 día por zonas horarias)
+            if (ts > now + 86400000) return;
+
+            if (!daysMap[dateStr]) {
+                daysMap[dateStr] = { dateStr, timestamp: ts, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+            }
+            daysMap[dateStr][type]++;
+        };
+
         data.forEach(d => {
             if (d.created_at) {
-                const dateStr = d.created_at.split('T')[0];
-                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
-                daysMap[dateStr].Radicados++;
+                parseAndAdd(d.created_at, 'Radicados');
             }
             if (d.estado === 'Cerrado') {
-                const fechaCierreReal = d.fecha_cierre || d.fecha_verificacion;
+                const fechaCierreReal = d.fecha_verificacion;
                 if (fechaCierreReal) {
-                    const dateStr = fechaCierreReal.includes('T') ? fechaCierreReal.split('T')[0] : fechaCierreReal.split(' ')[0];
-                    if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
-                    daysMap[dateStr].Cerrados++;
+                    parseAndAdd(fechaCierreReal, 'Cerrados');
                 }
             }
         });
 
-        // Convertir a array y ordenar en forma DESCENDENTE para tomar los últimos 15 días, luego REVERTIR para mostrar cronológicamente (antiguo a nuevo)
-        const sortedData = Object.values(daysMap).sort((a, b) => new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime());
+        // Ordenar descendentemente por timestamp
+        const sortedData = Object.values(daysMap).sort((a, b) => b.timestamp - a.timestamp);
         
         // Tomar los últimos 15 días con actividad, revertir para orden cronológico y formatear la fecha
         return sortedData.slice(0, 15).reverse().map(d => {
             const parts = d.dateStr.split('-');
-            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
-            return {
-                ...d,
-                dia: `${dateObj.getDate()} de ${monthNames[dateObj.getMonth()]}`
-            };
+            if (parts.length === 3) {
+                const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+                return {
+                    ...d,
+                    dia: `${parseInt(parts[2], 10)} de ${monthNames[parseInt(parts[1], 10) - 1]}`
+                };
+            }
+            return { ...d, dia: d.dateStr };
         });
     }, [data]);
 
