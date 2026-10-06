@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, FileText, Search, Plus, Loader2, Database } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -18,11 +18,42 @@ export default function RegistroSolicitudesPage() {
   const [filterAsesor, setFilterAsesor] = useState('Todos');
   const [asesores, setAsesores] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    // 0. Load filters from sessionStorage if they exist
+    if (typeof window !== 'undefined') {
+      const savedSearch = sessionStorage.getItem('mac_filter_search');
+      if (savedSearch !== null) setSearchTerm(savedSearch);
+      
+      const savedEstado = sessionStorage.getItem('mac_filter_estado');
+      if (savedEstado !== null) setFilterEstado(savedEstado);
+
+      const savedPrioridad = sessionStorage.getItem('mac_filter_prioridad');
+      if (savedPrioridad !== null) setFilterPrioridad(savedPrioridad);
+
+      const savedAsesor = sessionStorage.getItem('mac_filter_asesor');
+      if (savedAsesor !== null) setFilterAsesor(savedAsesor);
+    }
+
     fetchRegistros();
     fetchAsesores();
+    
+    // Marcar como inicializado despues de cargar
+    setTimeout(() => {
+        isInitialized.current = true;
+    }, 100);
   }, []);
+
+  // Sync state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isInitialized.current) {
+      sessionStorage.setItem('mac_filter_search', searchTerm);
+      sessionStorage.setItem('mac_filter_estado', filterEstado);
+      sessionStorage.setItem('mac_filter_prioridad', filterPrioridad);
+      sessionStorage.setItem('mac_filter_asesor', filterAsesor);
+    }
+  }, [searchTerm, filterEstado, filterPrioridad, filterAsesor]);
 
   const fetchAsesores = async () => {
     try {

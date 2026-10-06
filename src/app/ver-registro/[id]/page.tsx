@@ -610,10 +610,15 @@ export default function VerRegistroPage() {
 
                                         const newCerrada = !isCurrentlyClosed;
                                         const newEstado = newCerrada ? 'Cerrado' : 'Abierto';
+                                        const newFechaCierre = newCerrada ? new Date().toISOString() : null;
                                         try {
-                                            const { error } = await supabase.from('registro_solicitudes').update({ cerrada: newCerrada, estado: newEstado }).eq('id', registro.id);
+                                            const { error } = await supabase.from('registro_solicitudes').update({ 
+                                                cerrada: newCerrada, 
+                                                estado: newEstado,
+                                                fecha_cierre: newFechaCierre
+                                            }).eq('id', registro.id);
                                             if (error) throw error;
-                                            setRegistro((prev: any) => ({ ...prev, cerrada: newCerrada, estado: newEstado }));
+                                            setRegistro((prev: any) => ({ ...prev, cerrada: newCerrada, estado: newEstado, fecha_cierre: newFechaCierre }));
                                         } catch (error) {
                                             console.error('Error toggling state:', error);
                                             alert('Error al cambiar el estado de la solicitud');
