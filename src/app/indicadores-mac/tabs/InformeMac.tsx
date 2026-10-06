@@ -169,7 +169,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
 
     useEffect(() => {
         // DUMP 
-        const res = [];
+        const res: any[] = [];
         data.forEach(r => {
             if (Array.isArray(r.productos_novedad)) {
                 r.productos_novedad.forEach(p => {
