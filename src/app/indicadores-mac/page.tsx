@@ -23,16 +23,21 @@ const QrrMac = lazy(() => import('./tabs/QrrMac'));
 const normalizeGrupo = (g: string): string => {
     if (!g) return '';
     const norm = String(g).trim().toUpperCase();
-    if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
-    if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
-    if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
-    if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION') return 'REPUESTOS';
-    if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
-    if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
-    if (norm.includes('HIDROPOR')) return 'HIDROMASAJES';
-    if (norm.includes('MPDIRECT')) return 'MPDIRECT';
-    if (norm.includes('HIDROEMP')) return 'HIDROMASAJES';
-    return norm;
+    if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
+    if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES'].includes(norm)) return 'Baño';
+    if (['HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROTERAPIA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
+    if (['REPUESTO', 'REPUESTOS', 'REPOSICION', 'MPDIRECT'].includes(norm)) return 'Comercializados';
+    if (['LAVARROPAS', 'ROPA', 'ROPAS', 'LABORES'].includes(norm)) return 'Labores';
+    if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
+    if (['GRIFERIA', 'GRIFERIAS', 'GRIFERÍA'].includes(norm)) return 'Grifería';
+    if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomería';
+    if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
+    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado & Mantenimiento';
+
+    if (norm.includes('HIDROPOR') || norm.includes('HIDROEMP')) return 'Hidroterapia';
+    if (norm.includes('MPDIRECT')) return 'Comercializados';
+
+    return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
 };
 
 const CANAL_VENTA_MAP: Record<string, string> = {
@@ -121,6 +126,7 @@ export default function IndicadoresMacPage() {
         ciudades: [],
         responsables: [],
         zonas: [],
+        plantas: [],
         clientes: [],
         mesPresupuesto: [],
         mesCreacion: [],
@@ -200,7 +206,7 @@ export default function IndicadoresMacPage() {
             };
 
             const getGrupoForProduct = (p: any) => {
-                let rawGrupo = p.grupo || p.grupo_producto || p.linea || '';
+                let rawGrupo = p.familia || p.grupo || p.grupo_producto || p.linea || '';
                 if (rawGrupo) {
                     const norm = normalizeGrupo(rawGrupo);
                     if (norm) return norm;
@@ -310,6 +316,7 @@ export default function IndicadoresMacPage() {
                 const _defectosNombres = new Set<string>();
                 const _responsablesNombres = new Set<string>();
                 const _productosNombres = new Set<string>();
+                const _plantasNombres = new Set<string>();
 
                 if (Array.isArray(r.productos_compra)) {
                     r.productos_compra.forEach((p: any) => {
@@ -327,7 +334,7 @@ export default function IndicadoresMacPage() {
                         p._planta = getPlantaForProduct(p);
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
                         if (p._grupo) _productosNombres.add(p._grupo);
-                        if (p._planta) _productosNombres.add(`PL:${p._planta}`);
+                        if (p._planta) _plantasNombres.add(String(p._planta).toUpperCase().trim());
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                         let hasProblema = false;
@@ -383,6 +390,7 @@ export default function IndicadoresMacPage() {
                     _defectosNombres: Array.from(_defectosNombres),
                     _responsablesNombres: Array.from(_responsablesNombres),
                     _productosNombres: Array.from(_productosNombres),
+                    _plantasNombres: Array.from(_plantasNombres),
                     _clientePrincipalFinal: clienteFinalOrPrincipal,
                     _mesPresupuestoKey: mesPresupuestoKey,
                     _mesCreacionKey: mesCreacionKey,
@@ -443,6 +451,7 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.includes(f))) return false;
             if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.includes(f))) return false;
             if (!excludeKeys.includes('productos') && filters.productos.length > 0 && !filters.productos.some(f => d._productosNombres?.includes(f))) return false;
+            if (!excludeKeys.includes('plantas') && filters.plantas.length > 0 && !filters.plantas.some(f => d._plantasNombres?.includes(f))) return false;
 
             return true;
         });
@@ -455,6 +464,7 @@ export default function IndicadoresMacPage() {
     const dataForZonas = useMemo(() => getFilteredData(['zonas']), [getFilteredData]);
     const dataForClientes = useMemo(() => getFilteredData(['clientes']), [getFilteredData]);
     const dataForProductos = useMemo(() => getFilteredData(['productos']), [getFilteredData]);
+    const dataForPlantas = useMemo(() => getFilteredData(['plantas']), [getFilteredData]);
     const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [getFilteredData]);
     const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [getFilteredData]);
     const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [getFilteredData]);
@@ -694,7 +704,7 @@ export default function IndicadoresMacPage() {
                         </button>
                         <button
                             onClick={() => setFilters(prev => ({
-                                ...prev, defectos: [], productos: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: []
+                                ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: []
                             }))}
                             className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
                         >
@@ -712,6 +722,8 @@ export default function IndicadoresMacPage() {
                                 data={filteredData} 
                                 prevData={data}
                                 dataForCanalVenta={dataForCanalVenta}
+                                dataForProductos={dataForProductos}
+                                dataForPlantas={dataForPlantas}
                                 filters={filters} 
                                 setFilters={setFilters} 
                                 onFilterToggle={handleFilterToggle} 

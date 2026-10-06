@@ -46,6 +46,7 @@ export interface RegistroMAC {
     _defectosNombres?: string[];
     _responsablesNombres?: string[];
     _productosNombres?: string[];
+    _plantasNombres?: string[];
     _clientePrincipalFinal?: string;
     _mesPresupuestoKey?: string;
     _mesCreacionKey?: string;
@@ -64,6 +65,7 @@ export interface FilterState {
     ciudades: string[];
     responsables: string[];
     zonas: string[];
+    plantas: string[];
     clientes: string[];
     mesPresupuesto: string[];
     mesCreacion: string[];

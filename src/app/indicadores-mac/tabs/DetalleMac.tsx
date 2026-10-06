@@ -332,7 +332,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                 agentMap[agent].radicadosHoy++;
                 radicadosTotalHoy++;
             }
-            if (d.estado === 'Cerrado' && isToday(d.fecha_verificacion)) {
+            if (d.estado === 'Cerrado' && isToday(d.fecha_cierre || d.fecha_verificacion)) {
                 agentMap[agent].cerradosHoy++;
                 cerradosTotalHoy++;
             }
@@ -369,18 +369,21 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                 if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
                 daysMap[dateStr].Radicados++;
             }
-            if (d.estado === 'Cerrado' && d.fecha_verificacion) {
-                const dateStr = d.fecha_verificacion.includes('T') ? d.fecha_verificacion.split('T')[0] : d.fecha_verificacion.split(' ')[0];
-                if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
-                daysMap[dateStr].Cerrados++;
+            if (d.estado === 'Cerrado') {
+                const fechaCierreReal = d.fecha_cierre || d.fecha_verificacion;
+                if (fechaCierreReal) {
+                    const dateStr = fechaCierreReal.includes('T') ? fechaCierreReal.split('T')[0] : fechaCierreReal.split(' ')[0];
+                    if (!daysMap[dateStr]) daysMap[dateStr] = { dateStr, Radicados: 0, Cerrados: 0, Meta: metaDiariaTotal };
+                    daysMap[dateStr].Cerrados++;
+                }
             }
         });
 
-        // Convertir a array y ordenar en forma DESCENDENTE (más reciente primero, es decir "en retroceso")
+        // Convertir a array y ordenar en forma DESCENDENTE para tomar los últimos 15 días, luego REVERTIR para mostrar cronológicamente (antiguo a nuevo)
         const sortedData = Object.values(daysMap).sort((a, b) => new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime());
         
-        // Tomar los últimos 15 días con actividad y formatear la fecha
-        return sortedData.slice(0, 15).map(d => {
+        // Tomar los últimos 15 días con actividad, revertir para orden cronológico y formatear la fecha
+        return sortedData.slice(0, 15).reverse().map(d => {
             const parts = d.dateStr.split('-');
             const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
