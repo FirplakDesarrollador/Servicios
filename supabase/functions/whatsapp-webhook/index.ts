@@ -8,8 +8,93 @@ const supabase = createClient(
 );
 
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN") ?? "Frp!2026_wH4ts4p_v3r1fy_T0k3n";
+const WA_PERMANENT_TOKEN = Deno.env.get("WHATSAPP_PERMANENT_TOKEN") ?? "EAGJBa2zR4FgBSa4NtnItcwOKvxUutCKK0aShm98StSSkkxJZBVg0Cbr7ZCC94AMXf8HG955HwfSfaHesLU23wl50O1XrATZANFZBUPdIYGOWbpsZCVZBL0yVWsv2yriQU1o1bZBptDqCdtZBYXXIGAW5ZARHrQIw5Wcq8kjinXeiVujGTiDnv5wsZCKsdxBMSGzj3yZBgZDZD";
 
 const DEFAULT_ASESORES = ['Xime', 'Tati', 'Andrew'];
+
+// Helper to download media from Meta Graph API and upload to Supabase Storage
+async function downloadAndSaveWhatsAppMedia(mediaId: string, mimeTypeFallback?: string) {
+  try {
+    // 1. Get media direct URL from Meta Graph API
+    const metaRes = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
+      headers: {
+        'Authorization': `Bearer ${WA_PERMANENT_TOKEN}`,
+      },
+    });
+
+    if (!metaRes.ok) {
+      const errText = await metaRes.text();
+      console.error(`Meta media metadata fetch failed (${metaRes.status}):`, errText);
+      return null;
+    }
+
+    const metaData = await metaRes.json();
+    const mediaDownloadUrl = metaData.url;
+    const mimeType = metaData.mime_type || mimeTypeFallback || 'application/octet-stream';
+
+    if (!mediaDownloadUrl) {
+      console.error('Meta media metadata has no url:', metaData);
+      return null;
+    }
+
+    // 2. Download binary media data
+    const binaryRes = await fetch(mediaDownloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${WA_PERMANENT_TOKEN}`,
+        'User-Agent': 'curl/7.64.1',
+      },
+    });
+
+    if (!binaryRes.ok) {
+      console.error(`Meta media binary download failed (${binaryRes.status}):`, binaryRes.statusText);
+      return null;
+    }
+
+    const arrayBuffer = await binaryRes.arrayBuffer();
+
+    // 3. Determine file extension
+    let ext = 'bin';
+    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+    else if (mimeType.includes('png')) ext = 'png';
+    else if (mimeType.includes('webp')) ext = 'webp';
+    else if (mimeType.includes('ogg')) ext = 'ogg';
+    else if (mimeType.includes('mp4')) ext = 'mp4';
+    else if (mimeType.includes('mpeg') || mimeType.includes('mp3')) ext = 'mp3';
+    else if (mimeType.includes('pdf')) ext = 'pdf';
+    else if (mimeType.includes('quicktime')) ext = 'mov';
+    else {
+      const sub = mimeType.split('/')[1]?.split(';')[0];
+      if (sub && sub.length <= 4) ext = sub;
+    }
+
+    const filePath = `incoming/${Date.now()}_${mediaId}.${ext}`;
+
+    // 4. Upload to Supabase Storage whatsapp-media bucket
+    const { error: uploadError } = await supabase.storage
+      .from('whatsapp-media')
+      .upload(filePath, arrayBuffer, {
+        contentType: mimeType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Supabase storage upload error:', uploadError);
+      return null;
+    }
+
+    const { data: publicData } = supabase.storage
+      .from('whatsapp-media')
+      .getPublicUrl(filePath);
+
+    return {
+      publicUrl: publicData.publicUrl,
+      mimeType,
+    };
+  } catch (error) {
+    console.error('Error downloading/storing WhatsApp media:', error);
+    return null;
+  }
+}
 
 async function getNextAssignedAsesor(supabaseClient: any): Promise<string> {
   try {
@@ -103,28 +188,96 @@ serve(async (req) => {
           const altPhone = phoneNumber.startsWith('57') ? phoneNumber.slice(2) : `57${phoneNumber}`;
           const messageId   = msg.id;
           const timestamp   = new Date(parseInt(msg.timestamp) * 1000).toISOString();
+          const msgType     = msg.type;
 
-          // Only handle text messages for now (can be extended for media, etc.)
+          let media_url: string | null = null;
+          let media_type: string | null = null;
+          let media_mime_type: string | null = null;
+          let media_filename: string | null = null;
           let textBody = "";
-          if (msg.type === "text") {
+
+          if (msgType === "text") {
             textBody = msg.text?.body ?? "";
-          } else if (msg.type === "image") {
-            textBody = msg.image?.caption || "📷 Imagen";
-          } else if (msg.type === "audio") {
-            textBody = msg.audio?.voice ? "🎤 Mensaje de voz" : "🎵 Audio";
-          } else if (msg.type === "video") {
-            textBody = msg.video?.caption || "🎥 Video";
-          } else if (msg.type === "document") {
-            textBody = msg.document?.filename ? `📄 ${msg.document.filename}` : "📄 Documento";
-          } else if (msg.type === "location") {
-            textBody = "📍 Ubicación";
-          } else if (msg.type === "interactive") {
+          } else if (msgType === "image") {
+            media_type = "image";
+            textBody = msg.image?.caption || "";
+            const mediaId = msg.image?.id;
+            if (mediaId) {
+              const saved = await downloadAndSaveWhatsAppMedia(mediaId, msg.image?.mime_type);
+              if (saved) {
+                media_url = saved.publicUrl;
+                media_mime_type = saved.mimeType;
+              }
+            }
+            if (!textBody && !media_url) textBody = "📷 Imagen";
+          } else if (msgType === "audio") {
+            media_type = msg.audio?.voice ? "voice" : "audio";
+            textBody = "";
+            const mediaId = msg.audio?.id;
+            if (mediaId) {
+              const saved = await downloadAndSaveWhatsAppMedia(mediaId, msg.audio?.mime_type);
+              if (saved) {
+                media_url = saved.publicUrl;
+                media_mime_type = saved.mimeType;
+              }
+            }
+            if (!media_url) textBody = msg.audio?.voice ? "🎤 Mensaje de voz" : "🎵 Audio";
+          } else if (msgType === "video") {
+            media_type = "video";
+            textBody = msg.video?.caption || "";
+            const mediaId = msg.video?.id;
+            if (mediaId) {
+              const saved = await downloadAndSaveWhatsAppMedia(mediaId, msg.video?.mime_type);
+              if (saved) {
+                media_url = saved.publicUrl;
+                media_mime_type = saved.mimeType;
+              }
+            }
+            if (!textBody && !media_url) textBody = "🎥 Video";
+          } else if (msgType === "document") {
+            media_type = "document";
+            media_filename = msg.document?.filename || "Documento";
+            textBody = msg.document?.caption || "";
+            const mediaId = msg.document?.id;
+            if (mediaId) {
+              const saved = await downloadAndSaveWhatsAppMedia(mediaId, msg.document?.mime_type);
+              if (saved) {
+                media_url = saved.publicUrl;
+                media_mime_type = saved.mimeType;
+              }
+            }
+            if (!textBody && !media_url) textBody = msg.document?.filename ? `📄 ${msg.document.filename}` : "📄 Documento";
+          } else if (msgType === "sticker") {
+            media_type = "sticker";
+            textBody = "";
+            const mediaId = msg.sticker?.id;
+            if (mediaId) {
+              const saved = await downloadAndSaveWhatsAppMedia(mediaId, msg.sticker?.mime_type);
+              if (saved) {
+                media_url = saved.publicUrl;
+                media_mime_type = saved.mimeType;
+              }
+            }
+            if (!media_url) textBody = "💟 Sticker";
+          } else if (msgType === "location") {
+            textBody = msg.location?.name ? `📍 ${msg.location.name}` : "📍 Ubicación";
+          } else if (msgType === "interactive") {
             textBody = msg.interactive?.button_reply?.title || msg.interactive?.list_reply?.title || "Respuesta interactiva";
-          } else if (msg.type === "button") {
+          } else if (msgType === "button") {
             textBody = msg.button?.text || "Botón";
           } else {
-            textBody = `[${msg.type}]`;
+            textBody = `[${msgType}]`;
           }
+
+          const previewText = textBody || (
+            media_type === "image" ? "📷 Imagen" :
+            media_type === "voice" ? "🎤 Nota de voz" :
+            media_type === "audio" ? "🎵 Audio" :
+            media_type === "video" ? "🎥 Video" :
+            media_type === "sticker" ? "💟 Sticker" :
+            media_type === "document" ? (media_filename ? `📄 ${media_filename}` : "📄 Documento") :
+            "Mensaje de WhatsApp"
+          );
 
           // Get contact name from profile info if available
           const contactName = value.contacts?.[0]?.profile?.name ?? "Unknown";
@@ -150,7 +303,7 @@ serve(async (req) => {
               .insert({
                 phone_number:      phoneNumber,
                 contact_name:      contactName,
-                last_message:      textBody,
+                last_message:      previewText,
                 last_message_time: timestamp,
                 unread_count:      1,
                 responsable:       responsable
@@ -169,7 +322,7 @@ serve(async (req) => {
               .update({
                 phone_number:      phoneNumber, // Unify to international format
                 unread_count:      (existingChat.unread_count ?? 0) + 1,
-                last_message:      textBody,
+                last_message:      previewText,
                 last_message_time: timestamp,
                 contact_name:      contactName !== "Unknown" ? contactName : undefined,
                 responsable:       responsable
@@ -187,12 +340,16 @@ serve(async (req) => {
               .from("whatsapp_messages")
               .upsert(
                 {
-                  chat_id:    chatId,
-                  wam_id:     messageId,
-                  text_body:  textBody,
-                  sender:     "them",
-                  status:     "received",
-                  created_at: timestamp,
+                  chat_id:          chatId,
+                  wam_id:           messageId,
+                  text_body:        textBody,
+                  sender:           "them",
+                  status:           "received",
+                  created_at:       timestamp,
+                  media_url:        media_url,
+                  media_type:       media_type,
+                  media_mime_type:  media_mime_type,
+                  media_filename:   media_filename,
                 },
                 { onConflict: "wam_id" }
               );
@@ -200,7 +357,7 @@ serve(async (req) => {
             if (msgError) {
               console.error("Error inserting message:", msgError);
             } else {
-              console.log(`✅ Message saved from ${phoneNumber}: "${textBody}"`);
+              console.log(`✅ Message saved from ${phoneNumber}: "${textBody}" (media: ${media_type || 'none'})`);
             }
           }
         }
