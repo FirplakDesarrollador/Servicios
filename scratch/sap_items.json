@@ -1,0 +1,18 @@
+[
+  {
+    "sku": "VBAN03-2548-000-0100",
+    "nombre": "KIT LVM SIENA 48X43 BLANCO-MUEBLE BASICO ELEVADO 48X43 SIN MANIJAS AMBAR/POLAR SOFT",
+    "codigo_barras": null,
+    "grupo": "BANO",
+    "precio": 341900,
+    "color_base": "OTRO"
+  },
+  {
+    "sku": "VBAN05-0094-000-1304",
+    "nombre": "MUEBLE BASICO ELEVADO LVM 48X43 SIN MANIJAS AMBAR/POLAR SOFT",
+    "codigo_barras": null,
+    "grupo": "BANO",
+    "precio": 93000,
+    "color_base": "OTRO"
+  }
+]

@@ -75,7 +75,6 @@ export default function MiAgendaPage() {
                 .from('Visitas')
                 .select('id, nombre, fecha_hora_inicio, fecha_hora_fin, recurrente, dia_recurrente, personal, reagendado, ocurriendo, entrega_parcial, tecnico_id, servicio_id, estado')
                 .eq('tecnico_id', userId)
-                .eq('estado', true)
                 .neq('nombre', 'Preagendado')
                 .or(`fecha_hora_inicio.gte.${startDate.toISOString()},recurrente.eq.true`)
                 .lte('fecha_hora_inicio', endDate.toISOString())
