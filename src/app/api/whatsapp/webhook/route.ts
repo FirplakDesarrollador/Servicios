@@ -2,6 +2,96 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 
+// Helper to download media from Meta Graph API and upload to Supabase Storage
+async function downloadAndSaveWhatsAppMedia(mediaId: string, mimeTypeFallback?: string) {
+  const WA_TOKEN = process.env.WHATSAPP_PERMANENT_TOKEN;
+  if (!WA_TOKEN) {
+    console.error('WHATSAPP_PERMANENT_TOKEN is not defined');
+    return null;
+  }
+
+  try {
+    // 1. Get media URL from Meta Graph API
+    const metaRes = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
+      headers: {
+        'Authorization': `Bearer ${WA_TOKEN}`,
+      },
+    });
+
+    if (!metaRes.ok) {
+      const errText = await metaRes.text();
+      console.error(`Meta media metadata fetch failed (${metaRes.status}):`, errText);
+      return null;
+    }
+
+    const metaData = await metaRes.json();
+    const mediaDownloadUrl = metaData.url;
+    const mimeType = metaData.mime_type || mimeTypeFallback || 'application/octet-stream';
+
+    if (!mediaDownloadUrl) {
+      console.error('Meta media metadata has no url:', metaData);
+      return null;
+    }
+
+    // 2. Download binary media data
+    const binaryRes = await fetch(mediaDownloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${WA_TOKEN}`,
+        'User-Agent': 'curl/7.64.1',
+      },
+    });
+
+    if (!binaryRes.ok) {
+      console.error(`Meta media binary download failed (${binaryRes.status}):`, binaryRes.statusText);
+      return null;
+    }
+
+    const arrayBuffer = await binaryRes.arrayBuffer();
+
+    // 3. Determine file extension
+    let ext = 'bin';
+    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+    else if (mimeType.includes('png')) ext = 'png';
+    else if (mimeType.includes('webp')) ext = 'webp';
+    else if (mimeType.includes('ogg')) ext = 'ogg';
+    else if (mimeType.includes('mp4')) ext = 'mp4';
+    else if (mimeType.includes('mpeg') || mimeType.includes('mp3')) ext = 'mp3';
+    else if (mimeType.includes('pdf')) ext = 'pdf';
+    else if (mimeType.includes('quicktime')) ext = 'mov';
+    else {
+      const sub = mimeType.split('/')[1]?.split(';')[0];
+      if (sub && sub.length <= 4) ext = sub;
+    }
+
+    const filePath = `incoming/${Date.now()}_${mediaId}.${ext}`;
+
+    // 4. Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('whatsapp-media')
+      .upload(filePath, arrayBuffer, {
+        contentType: mimeType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Supabase storage upload error:', uploadError);
+      return null;
+    }
+
+    const { data: publicData } = supabase.storage
+      .from('whatsapp-media')
+      .getPublicUrl(filePath);
+
+    return {
+      publicUrl: publicData.publicUrl,
+      mimeType,
+    };
+  } catch (error) {
+    console.error('Error downloading/storing WhatsApp media:', error);
+    return null;
+  }
+}
+
 // Helper to handle GET request for Webhook Verification
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -40,24 +130,95 @@ export async function POST(request: Request) {
             for (const message of value.messages) {
               const wa_id = message.from; // Phone number
               const wam_id = message.id;
+              const msgType = message.type;
               
-              // Extract text body from various message formats
+              let media_url: string | null = null;
+              let media_type: string | null = null;
+              let media_mime_type: string | null = null;
+              let media_filename: string | null = null;
               let text_body = message.text?.body;
-              if (!text_body) {
-                if (message.type === 'image') text_body = message.image?.caption || '📷 Imagen';
-                else if (message.type === 'audio') text_body = message.audio?.voice ? '🎤 Mensaje de voz' : '🎵 Audio';
-                else if (message.type === 'video') text_body = message.video?.caption || '🎥 Video';
-                else if (message.type === 'document') text_body = message.document?.filename ? `📄 ${message.document.filename}` : '📄 Documento';
-                else if (message.type === 'sticker') text_body = '💟 Sticker';
-                else if (message.type === 'location') text_body = '📍 Ubicación';
-                else if (message.type === 'interactive') {
-                  text_body = message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || 'Respuesta interactiva';
-                } else if (message.type === 'button') {
-                  text_body = message.button?.text || 'Botón';
-                } else {
-                  text_body = message.caption || 'Mensaje de WhatsApp';
+
+              // Extract and download media if present
+              if (msgType === 'image') {
+                media_type = 'image';
+                text_body = message.image?.caption || '';
+                const mediaId = message.image?.id;
+                if (mediaId) {
+                  const saved = await downloadAndSaveWhatsAppMedia(mediaId, message.image?.mime_type);
+                  if (saved) {
+                    media_url = saved.publicUrl;
+                    media_mime_type = saved.mimeType;
+                  }
                 }
+                if (!text_body && !media_url) text_body = '📷 Imagen';
+              } else if (msgType === 'audio') {
+                media_type = message.audio?.voice ? 'voice' : 'audio';
+                text_body = '';
+                const mediaId = message.audio?.id;
+                if (mediaId) {
+                  const saved = await downloadAndSaveWhatsAppMedia(mediaId, message.audio?.mime_type);
+                  if (saved) {
+                    media_url = saved.publicUrl;
+                    media_mime_type = saved.mimeType;
+                  }
+                }
+                if (!media_url) text_body = message.audio?.voice ? '🎤 Mensaje de voz' : '🎵 Audio';
+              } else if (msgType === 'video') {
+                media_type = 'video';
+                text_body = message.video?.caption || '';
+                const mediaId = message.video?.id;
+                if (mediaId) {
+                  const saved = await downloadAndSaveWhatsAppMedia(mediaId, message.video?.mime_type);
+                  if (saved) {
+                    media_url = saved.publicUrl;
+                    media_mime_type = saved.mimeType;
+                  }
+                }
+                if (!text_body && !media_url) text_body = '🎥 Video';
+              } else if (msgType === 'document') {
+                media_type = 'document';
+                media_filename = message.document?.filename || 'Documento';
+                text_body = message.document?.caption || '';
+                const mediaId = message.document?.id;
+                if (mediaId) {
+                  const saved = await downloadAndSaveWhatsAppMedia(mediaId, message.document?.mime_type);
+                  if (saved) {
+                    media_url = saved.publicUrl;
+                    media_mime_type = saved.mimeType;
+                  }
+                }
+                if (!text_body && !media_url) text_body = message.document?.filename ? `📄 ${message.document.filename}` : '📄 Documento';
+              } else if (msgType === 'sticker') {
+                media_type = 'sticker';
+                text_body = '';
+                const mediaId = message.sticker?.id;
+                if (mediaId) {
+                  const saved = await downloadAndSaveWhatsAppMedia(mediaId, message.sticker?.mime_type);
+                  if (saved) {
+                    media_url = saved.publicUrl;
+                    media_mime_type = saved.mimeType;
+                  }
+                }
+                if (!media_url) text_body = '💟 Sticker';
+              } else if (msgType === 'location') {
+                text_body = message.location?.name ? `📍 ${message.location.name}` : '📍 Ubicación';
+              } else if (msgType === 'interactive') {
+                text_body = message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || 'Respuesta interactiva';
+              } else if (msgType === 'button') {
+                text_body = message.button?.text || 'Botón';
+              } else if (!text_body) {
+                text_body = message.caption || 'Mensaje de WhatsApp';
               }
+
+              const previewText = text_body || (
+                media_type === 'image' ? '📷 Imagen' :
+                media_type === 'voice' ? '🎤 Nota de voz' :
+                media_type === 'audio' ? '🎵 Audio' :
+                media_type === 'video' ? '🎥 Video' :
+                media_type === 'sticker' ? '💟 Sticker' :
+                media_type === 'document' ? (media_filename ? `📄 ${media_filename}` : '📄 Documento') :
+                'Mensaje de WhatsApp'
+              );
 
               // Find contact name from the contacts array
               let contactName = 'Unknown';
@@ -95,7 +256,7 @@ export async function POST(request: Request) {
                   .insert([{
                     phone_number: wa_id,
                     contact_name: contactName,
-                    last_message: text_body,
+                    last_message: previewText,
                     last_message_time: new Date().toISOString(),
                     unread_count: 1,
                     responsable: autoAssignedResponsable
@@ -118,7 +279,7 @@ export async function POST(request: Request) {
                   .from('whatsapp_chats')
                   .update({
                     contact_name: contactName !== 'Unknown' ? contactName : undefined,
-                    last_message: text_body,
+                    last_message: previewText,
                     last_message_time: new Date().toISOString(),
                     unread_count: (chat.unread_count || 0) + 1,
                     responsable: updatedResponsable
@@ -135,7 +296,11 @@ export async function POST(request: Request) {
                     wam_id: wam_id,
                     text_body: text_body,
                     sender: 'them',
-                    status: 'received'
+                    status: 'received',
+                    media_url: media_url,
+                    media_type: media_type,
+                    media_mime_type: media_mime_type,
+                    media_filename: media_filename
                   }]);
               }
             }

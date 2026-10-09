@@ -759,10 +759,11 @@ export default function WhatsAppPage() {
               {messages.map((msg) => {
                 const isMe = msg.sender === 'me';
                 const hasMedia = !!msg.media_url;
-                const isImage = msg.media_type === 'image';
-                const isAudio = msg.media_type === 'audio' || msg.media_type === 'voice' || (msg.media_type === 'document' && msg.media_filename?.endsWith('.webm'));
+                const isImage = msg.media_type === 'image' || msg.media_type === 'sticker';
+                const isAudio = msg.media_type === 'audio' || msg.media_type === 'voice' || (msg.media_type === 'document' && (msg.media_filename?.endsWith('.webm') || msg.media_mime_type?.includes('audio') || msg.media_mime_type?.includes('ogg')));
                 const isVideo = msg.media_type === 'video';
-                const isDoc = msg.media_type === 'document' && !msg.media_filename?.endsWith('.webm');
+                const isDoc = msg.media_type === 'document' && !isAudio;
+                const isDefaultLabel = !msg.text_body || ['Imagen','Audio','Video','Documento','Nota de voz','📷 Imagen','🎤 Mensaje de voz','🎵 Audio','🎥 Video','💟 Sticker','📄 Documento'].includes(msg.text_body.trim());
 
                 return (
                   <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
@@ -770,44 +771,52 @@ export default function WhatsAppPage() {
                       ? 'bg-indigo-50 border border-indigo-100 text-slate-800 rounded-tr-sm'
                       : 'bg-white text-slate-800 border border-gray-100 rounded-tl-sm'
                     }`}>
-                      {/* Image */}
+                      {/* Image or Sticker */}
                       {hasMedia && isImage && (
-                        <img
-                          src={msg.media_url}
-                          alt="Imagen"
-                          className="w-full max-w-[280px] object-cover rounded-t-2xl cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => window.open(msg.media_url, '_blank')}
-                        />
+                        <div className="overflow-hidden rounded-t-2xl bg-black/5">
+                          <img
+                            src={msg.media_url}
+                            alt="Imagen"
+                            className="w-full max-w-[320px] max-h-[380px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                            onClick={() => window.open(msg.media_url, '_blank')}
+                          />
+                        </div>
                       )}
-                      {/* Audio */}
+                      {/* Audio or Voice Note */}
                       {hasMedia && isAudio && (
-                        <div className="px-2 pt-2 pb-1">
-                          <audio controls src={msg.media_url} className="w-[260px] sm:w-[300px] h-[44px] outline-none" />
+                        <div className="px-3 pt-3 pb-1 flex items-center gap-2">
+                          <audio controls preload="metadata" src={msg.media_url} className="w-[260px] sm:w-[300px] h-[40px] outline-none" />
                         </div>
                       )}
                       {/* Video */}
                       {hasMedia && isVideo && (
-                        <video controls src={msg.media_url} className="w-full max-w-[280px] rounded-t-2xl" />
+                        <div className="overflow-hidden rounded-t-2xl bg-black/5">
+                          <video controls src={msg.media_url} className="w-full max-w-[320px] rounded-t-2xl" />
+                        </div>
                       )}
                       {/* Document */}
                       {hasMedia && isDoc && (
                         <a href={msg.media_url} target="_blank" rel="noreferrer"
-                          className={`flex items-center gap-2 px-4 pt-3 hover:underline text-indigo-600`}>
-                          <span className="text-2xl">📄</span>
-                          <span className="text-sm truncate">{msg.media_filename || 'Documento'}</span>
+                          className="flex items-center gap-3 px-4 pt-3 pb-1 hover:underline text-indigo-600 group">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">📄</div>
+                          <div className="overflow-hidden">
+                            <p className="text-sm font-semibold truncate text-slate-800 group-hover:text-indigo-600">{msg.media_filename || 'Documento'}</p>
+                            <span className="text-[11px] text-slate-400">Descargar archivo</span>
+                          </div>
                         </a>
                       )}
                       {/* Text body */}
-                      <div className="px-4 py-2.5">
-                        {msg.text_body && !['Imagen','Audio','Video','Documento','Nota de voz'].includes(msg.text_body) && (
-                          <p className={`text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words text-slate-800`}>
+                      {((!hasMedia && msg.text_body) || (hasMedia && !isDefaultLabel)) && (
+                        <div className="px-4 py-2">
+                          <p className="text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words text-slate-800">
                             {msg.text_body}
                           </p>
-                        )}
-                        <div className={`flex items-center justify-end gap-1 mt-0.5 text-slate-500`}>
-                          <span className="text-[10px] font-medium">{formatTime(msg.created_at)}</span>
-                          {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-blue-500' : 'text-slate-400'}`} />}
                         </div>
+                      )}
+                      {/* Message Footer / Timestamp */}
+                      <div className="px-3 pb-1.5 flex items-center justify-end gap-1 text-slate-400">
+                        <span className="text-[10px] font-medium">{formatTime(msg.created_at)}</span>
+                        {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-blue-500' : 'text-slate-400'}`} />}
                       </div>
                     </div>
                   </div>
