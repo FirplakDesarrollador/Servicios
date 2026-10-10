@@ -238,11 +238,16 @@ export default function IndicadoresMacPage() {
 
             const normalizePlantaName = (planta: string) => {
                 const p = String(planta).toUpperCase().trim();
-                if (p === 'MBL') return 'MUEBLES';
-                if (p === 'PC') return 'MARMOL';
-                if (p === 'KIT') return 'KIT';
-                if (p === 'FVHM' || p === 'FVHMP' || p === 'FV') return 'FIBRA';
-                return p;
+                if (p === 'MBL' || p === 'MUEBLES') return 'Muebles';
+                if (p === 'PC' || p === 'MARMOL' || p === 'MÁRMOL') return 'Marmol';
+                if (p === 'KIT') return 'Kit';
+                if (p === 'FVHM' || p === 'FVHMP' || p === 'FV' || p === 'FIBRA') return 'Fibra';
+                if (p === 'COMERCIALIZADO' || p === 'COMERCIALIZADOS') return 'Comercializado';
+                if (p === 'SERVICIOS' || p === 'SERVICIO') return 'Servicios';
+                if (p === 'RTM') return 'RTM';
+                if (p === 'QUARZTONE' || p === 'CUARZO') return 'Quarztone';
+                if (p === 'NO DEFINIDA' || p === '') return 'No Definida';
+                return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
             };
 
             const getPlantaForProduct = (p: any) => {
@@ -448,10 +453,35 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('mesCreacion') && filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) return false;
             if (!excludeKeys.includes('estadoRiesgo') && filters.estadoRiesgo.length > 0 && !filters.estadoRiesgo.includes(d._estadoRiesgo || '')) return false;
 
-            if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.includes(f))) return false;
-            if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.includes(f))) return false;
-            if (!excludeKeys.includes('productos') && filters.productos.length > 0 && !filters.productos.some(f => d._productosNombres?.includes(f))) return false;
-            if (!excludeKeys.includes('plantas') && filters.plantas.length > 0 && !filters.plantas.some(f => d._plantasNombres?.includes(f))) return false;
+            if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.some((dn: any) => String(dn).toUpperCase().trim() === String(f).toUpperCase().trim()))) return false;
+            if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.some((rn: any) => String(rn).toUpperCase().trim() === String(f).toUpperCase().trim()))) return false;
+            if (!excludeKeys.includes('productos') && filters.productos.length > 0 && !filters.productos.some(f => {
+                if (String(f).toUpperCase().startsWith('PL:')) {
+                    const plantaName = String(f).substring(3);
+                    return d._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === plantaName.toUpperCase().trim());
+                } else if (String(f).toUpperCase().startsWith('GF:')) {
+                    const normalizeGroupNameGlobal = (g: string): string => {
+                        if (!g) return 'Otros';
+                        let norm = String(g).trim().toUpperCase();
+                        if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
+                        if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
+                        if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
+                        if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
+                        if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
+                        if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
+                        if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
+                        if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
+                        if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
+                        if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
+                        return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
+                    };
+                    const groupName = normalizeGroupNameGlobal(String(f).substring(3));
+                    return d._productosNombres?.some((pn: any) => normalizeGroupNameGlobal(String(pn)) === groupName);
+                } else {
+                    return d._productosNombres?.some((pn: any) => String(pn).toUpperCase().trim() === String(f).toUpperCase().trim());
+                }
+            })) return false;
+            if (!excludeKeys.includes('plantas') && filters.plantas.length > 0 && !filters.plantas.some(f => d._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === String(f).toUpperCase().trim()))) return false;
 
             return true;
         });
@@ -683,6 +713,9 @@ export default function IndicadoresMacPage() {
                             let displayVal = val;
                             if (f.key === 'productos' && val.startsWith('PL:')) {
                                 displayLabel = 'Planta';
+                                displayVal = val.substring(3);
+                            } else if (f.key === 'productos' && val.startsWith('GF:')) {
+                                displayLabel = 'Grupo';
                                 displayVal = val.substring(3);
                             }
                             return (

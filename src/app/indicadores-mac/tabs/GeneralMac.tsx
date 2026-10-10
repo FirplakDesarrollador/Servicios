@@ -47,25 +47,45 @@ const productMatchesFilters = (p: any, filtersArr: string[] | undefined) => {
     const prodPlanta = p._planta || 'NO DEFINIDA';
     
     return filtersArr.some(f => {
-        if (f.startsWith('PL:')) return f === `PL:${prodPlanta}`;
-        if (isGroupFilter(f)) return f === prodGrupo;
+        const fUpper = f.toUpperCase().trim();
+        if (fUpper.startsWith('PL:')) return fUpper === `PL:${prodPlanta.toUpperCase().trim()}`;
+        if (fUpper.startsWith('GF:')) {
+            const normalizeGroupNameGlobal = (g: string): string => {
+                if (!g) return 'Otros';
+                let norm = String(g).trim().toUpperCase();
+                if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
+                if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
+                if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
+                if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
+                if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
+                if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
+                if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
+                if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
+                if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
+                if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
+                return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
+            };
+            const groupName = normalizeGroupNameGlobal(f.substring(3));
+            return normalizeGroupNameGlobal(prodGrupo) === groupName;
+        }
         return f === prodNombre || (prodCodigo && f === prodCodigo);
     });
 };
 
 const normalizeGrupoName = (g: string): string => {
-    if (!g) return 'OTROS';
+    if (!g) return 'Otros';
     let norm = String(g).trim().toUpperCase();
-    if (norm === 'COCINA' || norm === 'COCINAS' || norm === 'MESON' || norm === 'MESONES' || norm === 'LAVAPLATOS') return 'COCINAS';
-    if (norm === 'BAÑO' || norm === 'BAÑOS' || norm === 'BANO' || norm === 'BANOS' || norm === 'LAVAMANOS' || norm === 'MUEBLE' || norm === 'MUEBLES') return 'BAÑOS';
-    if (norm === 'HIDROMASAJE' || norm === 'HIDROMASAJES' || norm === 'SPA' || norm === 'TINA') return 'HIDROMASAJES';
-    if (norm === 'REPUESTO' || norm === 'REPUESTOS' || norm === 'REPOSICION' || norm === 'MPDIRECT') return 'COMERCIALIZADOS';
-    if (norm === 'LAVARROPAS' || norm === 'ROPA' || norm === 'ROPAS') return 'ROPAS';
-    if (norm === 'INFRAESTRUCTURA' || norm === 'PATA' || norm === 'PISO') return 'INFRAESTRUCTURA';
-    if (norm.includes('HIDROPOR')) return 'HIDROMASAJES';
-    if (norm.includes('MPDIRECT')) return 'COMERCIALIZADOS';
-    if (norm.includes('HIDROEMP')) return 'HIDROMASAJES';
-    return norm;
+    if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
+    if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
+    if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
+    if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
+    if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
+    if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
+    if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
+    if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
+    if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
+    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
+    return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
 };
 
 const CustomPieTooltip = ({ active, payload }: any) => {
@@ -576,9 +596,9 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
                             {filtered.map((item, i) => (
                                 <tr 
                                     key={i} 
-                                    onClick={(e) => onFilterToggle('productos', item.nombre, e)}
+                                    onClick={(e) => onFilterToggle('productos', `GF:${item.nombre}`, e)}
                                     className={`group transition-colors cursor-pointer ${
-                                        activeFilters.length > 0 && activeFilters.includes(item.nombre)
+                                        activeFilters.length > 0 && activeFilters.includes(`GF:${item.nombre}`)
                                             ? 'bg-blue-100 border-l-4 border-blue-500'
                                             : activeFilters.length > 0 
                                                 ? 'bg-white opacity-40 hover:opacity-100 hover:bg-gray-50'
@@ -851,13 +871,21 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
     const buildProductosStats = (field: 'productos_compra' | 'productos_novedad', sourceData: RegistroMAC[]) => {
         const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number, codigosSet: Set<string> }> = {};
 
-        const activeGroupFilters = (filters.productos || []).filter(f => isGroupFilter(f));
-        const activeSpecificFilters = (filters.productos || []).filter(f => !isGroupFilter(f));
+        const activeGroupFilters = (filters.productos || []).filter(f => String(f).toUpperCase().startsWith('GF:'));
+        const activePlantFilters = (filters.productos || []).filter(f => String(f).toUpperCase().startsWith('PL:'));
+        const activeSpecificFilters = (filters.productos || []).filter(f => !String(f).toUpperCase().startsWith('GF:') && !String(f).toUpperCase().startsWith('PL:'));
 
         sourceData.forEach(d => {
             if (activeSpecificFilters.length > 0) {
-                const hasSpecificMatch = activeSpecificFilters.some(f => (d as any)._productosNombres?.includes(f));
+                const hasSpecificMatch = activeSpecificFilters.some(f => (d as any)._productosNombres?.some((pn: any) => String(pn).toUpperCase().trim() === String(f).toUpperCase().trim()));
                 if (!hasSpecificMatch) return;
+            }
+            if (activePlantFilters.length > 0) {
+                const hasPlantMatch = activePlantFilters.some(f => {
+                    const pName = String(f).substring(3).toUpperCase().trim();
+                    return (d as any)._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === pName);
+                });
+                if (!hasPlantMatch) return;
             }
 
             if (Array.isArray(d[field])) {
@@ -901,7 +929,25 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
                     if (activeGroupFilters.length > 0) {
                         const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
-                        const matchesGroup = activeGroupFilters.some(gf => gf.toUpperCase() === prodGrupo.toUpperCase());
+                        const normalizeGroupNameGlobal = (g: string): string => {
+                            if (!g) return 'Otros';
+                            let norm = String(g).trim().toUpperCase();
+                            if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
+                            if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
+                            if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
+                            if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
+                            if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
+                            if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
+                            if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
+                            if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
+                            if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
+                            if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
+                            return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
+                        };
+                        const matchesGroup = activeGroupFilters.some(gf => {
+                            const groupName = normalizeGroupNameGlobal(gf.substring(3));
+                            return normalizeGroupNameGlobal(prodGrupo) === groupName;
+                        });
                         if (!matchesGroup) include = false;
                     }
 
@@ -937,11 +983,20 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
 
         const sourceData = dataForDefectos || data;
+        let checkedProducts = 0;
+        let passedProducts = 0;
+        let productsWithProblems = 0;
+        
         sourceData.forEach(d => {
             if (Array.isArray(d.productos_novedad)) {
                 d.productos_novedad.forEach((p: any) => {
+                    checkedProducts++;
                     let passesProductos = productMatchesFilters(p, filters.productos);
+                    if (filters.productos && filters.productos.length > 0) {
+                        console.log('DEBUG CHECK:', p._grupo, p.grupo, p.grupo_producto, 'Filter:', filters.productos, 'Passes?', passesProductos);
+                    }
                     if (!passesProductos) return;
+                    passedProducts++;
 
                     let hasProblema = false;
 
@@ -1645,41 +1700,69 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
             {/* Tabla de Radicados y Comentarios */}
             <div className="mt-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Radicados y Comentarios</h3>
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Relación de Radicados</h3>
                 <div className="overflow-y-auto max-h-[400px] custom-scrollbar">
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-gray-50">
-                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 rounded-tl-lg whitespace-nowrap">Radicado</th>
+                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 rounded-tl-lg whitespace-nowrap w-[150px]">Radicado</th>
+                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 whitespace-nowrap w-[200px]">Familia(s)</th>
+                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 whitespace-nowrap w-[200px]">Planta(s)</th>
                                 <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 rounded-tr-lg">Comentario</th>
                             </tr>
                         </thead>
                         <tbody>
                             {data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={2} className="px-4 py-8 text-center text-xs text-gray-400">No hay datos disponibles</td>
+                                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-gray-400">No hay datos disponibles</td>
                                 </tr>
                             ) : (
-                                data.map((d, i) => (
-                                    <tr key={d.id || i} className={i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'}>
-                                        <td className="px-4 py-3 text-xs font-bold text-gray-800 whitespace-nowrap border-b border-gray-100 align-top">
-                                            {d.consecutivo ? (
-                                                <a 
-                                                    href={`/ver-registro/${d.id}`} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                                    title={`Ver detalles del radicado ${d.consecutivo}`}
-                                                >
-                                                    {d.consecutivo}
-                                                </a>
-                                            ) : (
-                                                'N/A'
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100">{d.comentarios || 'Sin comentarios'}</td>
-                                    </tr>
-                                ))
+                                data.map((d, i) => {
+                                    const gruposSet = new Set<string>();
+                                    const plantasSet = new Set<string>();
+                                    
+                                    if (Array.isArray(d.productos_compra)) {
+                                        d.productos_compra.forEach((p: any) => {
+                                            if (p._grupo) gruposSet.add(normalizeGrupoName(p._grupo));
+                                        });
+                                    }
+                                    if (Array.isArray(d.productos_novedad)) {
+                                        d.productos_novedad.forEach((p: any) => {
+                                            if (p._grupo) gruposSet.add(normalizeGrupoName(p._grupo));
+                                            if (p._planta) plantasSet.add(String(p._planta));
+                                        });
+                                    }
+                                    
+                                    const gruposArr = Array.from(gruposSet);
+                                    const plantasArr = Array.from(plantasSet);
+
+                                    return (
+                                        <tr key={d.id || i} className={i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'}>
+                                            <td className="px-4 py-3 text-xs font-bold text-gray-800 whitespace-nowrap border-b border-gray-100 align-top">
+                                                {d.consecutivo ? (
+                                                    <a 
+                                                        href={`/ver-registro/${d.id}`} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                        title={`Ver detalles del radicado ${d.consecutivo}`}
+                                                    >
+                                                        {d.consecutivo}
+                                                    </a>
+                                                ) : (
+                                                    'N/A'
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100 align-top">
+                                                {gruposArr.length > 0 ? gruposArr.join(', ') : '-'}
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100 align-top">
+                                                {plantasArr.length > 0 ? plantasArr.join(', ') : '-'}
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100 align-top">{d.comentarios || 'Sin comentarios'}</td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
