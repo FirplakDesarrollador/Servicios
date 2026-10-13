@@ -122,18 +122,46 @@ export const generateConsecutivoPDF = async (consecutivo: string, currentUser: a
                 ? srvVisits.map((visit, vIdx) => {
                     const isCancelled = visit.estado === false && (!!visit.motivo_cancelacion || visit.reagendado);
                     const visitStatus = visit.estado === true ? 'Activa' : isCancelled ? 'Cancelada / reagendada' : 'Terminada';
+                    const statusBg = visitStatus === 'Activa' ? '#dbeafe' : visitStatus === 'Terminada' ? '#dcfce7' : '#fee2e2';
+                    const statusColor = visitStatus === 'Activa' ? '#1e40af' : visitStatus === 'Terminada' ? '#166534' : '#991b1b';
+                    const hasDetails = !!visit.diagnostico_servicio || !!visit.trabajo_realizado_servicio || !!visit.motivo_cancelacion;
+
                     return `
-                        <tr>
-                            <td>${vIdx + 1}</td>
-                            <td>${escapeHtml(visitStatus)}</td>
+                        <tr style="background: ${vIdx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                            <td style="text-align: center; font-weight: 600; width: 28px;">${vIdx + 1}</td>
+                            <td style="width: 80px;">
+                                <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; background: ${statusBg}; color: ${statusColor};">
+                                    ${escapeHtml(visitStatus)}
+                                </span>
+                            </td>
                             <td>${formatReportDateTime(visit.fecha_hora_inicio)}</td>
                             <td>${formatReportDateTime(visit.fecha_hora_fin_real)}</td>
-                            <td>${formatReportValue(visit.diagnostico_servicio)}</td>
-                            <td>${formatReportValue(visit.trabajo_realizado_servicio)}</td>
                         </tr>
+                        ${hasDetails ? `
+                        <tr style="background: ${vIdx % 2 === 0 ? '#fafcff' : '#f1f5f9'}; border-bottom: 2px solid #cbd5e1;">
+                            <td colspan="4" style="padding: 10px 14px; border-top: none;">
+                                ${visit.motivo_cancelacion ? `
+                                    <div style="margin-bottom: 8px; padding: 6px 10px; background: #fef2f2; border-left: 3px solid #ef4444; border-radius: 4px;">
+                                        <strong style="color: #991b1b; font-size: 10px; text-transform: uppercase;">Motivo Cancelación:</strong>
+                                        <span style="color: #7f1d1d; font-size: 11px; margin-left: 6px;">${escapeHtml(visit.motivo_cancelacion)}</span>
+                                    </div>
+                                ` : ''}
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div style="background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                        <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #2563eb; margin-bottom: 4px; letter-spacing: 0.05em;">Diagnóstico</div>
+                                        <div style="font-size: 11px; color: #1e293b; line-height: 1.5; white-space: pre-wrap; word-break: break-word;">${formatReportValue(visit.diagnostico_servicio)}</div>
+                                    </div>
+                                    <div style="background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                        <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #059669; margin-bottom: 4px; letter-spacing: 0.05em;">Trabajo Realizado</div>
+                                        <div style="font-size: 11px; color: #1e293b; line-height: 1.5; white-space: pre-wrap; word-break: break-word;">${formatReportValue(visit.trabajo_realizado_servicio)}</div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : ''}
                     `;
                 }).join('')
-                : '<tr><td colspan="6" class="empty">No hay programaciones/visitas para este servicio.</td></tr>';
+                : '<tr><td colspan="4" class="empty">No hay programaciones/visitas para este servicio.</td></tr>';
 
             return `
                 <div class="service-box">
@@ -144,12 +172,10 @@ export const generateConsecutivoPDF = async (consecutivo: string, currentUser: a
                     <table>
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Estado</th>
+                                <th style="width: 28px; text-align: center;">#</th>
+                                <th style="width: 80px;">Estado</th>
                                 <th>Inicio Programado</th>
                                 <th>Fin Real</th>
-                                <th>Diagnóstico</th>
-                                <th>Trabajo Realizado</th>
                             </tr>
                         </thead>
                         <tbody>${visitRows}</tbody>
@@ -252,8 +278,8 @@ export const generateConsecutivoPDF = async (consecutivo: string, currentUser: a
                 h3 { margin: 0 0 12px; font-size: 16px; color: #1e293b; font-weight: 600; }
                 section { margin-bottom: 32px; page-break-inside: avoid; }
                 
-                table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden; }
-                th, td { padding: 6px 10px; text-align: left; vertical-align: middle; border-bottom: 1px solid #e2e8f0; line-height: 1.4; }
+                table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden; table-layout: auto; word-break: break-word; overflow-wrap: break-word; }
+                th, td { padding: 6px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid #e2e8f0; line-height: 1.4; word-break: break-word; overflow-wrap: break-word; }
                 tr:last-child th, tr:last-child td { border-bottom: none; }
                 th { background: #f8fafc; color: #475569; width: 25%; font-weight: 600; border-right: 1px solid #e2e8f0; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
                 td { background: #ffffff; color: #0f172a; }

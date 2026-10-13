@@ -201,32 +201,59 @@ const buildServiceReportHtml = ({
         ? visits.map((visit, index) => {
             const isCancelled = visit.estado === false && (!!visit.motivo_cancelacion || visit.reagendado);
             const visitStatus = visit.estado === true ? 'Activa' : isCancelled ? 'Cancelada / reagendada' : 'Terminada';
+            const statusBg = visitStatus === 'Activa' ? '#dbeafe' : visitStatus === 'Terminada' ? '#dcfce7' : '#fee2e2';
+            const statusColor = visitStatus === 'Activa' ? '#1e40af' : visitStatus === 'Terminada' ? '#166534' : '#991b1b';
+            const hasDetails = !!visit.diagnostico_servicio || !!visit.trabajo_realizado_servicio || !!visit.motivo_cancelacion;
+
             return `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${escapeHtml(visitStatus)}</td>
+                <tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                    <td style="text-align: center; font-weight: 600; width: 28px;">${index + 1}</td>
+                    <td style="width: 80px;">
+                        <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; background: ${statusBg}; color: ${statusColor};">
+                            ${escapeHtml(visitStatus)}
+                        </span>
+                    </td>
                     <td>${formatReportDateTime(visit.fecha_hora_inicio)}</td>
                     <td>${formatReportDateTime(visit.fecha_hora_fin)}</td>
                     <td>${formatReportDateTime(visit.fecha_hora_inicio_real)}</td>
                     <td>${formatReportDateTime(visit.fecha_hora_fin_real)}</td>
-                    <td>${formatReportValue(visit.tecnico_nombre || visit.nombre)}</td>
-                    <td>${formatReportValue(visit.modificado_por)}</td>
-                    <td>${formatReportValue(visit.motivo_cancelacion)}</td>
-                    <td>${formatReportValue(visit.diagnostico_servicio)}</td>
-                    <td>${formatReportValue(visit.trabajo_realizado_servicio)}</td>
+                    <td style="font-weight: 500;">${formatReportValue(visit.tecnico_nombre || visit.nombre)}</td>
+                    <td style="color: #64748b;">${formatReportValue(visit.modificado_por)}</td>
                 </tr>
+                ${hasDetails ? `
+                <tr style="background: ${index % 2 === 0 ? '#fafcff' : '#f1f5f9'}; border-bottom: 2px solid #cbd5e1;">
+                    <td colspan="8" style="padding: 10px 14px; border-top: none;">
+                        ${visit.motivo_cancelacion ? `
+                            <div style="margin-bottom: 8px; padding: 6px 10px; background: #fef2f2; border-left: 3px solid #ef4444; border-radius: 4px;">
+                                <strong style="color: #991b1b; font-size: 10px; text-transform: uppercase;">Motivo Cancelación:</strong>
+                                <span style="color: #7f1d1d; font-size: 11px; margin-left: 6px;">${escapeHtml(visit.motivo_cancelacion)}</span>
+                            </div>
+                        ` : ''}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                            <div style="background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #2563eb; margin-bottom: 4px; letter-spacing: 0.05em;">Diagnóstico</div>
+                                <div style="font-size: 11px; color: #1e293b; line-height: 1.5; white-space: pre-wrap; word-break: break-word;">${formatReportValue(visit.diagnostico_servicio)}</div>
+                            </div>
+                            <div style="background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #059669; margin-bottom: 4px; letter-spacing: 0.05em;">Trabajo Realizado</div>
+                                <div style="font-size: 11px; color: #1e293b; line-height: 1.5; white-space: pre-wrap; word-break: break-word;">${formatReportValue(visit.trabajo_realizado_servicio)}</div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                ` : ''}
             `;
         }).join('')
-        : '<tr><td colspan="11" class="empty">No hay agendamientos registrados.</td></tr>';
+        : '<tr><td colspan="8" class="empty">No hay agendamientos registrados.</td></tr>';
 
     const commentRows = comments.length > 0
         ? comments.map((comment) => `
             <tr>
-                <td>${formatReportDateTime(comment.created_at)}</td>
+                <td style="white-space: nowrap;">${formatReportDateTime(comment.created_at)}</td>
                 <td>${formatReportValue(comment.display_name || comment.usuario_nombre)}</td>
                 <td>${formatReportValue(comment.rol)}</td>
                 <td>${formatReportValue(comment.tipo)}</td>
-                <td>${formatReportValue(comment.contenido)}</td>
+                <td style="word-break: break-word;">${formatReportValue(comment.contenido)}</td>
                 <td>${Array.isArray(comment.documentos) && comment.documentos.length > 0 ? comment.documentos.map((doc: string) => {
                     const isImage = doc.match(/\.(jpeg|jpg|gif|png|webp|heic)($|\?)/i);
                     const isVideo = doc.match(/\.(mp4|mov|avi|webm)($|\?)/i);
@@ -287,12 +314,12 @@ const buildServiceReportHtml = ({
         section:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
         .meta { text-align: right; font-size: 12px; line-height: 1.6; color: #cbd5e1; }
         .meta strong { color: #ffffff; font-weight: 600; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 12px; font-size: 11px; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; }
-        th, td { padding: 6px 10px; vertical-align: middle; text-align: left; line-height: 1.4; border-bottom: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 12px; font-size: 11px; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; table-layout: auto; word-break: break-word; overflow-wrap: break-word; }
+        th, td { padding: 6px 10px; vertical-align: top; text-align: left; line-height: 1.4; border-bottom: 1px solid #e2e8f0; word-break: break-word; overflow-wrap: break-word; }
         tr:last-child th, tr:last-child td { border-bottom: none; }
-        th { width: 180px; background: #f8fafc; color: #475569; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; border-right: 1px solid #e2e8f0; }
+        th { width: 160px; background: #f8fafc; color: #475569; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; border-right: 1px solid #e2e8f0; }
         td { color: #0f172a; background: #ffffff; }
-        thead th { width: auto; background: #f1f5f9; color: #1e293b; border-right: none; border-bottom: 2px solid #e2e8f0; }
+        thead th { width: auto; background: #f1f5f9; color: #1e293b; border-right: none; border-bottom: 2px solid #e2e8f0; font-size: 10px; }
         .empty { color: #94a3b8; text-align: center; padding: 24px; font-style: italic; background: #f8fafc; }
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .footer { padding: 24px 40px; color: #94a3b8; font-size: 12px; text-align: center; background: #f8fafc; }
@@ -302,23 +329,36 @@ const buildServiceReportHtml = ({
         .info-label { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 4px; }
         .info-value { color: #0f172a; font-size: 12px; font-weight: 500; word-break: break-word; }
         
-        @page { margin: 0; size: A4 portrait; }
+        .print-toolbar { position: fixed; bottom: 24px; right: 24px; z-index: 1000; }
+        .btn-print { background: #2563eb; color: #ffffff; border: none; padding: 12px 20px; border-radius: 50px; font-weight: 600; font-size: 13px; font-family: inherit; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .btn-print:hover { background: #1d4ed8; transform: translateY(-2px); }
+
+        @page { margin: 8mm; size: A4 portrait; }
         @media print {
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                box-sizing: border-box !important;
             }
-            body { padding: 0; background: #fff; }
-            .page { border: 0; border-radius: 0; box-shadow: none; max-width: 100%; width: 100%; margin: 0; }
-            header { padding: 24px 32px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; }
-            section { padding: 24px 32px; break-inside: avoid; }
-            table { border: 1px solid #cbd5e1; }
-            th, td { border-color: #cbd5e1; }
+            body { padding: 0 !important; margin: 0 !important; background: #fff !important; }
+            .print-toolbar { display: none !important; }
+            .page { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; margin: 0 !important; }
+            header { padding: 18px 24px !important; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; }
+            section { padding: 18px 24px !important; }
+            table { border: 1px solid #cbd5e1 !important; width: 100% !important; max-width: 100% !important; table-layout: auto !important; }
+            tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+            th, td { border-color: #cbd5e1 !important; }
         }
     </style>
 </head>
 <body>
+    <div class="print-toolbar">
+        <button class="btn-print" onclick="window.print()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Imprimir / Guardar en PDF
+        </button>
+    </div>
     <div class="page">
         <header>
             <div style="text-align: left;">
@@ -357,17 +397,14 @@ const buildServiceReportHtml = ({
             <table>
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Estado</th>
+                        <th style="width: 28px; text-align: center;">#</th>
+                        <th style="width: 80px;">Estado</th>
                         <th>Inicio programado</th>
                         <th>Fin programado</th>
                         <th>Inicio real / cancelacion</th>
                         <th>Fin real</th>
                         <th>Tecnico</th>
                         <th>Modificado por</th>
-                        <th>Motivo cancelacion</th>
-                        <th>Diagnostico</th>
-                        <th>Trabajo realizado</th>
                     </tr>
                 </thead>
                 <tbody>${visitRows}</tbody>
