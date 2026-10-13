@@ -238,6 +238,25 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                         setProductosSeleccionados(formattedProducts);
                     }
                 }
+            } else if (!parentId && !searchParams.get('solicitud_id') && userRes.data?.sucursal_predeterminada) {
+                // Handle default sucursal if user has one configured
+                const { data: sucursalData } = await supabase
+                    .from('Ubicaciones')
+                    .select('*')
+                    .eq('id', userRes.data.sucursal_predeterminada)
+                    .single();
+
+                if (sucursalData) {
+                    setClienteSeleccionado(sucursalData);
+                    if (sucursalData.id === 515 || sucursalData.id === 516) {
+                        setCanalVenta('canal_propio_ecommerce');
+                        setLlevaClienteFinal(true);
+                    } else if (sucursalData.cliente_id === 2063 || sucursalData.nombre?.toLowerCase().includes('firplakhome') || sucursalData.nombre?.toLowerCase().includes('sala')) {
+                        setCanalVenta('canal_propio_firplakhome');
+                    } else {
+                        setCanalVenta('canal_ditribuidor');
+                    }
+                }
             }
 
             setLoading(false);
