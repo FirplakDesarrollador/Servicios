@@ -64,6 +64,7 @@ import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearCliente
 
 import ModalEditCondebe from '@/components/ModalEditCondebe';
 import ModalEditPedido from '@/components/ModalEditPedido';
+import ModalEditDistribuidor from '@/components/ModalEditDistribuidor';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 import ModalCrearRegistro from '@/app/registro-solicitudes/components/ModalCrearRegistro';
 
@@ -147,11 +148,21 @@ const buildServiceReportHtml = ({
         hour12: false
     });
 
+
+    const buildGridHtml = (data: [string, any][]) => {
+        return `<div class="info-grid">
+            ${data.map(([label, value]) => `
+                <div class="info-card">
+                    <div class="info-label">${escapeHtml(label)}</div>
+                    <div class="info-value">${formatReportValue(value)}</div>
+                </div>
+            `).join('')}
+        </div>`;
+    };
+
     const status = service.estado !== false ? 'Abierto' : 'Cerrado';
-    const generalRows = buildReportRows([
-        ['ID del servicio', service.id],
+    const generalGrid = buildGridHtml([
         ['Consecutivo', service.consecutivo],
-        ['Estado', status],
         ['Fecha solicitud', formatReportDate(service.created_at)],
         ['Tipo de servicio', service.tipo_de_servicio],
         ['Pedido / factura', service.numero_de_pedido],
@@ -216,7 +227,17 @@ const buildServiceReportHtml = ({
                 <td>${formatReportValue(comment.rol)}</td>
                 <td>${formatReportValue(comment.tipo)}</td>
                 <td>${formatReportValue(comment.contenido)}</td>
-                <td>${Array.isArray(comment.documentos) && comment.documentos.length > 0 ? comment.documentos.map((doc: string) => `<div>${escapeHtml(doc)}</div>`).join('') : '---'}</td>
+                <td>${Array.isArray(comment.documentos) && comment.documentos.length > 0 ? comment.documentos.map((doc: string) => {
+                    const isImage = doc.match(/\.(jpeg|jpg|gif|png|webp|heic)($|\?)/i);
+                    const isVideo = doc.match(/\.(mp4|mov|avi|webm)($|\?)/i);
+                    if (isImage) {
+                        return `<img src="${escapeHtml(doc)}" alt="Evidencia" style="max-width: 80px; max-height: 80px; margin: 2px; border-radius: 4px; border: 1px solid #cbd5e1; object-fit: cover;" />`;
+                    }
+                    if (isVideo) {
+                        return ''; // No mostrar videos en el PDF según solicitud
+                    }
+                    return `<div><a href="${escapeHtml(doc)}" style="font-size:10px;">Ver archivo</a></div>`;
+                }).join('') : '---'}</td>
             </tr>
         `).join('')
         : '<tr><td colspan="6" class="empty">No hay observaciones registradas.</td></tr>';
@@ -253,38 +274,61 @@ const buildServiceReportHtml = ({
     <meta charset="utf-8" />
     <title>Ficha de servicio ${escapeHtml(service.consecutivo || service.id)}</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 32px; color: #0f172a; font-family: Arial, Helvetica, sans-serif; background: #f8fafc; }
-        .page { max-width: 1180px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; }
-        header { padding: 28px 32px; color: #fff; background: #0f172a; display: flex; justify-content: space-between; gap: 24px; }
-        h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.02em; }
-        h2 { margin: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #1e40af; }
-        section { padding: 24px 32px; border-top: 1px solid #e2e8f0; }
-        .meta { text-align: right; font-size: 13px; line-height: 1.55; color: #cbd5e1; }
-        .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; background: ${service.estado !== false ? '#dcfce7' : '#ffe4e6'}; color: ${service.estado !== false ? '#166534' : '#9f1239'}; font-weight: 700; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
-        th, td { border: 1px solid #e2e8f0; padding: 10px 12px; vertical-align: top; text-align: left; }
-        th { width: 220px; background: #f8fafc; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-        thead th { width: auto; background: #eef2ff; color: #1e293b; }
-        .empty { color: #64748b; text-align: center; padding: 18px; }
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-        .footer { padding: 20px 32px 28px; color: #64748b; font-size: 12px; border-top: 1px solid #e2e8f0; }
+        body { margin: 0; padding: 32px; color: #1e293b; font-family: 'Inter', sans-serif; background: #f1f5f9; }
+        .page { max-width: 1180px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden; }
+        header { padding: 24px 32px; color: #ffffff; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; border-bottom: 4px solid #3b82f6; }
+        h1 { margin: 0 0 4px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+        .header-sub { color: #94a3b8; font-size: 13px; font-weight: 500; }
+        h2 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: #3b82f6; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        h2::before { content: ""; display: block; width: 4px; height: 16px; background: #3b82f6; border-radius: 2px; }
+        section { padding: 32px 40px; }
+        section:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+        .meta { text-align: right; font-size: 12px; line-height: 1.6; color: #cbd5e1; }
+        .meta strong { color: #ffffff; font-weight: 600; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 12px; font-size: 11px; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; }
+        th, td { padding: 6px 10px; vertical-align: middle; text-align: left; line-height: 1.4; border-bottom: 1px solid #e2e8f0; }
+        tr:last-child th, tr:last-child td { border-bottom: none; }
+        th { width: 180px; background: #f8fafc; color: #475569; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; border-right: 1px solid #e2e8f0; }
+        td { color: #0f172a; background: #ffffff; }
+        thead th { width: auto; background: #f1f5f9; color: #1e293b; border-right: none; border-bottom: 2px solid #e2e8f0; }
+        .empty { color: #94a3b8; text-align: center; padding: 24px; font-style: italic; background: #f8fafc; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .footer { padding: 24px 40px; color: #94a3b8; font-size: 12px; text-align: center; background: #f8fafc; }
+        
+        .info-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+        .info-card { flex: 1 1 calc(20% - 10px); min-width: 140px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 6px; }
+        .info-label { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 4px; }
+        .info-value { color: #0f172a; font-size: 12px; font-weight: 500; word-break: break-word; }
+        
+        @page { margin: 0; size: A4 portrait; }
         @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
             body { padding: 0; background: #fff; }
-            .page { border: 0; border-radius: 0; }
-            section { break-inside: avoid; }
+            .page { border: 0; border-radius: 0; box-shadow: none; max-width: 100%; width: 100%; margin: 0; }
+            header { padding: 24px 32px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; }
+            section { padding: 24px 32px; break-inside: avoid; }
+            table { border: 1px solid #cbd5e1; }
+            th, td { border-color: #cbd5e1; }
         }
     </style>
 </head>
 <body>
     <div class="page">
         <header>
-            <div>
+            <div style="text-align: left;">
                 <h1>Ficha de Servicio</h1>
-                <div>${escapeHtml(service.consecutivo || `Servicio ${service.id}`)}</div>
-                <div style="margin-top: 12px;"><span class="pill">${escapeHtml(status)}</span></div>
+                <div class="header-sub">${escapeHtml(service.consecutivo || `Servicio ${service.id}`)}</div>
             </div>
-            <div class="meta">
+            <div style="text-align: center; display: flex; justify-content: center;">
+                <img src="${window.location.origin}/logo-firplak.png" alt="Firplak" style="height: 64px; object-fit: contain; filter: brightness(0) invert(1);" />
+            </div>
+            <div class="meta" style="text-align: right;">
                 <strong>Fecha y hora de descarga</strong><br />
                 ${escapeHtml(generatedAtText)}<br />
                 <strong>Descargado por</strong><br />
@@ -294,7 +338,7 @@ const buildServiceReportHtml = ({
 
         <section>
             <h2>Informacion general</h2>
-            <table><tbody>${generalRows}</tbody></table>
+            ${generalGrid}
         </section>
 
         <section class="two-col">
@@ -364,8 +408,43 @@ const buildServiceReportHtml = ({
             </div>
         </section>
 
-        <div class="footer">
-            Informe generado desde Firplak Servicios. Fecha y hora de descarga: ${escapeHtml(generatedAtText)}.
+        ${(() => {
+            const signedVisits = visits.filter(v => v.firma_base64);
+            return signedVisits.length > 0 ? `
+                <section>
+                    <h2>Firma del cliente</h2>
+                    <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px;">
+                        ${signedVisits.map((v) => `
+                            <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; background: #f8fafc; min-width: 250px; text-align: center;">
+                                <img src="${v.firma_base64.startsWith('data:image') ? escapeHtml(v.firma_base64) : `data:image/png;base64,${escapeHtml(v.firma_base64)}`}" alt="Firma" style="max-height: 120px; max-width: 100%; object-fit: contain; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;" />
+                                <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 4px;">${escapeHtml(v.nombre_persona_recibe || '---')}</div>
+                                <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">C.C: ${escapeHtml(v.cedula_persona_recibe || '---')}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+            ` : '';
+        })()}
+
+        <div class="footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 4px solid #3b82f6; padding: 24px 40px; color: #64748b; font-size: 11px; line-height: 1.5; background: #ffffff; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                <div>
+                    <div style="color: #0f172a;">(604) 444 17 71</div>
+                    <div>servicioalcliente@firplak.com</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                <div>
+                    <div style="color: #0f172a;">Autopista Sur Calle 29 # 41-15</div>
+                    <div>Itagüí, Antioquia, Colombia.</div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="color: #0f172a; font-size: 14px; font-weight: 600;">www.<span style="color: #1e293b;">firplak</span>.com</div>
+                <div style="margin-top: 4px; font-size: 9px; color: #94a3b8;">Generado: ${escapeHtml(generatedAtText)}</div>
+            </div>
         </div>
     </div>
 </body>
@@ -386,6 +465,7 @@ export default function VerServicioPage() {
     const [showProductsModal, setShowProductsModal] = useState(false);
     const [showCommentModal, setShowCommentModal] = useState(false);
     const [showEditConsumerModal, setShowEditConsumerModal] = useState(false);
+    const [showEditDistribuidorModal, setShowEditDistribuidorModal] = useState(false);
     const [showEditCondebeModal, setShowEditCondebeModal] = useState(false);
     const [showEditPedidoModal, setShowEditPedidoModal] = useState(false);
     const [showCloseModal, setShowCloseModal] = useState(false);
@@ -666,6 +746,7 @@ export default function VerServicioPage() {
                                 onEditConsumer={() => setShowEditConsumerModal(true)}
                                 onEditCondebe={() => setShowEditCondebeModal(true)}
                                 onEditFactura={() => setShowEditPedidoModal(true)}
+                                onEditDistribuidor={() => setShowEditDistribuidorModal(true)}
                                 onCloseService={() => setShowCloseModal(true)}
                                 onDownloadReport={handleDownloadServiceReport}
                                 isDownloadingReport={downloadingReport}
@@ -748,6 +829,15 @@ export default function VerServicioPage() {
                     numero_de_pedido: service.numero_de_pedido
                 }}
             />
+            <ModalEditDistribuidor
+                isOpen={showEditDistribuidorModal}
+                onClose={() => setShowEditDistribuidorModal(false)}
+                onSuccess={() => {
+                    fetchService();
+                }}
+                initialData={service}
+            />
+
             <ModalCerrarServicio
                 isOpen={showCloseModal}
                 onClose={() => setShowCloseModal(false)}
@@ -769,6 +859,7 @@ function InformacionTab({
     onEditConsumer,
     onEditCondebe,
     onEditFactura,
+    onEditDistribuidor,
     onCloseService,
     onDownloadReport,
     isDownloadingReport,
@@ -779,6 +870,7 @@ function InformacionTab({
     onEditConsumer: () => void,
     onEditCondebe: () => void,
     onEditFactura: () => void,
+    onEditDistribuidor: () => void,
     onCloseService: () => void,
     onDownloadReport: () => void,
     isDownloadingReport: boolean,
@@ -942,7 +1034,20 @@ function InformacionTab({
                     </InfoSection>
 
                     {/* Canal Data Section */}
-                    <InfoSection title="Datos del Canal / Distribuidor">
+                    <InfoSection 
+                        title="Datos del Canal / Distribuidor"
+                        rightElement={
+                            currentUser?.rol?.toLowerCase() === 'mac' || currentUser?.rol === 'desarrollador' ? (
+                                <button
+                                    onClick={onEditDistribuidor}
+                                    className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1.5"
+                                >
+                                    <Pencil className="w-3 h-3" />
+                                    Editar Información
+                                </button>
+                            ) : undefined
+                        }
+                    >
                         <InfoField label="Cliente" value={service.cliente_nombre || '---'} />
                         <InfoField label="NIT Cliente" value={service.cliente_nit || '---'} />
                         <InfoField label="Obra / Ubicación" value={service.ubicacion_nombre} />

@@ -13,6 +13,7 @@ import {
     ClipboardList
 } from 'lucide-react';
 import ServiceCard from '@/components/servicios-abiertos/ServiceCard';
+import { generateConsecutivoPDF } from '@/lib/pdfGenerator';
 
 export default function ServiciosCerradosPage() {
     const router = useRouter();
@@ -175,6 +176,15 @@ export default function ServiciosCerradosPage() {
         setSearching(false);
     };
 
+    const handleDownloadPdf = async (service: any) => {
+        try {
+            await generateConsecutivoPDF(service.consecutivo || `Servicio ${service.id}`, profile);
+        } catch (error: any) {
+            console.error('Error generating PDF:', error);
+            alert(error.message || 'Error al generar el PDF');
+        }
+    };
+
     const handleClear = () => {
         setSearchTerm('');
         setResultIds([]);
@@ -310,6 +320,7 @@ export default function ServiciosCerradosPage() {
                                             service={service} 
                                             currentUserRole={profile?.rol}
                                             onClick={(s) => router.push(`/ver-servicio/${s.id}`)} 
+                                            onDownloadPdf={handleDownloadPdf}
                                         />
                                     </motion.div>
                                 ))}

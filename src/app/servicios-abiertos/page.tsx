@@ -20,6 +20,7 @@ import {
 import ServiceCard from '@/components/servicios-abiertos/ServiceCard';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 import ModalExportarCSV from '@/components/servicios-abiertos/ModalExportarCSV';
+import { generateConsecutivoPDF } from '@/lib/pdfGenerator';
 
 export default function ServiciosAbiertosPage() {
     const router = useRouter();
@@ -243,6 +244,15 @@ export default function ServiciosAbiertosPage() {
 
     const handleExportCSV = () => {
         setShowExportModal(true);
+    };
+
+    const handleDownloadPdf = async (service: any) => {
+        try {
+            await generateConsecutivoPDF(service.consecutivo || `Servicio ${service.id}`, profile);
+        } catch (error: any) {
+            console.error('Error generating PDF:', error);
+            alert(error.message || 'Error al generar el PDF');
+        }
     };
 
     const handleAssignMac = async (advisorId: string, advisorName: string) => {
@@ -499,6 +509,7 @@ export default function ServiciosAbiertosPage() {
                                             onClick={(s) => router.push(`/ver-servicio/${s.id}`)}
                                             onAssignMac={(s) => setAssigningMacService(s)}
                                             onCerrarService={(s) => setClosingService(s)}
+                                            onDownloadPdf={handleDownloadPdf}
                                         />
                                 ))}
                             </AnimatePresence>

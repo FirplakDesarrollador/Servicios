@@ -23,6 +23,7 @@ import {
     Headset,
     Zap,
     Share2,
+    FileDown
 } from 'lucide-react';
 import { parseLocalTimestamp } from '@/lib/dateUtils';
 
@@ -32,10 +33,11 @@ interface ServiceCardProps {
     onDelete?: (service: any) => void;
     onAssignMac?: (service: any) => void;
     onCerrarService?: (service: any) => void;
+    onDownloadPdf?: (service: any) => void;
     currentUserRole?: string;
 }
 
-export default function ServiceCard({ service, onClick, onDelete, onAssignMac, onCerrarService, currentUserRole }: ServiceCardProps) {
+export default function ServiceCard({ service, onClick, onDelete, onAssignMac, onCerrarService, onDownloadPdf, currentUserRole }: ServiceCardProps) {
     // Normalization helper
     const getVal = (snake: string, camel: string) => service[snake] || service[camel];
 
@@ -144,6 +146,7 @@ export default function ServiceCard({ service, onClick, onDelete, onAssignMac, o
                             <CheckCircle2 className="w-4 h-4" />
                         </button>
                     )}
+
                     <button 
                         onClick={() => onClick(service)} 
                         className="ml-2 p-2 bg-slate-900 text-white rounded-xl hover:bg-brand transition-all shadow-lg active:scale-95 flex items-center justify-center group/btn"
