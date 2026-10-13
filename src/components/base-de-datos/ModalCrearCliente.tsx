@@ -11,7 +11,8 @@ import {
     CheckCircle2,
     AlertCircle,
     PlusCircle,
-    Store
+    Store,
+    Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -28,6 +29,7 @@ export default function ModalCrearCliente({ isOpen, onClose, onSuccess }: ModalC
     // Form states
     const [formData, setFormData] = useState({
         tipo_de_cliente: '',
+        mercado: '',
         nit: '',
         nombre: '',
     });
@@ -43,7 +45,25 @@ export default function ModalCrearCliente({ isOpen, onClose, onSuccess }: ModalC
         setError(null);
 
         if (!formData.tipo_de_cliente) {
-            setError('Por favor seleccione el tipo de cliente');
+            setError('Por favor seleccione el tipo de cliente (Canal)');
+            setLoading(false);
+            return;
+        }
+
+        if (!formData.mercado) {
+            setError('Por favor seleccione el mercado (Nacional o Internacional)');
+            setLoading(false);
+            return;
+        }
+
+        if (!formData.nit.trim()) {
+            setError('Por favor ingrese el NIT / identificación');
+            setLoading(false);
+            return;
+        }
+
+        if (!formData.nombre.trim()) {
+            setError('Por favor ingrese el nombre comercial / razón social');
             setLoading(false);
             return;
         }
@@ -62,8 +82,9 @@ export default function ModalCrearCliente({ isOpen, onClose, onSuccess }: ModalC
                 .from('Clientes')
                 .insert([{
                     tipo_de_cliente: formData.tipo_de_cliente,
+                    mercado: formData.mercado,
                     nit: formData.nit,
-                    nombre: formData.nombre,
+                    nombre: formData.nombre.trim(),
                     creado_por: creador_id,
                     created_at: new Date().toISOString()
                 }]);
@@ -75,6 +96,7 @@ export default function ModalCrearCliente({ isOpen, onClose, onSuccess }: ModalC
             // Reset form
             setFormData({
                 tipo_de_cliente: '',
+                mercado: '',
                 nit: '',
                 nombre: '',
             });
@@ -156,6 +178,26 @@ export default function ModalCrearCliente({ isOpen, onClose, onSuccess }: ModalC
                                     </select>
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                                         <Building className="w-4 h-4 text-slate-400" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mercado */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Mercado <span className="text-rose-500">*</span></label>
+                                <div className="relative group">
+                                    <select 
+                                        value={formData.mercado}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, mercado: e.target.value }))}
+                                        required
+                                        className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-300 focus:bg-white transition-all appearance-none"
+                                    >
+                                        <option value="">Seleccione el mercado...</option>
+                                        <option value="Nacional">Nacional</option>
+                                        <option value="Internacional">Internacional</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <Globe className="w-4 h-4 text-slate-400" />
                                     </div>
                                 </div>
                             </div>

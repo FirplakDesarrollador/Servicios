@@ -18,7 +18,8 @@ import {
     Calendar,
     Hash,
     MoreHorizontal,
-    Pencil
+    Pencil,
+    Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ModalCrearCiudad from '@/components/base-de-datos/ModalCrearCiudad';
@@ -26,6 +27,7 @@ import ModalCrearCliente from '@/components/base-de-datos/ModalCrearCliente';
 import ModalCrearSala from '@/components/base-de-datos/ModalCrearSala';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
 import ModalEditSala from '@/components/base-de-datos/ModalEditSala';
+import ModalEditCliente from '@/components/base-de-datos/ModalEditCliente';
 
 export default function BaseDatosPage() {
     const router = useRouter();
@@ -40,17 +42,31 @@ export default function BaseDatosPage() {
     const [isModalClienteFinalOpen, setIsModalClienteFinalOpen] = useState(false);
     
     // Edit states
+    const [isModalEditClienteOpen, setIsModalEditClienteOpen] = useState(false);
     const [isModalEditSalaOpen, setIsModalEditSalaOpen] = useState(false);
     const [isModalEditClienteFinalOpen, setIsModalEditClienteFinalOpen] = useState(false);
     const [itemToEdit, setItemToEdit] = useState<any>(null);
 
+    // Filtro por Mercado para clientes
+    type MercadoFilterType = 'Todos' | 'Nacional' | 'Internacional' | 'Sin clasificar';
+    const [mercadoFilter, setMercadoFilter] = useState<MercadoFilterType>('Todos');
+    const mercadoFilterRef = useRef<MercadoFilterType>('Todos');
+
     const handleEdit = (item: any) => {
         setItemToEdit(item);
-        if (activeTab === 'Salas / Obras') {
+        if (activeTab === 'Clientes') {
+            setIsModalEditClienteOpen(true);
+        } else if (activeTab === 'Salas / Obras') {
             setIsModalEditSalaOpen(true);
         } else if (activeTab === 'Clientes Finales') {
             setIsModalEditClienteFinalOpen(true);
         }
+    };
+
+    const handleMercadoFilterChange = (newFilter: MercadoFilterType) => {
+        setMercadoFilter(newFilter);
+        mercadoFilterRef.current = newFilter;
+        fetchData('Clientes', false, busqueda, newFilter);
     };
 
     // Totales desde la view (ligero, sin cargar datos)
@@ -99,11 +115,13 @@ export default function BaseDatosPage() {
 
     const PAGE_SIZE = 100;
 
-    const fetchData = useCallback(async (tab: string, append = false, searchTerm = '') => {
+    const fetchData = useCallback(async (tab: string, append = false, searchTerm = '', mFilter?: 'Todos' | 'Nacional' | 'Internacional' | 'Sin clasificar') => {
         if (isFetching.current && !append) return;
         
         isFetching.current = true;
         setFetching(true);
+        
+        const currentMercadoFilter = mFilter !== undefined ? mFilter : mercadoFilterRef.current;
         
         try {
             const currentData = dataRef.current[tab as keyof typeof data] || [];
@@ -123,6 +141,13 @@ export default function BaseDatosPage() {
                     query = supabase.from('Clientes').select('*', { count: 'exact' });
                     if (searchTerm) {
                         query = query.or(`nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%`);
+                    }
+                    if (currentMercadoFilter === 'Nacional') {
+                        query = query.eq('mercado', 'Nacional');
+                    } else if (currentMercadoFilter === 'Internacional') {
+                        query = query.eq('mercado', 'Internacional');
+                    } else if (currentMercadoFilter === 'Sin clasificar') {
+                        query = query.or('mercado.is.null,mercado.eq.');
                     }
                     query = query.order('nombre').range(from, to);
                     break;
@@ -370,6 +395,56 @@ export default function BaseDatosPage() {
                     })}
                 </div>
 
+                {/* Filtros de Depuración y Clasificación por Mercado (Exclusivo Clientes) */}
+                {activeTab === 'Clientes' && (
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6 px-6 py-4 bg-white rounded-[2rem] border border-slate-200/60 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                <Globe className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Clasificación por Mercado</h3>
+                                <p className="text-[10px] text-slate-400 font-bold tracking-wide">Filtra y depura clientes por ámbito comercial en tiempo real</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {(['Todos', 'Nacional', 'Internacional', 'Sin clasificar'] as const).map((filter) => {
+                                const isSelected = mercadoFilter === filter;
+                                return (
+                                    <button
+                                        key={filter}
+                                        onClick={() => handleMercadoFilterChange(filter)}
+                                        className={`
+                                            px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95
+                                            ${isSelected 
+                                                ? filter === 'Nacional'
+                                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+                                                    : filter === 'Internacional'
+                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                                    : filter === 'Sin clasificar'
+                                                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-200'
+                                                    : 'bg-slate-900 text-white shadow-lg shadow-slate-300'
+                                                : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                                            }
+                                        `}
+                                    >
+                                        {filter === 'Sin clasificar' && (
+                                            <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-amber-500'} animate-pulse`} />
+                                        )}
+                                        {filter === 'Nacional' && (
+                                            <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-500'}`} />
+                                        )}
+                                        {filter === 'Internacional' && (
+                                            <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-500'}`} />
+                                        )}
+                                        {filter}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 {/* Data Grid */}
                 <div className="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-200/50 overflow-hidden">
                     <AnimatePresence mode="wait">
@@ -449,7 +524,14 @@ export default function BaseDatosPage() {
             <ModalCrearCliente 
                 isOpen={isModalClienteOpen}
                 onClose={() => setIsModalClienteOpen(false)}
-                onSuccess={() => fetchData('Clientes')}
+                onSuccess={() => fetchData('Clientes', false, busqueda, mercadoFilter)}
+            />
+
+            <ModalEditCliente
+                isOpen={isModalEditClienteOpen}
+                onClose={() => setIsModalEditClienteOpen(false)}
+                onSuccess={() => fetchData('Clientes', false, busqueda, mercadoFilter)}
+                initialData={itemToEdit}
             />
 
             <ModalCrearSala 
@@ -500,9 +582,11 @@ function renderTableHeaders(tab: string) {
                 <>
                     <th className="pl-6 w-16">ID</th>
                     <th>Nombre</th>
+                    <th>Mercado</th>
                     <th>NIT</th>
                     <th>Tipo</th>
-                    <th className="pr-6">Creado</th>
+                    <th>Creado</th>
+                    <th className="pr-6 text-right">Acciones</th>
                 </>
             );
         case 'Salas / Obras':
@@ -579,7 +663,8 @@ function renderTableRows(tab: string, item: any, onEdit?: (item: any) => void) {
                     </td>
                 </>
             );
-        case 'Clientes':
+        case 'Clientes': {
+            const mercado = item.mercado || item.Mercado;
             return (
                 <>
                     <td className={`${cellClass} pl-6 font-black text-slate-400 text-xs`}>#{item.id}</td>
@@ -591,20 +676,48 @@ function renderTableRows(tab: string, item: any, onEdit?: (item: any) => void) {
                             <span className="text-slate-900 uppercase font-black tracking-tight">{item.nombre}</span>
                         </div>
                     </td>
+                    <td className={cellClass}>
+                        {mercado === 'Nacional' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Nacional
+                            </span>
+                        ) : mercado === 'Internacional' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200/60 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                <Globe className="w-3 h-3 text-indigo-500" />
+                                Internacional
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                Sin clasificar
+                            </span>
+                        )}
+                    </td>
                     <td className={`${cellClass} font-mono text-xs tracking-widest`}>{item.nit}</td>
                     <td className={cellClass}>
                         <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">
                             {item.tipo_de_cliente}
                         </span>
                     </td>
-                    <td className={`${cellClass} pr-6`}>
+                    <td className={cellClass}>
                         <div className="flex items-center gap-2 text-slate-400">
                             <Calendar className="w-3 h-3" />
                             <span className="text-xs">{formatDate(item.created_at)}</span>
                         </div>
                     </td>
+                    <td className={`${cellClass} pr-6 text-right`}>
+                        <button 
+                            onClick={() => onEdit && onEdit(item)}
+                            className="p-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
+                            title="Editar Cliente"
+                        >
+                            <Pencil className="w-4 h-4" />
+                        </button>
+                    </td>
                 </>
             );
+        }
         case 'Salas / Obras':
             return (
                 <>
