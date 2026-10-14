@@ -397,14 +397,14 @@ export default function BaseDatosPage() {
 
                 {/* Filtros de Depuración y Clasificación por Mercado (Exclusivo Clientes) */}
                 {activeTab === 'Clientes' && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 mb-6 px-5 py-3 bg-white rounded-2xl border border-slate-200/60 shadow-sm">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                <Globe className="w-4 h-4" />
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-6 px-4 py-2 bg-white rounded-2xl border border-slate-200/60 shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                <Globe className="w-3 h-3" />
                             </div>
                             <div>
-                                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-800">Clasificación por Mercado</h3>
-                                <p className="text-[9px] text-slate-400 font-semibold tracking-wide">Filtra y depura clientes por ámbito comercial en tiempo real</p>
+                                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 leading-tight">Clasificación por Mercado</h3>
+                                <p className="text-[8.5px] text-slate-400 font-medium tracking-wide">Filtra y depura clientes por ámbito comercial</p>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -415,27 +415,27 @@ export default function BaseDatosPage() {
                                         key={filter}
                                         onClick={() => handleMercadoFilterChange(filter)}
                                         className={`
-                                            px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 active:scale-95 whitespace-nowrap
+                                            px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 active:scale-95 whitespace-nowrap
                                             ${isSelected 
                                                 ? filter === 'Nacional'
-                                                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200'
+                                                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-200'
                                                     : filter === 'Internacional'
-                                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
                                                     : filter === 'Sin clasificar'
-                                                    ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
-                                                    : 'bg-slate-900 text-white shadow-md shadow-slate-300'
+                                                    ? 'bg-amber-500 text-white shadow-sm shadow-amber-200'
+                                                    : 'bg-slate-900 text-white shadow-sm shadow-slate-300'
                                                 : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
                                             }
                                         `}
                                     >
                                         {filter === 'Sin clasificar' && (
-                                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-amber-500'} animate-pulse`} />
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-amber-500'} animate-pulse shrink-0`} />
                                         )}
                                         {filter === 'Nacional' && (
-                                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-500'}`} />
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-500'} shrink-0`} />
                                         )}
                                         {filter === 'Internacional' && (
-                                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-500'}`} />
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-500'} shrink-0`} />
                                         )}
                                         {filter}
                                     </button>
@@ -582,11 +582,11 @@ function renderTableHeaders(tab: string) {
                 <>
                     <th className="pl-6 w-16">ID</th>
                     <th>Nombre</th>
-                    <th>Mercado</th>
-                    <th>NIT</th>
-                    <th>Tipo</th>
-                    <th>Creado</th>
-                    <th className="pr-6 text-right">Acciones</th>
+                    <th className="w-28 text-center">Mercado</th>
+                    <th className="w-32">NIT</th>
+                    <th className="w-28">Tipo</th>
+                    <th className="w-28">Creado</th>
+                    <th className="pr-6 text-right w-20">Acciones</th>
                 </>
             );
         case 'Salas / Obras':
@@ -669,50 +669,50 @@ function renderTableRows(tab: string, item: any, onEdit?: (item: any) => void) {
                 <>
                     <td className={`${cellClass} pl-6 font-black text-slate-400 text-xs`}>#{item.id}</td>
                     <td className={cellClass}>
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-                                <UsersIcon className="w-4 h-4 text-indigo-400" />
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-indigo-50 rounded-md flex items-center justify-center shrink-0">
+                                <UsersIcon className="w-3 h-3 text-indigo-400" />
                             </div>
-                            <span className="text-slate-900 uppercase font-black tracking-tight">{item.nombre}</span>
+                            <span className="text-slate-900 uppercase font-black tracking-tight text-xs">{item.nombre}</span>
                         </div>
                     </td>
-                    <td className={cellClass}>
+                    <td className={`${cellClass} text-center`}>
                         {mercado === 'Nacional' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-[8.5px] font-bold uppercase tracking-wide whitespace-nowrap">
+                                <span className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
                                 Nacional
                             </span>
                         ) : mercado === 'Internacional' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200/60 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
-                                <Globe className="w-3 h-3 text-indigo-500" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200/60 rounded-full text-[8.5px] font-bold uppercase tracking-wide whitespace-nowrap">
+                                <Globe className="w-2.5 h-2.5 text-indigo-500 shrink-0" />
                                 Internacional
                             </span>
                         ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full text-[8.5px] font-bold uppercase tracking-wide whitespace-nowrap">
+                                <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse shrink-0" />
                                 Sin clasificar
                             </span>
                         )}
                     </td>
-                    <td className={`${cellClass} font-mono text-xs tracking-widest`}>{item.nit}</td>
+                    <td className={`${cellClass} font-mono text-[11px] tracking-wider whitespace-nowrap`}>{item.nit}</td>
                     <td className={cellClass}>
-                        <span className="inline-block px-2.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
+                        <span className="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-[8.5px] font-bold uppercase tracking-wide whitespace-nowrap">
                             {item.tipo_de_cliente}
                         </span>
                     </td>
                     <td className={cellClass}>
-                        <div className="flex items-center gap-2 text-slate-400">
-                            <Calendar className="w-3 h-3" />
-                            <span className="text-xs">{formatDate(item.created_at)}</span>
+                        <div className="flex items-center gap-1 text-slate-400 whitespace-nowrap text-xs">
+                            <Calendar className="w-2.5 h-2.5 shrink-0" />
+                            <span>{formatDate(item.created_at)}</span>
                         </div>
                     </td>
                     <td className={`${cellClass} pr-6 text-right`}>
                         <button 
                             onClick={() => onEdit && onEdit(item)}
-                            className="p-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors"
+                            className="p-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-indigo-600 transition-colors inline-flex items-center justify-center"
                             title="Editar Cliente"
                         >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-3 h-3" />
                         </button>
                     </td>
                 </>
