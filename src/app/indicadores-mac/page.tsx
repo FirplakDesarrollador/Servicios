@@ -43,7 +43,10 @@ const normalizeGrupo = (g: string): string => {
 const CANAL_VENTA_MAP: Record<string, string> = {
     'canal_ditribuidor': 'Canal Distribuidor',
     'canal_distribuidor': 'Canal Distribuidor',
-    'canal_exportador': 'Canal Exportador',
+    'canal_exportador': 'Canal Distribuidor',
+    'Canal Exportador': 'Canal Distribuidor',
+    'Exportador': 'Canal Distribuidor',
+    'Exportaciones': 'Canal Distribuidor',
     'canal_constructor': 'Canal Constructor',
     'canal_propio_firplakhome': 'Canal Propio Firplakhome',
     'canal_propio_ecommerce': 'Canal Propio eCommerce',
@@ -428,10 +431,9 @@ export default function IndicadoresMacPage() {
                 const dCanal = (d.canal_venta || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 const match = activeFilters.some(f =>
                     dCanal === f || dCanal.includes(f) || f.includes(dCanal) ||
-                    (f.includes('distribucion') && (dCanal.includes('distribuid') || dCanal.includes('ditribuid'))) ||
+                    (f.includes('distribucion') && (dCanal.includes('distribuid') || dCanal.includes('ditribuid') || dCanal.includes('export'))) ||
                     (f.includes('constructor') && dCanal.includes('construct')) ||
-                    (f.includes('exportacion') && dCanal.includes('export')) ||
-                    (f.includes('propio') || f.includes('b2c')) && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce') || dCanal.includes('b2c')) ||
+                    ((f.includes('propio') || f.includes('b2c')) && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce') || dCanal.includes('b2c'))) ||
                     (f.includes('especial') && dCanal.includes('especial'))
                 );
                 if (!match) return false;

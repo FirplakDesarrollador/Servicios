@@ -83,9 +83,8 @@ const normalizeGrupoName = (g: string): string => {
 const normalizeCanalName = (g: string): string => {
     if (!g) return 'No Definido';
     const norm = String(g).trim().toLowerCase();
-    if (norm.includes('distribu')) return 'Distribución';
+    if (norm.includes('distribu') || norm.includes('exportad') || norm.includes('exportac')) return 'Distribución';
     if (norm.includes('constructor')) return 'Constructor';
-    if (norm.includes('exportador') || norm.includes('exportacion')) return 'Exportaciones';
     if (norm.includes('b2c') || norm.includes('propio') || norm.includes('ecommerce') || norm.includes('firplakhome')) return 'Canal Propio';
     if (norm.includes('especial')) return 'Ventas Especiales';
     return g;

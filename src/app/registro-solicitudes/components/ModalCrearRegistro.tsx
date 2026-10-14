@@ -497,7 +497,6 @@ export default function ModalCrearRegistro({
                                 >
                                     <option value="">Seleccionar canal...</option>
                                     <option value="canal_ditribuidor">Canal Distribuidor</option>
-                                    <option value="canal_exportador">Canal Exportador</option>
                                     <option value="canal_constructor">Canal Constructor</option>
                                     <option value="canal_propio_firplakhome">Canal Propio Firplakhome</option>
                                     <option value="canal_propio_ecommerce">Canal Propio eCommerce</option>

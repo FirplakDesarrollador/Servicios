@@ -639,7 +639,17 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
             'distribucion': {
                 id: 'distribucion',
                 nombre: 'Distribución',
-                matchingKeys: ['Canal Distribuidor', 'canal_distribuidor', 'canal_ditribuidor', 'Distribución', 'Distribucion'],
+                matchingKeys: [
+                    'Canal Distribuidor', 
+                    'canal_distribuidor', 
+                    'canal_ditribuidor', 
+                    'Distribución', 
+                    'Distribucion',
+                    'Canal Exportador',
+                    'canal_exportador',
+                    'Exportaciones',
+                    'Exportador'
+                ],
                 color: '#254153',
                 regs: 0,
                 prods: 0
@@ -649,14 +659,6 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                 nombre: 'Constructor',
                 matchingKeys: ['Canal Constructor', 'canal_constructor', 'Constructor'],
                 color: '#749094',
-                regs: 0,
-                prods: 0
-            },
-            'exportaciones': {
-                id: 'exportaciones',
-                nombre: 'Exportaciones',
-                matchingKeys: ['Canal Exportador', 'canal_exportador', 'Exportaciones', 'Exportador'],
-                color: '#c96a4e',
                 regs: 0,
                 prods: 0
             },
@@ -738,8 +740,8 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                 })}
             </div>
 
-            {/* Tarjetas horizontales de los 4 canales */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Tarjetas horizontales de los 3 canales */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {canalVentaData.map(cat => {
                     const isActive = activeCanalFilters.length === 0 || activeCanalFilters.some(f => cat.matchingKeys.some(mk => mk.toLowerCase() === f.toLowerCase() || f.toLowerCase() === cat.id));
 

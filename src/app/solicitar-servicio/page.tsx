@@ -50,7 +50,8 @@ interface SolicitarServicioProps {
     onSuccess?: () => void;
 }
 
-export default function SolicitarServicioPage({ isInline = false, defaultSolicitudId, onSuccess }: SolicitarServicioProps = {}) {
+export default function SolicitarServicioPage(props: any) {
+    const { isInline = false, defaultSolicitudId, onSuccess } = props || {};
     const router = useRouter();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
@@ -754,7 +755,6 @@ export default function SolicitarServicioPage({ isInline = false, defaultSolicit
                                 >
                                     <option value="">Seleccione una opción...</option>
                                     <option value="canal_ditribuidor">Canal Distribuidor</option>
-                                    <option value="canal_exportador">Canal Exportador</option>
                                     <option value="canal_constructor">Canal Constructor</option>
                                     <option value="canal_propio_firplakhome">Canal Propio Firplakhome</option>
                                     <option value="canal_propio_ecommerce">Canal Propio eCommerce</option>
