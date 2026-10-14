@@ -82,7 +82,7 @@ export default function ModalCrearCliente({ isOpen, onClose, onSuccess }: ModalC
                 .from('Clientes')
                 .insert([{
                     tipo_de_cliente: formData.tipo_de_cliente,
-                    mercado: formData.mercado,
+                    Mercado: formData.mercado,
                     nit: formData.nit,
                     nombre: formData.nombre.trim(),
                     creado_por: creador_id,

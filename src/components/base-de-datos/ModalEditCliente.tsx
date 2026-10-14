@@ -87,7 +87,7 @@ export default function ModalEditCliente({ isOpen, onClose, onSuccess, initialDa
                 .from('Clientes')
                 .update({
                     tipo_de_cliente: formData.tipo_de_cliente,
-                    mercado: formData.mercado,
+                    Mercado: formData.mercado,
                     nit: formData.nit,
                     nombre: formData.nombre.trim(),
                 })

@@ -143,11 +143,11 @@ export default function BaseDatosPage() {
                         query = query.or(`nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%`);
                     }
                     if (currentMercadoFilter === 'Nacional') {
-                        query = query.eq('mercado', 'Nacional');
+                        query = query.eq('Mercado', 'Nacional');
                     } else if (currentMercadoFilter === 'Internacional') {
-                        query = query.eq('mercado', 'Internacional');
+                        query = query.eq('Mercado', 'Internacional');
                     } else if (currentMercadoFilter === 'Sin clasificar') {
-                        query = query.or('mercado.is.null,mercado.eq.');
+                        query = query.or('Mercado.is.null,Mercado.eq.');
                     }
                     query = query.order('nombre').range(from, to);
                     break;
