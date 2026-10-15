@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { RegistroMAC, FilterState } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList, ComposedChart } from 'recharts';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 
 interface Props {
@@ -24,6 +24,34 @@ interface Props {
 }
 
 const COLORS = ['#254153', '#749094', '#e8e2d5', '#f5f1ea', '#d3b99f', '#c96a4e', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
+const TIPO_SOLICITUD_COLORS: Record<string, string> = {
+    'garantia': '#254153',     // Azul marino institucional (base sólida)
+    'garantía': '#254153',
+    'queja': '#c96a4e',        // Terracota / naranja vivo (resaltado)
+    'reclamo': '#e09f3e',      // Ámbar / melocotón cálido
+    'solicitud': '#3b82f6',    // Azul royal
+    'peticion': '#0ea5e9',     // Cyan
+    'petición': '#0ea5e9',
+    'servicio': '#749094',     // Verde pizarra / slate
+    'servicio tecnico': '#749094',
+    'felicitacion': '#10b981', // Verde esmeralda
+    'felicitación': '#10b981',
+    'asesoria': '#8b5cf6',     // Violeta
+    'asesoría': '#8b5cf6',
+    'otros': '#64748b',        // Gris pizarra
+    'sin definir': '#94a3b8',  // Gris neutro
+};
+
+const getTipoSolicitudColor = (tipo: string, idx: number): string => {
+    const norm = tipo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (TIPO_SOLICITUD_COLORS[norm]) return TIPO_SOLICITUD_COLORS[norm];
+    for (const [key, color] of Object.entries(TIPO_SOLICITUD_COLORS)) {
+        if (norm.includes(key)) return color;
+    }
+    const curatedPalette = ['#254153', '#c96a4e', '#e09f3e', '#749094', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
+    return curatedPalette[idx % curatedPalette.length];
+};
 const isGroupFilter = (str: string) => {
     if (!str) return false;
     const u = str.toUpperCase().trim();
@@ -841,27 +869,124 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         return responsablesMap.get(String(id)) || `ID ${id}`;
     };
 
-    // Chart 1: Total registros por mes
-    const registrosPorMes = useMemo(() => {
-        const counts: Record<string, { key: string, count: number }> = {};
+    // Chart 1: Total registros por mes con desglose apilado por Tipo de Solicitud
+    const { registrosPorMes, tiposSolicitudMes } = useMemo(() => {
+        const counts: Record<string, { key: string; total: number; [tipo: string]: any }> = {};
         const sourceData = dataForMesCreacion || data;
+        const tiposSet = new Set<string>();
+
         sourceData.forEach(d => {
             const key = d._mesCreacionKey || '';
-            if (key) {
-                if (!counts[key]) counts[key] = { key, count: 0 };
-                counts[key].count += 1;
+            if (!key) return;
+
+            const rawTipo = (d.tipo_solicitud || '').trim();
+            const tipo = rawTipo ? (rawTipo.charAt(0).toUpperCase() + rawTipo.slice(1).toLowerCase()) : 'Sin Definir';
+            tiposSet.add(tipo);
+
+            if (!counts[key]) {
+                counts[key] = { key, total: 0 };
             }
+            counts[key].total += 1;
+            counts[key][tipo] = (counts[key][tipo] || 0) + 1;
         });
-        
+
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        
-        return Object.values(counts)
+
+        // Prioridad visual en el apilado (base sólida abajo, quejas/reclamos arriba)
+        const typePriority: Record<string, number> = {
+            'garantia': 1,
+            'garantía': 1,
+            'queja': 2,
+            'reclamo': 3,
+            'solicitud': 4,
+            'peticion': 5,
+            'petición': 5,
+            'servicio': 6,
+            'felicitacion': 7,
+            'felicitación': 7,
+            'asesoria': 8,
+            'asesoría': 8,
+            'otros': 90,
+            'sin definir': 99,
+        };
+
+        const tiposList = Array.from(tiposSet).sort((a, b) => {
+            const normA = a.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            const normB = b.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            const prioA = typePriority[normA] || 50;
+            const prioB = typePriority[normB] || 50;
+            if (prioA !== prioB) return prioA - prioB;
+            return a.localeCompare(b);
+        });
+
+        const sortedData = Object.values(counts)
             .sort((a, b) => a.key.localeCompare(b.key))
-            .map(({ key, count }) => {
-                const [yyyy, mm] = key.split('-');
-                return { key, mes: monthNames[parseInt(mm, 10) - 1], Registros: count };
+            .map(item => {
+                const [yyyy, mm] = item.key.split('-');
+                const monthIndex = parseInt(mm, 10) - 1;
+                tiposList.forEach(t => {
+                    if (item[t] === undefined) item[t] = 0;
+                });
+                return {
+                    ...item,
+                    mes: monthNames[monthIndex] || item.key,
+                    Registros: item.total,
+                    total: item.total,
+                };
             });
+
+        return { registrosPorMes: sortedData, tiposSolicitudMes: tiposList };
     }, [data, dataForMesCreacion]);
+
+    // Tooltip enriquecido para el gráfico apilado de Ingresos por Mes
+    const CustomIngresosTooltip = ({ active, payload, label }: any) => {
+        if (!active || !payload || !payload.length) return null;
+        const entry = payload[0]?.payload;
+        if (!entry) return null;
+
+        const items = payload
+            .filter((p: any) => p.dataKey !== 'Registros' && p.dataKey !== 'total' && typeof p.value === 'number' && p.value > 0)
+            .sort((a: any, b: any) => (b.value || 0) - (a.value || 0));
+
+        const total = entry.total || entry.Registros || 0;
+
+        return (
+            <div className="bg-white/95 backdrop-blur-sm p-3.5 rounded-xl border border-gray-100 shadow-xl text-xs space-y-2 min-w-[200px]">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-1.5">
+                    <span className="font-bold text-gray-800 text-sm">{label || entry.mes}</span>
+                    <span className="font-extrabold text-[#254153] text-xs bg-slate-100 px-2 py-0.5 rounded-full">
+                        {total} {total === 1 ? 'solicitud' : 'solicitudes'}
+                    </span>
+                </div>
+                <div className="space-y-1.5 pt-0.5">
+                    {items.length > 0 ? (
+                        items.map((item: any, i: number) => {
+                            const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
+                            return (
+                                <div key={i} className="flex items-center justify-between gap-3 text-gray-600">
+                                    <div className="flex items-center gap-1.5 truncate">
+                                        <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color || item.fill }} />
+                                        <span className="truncate font-medium">{item.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0 font-bold text-gray-800">
+                                        <span>{item.value}</span>
+                                        <span className="text-[10px] text-gray-400 font-normal">({pct}%)</span>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="text-gray-400 text-center py-1">Sin detalles</div>
+                    )}
+                </div>
+                {filters.mesCreacion.length > 0 && filters.mesCreacion.includes(entry.key) && (
+                    <div className="text-[10px] text-brand font-semibold pt-1 border-t border-gray-100">
+                        ✓ Mes seleccionado en filtros (clic para deseleccionar)
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const promedioIngresoMensual = useMemo(() => {
         const numMeses = registrosPorMes.length || 1;
@@ -1492,29 +1617,113 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             )}
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                {/* Chart 1: Registros por mes */}
+                {/* Chart 1: Registros por mes apilados por tipo de solicitud */}
                 <div className="xl:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider">Ingresos por Mes</h3>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Ingresos por Mes</h3>
+                            <p className="text-[11px] text-gray-400 font-medium">Distribución apilada por tipo de solicitud</p>
+                        </div>
+                        {filters.mesCreacion.length > 0 && (
+                            <button
+                                onClick={(e) => onFilterToggle('mesCreacion', filters.mesCreacion[0], e)}
+                                className="text-[10px] font-semibold text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1"
+                                title="Limpiar filtro de mes"
+                            >
+                                Limpiar filtro mes ✕
+                            </button>
+                        )}
+                    </div>
                     <div className="h-[400px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={registrosPorMes} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <ComposedChart data={registrosPorMes} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                 <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                                 <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                                <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Bar isAnimationActive={false} 
-                                    dataKey="Registros" 
-                                    radius={[4, 4, 0, 0]} 
-                                    maxBarSize={60}
-                                    onClick={(data: any, index: number, e: any) => onFilterToggle('mesCreacion', data.payload?.key, e)}
-                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                <RechartsTooltip content={<CustomIngresosTooltip />} cursor={{ fill: '#f9fafb' }} />
+                                <Legend 
+                                    iconType="circle" 
+                                    wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                    formatter={(value: string) => {
+                                        const isFiltered = filters.tipoSolicitud.length > 0;
+                                        const isThisSelected = filters.tipoSolicitud.some(f => f.toLowerCase() === value.toLowerCase());
+                                        return (
+                                            <span 
+                                                className={`cursor-pointer transition-opacity ${isFiltered && !isThisSelected ? 'opacity-35 line-through' : 'font-semibold text-gray-700'}`}
+                                                title={`Clic para filtrar por ${value}`}
+                                            >
+                                                {value}
+                                            </span>
+                                        );
+                                    }}
+                                    onClick={(e: any) => {
+                                        if (e && (e.dataKey || e.value)) {
+                                            onFilterToggle('tipoSolicitud', e.dataKey || e.value);
+                                        }
+                                    }}
+                                />
+                                {tiposSolicitudMes.length > 0 ? (
+                                    tiposSolicitudMes.map((tipo, index) => {
+                                        const color = getTipoSolicitudColor(tipo, index);
+                                        const isTop = index === tiposSolicitudMes.length - 1;
+                                        return (
+                                            <Bar
+                                                key={tipo}
+                                                dataKey={tipo}
+                                                name={tipo}
+                                                stackId="tipoSolStack"
+                                                fill={color}
+                                                isAnimationActive={false}
+                                                maxBarSize={60}
+                                                radius={isTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                                                onClick={(barData: any, i: number, e: any) => onFilterToggle('mesCreacion', barData.payload?.key, e)}
+                                                className="cursor-pointer hover:opacity-85 transition-opacity"
+                                            >
+                                                {registrosPorMes.map((entry, idx) => (
+                                                    <Cell
+                                                        key={`cell-${tipo}-${idx}`}
+                                                        fill={color}
+                                                        fillOpacity={filters.mesCreacion.length === 0 || filters.mesCreacion.includes(entry.key) ? 1 : 0.25}
+                                                    />
+                                                ))}
+                                            </Bar>
+                                        );
+                                    })
+                                ) : (
+                                    <Bar
+                                        dataKey="Registros"
+                                        fill="#254153"
+                                        radius={[4, 4, 0, 0]}
+                                        maxBarSize={60}
+                                        isAnimationActive={false}
+                                        onClick={(barData: any, i: number, e: any) => onFilterToggle('mesCreacion', barData.payload?.key, e)}
+                                    >
+                                        {registrosPorMes.map((entry, index) => (
+                                            <Cell
+                                                key={`cell-mes-${index}`}
+                                                fill="#254153"
+                                                fillOpacity={filters.mesCreacion.length === 0 || filters.mesCreacion.includes(entry.key) ? 1 : 0.25}
+                                            />
+                                        ))}
+                                    </Bar>
+                                )}
+                                <Line
+                                    type="monotone"
+                                    dataKey="total"
+                                    stroke="transparent"
+                                    dot={false}
+                                    legendType="none"
+                                    tooltipType="none"
+                                    isAnimationActive={false}
                                 >
-                                    {registrosPorMes.map((entry, index) => (
-                                        <Cell key={`cell-mes-${index}`} fill="#254153" fillOpacity={filters.mesCreacion.length === 0 || filters.mesCreacion.includes(entry.key) ? 1 : 0.25} />
-                                    ))}
-                                    <LabelList dataKey="Registros" position="top" style={{ fill: '#6b7280', fontSize: 12, fontWeight: 'bold' }} />
-                                </Bar>
-                            </BarChart>
+                                    <LabelList
+                                        dataKey="total"
+                                        position="top"
+                                        offset={8}
+                                        style={{ fill: '#374151', fontSize: 12, fontWeight: 'bold' }}
+                                    />
+                                </Line>
+                            </ComposedChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
