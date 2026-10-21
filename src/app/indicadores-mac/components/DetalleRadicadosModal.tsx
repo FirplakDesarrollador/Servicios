@@ -49,6 +49,7 @@ export default function DetalleRadicadosModal({ isOpen, onClose, data }: Props) 
                                         <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider border-b">Fecha Cierre</th>
                                         <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider border-b">Días Hábiles</th>
                                         <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider border-b">Cliente</th>
+                                        <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider border-b">Mercado</th>
                                         <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider border-b">Ciudad</th>
                                         <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider border-b">Productos</th>
                                         <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider border-b">Defectos</th>
@@ -77,6 +78,17 @@ export default function DetalleRadicadosModal({ isOpen, onClose, data }: Props) 
                                             </td>
                                             <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate" title={d._clientePrincipalFinal}>
                                                 {d._clientePrincipalFinal}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                                    d._mercado === 'Internacional'
+                                                        ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                                                        : d._mercado === 'Nacional'
+                                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                                            : 'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                    {d._mercado || 'Sin clasificar'}
+                                                </span>
                                             </td>
                                             <td className="px-4 py-3 text-gray-700 max-w-[150px] truncate">
                                                 {d._ciudad}

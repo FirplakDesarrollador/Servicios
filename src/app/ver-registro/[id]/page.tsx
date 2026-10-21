@@ -475,11 +475,29 @@ export default function VerRegistroPage() {
                             </h3>
 
                             {/* Estado Badge Block */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-gray-150 bg-slate-50">
-                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Estado</span>
-                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' : 'bg-amber-50 text-amber-700 border-amber-200/60'}`}>
-                                    {registro.cerrada || registro.estado === 'Cerrado' ? 'Cerrado' : 'Abierto'}
-                                </span>
+                            <div className="flex flex-col gap-2 p-2.5 rounded-lg border border-gray-150 bg-slate-50">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Estado</span>
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${registro.cerrada || registro.estado === 'Cerrado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' : 'bg-amber-50 text-amber-700 border-amber-200/60'}`}>
+                                        {registro.cerrada || registro.estado === 'Cerrado' ? 'Cerrado' : 'Abierto'}
+                                    </span>
+                                </div>
+                                {registro.fecha_cierre && (
+                                    <div className="flex items-center justify-between pt-1.5 border-t border-gray-200/50 text-[9px]">
+                                        <span className="text-slate-500 font-medium">Cierre en sistema:</span>
+                                        <span className="font-bold text-slate-700">
+                                            {new Date(registro.fecha_cierre).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })} {new Date(registro.fecha_cierre).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                )}
+                                {registro.fecha_verificacion && (
+                                    <div className="flex items-center justify-between pt-1 border-t border-gray-200/40 text-[9px]">
+                                        <span className="text-slate-500 font-medium">Solución / Verif.:</span>
+                                        <span className="font-semibold text-slate-600">
+                                            {registro.fecha_verificacion}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Prioridad Select Dropdown */}
@@ -619,6 +637,7 @@ export default function VerRegistroPage() {
                                             }).eq('id', registro.id);
                                             if (error) throw error;
                                             setRegistro((prev: any) => ({ ...prev, cerrada: newCerrada, estado: newEstado, fecha_cierre: newFechaCierre }));
+                                            alert(newCerrada ? '¡Solicitud cerrada exitosamente! Se registró la fecha y hora de cierre en el sistema.' : 'Solicitud reabierta.');
                                         } catch (error) {
                                             console.error('Error toggling state:', error);
                                             alert('Error al cambiar el estado de la solicitud');
@@ -1673,7 +1692,7 @@ function ClasificacionTab({
                                                 <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
                                             </label>
                                             <select
-                                                value={prod.familia || ''}
+                                                value={FAMILIA_OPTIONS.find(f => f.toLowerCase() === String(prod.familia || '').trim().toLowerCase()) || ''}
                                                 onChange={(e) => updateClasificacionProduct(idx, 'familia', e.target.value)}
                                                 className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
                                                     globalClasificacion.fecha_verificacion && !prod.familia
@@ -1694,7 +1713,7 @@ function ClasificacionTab({
                                                 <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
                                             </label>
                                             <select
-                                                value={prod.planta || ''}
+                                                value={PLANTA_OPTIONS.find(p => p.toLowerCase() === String(prod.planta || '').trim().toLowerCase()) || ''}
                                                 onChange={(e) => updateClasificacionProduct(idx, 'planta', e.target.value)}
                                                 className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
                                                     globalClasificacion.fecha_verificacion && !prod.planta

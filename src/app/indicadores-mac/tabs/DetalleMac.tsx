@@ -309,8 +309,17 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
         const today = new Date();
         const isToday = (dateString: string | null | undefined) => {
             if (!dateString) return false;
-            // Parse robustly handling string formats
-            const d = new Date(dateString);
+            let d: Date;
+            if (dateString.includes('T')) {
+                d = new Date(dateString);
+            } else {
+                const parts = dateString.trim().split('-');
+                if (parts.length === 3) {
+                    d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                } else {
+                    d = new Date(dateString);
+                }
+            }
             if (isNaN(d.getTime())) return false;
             return d.getDate() === today.getDate() && 
                    d.getMonth() === today.getMonth() && 
@@ -332,7 +341,8 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                 agentMap[agent].radicadosHoy++;
                 radicadosTotalHoy++;
             }
-            if (d.estado === 'Cerrado' && isToday(d.fecha_verificacion)) {
+            const fechaAccionCierre = d.fecha_cierre || d.fecha_verificacion;
+            if (d.estado === 'Cerrado' && isToday(fechaAccionCierre)) {
                 agentMap[agent].cerradosHoy++;
                 cerradosTotalHoy++;
             }
@@ -367,13 +377,29 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
 
         const parseAndAdd = (rawDate: string, type: 'Radicados' | 'Cerrados') => {
             if (!rawDate) return;
-            const dateStr = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
+            let dateStr = '';
+            let ts = 0;
+
+            if (rawDate.includes('T')) {
+                const d = new Date(rawDate);
+                if (isNaN(d.getTime())) return;
+                dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                ts = new Date(dateStr + "T12:00:00").getTime();
+            } else {
+                const cleanDate = rawDate.trim().split(' ')[0];
+                const parts = cleanDate.split('-');
+                if (parts.length === 3) {
+                    dateStr = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                    ts = new Date(dateStr + "T12:00:00").getTime();
+                } else {
+                    const d = new Date(cleanDate);
+                    if (isNaN(d.getTime())) return;
+                    dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    ts = d.getTime();
+                }
+            }
             
-            // Validar que sea un string de fecha válido
-            const d = new Date(dateStr + "T00:00:00"); 
-            const ts = d.getTime();
-            
-            if (isNaN(ts)) return;
+            if (!dateStr || isNaN(ts)) return;
             // Ignorar fechas en el futuro (márgen de 1 día por zonas horarias)
             if (ts > now + 86400000) return;
 
@@ -388,9 +414,9 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                 parseAndAdd(d.created_at, 'Radicados');
             }
             if (d.estado === 'Cerrado') {
-                const fechaCierreReal = d.fecha_verificacion;
-                if (fechaCierreReal) {
-                    parseAndAdd(fechaCierreReal, 'Cerrados');
+                const fechaAccionCierre = d.fecha_cierre || d.fecha_verificacion;
+                if (fechaAccionCierre) {
+                    parseAndAdd(fechaAccionCierre, 'Cerrados');
                 }
             }
         });

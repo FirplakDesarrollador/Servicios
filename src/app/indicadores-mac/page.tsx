@@ -19,25 +19,48 @@ const InformeMac = lazy(() => import('./tabs/InformeMac'));
 const AnalisisMac = lazy(() => import('./tabs/AnalisisMac'));
 const QrrMac = lazy(() => import('./tabs/QrrMac'));
 
-// ── Helpers para normalización de grupo ────────────────────────────────────
+// ── Helpers para normalización de grupo / familia ───────────────────────────
 const normalizeGrupo = (g: string): string => {
-    if (!g) return '';
-    const norm = String(g).trim().toUpperCase();
-    if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
-    if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES'].includes(norm)) return 'Baño';
-    if (['HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROTERAPIA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
-    if (['REPUESTO', 'REPUESTOS', 'REPOSICION', 'MPDIRECT'].includes(norm)) return 'Comercializados';
-    if (['LAVARROPAS', 'ROPA', 'ROPAS', 'LABORES'].includes(norm)) return 'Labores';
-    if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
-    if (['GRIFERIA', 'GRIFERIAS', 'GRIFERÍA'].includes(norm)) return 'Grifería';
-    if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomería';
-    if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
-    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado & Mantenimiento';
+    if (!g || g === 'En Blanco' || g.toLowerCase() === 'en blanco') return 'En Blanco';
+    const norm = String(g).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (['COCINA', 'COCINAS'].includes(norm)) return 'Cocinas';
+    if (['BANO', 'BANOS'].includes(norm)) return 'Baño';
+    if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA'].includes(norm)) return 'Hidroterapia';
+    if (['LABOR', 'LABORES'].includes(norm)) return 'Labores';
+    if (['GRIFERIA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
+    if (['PLOMERIA', 'PLOMERIAS'].includes(norm)) return 'Plomeria';
+    if (['SERVICIO', 'SERVICIOS'].includes(norm)) return 'Servicios';
+    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO'].includes(norm)) return 'Cuidado&Mantenimiento';
+    return 'En Blanco';
+};
 
-    if (norm.includes('HIDROPOR') || norm.includes('HIDROEMP')) return 'Hidroterapia';
-    if (norm.includes('MPDIRECT')) return 'Comercializados';
+const normalizePlantaName = (planta: string): string => {
+    if (!planta || !String(planta).trim() || String(planta).trim().toLowerCase().includes('seleccione')) return 'En Blanco';
+    const p = String(planta).toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (['MARMOL', 'MARMOLES', 'PC'].includes(p)) return 'Marmol';
+    if (['MUEBLE', 'MUEBLES', 'MBL'].includes(p)) return 'Muebles';
+    if (['FIBRA', 'FIBRAS', 'FV', 'FVHM', 'FVHMP'].includes(p)) return 'Fibra';
+    if (['COMERCIALIZADO', 'COMERCIALIZADOS'].includes(p)) return 'Comercializado';
+    if (['SERVICIO', 'SERVICIOS'].includes(p)) return 'Servicios';
+    if (p === 'RTM') return 'RTM';
+    if (['QUARZTONE', 'CUARZO'].includes(p)) return 'Quarztone';
+    return 'En Blanco';
+};
 
-    return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
+const getGrupoForProduct = (p: any): string => {
+    const rawGrupo = p?.familia;
+    if (!rawGrupo || typeof rawGrupo !== 'string' || !String(rawGrupo).trim() || String(rawGrupo).toLowerCase().includes('seleccione')) {
+        return 'En Blanco';
+    }
+    return normalizeGrupo(rawGrupo);
+};
+
+const getPlantaForProduct = (p: any): string => {
+    const rawPlanta = p?.planta;
+    if (!rawPlanta || typeof rawPlanta !== 'string' || !String(rawPlanta).trim() || String(rawPlanta).toLowerCase().includes('seleccione')) {
+        return 'En Blanco';
+    }
+    return normalizePlantaName(rawPlanta);
 };
 
 const CANAL_VENTA_MAP: Record<string, string> = {
@@ -134,6 +157,7 @@ export default function IndicadoresMacPage() {
         mesPresupuesto: [],
         mesCreacion: [],
         estadoRiesgo: [],
+        mercado: [],
     });
 
     useEffect(() => {
@@ -149,7 +173,7 @@ export default function IndicadoresMacPage() {
                 defectosResult,
                 responsablesResult,
                 zonasResult,
-                productosResult,
+                clientesResult,
             ] = await Promise.all([
                 supabase
                     .from('registro_solicitudes')
@@ -157,14 +181,14 @@ export default function IndicadoresMacPage() {
                         *,
                         Usuarios!registro_solicitudes_tratado_por_id_fkey(nombres, apellidos, rol),
                         AsesorMAC:Usuarios!registro_solicitudes_asesor_mac_id_fkey(nombres, apellidos),
-                        Ubicaciones:cliente_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona))),
+                        Ubicaciones:cliente_id(id, cliente_id, nit, nombre, ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona))),
                         Consumidores:cliente_final_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona)))
                     `),
                 supabase.from('razones_queja').select('id, razon'),
                 supabase.from('defectos').select('id, defecto'),
                 supabase.from('responsable_queja').select('id, responsable'),
                 supabase.from('zonas').select('id, zona'),
-                supabase.from('Productos').select('nombre, sku, grupo, planta'),
+                supabase.from('Clientes').select('id, nombre, nit, Mercado').limit(5000),
             ]);
 
             if (registrosResult.error) throw registrosResult.error;
@@ -173,29 +197,10 @@ export default function IndicadoresMacPage() {
             const defectosData = defectosResult.data || [];
             const responsablesData = responsablesResult.data || [];
             const zonasRef = zonasResult.data || [];
-            const productosCatalogData = productosResult.data || [];
 
             setRazones(razonesData);
             setDefectosRef(defectosData);
             setResponsablesRef(responsablesData);
-
-            // ── Pre-construir Maps de lookup O(1) ────────────────────────────
-            const skuToGrupoMap = new Map<string, string>();
-            const nombreToGrupoMap = new Map<string, string>();
-            const skuToPlantaMap = new Map<string, string>();
-            const nombreToPlantaMap = new Map<string, string>();
-            productosCatalogData.forEach((prod: any) => {
-                if (prod.grupo) {
-                    const grupoVal = String(prod.grupo).trim().toUpperCase();
-                    if (prod.sku) skuToGrupoMap.set(String(prod.sku).trim().toLowerCase(), grupoVal);
-                    if (prod.nombre) nombreToGrupoMap.set(String(prod.nombre).trim().toLowerCase(), grupoVal);
-                }
-                if (prod.planta) {
-                    const plantaVal = String(prod.planta).trim().toUpperCase();
-                    if (prod.sku) skuToPlantaMap.set(String(prod.sku).trim().toLowerCase(), plantaVal);
-                    if (prod.nombre) nombreToPlantaMap.set(String(prod.nombre).trim().toLowerCase(), plantaVal);
-                }
-            });
 
             // Maps de lookup para IDs → nombres (O(1) en vez de .find())
             const defectosMap = new Map<string, string>(defectosData.map((d: any) => [String(d.id), d.defecto]));
@@ -203,72 +208,43 @@ export default function IndicadoresMacPage() {
             const responsablesMap = new Map<string, string>(responsablesData.map((r: any) => [String(r.id), r.responsable]));
             const zonasMap = new Map<string, string>(zonasRef.map((z: any) => [String(z.id), z.zona]));
 
+            // Maps de lookup para Clientes → Mercado (O(1))
+            const clientesData = (clientesResult.data || []) as any[];
+            const clienteByIdMap = new Map<number, string>();
+            const clienteByNitMap = new Map<string, string>();
+            const clienteByNameMap = new Map<string, string>();
+
+            clientesData.forEach((c: any) => {
+                const rawMercado = c.Mercado || c.mercado;
+                let normMercado = 'Sin clasificar';
+                if (rawMercado && String(rawMercado).trim()) {
+                    const trimmed = String(rawMercado).trim();
+                    const lower = trimmed.toLowerCase();
+                    if (lower === 'nacional') normMercado = 'Nacional';
+                    else if (lower === 'internacional') normMercado = 'Internacional';
+                    else normMercado = trimmed;
+                }
+
+                if (c.id) clienteByIdMap.set(Number(c.id), normMercado);
+                if (c.nit) {
+                    const cleanNit = String(c.nit).trim().replace(/\s+/g, '');
+                    if (cleanNit) {
+                        clienteByNitMap.set(cleanNit, normMercado);
+                        const digits = cleanNit.replace(/\D/g, '');
+                        if (digits) clienteByNitMap.set(digits, normMercado);
+                    }
+                }
+                if (c.nombre) {
+                    const cleanName = String(c.nombre).trim().toLowerCase();
+                    if (cleanName) clienteByNameMap.set(cleanName, normMercado);
+                }
+            });
+
             const getNombreProblemaDirect = (id: number | string): string => {
                 const key = String(id);
                 return defectosMap.get(key) || razonesMap.get(key) || `ID ${id}`;
             };
 
-            const getGrupoForProduct = (p: any) => {
-                let rawGrupo = p.familia || p.grupo || p.grupo_producto || p.linea || '';
-                if (rawGrupo) {
-                    const norm = normalizeGrupo(rawGrupo);
-                    if (norm) return norm;
-                }
-
-                const code = String(p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '').trim().toLowerCase();
-                if (code && skuToGrupoMap.has(code)) return normalizeGrupo(skuToGrupoMap.get(code)!);
-
-                const desc = String(p.descripcion || p.nombre || p.producto || '').trim().toLowerCase();
-                if (desc && nombreToGrupoMap.has(desc)) return normalizeGrupo(nombreToGrupoMap.get(desc)!);
-
-                for (const [nombreKey, grupoVal] of nombreToGrupoMap.entries()) {
-                    if (nombreKey && (desc.includes(nombreKey) || nombreKey.includes(desc))) return normalizeGrupo(grupoVal);
-                }
-
-                const upperDesc = desc.toUpperCase();
-                if (upperDesc.includes('COCINA') || upperDesc.includes('MESON') || upperDesc.includes('LAVAPLATOS') || upperDesc.includes('AGATA') || upperDesc.includes('FORT') || upperDesc.includes('KORE') || upperDesc.includes('ZAREL') || upperDesc.includes('AMBAR') || upperDesc.includes('HACEB') || upperDesc.includes('CUBIERTA')) return 'COCINAS';
-                if (upperDesc.includes('BAÑO') || upperDesc.includes('BANO') || upperDesc.includes('LAVAMANOS') || upperDesc.includes('LVM') || upperDesc.includes('MUEBLE') || upperDesc.includes('MBLE') || upperDesc.includes('OSLO') || upperDesc.includes('SIENA') || upperDesc.includes('KOA') || upperDesc.includes('SODER') || upperDesc.includes('MALI')) return 'BAÑOS';
-                if (upperDesc.includes('HIDROMASAJE') || upperDesc.includes('SPA') || upperDesc.includes('TINA') || upperDesc.includes('PULSADOR') || upperDesc.includes('CATALUÑA') || upperDesc.includes('ISLA')) return 'HIDROMASAJES';
-                if (upperDesc.includes('LAVARROPAS') || upperDesc.includes('ROPAS') || upperDesc.includes('ROPA')) return 'ROPAS';
-                if (upperDesc.includes('HIDROPOR')) return 'HIDROMASAJES';
-                if (upperDesc.includes('MPDIRECT')) return 'MPDIRECT';
-                if (upperDesc.includes('HIDROEMP')) return 'HIDROMASAJES';
-                if (upperDesc.includes('REPUESTO') || upperDesc.includes('REPOSICION')) return 'REPUESTOS';
-                if (upperDesc.includes('INFRAESTRUCTURA') || upperDesc.includes('PATA') || upperDesc.includes('PISO')) return 'INFRAESTRUCTURA';
-
-                return 'OTROS';
-            };
-
-            const normalizePlantaName = (planta: string) => {
-                const p = String(planta).toUpperCase().trim();
-                if (p === 'MBL' || p === 'MUEBLES') return 'Muebles';
-                if (p === 'PC' || p === 'MARMOL' || p === 'MÁRMOL') return 'Marmol';
-                if (p === 'KIT') return 'Kit';
-                if (p === 'FVHM' || p === 'FVHMP' || p === 'FV' || p === 'FIBRA') return 'Fibra';
-                if (p === 'COMERCIALIZADO' || p === 'COMERCIALIZADOS') return 'Comercializado';
-                if (p === 'SERVICIOS' || p === 'SERVICIO') return 'Servicios';
-                if (p === 'RTM') return 'RTM';
-                if (p === 'QUARZTONE' || p === 'CUARZO') return 'Quarztone';
-                if (p === 'NO DEFINIDA' || p === '') return 'No Definida';
-                return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
-            };
-
-            const getPlantaForProduct = (p: any) => {
-                let rawPlanta = p.planta || p._planta || '';
-                if (rawPlanta) return normalizePlantaName(rawPlanta);
-
-                const code = String(p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '').trim().toLowerCase();
-                if (code && skuToPlantaMap.has(code)) return normalizePlantaName(skuToPlantaMap.get(code)!);
-
-                const desc = String(p.descripcion || p.nombre || p.producto || '').trim().toLowerCase();
-                if (desc && nombreToPlantaMap.has(desc)) return normalizePlantaName(nombreToPlantaMap.get(desc)!);
-
-                for (const [nombreKey, plantaVal] of nombreToPlantaMap.entries()) {
-                    if (nombreKey && (desc.includes(nombreKey) || nombreKey.includes(desc))) return normalizePlantaName(plantaVal);
-                }
-
-                return 'NO DEFINIDA';
-            };
 
             // ── Pre-convertir `created_at` a timestamp numérico ──────────────
             const now = Date.now();
@@ -325,24 +301,41 @@ export default function IndicadoresMacPage() {
                 const _responsablesNombres = new Set<string>();
                 const _productosNombres = new Set<string>();
                 const _plantasNombres = new Set<string>();
+                const _gruposNombres = new Set<string>();
 
+                // productos_compra SOLO aporta descripciones de producto / sku para filtros de productos (NUNCA plantas ni grupos)
                 if (Array.isArray(r.productos_compra)) {
                     r.productos_compra.forEach((p: any) => {
-                        p._grupo = getGrupoForProduct(p);
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
-                        if (p._grupo) _productosNombres.add(p._grupo);
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                     });
                 }
 
-                if (Array.isArray(r.productos_novedad)) {
+                // El UNICO origen de Plantas y Grupos/Familias es productos_novedad (JSON guardado en cada radicado)
+                let hasValidPlanta = false;
+                let hasValidGrupo = false;
+
+                if (Array.isArray(r.productos_novedad) && r.productos_novedad.length > 0) {
                     r.productos_novedad.forEach((p: any) => {
                         p._grupo = getGrupoForProduct(p);
                         p._planta = getPlantaForProduct(p);
+
+                        if (p._grupo && p._grupo !== 'En Blanco') {
+                            hasValidGrupo = true;
+                            _gruposNombres.add(String(p._grupo).toUpperCase().trim());
+                        } else {
+                            _gruposNombres.add('EN BLANCO');
+                        }
+
+                        if (p._planta && p._planta !== 'En Blanco') {
+                            hasValidPlanta = true;
+                            _plantasNombres.add(String(p._planta).toUpperCase().trim());
+                        } else {
+                            _plantasNombres.add('EN BLANCO');
+                        }
+
                         _productosNombres.add(p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido');
-                        if (p._grupo) _productosNombres.add(p._grupo);
-                        if (p._planta) _plantasNombres.add(String(p._planta).toUpperCase().trim());
                         const code = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod;
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                         let hasProblema = false;
@@ -374,17 +367,65 @@ export default function IndicadoresMacPage() {
                             p.responsable = nombreResp;
                         }
                     });
+                } else {
+                    _gruposNombres.add('EN BLANCO');
+                    _plantasNombres.add('EN BLANCO');
                 }
+
+                if (!hasValidPlanta) _plantasNombres.add('EN BLANCO');
+                if (!hasValidGrupo) _gruposNombres.add('EN BLANCO');
 
                 const fechaObjetivo = addBusinessDays(createdAt, 15);
                 const mesPresupuestoKey = `${fechaObjetivo.getFullYear()}-${String(fechaObjetivo.getMonth() + 1).padStart(2, '0')}`;
                 const mesCreacionKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
                 const clienteFinalOrPrincipal = r.cliente_final_nombre || r.cliente_nombre || 'Desconocido';
 
+                // Determinar Mercado a través de Clientes
+                let mercado = 'Sin clasificar';
+                const ubiClienteId = r.Ubicaciones?.cliente_id;
+                if (ubiClienteId && clienteByIdMap.has(Number(ubiClienteId))) {
+                    mercado = clienteByIdMap.get(Number(ubiClienteId))!;
+                } else if (r.cliente_id && clienteByIdMap.has(Number(r.cliente_id))) {
+                    mercado = clienteByIdMap.get(Number(r.cliente_id))!;
+                }
+
+                if (mercado === 'Sin clasificar' && r.Ubicaciones?.nit) {
+                    const cleanNit = String(r.Ubicaciones.nit).trim().replace(/\s+/g, '');
+                    const digits = cleanNit.replace(/\D/g, '');
+                    if (clienteByNitMap.has(cleanNit)) {
+                        mercado = clienteByNitMap.get(cleanNit)!;
+                    } else if (digits && clienteByNitMap.has(digits)) {
+                        mercado = clienteByNitMap.get(digits)!;
+                    }
+                }
+
+                if (mercado === 'Sin clasificar') {
+                    const candidates = [r.cliente_nombre, r.Ubicaciones?.nombre].filter(Boolean);
+                    for (const cand of candidates) {
+                        const cleanCand = String(cand).trim().toLowerCase();
+                        if (cleanCand && clienteByNameMap.has(cleanCand)) {
+                            mercado = clienteByNameMap.get(cleanCand)!;
+                            break;
+                        }
+                    }
+                }
+
+                if (mercado === 'Sin clasificar' && r.canal_venta) {
+                    const canalLower = String(r.canal_venta).toLowerCase();
+                    if (canalLower.includes('ecommerce') || canalLower.includes('firplakhome') || canalLower.includes('propio')) {
+                        mercado = 'Nacional';
+                    } else if (canalLower.includes('exportador') || canalLower.includes('exportacion')) {
+                        mercado = 'Internacional';
+                    }
+                }
+
                 return {
                     ...r,
+                    fecha_cierre: r.fecha_cierre || null,
                     canal_venta: CANAL_VENTA_MAP[r.canal_venta] || r.canal_venta,
                     estado,
+                    mercado,
+                    _mercado: mercado,
                     // ── Timestamps numéricos para filtros rápidos ──────────────
                     _createdAtTs: createdAtTs,
                     _fechaCierre: fechaCierre,
@@ -399,6 +440,7 @@ export default function IndicadoresMacPage() {
                     _responsablesNombres: Array.from(_responsablesNombres),
                     _productosNombres: Array.from(_productosNombres),
                     _plantasNombres: Array.from(_plantasNombres),
+                    _gruposNombres: Array.from(_gruposNombres),
                     _clientePrincipalFinal: clienteFinalOrPrincipal,
                     _mesPresupuestoKey: mesPresupuestoKey,
                     _mesCreacionKey: mesCreacionKey,
@@ -426,6 +468,10 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('fechaFinal') && fechaFinalTs !== null && ts > fechaFinalTs) return false;
 
             if (!excludeKeys.includes('estado') && filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
+            if (!excludeKeys.includes('mercado') && filters.mercado && filters.mercado.length > 0) {
+                const itemMercado = (d as any)._mercado || 'Sin clasificar';
+                if (!filters.mercado.includes(itemMercado)) return false;
+            }
             if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0) {
                 const activeFilters = filters.canalVenta.map(f => f.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
                 const dCanal = (d.canal_venta || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -459,26 +505,11 @@ export default function IndicadoresMacPage() {
             if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.some((rn: any) => String(rn).toUpperCase().trim() === String(f).toUpperCase().trim()))) return false;
             if (!excludeKeys.includes('productos') && filters.productos.length > 0 && !filters.productos.some(f => {
                 if (String(f).toUpperCase().startsWith('PL:')) {
-                    const plantaName = String(f).substring(3);
-                    return d._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === plantaName.toUpperCase().trim());
+                    const plantaName = normalizePlantaName(String(f).substring(3)).toUpperCase().trim();
+                    return d._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === plantaName);
                 } else if (String(f).toUpperCase().startsWith('GF:')) {
-                    const normalizeGroupNameGlobal = (g: string): string => {
-                        if (!g) return 'Otros';
-                        let norm = String(g).trim().toUpperCase();
-                        if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
-                        if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
-                        if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
-                        if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
-                        if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
-                        if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
-                        if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
-                        if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
-                        if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
-                        if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
-                        return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
-                    };
-                    const groupName = normalizeGroupNameGlobal(String(f).substring(3));
-                    return d._productosNombres?.some((pn: any) => normalizeGroupNameGlobal(String(pn)) === groupName);
+                    const groupName = normalizeGrupo(String(f).substring(3)).toUpperCase().trim();
+                    return (d as any)._gruposNombres?.some((gn: any) => String(gn).toUpperCase().trim() === groupName);
                 } else {
                     return d._productosNombres?.some((pn: any) => String(pn).toUpperCase().trim() === String(f).toUpperCase().trim());
                 }
@@ -500,6 +531,7 @@ export default function IndicadoresMacPage() {
     const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [getFilteredData]);
     const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [getFilteredData]);
     const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [getFilteredData]);
+    const dataForMercado = useMemo(() => getFilteredData(['mercado']), [getFilteredData]);
     const dataForEstadoRiesgo = useMemo(() => getFilteredData(['estadoRiesgo']), [getFilteredData]);
 
     // ── useCallback para evitar re-renders innecesarios en hijos ─────────────
@@ -556,6 +588,7 @@ export default function IndicadoresMacPage() {
             baseRow['Cliente_Principal'] = d.cliente_nombre || 'No definido';
             baseRow['Cliente_Final'] = d.cliente_final_nombre || 'No definido';
             baseRow['Canal_Venta'] = d.canal_venta || 'No definido';
+            baseRow['Mercado'] = d._mercado || 'Sin clasificar';
             baseRow['Agente_MAC'] = d._agenteNombre || 'Sin Asignar';
             baseRow['Ciudad'] = d._ciudad || 'No definida';
             baseRow['Zona'] = d._zona || 'No definida';
@@ -582,9 +615,9 @@ export default function IndicadoresMacPage() {
                         'Novedad_SKU': pn.sku || pn.codigo || '',
                         'Novedad_Referencia': pn.referencia || pn.sku || pn.codigo || '',
                         'Novedad_Descripcion': pn.descripcion || pn.nombre || '',
-                        'Novedad_Grupo': pn.grupo || '',
-                        'Novedad_Familia': pn.familia || '',
-                        'Novedad_Planta': pn.planta || '',
+                        'Novedad_Grupo': getGrupoForProduct(pn),
+                        'Novedad_Familia': getGrupoForProduct(pn),
+                        'Novedad_Planta': getPlantaForProduct(pn),
                         'Novedad_Medidas': pn.medidas || '',
                         'Novedad_Tipo_Problema': prob.tipo_problema_id ? (razonesMapExport.get(String(prob.tipo_problema_id)) || prob.tipo_problema_id) : '',
                         'Novedad_Responsable_Problema': prob.responsable_problema_id ? (responsablesMapExport.get(String(prob.responsable_problema_id)) || prob.responsable_problema_id) : '',
@@ -697,11 +730,12 @@ export default function IndicadoresMacPage() {
             </header>
 
             {/* Breadcrumb de Filtros Activos y Limpiar */}
-            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0 || filters.canalVenta.length > 0) && (
+            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0 || filters.canalVenta.length > 0 || filters.mercado.length > 0) && (
                 <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
                     <div className="flex flex-wrap items-center gap-2 flex-1">
                         <span className="text-xs font-bold text-gray-500 mr-2 flex items-center gap-1"><ListFilterIcon className="w-3.5 h-3.5" />Filtros cruzados:</span>
                         {[
+                            { key: 'mercado', label: 'Mercado' },
                             { key: 'defectos', label: 'Defecto' },
                             { key: 'productos', label: 'Producto' },
                             { key: 'ciudades', label: 'Ciudad' },
@@ -739,7 +773,7 @@ export default function IndicadoresMacPage() {
                         </button>
                         <button
                             onClick={() => setFilters(prev => ({
-                                ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: []
+                                ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: [], mercado: []
                             }))}
                             className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
                         >
@@ -789,6 +823,7 @@ export default function IndicadoresMacPage() {
                                         dataForProductos={dataForProductos}
                                         dataForMesCreacion={dataForMesCreacion}
                                         dataForCanalVenta={dataForCanalVenta}
+                                        dataForMercado={dataForMercado}
                                         prevData={data}
                                         filters={filters}
                                         setFilters={setFilters}

@@ -60,24 +60,31 @@ const normalizeZoneName = (z: string | undefined | null): string => {
     return String(z).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 };
 
+const normalizePlantaName = (planta: string) => {
+    if (!planta || !String(planta).trim() || String(planta).trim().toLowerCase().includes('seleccione')) return 'En Blanco';
+    const p = String(planta).toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (['MARMOL', 'MARMOLES', 'PC'].includes(p)) return 'Marmol';
+    if (['MUEBLE', 'MUEBLES', 'MBL'].includes(p)) return 'Muebles';
+    if (['FIBRA', 'FIBRAS', 'FV', 'FVHM', 'FVHMP'].includes(p)) return 'Fibra';
+    if (['COMERCIALIZADO', 'COMERCIALIZADOS'].includes(p)) return 'Comercializado';
+    if (['SERVICIO', 'SERVICIOS'].includes(p)) return 'Servicios';
+    if (p === 'RTM') return 'RTM';
+    if (['QUARZTONE', 'CUARZO'].includes(p)) return 'Quarztone';
+    return 'En Blanco';
+};
+
 const normalizeGrupoName = (g: string): string => {
-    if (!g) return 'OTROS';
-    const norm = String(g).trim().toUpperCase();
-    if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
-    if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES'].includes(norm)) return 'Baño';
-    if (['HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROTERAPIA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
-    if (['REPUESTO', 'REPUESTOS', 'REPOSICION', 'MPDIRECT'].includes(norm)) return 'Comercializados';
-    if (['LAVARROPAS', 'ROPA', 'ROPAS', 'LABORES'].includes(norm)) return 'Labores';
-    if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
-    if (['GRIFERIA', 'GRIFERIAS', 'GRIFERÍA'].includes(norm)) return 'Grifería';
-    if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomería';
-    if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
-    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado & Mantenimiento';
-
-    if (norm.includes('HIDROPOR') || norm.includes('HIDROEMP')) return 'Hidroterapia';
-    if (norm.includes('MPDIRECT')) return 'Comercializados';
-
-    return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
+    if (!g || g === 'En Blanco' || g.toLowerCase() === 'en blanco') return 'En Blanco';
+    const norm = String(g).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (['COCINA', 'COCINAS'].includes(norm)) return 'Cocinas';
+    if (['BANO', 'BANOS'].includes(norm)) return 'Baño';
+    if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA'].includes(norm)) return 'Hidroterapia';
+    if (['LABOR', 'LABORES'].includes(norm)) return 'Labores';
+    if (['GRIFERIA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
+    if (['PLOMERIA', 'PLOMERIAS'].includes(norm)) return 'Plomeria';
+    if (['SERVICIO', 'SERVICIOS'].includes(norm)) return 'Servicios';
+    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO'].includes(norm)) return 'Cuidado&Mantenimiento';
+    return 'En Blanco';
 };
 
 const normalizeCanalName = (g: string): string => {
@@ -91,15 +98,9 @@ const normalizeCanalName = (g: string): string => {
 };
 
 const getGrupoFromProduct = (p: any): string => {
-    let grupoRaw = p.familia || p._grupo || p.grupo || p.grupo_producto || p.linea || p.categoria || '';
-    if (!grupoRaw) {
-        const desc = (p.descripcion || p.nombre || '').toUpperCase();
-        if (desc.includes('COCINA') || desc.includes('MESON') || desc.includes('LAVAPLATOS')) grupoRaw = 'Cocinas';
-        else if (desc.includes('BAÑO') || desc.includes('BANO') || desc.includes('LAVAMANOS') || desc.includes('LVM') || desc.includes('MUEBLE') || desc.includes('MBLE')) grupoRaw = 'Baño';
-        else if (desc.includes('HIDROMASAJE') || desc.includes('SPA') || desc.includes('TINA')) grupoRaw = 'Hidroterapia';
-        else if (desc.includes('REPUESTO')) grupoRaw = 'Comercializados';
-        else if (desc.includes('INFRAESTRUCTURA')) grupoRaw = 'Infraestructura';
-        else grupoRaw = 'Otros';
+    const grupoRaw = p?.familia;
+    if (!grupoRaw || typeof grupoRaw !== 'string' || !String(grupoRaw).trim() || String(grupoRaw).toLowerCase().includes('seleccione')) {
+        return 'En Blanco';
     }
     return normalizeGrupoName(grupoRaw);
 };
@@ -166,29 +167,6 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         return () => { isMounted = false; };
     }, [filters.fechaInicial, filters.fechaFinal]);
 
-    useEffect(() => {
-        // DUMP 
-        const res: any[] = [];
-        data.forEach(r => {
-            if (Array.isArray(r.productos_novedad)) {
-                r.productos_novedad.forEach(p => {
-                    const grupo = p._grupo || 'OTROS';
-                    const planta = p._planta ? String(p._planta).toUpperCase().trim() : 'SIN PLANTA';
-                    if (grupo === 'BAÑOS' && planta === 'FIBRA') {
-                        res.push({
-                            consecutivo: r.consecutivo,
-                            producto: p.descripcion || p.nombre,
-                            grupo: grupo,
-                            planta: planta
-                        });
-                    }
-                });
-            }
-        });
-        if (res.length > 0) {
-            fetch('http://localhost:9999', { method: 'POST', body: JSON.stringify(res) }).catch(() => {});
-        }
-    }, [data]);
 
     // 2. Aplicar Filtros Globales a Ventas
     const filteredVentas = useMemo(() => {
@@ -200,8 +178,8 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 if (!filters.zonas.map(z => z.toLowerCase()).includes(v.zona.toLowerCase())) return false;
             }
             if (filters.productos.length > 0) {
-                const normFam = normalizeGrupoName(v.familia);
-                if (!filters.productos.map(p => normalizeGrupoName(p)).includes(normFam)) return false;
+                const normFam = normalizeGrupoName(v.familia).toUpperCase();
+                if (!filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes(normFam)) return false;
             }
             if (filters.canalVenta && filters.canalVenta.length > 0) {
                 const activeNorms = filters.canalVenta.map(f => normalizeCanalName(f));
@@ -209,8 +187,8 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 if (!activeNorms.includes(vNorm)) return false;
             }
             if (filters.plantas && filters.plantas.length > 0) {
-                const activeNorms = filters.plantas.map(p => p.toUpperCase().trim());
-                const vNorm = v.planta ? String(v.planta).toUpperCase().trim() : 'SIN PLANTA';
+                const activeNorms = filters.plantas.map(p => normalizePlantaName(p).toUpperCase());
+                const vNorm = normalizePlantaName(v.planta || '').toUpperCase();
                 if (!activeNorms.includes(vNorm)) return false;
             }
             return true;
@@ -227,12 +205,12 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 if (!filters.zonas.map(z => z.toLowerCase()).includes(v.zona.toLowerCase())) return false;
             }
             if (filters.productos.length > 0) {
-                const normFam = normalizeGrupoName(v.familia);
-                if (!filters.productos.map(p => normalizeGrupoName(p)).includes(normFam)) return false;
+                const normFam = normalizeGrupoName(v.familia).toUpperCase();
+                if (!filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes(normFam)) return false;
             }
             if (filters.plantas && filters.plantas.length > 0) {
-                const activeNorms = filters.plantas.map(p => p.toUpperCase().trim());
-                const vNorm = v.planta ? String(v.planta).toUpperCase().trim() : 'SIN PLANTA';
+                const activeNorms = filters.plantas.map(p => normalizePlantaName(p).toUpperCase());
+                const vNorm = normalizePlantaName(v.planta || '').toUpperCase();
                 if (!activeNorms.includes(vNorm)) return false;
             }
             return true;
@@ -253,8 +231,8 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 if (!activeNorms.includes(vNorm)) return false;
             }
             if (filters.plantas && filters.plantas.length > 0) {
-                const activeNorms = filters.plantas.map(p => p.toUpperCase().trim());
-                const vNorm = v.planta ? String(v.planta).toUpperCase().trim() : 'SIN PLANTA';
+                const activeNorms = filters.plantas.map(p => normalizePlantaName(p).toUpperCase());
+                const vNorm = normalizePlantaName(v.planta || '').toUpperCase();
                 if (!activeNorms.includes(vNorm)) return false;
             }
             return true;
@@ -275,8 +253,8 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 if (!activeNorms.includes(vNorm)) return false;
             }
             if (filters.productos.length > 0) {
-                const normFam = normalizeGrupoName(v.familia);
-                if (!filters.productos.map(p => normalizeGrupoName(p)).includes(normFam)) return false;
+                const normFam = normalizeGrupoName(v.familia).toUpperCase();
+                if (!filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes(normFam)) return false;
             }
             return true;
         });
@@ -332,7 +310,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             const zKey = normalizeZoneName(v.zona);
             const cKey = (v.ciudad || 'SIN CIUDAD').toUpperCase();
             const canalKey = normalizeCanalName(v.grupo_cliente || '');
-            const plKey = v.planta ? String(v.planta).toUpperCase().trim() : 'SIN PLANTA';
+            const plKey = normalizePlantaName(v.planta || '');
 
             [
                 getOrCreate(monthly, mKey),
@@ -378,13 +356,42 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             cObj.registros += 1;
             cObj.inversion += inv;
 
+            const novs = Array.isArray(r.productos_novedad) ? r.productos_novedad : [];
+            if (novs.length === 0) {
+                unidadesNovedad += 1;
+                mObj.unidadesNovedad += 1;
+                zObj.unidadesNovedad += 1;
+                cObj.unidadesNovedad += 1;
+                
+                const gObj = getOrCreate(byGroup, 'En Blanco');
+                gObj.registros += 1;
+                gObj.unidadesNovedad += 1;
+                gObj.inversion += inv;
 
+                const plObj = getOrCreate(byPlant, 'En Blanco');
+                plObj.registros += 1;
+                plObj.unidadesNovedad += 1;
+                plObj.inversion += inv;
 
-            if (Array.isArray(r.productos_novedad)) {
+                const prObj = getOrCreate(byProduct, 'Sin Producto Asignado');
+                prObj.registros += 1;
+                prObj.unidadesNovedad += 1;
+                prObj.inversion += inv;
+
+                const respObj = getOrCreate(byResponsible, 'SIN ASIGNAR');
+                respObj.registros += 1;
+                respObj.unidadesNovedad += 1;
+                respObj.inversion += inv;
+
+                const probObj = getOrCreate(byProblem, 'No Especificado');
+                probObj.registros += 1;
+                probObj.unidadesNovedad += 1;
+                probObj.inversion += inv;
+            } else {
                 const seenGroups = new Set<string>();
                 const seenProducts = new Set<string>();
                 const seenPlants = new Set<string>();
-                r.productos_novedad.forEach((p: any) => {
+                novs.forEach((p: any) => {
                     const cant = p.cantidad || 1;
                     unidadesNovedad += cant;
                     mObj.unidadesNovedad += cant;
@@ -395,7 +402,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                     const respObj = getOrCreate(byResponsible, responsableProb);
                     respObj.unidadesNovedad += cant;
                     respObj.registros += 1;
-                    respObj.inversion += (inv / r.productos_novedad.length);
+                    respObj.inversion += (inv / novs.length);
 
                     const gKey = getGrupoFromProduct(p);
                     const pKey = `${p.codigo || 'N/A'} - ${p.descripcion || p.nombre || 'Sin Nombre'}`;
@@ -411,26 +418,26 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                         prObj.registros += 1;
                     }
 
-                    const plKey = p.planta ? String(p.planta).toUpperCase().trim() : 'SIN PLANTA';
+                    const plKey = normalizePlantaName(p.planta || '');
                     const plObj = getOrCreate(byPlant, plKey);
                     if (!seenPlants.has(plKey)) {
                         seenPlants.add(plKey);
                         plObj.registros += 1;
                     }
                     plObj.unidadesNovedad += cant;
-                    plObj.inversion += (inv / r.productos_novedad.length);
+                    plObj.inversion += (inv / novs.length);
 
                     gObj.unidadesNovedad += cant;
-                    gObj.inversion += (inv / r.productos_novedad.length);
+                    gObj.inversion += (inv / novs.length);
                     prObj.unidadesNovedad += cant;
-                    prObj.inversion += (inv / r.productos_novedad.length);
+                    prObj.inversion += (inv / novs.length);
 
                     // TIPO DE PROBLEMA (Crucial)
                     const probName = String(p.defecto || p.tipo_problema_id || 'No Especificado');
                     const probObj = getOrCreate(byProblem, probName);
                     probObj.unidadesNovedad += cant;
                     probObj.registros += 1;
-                    probObj.inversion += (inv / r.productos_novedad.length);
+                    probObj.inversion += (inv / novs.length);
                     
                     // Evolución Mensual del Problema
                     const pme = problemMonthlyEvolution.get(mKey);
@@ -439,19 +446,19 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                     // Drill-Down: Productos dentro del problema
                     const probProd = getOrCreate(probObj.subProducts, pKey);
                     probProd.unidadesNovedad += cant;
-                    probProd.inversion += (inv / r.productos_novedad.length);
+                    probProd.inversion += (inv / novs.length);
                     probProd.registros += 1;
                     
                     // Drill-Down: Responsables dentro del problema
                     const probResp = getOrCreate(probObj.subResponsibles, responsableProb);
                     probResp.unidadesNovedad += cant;
-                    probResp.inversion += (inv / r.productos_novedad.length);
+                    probResp.inversion += (inv / novs.length);
                     probResp.registros += 1;
                     
                     // Drill-Down: Zonas/Ciudades dentro del problema
                     const probZoneCity = getOrCreate(probObj.subZones, `${zKey} - ${cKey}`);
                     probZoneCity.unidadesNovedad += cant;
-                    probZoneCity.inversion += (inv / r.productos_novedad.length);
+                    probZoneCity.inversion += (inv / novs.length);
                     probZoneCity.registros += 1;
                 });
             }
@@ -530,7 +537,8 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 map.set(key, { 
                     name: key, 
                     unidadesVendidas: 0, ventasTotales: 0, 
-                    registros: 0, unidadesNovedad: 0, inversion: 0
+                    registros: 0, unidadesNovedad: 0, inversion: 0,
+                    mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
                 });
             }
             return map.get(key);
@@ -552,6 +560,10 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             canalObj.registros += 1;
             canalObj.inversion += inv;
 
+            const m = r._mercado || 'Sin clasificar';
+            if (!canalObj.mercados) canalObj.mercados = { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 };
+            canalObj.mercados[m] = (canalObj.mercados[m] || 0) + 1;
+
             if (Array.isArray(r.productos_novedad)) {
                 r.productos_novedad.forEach((p: any) => {
                     const cant = p.cantidad || 1;
@@ -565,7 +577,20 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 const pctNov = i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : (i.unidadesNovedad > 0 ? 100 : 0);
                 const pctInv = i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : (i.inversion > 0 ? 100 : 0);
                 const pctReg = i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : (i.registros > 0 ? 100 : 0);
-                return { ...i, pctNovedad: pctNov, pctInversion: pctInv, pctRegistros: pctReg };
+                const cTotal = i.registros || 1;
+                const nacRegs = i.mercados?.['Nacional'] || 0;
+                const intRegs = i.mercados?.['Internacional'] || 0;
+                const sinRegs = i.mercados?.['Sin clasificar'] || 0;
+                return { 
+                    ...i, 
+                    pctNovedad: pctNov, pctInversion: pctInv, pctRegistros: pctReg,
+                    mercadoNacionalRegs: nacRegs,
+                    mercadoNacionalPct: ((nacRegs / cTotal) * 100).toFixed(1),
+                    mercadoInternacionalRegs: intRegs,
+                    mercadoInternacionalPct: ((intRegs / cTotal) * 100).toFixed(1),
+                    mercadoSinClasificarRegs: sinRegs,
+                    mercadoSinClasificarPct: ((sinRegs / cTotal) * 100).toFixed(1),
+                };
             });
         };
 
@@ -591,16 +616,27 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         const sourceData = dataForProductos || prevData;
         sourceData.forEach(r => {
             const inv = ((r as any).valor_servicio || 0) + ((r as any).valor_flete || 0) + ((r as any).valor_producto || 0);
-            if (Array.isArray(r.productos_novedad)) {
+            const novs = Array.isArray(r.productos_novedad) ? r.productos_novedad : [];
+            if (novs.length === 0) {
+                if (filters.plantas && filters.plantas.length > 0 && !filters.plantas.map(p => normalizePlantaName(p).toUpperCase()).includes('EN BLANCO')) {
+                    return;
+                }
+                const obj = getOrCreate(byGroup, 'En Blanco');
+                obj.registros += 1;
+                obj.unidadesNovedad += 1;
+                obj.inversion += inv;
+            } else {
                 const seenGroups = new Set<string>();
-                r.productos_novedad.forEach((p: any) => {
-                    const planta = p._planta ? String(p._planta).toUpperCase().trim() : (p.planta ? String(p.planta).toUpperCase().trim() : 'SIN PLANTA');
-                    if (filters.plantas && filters.plantas.length > 0 && !filters.plantas.includes(planta)) {
+                novs.forEach((p: any) => {
+                    const rawP = p.planta || '';
+                    const planta = normalizePlantaName(rawP);
+                    if (filters.plantas && filters.plantas.length > 0 && !filters.plantas.map(x => normalizePlantaName(x).toUpperCase()).includes(planta.toUpperCase())) {
                         return;
                     }
 
                     const cant = p.cantidad || 1;
-                    const gKey = p._grupo || 'OTROS';
+                    const rawG = p.familia || '';
+                    const gKey = normalizeGrupoName(rawG);
                     const obj = getOrCreate(byGroup, gKey);
                     
                     if (!seenGroups.has(gKey)) {
@@ -608,22 +644,22 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                         obj.registros += 1;
                     }
                     obj.unidadesNovedad += cant;
-                    obj.inversion += (inv / r.productos_novedad.length);
+                    obj.inversion += (inv / novs.length);
                 });
             }
         });
 
         const computePct = (arr: any[]) => {
             return arr.map(i => {
-                const pctNov = i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : (i.unidadesNovedad > 0 ? 100 : 0);
-                const pctInv = i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : (i.inversion > 0 ? 100 : 0);
-                const pctReg = i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : (i.registros > 0 ? 100 : 0);
+                const pctNov = i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : null;
+                const pctInv = i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : null;
+                const pctReg = i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : null;
                 return { ...i, pctNovedad: pctNov, pctInversion: pctInv, pctCasos: pctReg };
             });
         };
 
         return computePct(Array.from(byGroup.values())).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad);
-    }, [ventasForProductos, dataForProductos, prevData]);
+    }, [ventasForProductos, dataForProductos, prevData, filters.plantas]);
 
     const analyticsPlantas = useMemo(() => {
         const byPlant = new Map<string, any>();
@@ -635,7 +671,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         };
 
         ventasForPlantas.forEach(v => {
-            const plKey = v.planta ? String(v.planta).toUpperCase().trim() : 'SIN PLANTA';
+            const plKey = normalizePlantaName(v.planta || '');
             const obj = getOrCreate(byPlant, plKey);
             obj.unidadesVendidas += (v.cantidad || 0);
             obj.ventasTotales += (v.valor_total || 0);
@@ -644,16 +680,27 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         const sourceData = dataForPlantas || prevData;
         sourceData.forEach(r => {
             const inv = ((r as any).valor_servicio || 0) + ((r as any).valor_flete || 0) + ((r as any).valor_producto || 0);
-            if (Array.isArray(r.productos_novedad)) {
+            const novs = Array.isArray(r.productos_novedad) ? r.productos_novedad : [];
+            if (novs.length === 0) {
+                if (filters.productos && filters.productos.length > 0 && !filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes('EN BLANCO')) {
+                    return;
+                }
+                const obj = getOrCreate(byPlant, 'En Blanco');
+                obj.registros += 1;
+                obj.unidadesNovedad += 1;
+                obj.inversion += inv;
+            } else {
                 const seenPlants = new Set<string>();
-                r.productos_novedad.forEach((p: any) => {
-                    const grupo = p._grupo || 'OTROS';
-                    if (filters.productos && filters.productos.length > 0 && !filters.productos.includes(grupo)) {
+                novs.forEach((p: any) => {
+                    const rawG = p.familia || '';
+                    const grupo = normalizeGrupoName(rawG);
+                    if (filters.productos && filters.productos.length > 0 && !filters.productos.map(x => normalizeGrupoName(x).toUpperCase()).includes(grupo.toUpperCase())) {
                         return;
                     }
 
                     const cant = p.cantidad || 1;
-                    const plKey = p._planta ? String(p._planta).toUpperCase().trim() : (p.planta ? String(p.planta).toUpperCase().trim() : 'SIN PLANTA');
+                    const rawP = p.planta || '';
+                    const plKey = normalizePlantaName(rawP);
                     const obj = getOrCreate(byPlant, plKey);
                     
                     if (!seenPlants.has(plKey)) {
@@ -661,22 +708,22 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                         obj.registros += 1;
                     }
                     obj.unidadesNovedad += cant;
-                    obj.inversion += (inv / r.productos_novedad.length);
+                    obj.inversion += (inv / novs.length);
                 });
             }
         });
 
         const computePct = (arr: any[]) => {
             return arr.map(i => {
-                const pctNov = i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : (i.unidadesNovedad > 0 ? 100 : 0);
-                const pctInv = i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : (i.inversion > 0 ? 100 : 0);
-                const pctReg = i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : (i.registros > 0 ? 100 : 0);
+                const pctNov = i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : null;
+                const pctInv = i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : null;
+                const pctReg = i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : null;
                 return { ...i, pctNovedad: pctNov, pctInversion: pctInv, pctCasos: pctReg };
             });
         };
 
         return computePct(Array.from(byPlant.values())).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad);
-    }, [ventasForPlantas, dataForPlantas, prevData]);
+    }, [ventasForPlantas, dataForPlantas, prevData, filters.productos]);
 
     const kpis = analytics.kpis;
 
@@ -940,6 +987,17 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                             <span className="text-slate-400">Casos (Registros):</span>
                                             <span className="font-bold text-blue-400">{fmtN(c.registros)}</span>
                                         </div>
+                                        <div className="border-t border-slate-700 pt-1.5 mt-1">
+                                            <span className="text-slate-400 block mb-1 font-bold">Participación Mercado:</span>
+                                            <div className="flex justify-between gap-4">
+                                                <span className="text-emerald-300">Nacional:</span>
+                                                <span className="font-bold text-white">{c.mercadoNacionalPct}% ({c.mercadoNacionalRegs})</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4">
+                                                <span className="text-sky-300">Internacional:</span>
+                                                <span className="font-bold text-white">{c.mercadoInternacionalPct}% ({c.mercadoInternacionalRegs})</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -983,6 +1041,10 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <div className="flex justify-between items-center text-[10px]">
                                         <span className="text-slate-500">Unds: <strong className="text-[#254153]">{fmtN(c.unidadesVendidas)}</strong></span>
                                         <span className="text-slate-500">Novedad: <strong className={c.pctNovedad <= META_CALIDAD ? 'text-emerald-600' : 'text-red-600'}>{fmtN(c.unidadesNovedad)} unds ({fmtPct(c.pctNovedad)})</strong></span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px] pt-1 border-t border-slate-50">
+                                        <span className="text-slate-500 font-medium">Mercado:</span>
+                                        <span className="font-bold text-slate-700">Nac: {c.mercadoNacionalPct}% • Int: {c.mercadoInternacionalPct}%</span>
                                     </div>
                                     <div className="flex justify-end items-center text-[10px]">
                                         <span className="text-slate-500">Casos: <strong className={c.pctRegistros <= META_CALIDAD ? 'text-[#254153]' : 'text-red-600'}>{fmtN(c.registros)} reg. ({fmtPct(c.pctRegistros)})</strong></span>
@@ -1154,7 +1216,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {analyticsProductos.filter((g: any) => g.unidadesNovedad > 0).map((g: any) => {
+                                {analyticsProductos.filter((g: any) => g.unidadesNovedad > 0 || g.registros > 0).map((g: any) => {
                                     const isSelected = filters.productos.includes(g.name);
                                     return (
                                         <tr 
@@ -1195,7 +1257,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {analyticsPlantas.filter((pl: any) => pl.unidadesNovedad > 0).map((pl: any) => {
+                                {analyticsPlantas.filter((pl: any) => pl.unidadesNovedad > 0 || pl.registros > 0).map((pl: any) => {
                                     const isSelected = filters.plantas && filters.plantas.includes(pl.name);
                                     return (
                                         <tr 

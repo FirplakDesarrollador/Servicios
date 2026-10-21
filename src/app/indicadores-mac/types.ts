@@ -8,6 +8,7 @@ export interface RegistroMAC {
     cerrada: boolean;
     prioridad: string;
     fecha_verificacion?: string | null;
+    fecha_cierre?: string | null;
     valor_total?: number;
     cliente_id: number | null;
     cliente_nombre: string | null;
@@ -47,9 +48,12 @@ export interface RegistroMAC {
     _responsablesNombres?: string[];
     _productosNombres?: string[];
     _plantasNombres?: string[];
+    _gruposNombres?: string[];
     _clientePrincipalFinal?: string;
     _mesPresupuestoKey?: string;
     _mesCreacionKey?: string;
+    _mercado?: string;
+    mercado?: string | null;
 }
 
 export interface FilterState {
@@ -59,6 +63,7 @@ export interface FilterState {
     canalVenta: string[];
     tipoSolicitud: string[];
     agenteMac: string[]; // IDs o nombres
+    mercado: string[]; // 'Nacional', 'Internacional', 'Sin clasificar'
     // Filtros interactivos dinámicos
     defectos: string[];
     productos: string[];

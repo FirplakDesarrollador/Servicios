@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { RegistroMAC, FilterState } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList, ComposedChart } from 'recharts';
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Globe, Package, Check, X, Filter } from 'lucide-react';
 
 interface Props {
     data: RegistroMAC[];
@@ -17,30 +17,137 @@ interface Props {
     dataForProductos?: RegistroMAC[];
     dataForMesCreacion?: RegistroMAC[];
     dataForCanalVenta?: RegistroMAC[];
+    dataForMercado?: RegistroMAC[];
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
     razones?: any[];
     filtersComponent?: React.ReactNode;
 }
 
-const COLORS = ['#254153', '#749094', '#e8e2d5', '#f5f1ea', '#d3b99f', '#c96a4e', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+const COLORS = [
+    '#254153', // Azul petróleo profundo Firplak
+    '#749094', // Verde pizarra / Salvia Firplak
+    '#c96a4e', // Terracota / Teja Firplak
+    '#e09f3e', // Ámbar / Melocotón cálido Firplak
+    '#3b778c', // Azul acero / Petróleo suave Firplak
+    '#a67347', // Arena tostada / Avellana cálido Firplak
+    '#4e7c61', // Verde eucalipto / Spa Firplak
+    '#9e382b', // Ladrillo oscuro / Teja carmesí Firplak
+    '#5b8e9e', // Celeste mineral suave Firplak
+    '#b86835', // Canela / Cobre cálido Firplak
+    '#4a6b82', // Pizarra azulada Firplak
+    '#839199', // Gris piedra ceniza Firplak
+    '#34596b', // Azul petróleo medio Firplak
+    '#b3bec4', // Caliza suave Firplak
+];
 
+// Paleta amplia armónica de alta distinción y elegancia mineral/arquitectónica (fiel a Firplak, sin morados ni azules chillones)
+const DISTINCT_PALETTE: string[] = [
+    '#254153', // Azul petróleo profundo Firplak
+    '#749094', // Verde pizarra / Salvia Firplak
+    '#c96a4e', // Terracota / Teja cálido Firplak
+    '#e09f3e', // Ámbar / Melocotón cálido Firplak
+    '#3b778c', // Azul acero / Petróleo suave Firplak
+    '#a67347', // Arena tostada / Avellana cálido Firplak
+    '#4e7c61', // Verde eucalipto / Spa Firplak
+    '#9e382b', // Ladrillo oscuro / Teja carmesí Firplak
+    '#5b8e9e', // Celeste mineral / Glaciar suave Firplak
+    '#b86835', // Canela / Cobre cálido Firplak
+    '#4a6b82', // Pizarra azulada / Grafito azul
+    '#6b8a75', // Salvia bosque suave
+    '#c48c37', // Ocre mostaza tostada
+    '#34596b', // Azul petróleo medio
+    '#8c5847', // Arcilla / Siena tostada
+    '#5e7a68', // Verde oliva mineral
+    '#b38b6d', // Arena cálido / Caramelo
+    '#839199', // Gris piedra ceniza
+    '#415b6b', // Petróleo pizarra
+    '#687a82', // Gris pizarra
+    '#8b4a3e', // Óxido suave
+    '#3f6652', // Pino mineral
+    '#a07855', // Madera roble suave
+    '#2c4d5e', // Azul marino grafito
+    '#b3bec4', // Caliza clara
+];
+
+// Colores preferidos por tipo de solicitud (100% alineados a la identidad visual de Firplak)
 const TIPO_SOLICITUD_COLORS: Record<string, string> = {
-    'garantia': '#254153',     // Azul marino institucional (base sólida)
+    'garantia': '#254153',       // Azul marino petróleo institucional base
     'garantía': '#254153',
-    'queja': '#c96a4e',        // Terracota / naranja vivo (resaltado)
-    'reclamo': '#e09f3e',      // Ámbar / melocotón cálido
-    'solicitud': '#3b82f6',    // Azul royal
-    'peticion': '#0ea5e9',     // Cyan
-    'petición': '#0ea5e9',
-    'servicio': '#749094',     // Verde pizarra / slate
-    'servicio tecnico': '#749094',
-    'felicitacion': '#10b981', // Verde esmeralda
-    'felicitación': '#10b981',
-    'asesoria': '#8b5cf6',     // Violeta
-    'asesoría': '#8b5cf6',
-    'otros': '#64748b',        // Gris pizarra
-    'sin definir': '#94a3b8',  // Gris neutro
+    'encuesta b2c': '#3b778c',   // Azul acero / Petróleo suave Firplak (armónico, elegante, no saturado)
+    'encuesta b2b': '#749094',   // Verde pizarra / Salvia institucional Firplak
+    'atencion': '#c96a4e',       // Terracota / Teja cálido Firplak (icónico de la marca, sin morado)
+    'atención': '#c96a4e',
+    'reclamo': '#e09f3e',        // Ámbar / Melocotón cálido Firplak
+    'queja': '#9e382b',          // Ladrillo oscuro / Teja carmesí Firplak
+    'solicitud': '#4a6b82',      // Pizarra azulada Firplak
+    'peticion': '#5b8e9e',       // Celeste mineral suave Firplak
+    'petición': '#5b8e9e',
+    'servicio': '#5e7a68',       // Verde oliva mineral Firplak
+    'servicio tecnico': '#5e7a68',
+    'felicitacion': '#4e7c61',   // Verde laurel / Spa Firplak
+    'felicitación': '#4e7c61',
+    'asesoria': '#a67347',       // Arena tostada / Avellana cálido Firplak
+    'asesoría': '#a67347',
+    'tramite': '#b86835',        // Canela / Cobre cálido Firplak
+    'trámite': '#b86835',
+    'consulta': '#34596b',       // Azul petróleo medio Firplak
+    'soporte': '#415b6b',        // Petróleo pizarra Firplak
+    'otros': '#839199',          // Gris piedra ceniza
+    'sin definir': '#b3bec4',    // Caliza clara neutra
+};
+
+// Generador que garantiza que CADA tipo de solicitud tenga un color 100% ÚNICO y diferente
+const getTipoSolicitudColorMap = (tipos: string[]): Record<string, string> => {
+    const map: Record<string, string> = {};
+    const usedColors = new Set<string>();
+
+    const normalize = (t: string) =>
+        t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+    // 1. Asignar color preferido si está disponible y aún no ha sido usado por otro tipo
+    tipos.forEach(tipo => {
+        const norm = normalize(tipo);
+        let preferred = TIPO_SOLICITUD_COLORS[norm];
+        if (!preferred) {
+            for (const [key, col] of Object.entries(TIPO_SOLICITUD_COLORS)) {
+                if (norm.includes(key)) {
+                    preferred = col;
+                    break;
+                }
+            }
+        }
+
+        if (preferred && !usedColors.has(preferred.toLowerCase())) {
+            map[tipo] = preferred;
+            usedColors.add(preferred.toLowerCase());
+        }
+    });
+
+    // 2. Para tipos restantes o colisiones, asignar el siguiente color disponible sin repetir
+    let paletteIdx = 0;
+    tipos.forEach(tipo => {
+        if (!map[tipo]) {
+            while (paletteIdx < DISTINCT_PALETTE.length && usedColors.has(DISTINCT_PALETTE[paletteIdx].toLowerCase())) {
+                paletteIdx++;
+            }
+
+            let assigned: string;
+            if (paletteIdx < DISTINCT_PALETTE.length) {
+                assigned = DISTINCT_PALETTE[paletteIdx];
+                paletteIdx++;
+            } else {
+                // Si la paleta se excede, generar colores HSL minerales por proporción áurea
+                const hue = Math.round((usedColors.size * 137.5) % 360);
+                assigned = `hsl(${hue}, 35%, 45%)`;
+            }
+
+            map[tipo] = assigned;
+            usedColors.add(assigned.toLowerCase());
+        }
+    });
+
+    return map;
 };
 
 const getTipoSolicitudColor = (tipo: string, idx: number): string => {
@@ -49,8 +156,7 @@ const getTipoSolicitudColor = (tipo: string, idx: number): string => {
     for (const [key, color] of Object.entries(TIPO_SOLICITUD_COLORS)) {
         if (norm.includes(key)) return color;
     }
-    const curatedPalette = ['#254153', '#c96a4e', '#e09f3e', '#749094', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
-    return curatedPalette[idx % curatedPalette.length];
+    return DISTINCT_PALETTE[idx % DISTINCT_PALETTE.length];
 };
 const isGroupFilter = (str: string) => {
     if (!str) return false;
@@ -67,53 +173,56 @@ const isGroupFilter = (str: string) => {
     ].includes(u);
 };
 
-const productMatchesFilters = (p: any, filtersArr: string[] | undefined) => {
-    if (!filtersArr || filtersArr.length === 0) return true;
-    const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
-    const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-    const prodGrupo = p._grupo || p.grupo || p.grupo_producto || 'OTROS';
-    const prodPlanta = p._planta || 'NO DEFINIDA';
-    
-    return filtersArr.some(f => {
-        const fUpper = f.toUpperCase().trim();
-        if (fUpper.startsWith('PL:')) return fUpper === `PL:${prodPlanta.toUpperCase().trim()}`;
-        if (fUpper.startsWith('GF:')) {
-            const normalizeGroupNameGlobal = (g: string): string => {
-                if (!g) return 'Otros';
-                let norm = String(g).trim().toUpperCase();
-                if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
-                if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
-                if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
-                if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
-                if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
-                if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
-                if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
-                if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
-                if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
-                if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
-                return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
-            };
-            const groupName = normalizeGroupNameGlobal(f.substring(3));
-            return normalizeGroupNameGlobal(prodGrupo) === groupName;
-        }
-        return f === prodNombre || (prodCodigo && f === prodCodigo);
-    });
+const normalizePlantaName = (planta: string) => {
+    if (!planta || !String(planta).trim() || String(planta).trim().toLowerCase().includes('seleccione')) return 'En Blanco';
+    const p = String(planta).toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (['MARMOL', 'MARMOLES', 'PC'].includes(p)) return 'Marmol';
+    if (['MUEBLE', 'MUEBLES', 'MBL'].includes(p)) return 'Muebles';
+    if (['FIBRA', 'FIBRAS', 'FV', 'FVHM', 'FVHMP'].includes(p)) return 'Fibra';
+    if (['COMERCIALIZADO', 'COMERCIALIZADOS'].includes(p)) return 'Comercializado';
+    if (['SERVICIO', 'SERVICIOS'].includes(p)) return 'Servicios';
+    if (p === 'RTM') return 'RTM';
+    if (['QUARZTONE', 'CUARZO'].includes(p)) return 'Quarztone';
+    return 'En Blanco';
 };
 
 const normalizeGrupoName = (g: string): string => {
-    if (!g) return 'Otros';
-    let norm = String(g).trim().toUpperCase();
-    if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
-    if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
-    if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
-    if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
-    if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
-    if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
-    if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
-    if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
-    if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
-    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
-    return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
+    if (!g || g === 'En Blanco' || g.toLowerCase() === 'en blanco') return 'En Blanco';
+    const norm = String(g).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (['COCINA', 'COCINAS'].includes(norm)) return 'Cocinas';
+    if (['BANO', 'BANOS'].includes(norm)) return 'Baño';
+    if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA'].includes(norm)) return 'Hidroterapia';
+    if (['LABOR', 'LABORES'].includes(norm)) return 'Labores';
+    if (['GRIFERIA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
+    if (['PLOMERIA', 'PLOMERIAS'].includes(norm)) return 'Plomeria';
+    if (['SERVICIO', 'SERVICIOS'].includes(norm)) return 'Servicios';
+    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO'].includes(norm)) return 'Cuidado&Mantenimiento';
+    return 'En Blanco';
+};
+
+const productMatchesFilters = (p: any, filtersArr: string[] | undefined, filterTypeToIgnore?: 'PL' | 'GF') => {
+    if (!filtersArr || filtersArr.length === 0) return true;
+    const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
+    const prodCodigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
+    const rawG = p.familia || '';
+    const prodGrupo = normalizeGrupoName(rawG);
+    const rawP = p.planta || '';
+    const prodPlanta = normalizePlantaName(rawP);
+    
+    return filtersArr.some(f => {
+        const fUpper = f.toUpperCase().trim();
+        if (fUpper.startsWith('PL:')) {
+            if (filterTypeToIgnore === 'PL') return true;
+            const plantaFilter = normalizePlantaName(f.substring(3)).toUpperCase().trim();
+            return prodPlanta.toUpperCase().trim() === plantaFilter;
+        }
+        if (fUpper.startsWith('GF:')) {
+            if (filterTypeToIgnore === 'GF') return true;
+            const groupFilter = normalizeGrupoName(f.substring(3)).toUpperCase().trim();
+            return prodGrupo.toUpperCase().trim() === groupFilter;
+        }
+        return f === prodNombre || (prodCodigo && f === prodCodigo);
+    });
 };
 
 const CustomPieTooltip = ({ active, payload }: any) => {
@@ -648,6 +757,321 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
+const formatMoney = (amount: number) => {
+    if (!amount || isNaN(amount)) return '$0';
+    if (amount >= 1_000_000_000) return `$${(amount / 1_000_000_000).toFixed(1)}B`;
+    if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
+    if (amount >= 1_000) return `$${(amount / 1_000).toFixed(0)}K`;
+    return `$${Math.round(amount).toLocaleString('es-CO')}`;
+};
+
+// ─── Mercados Component (Nacional vs. Internacional) ──────────────────────────
+export const MercadosParticipacionCard = ({
+    data,
+    dataForMercado,
+    filters,
+    onFilterToggle
+}: {
+    data: RegistroMAC[];
+    dataForMercado?: RegistroMAC[];
+    filters: FilterState;
+    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
+}) => {
+    const { mercadosData, totalRegs, totalProds, totalInversion } = useMemo(() => {
+        const sourceData = dataForMercado || data;
+
+        const categories: Record<string, {
+            id: string;
+            nombre: string;
+            subtitulo: string;
+            color: string;
+            hoverColor: string;
+            borderClass: string;
+            activeBorderClass: string;
+            activeRingClass: string;
+            activeBgClass: string;
+            regs: number;
+            prods: number;
+            inversion: number;
+            canales: Record<string, number>;
+        }> = {
+            'Nacional': {
+                id: 'Nacional',
+                nombre: 'Mercado Nacional',
+                subtitulo: 'Colombia / Clientes Locales',
+                color: '#254153',
+                hoverColor: '#1a2e3b',
+                borderClass: 'border-slate-200',
+                activeBorderClass: 'border-[#254153]',
+                activeRingClass: 'ring-[#254153]/25',
+                activeBgClass: 'bg-slate-50/80',
+                regs: 0,
+                prods: 0,
+                inversion: 0,
+                canales: {}
+            },
+            'Internacional': {
+                id: 'Internacional',
+                nombre: 'Mercado Internacional',
+                subtitulo: 'Exportaciones / Exterior',
+                color: '#3b82f6',
+                hoverColor: '#2563eb',
+                borderClass: 'border-blue-200',
+                activeBorderClass: 'border-blue-600',
+                activeRingClass: 'ring-blue-500/25',
+                activeBgClass: 'bg-blue-50/50',
+                regs: 0,
+                prods: 0,
+                inversion: 0,
+                canales: {}
+            },
+            'Sin clasificar': {
+                id: 'Sin clasificar',
+                nombre: 'Sin clasificar',
+                subtitulo: 'Sin asignación de mercado',
+                color: '#94a3b8',
+                hoverColor: '#64748b',
+                borderClass: 'border-slate-200',
+                activeBorderClass: 'border-slate-500',
+                activeRingClass: 'ring-slate-400/25',
+                activeBgClass: 'bg-slate-100/60',
+                regs: 0,
+                prods: 0,
+                inversion: 0,
+                canales: {}
+            }
+        };
+
+        let tRegs = 0;
+        let tProds = 0;
+        let tInv = 0;
+
+        sourceData.forEach(d => {
+            const rawMercado = d._mercado || 'Sin clasificar';
+            const m = rawMercado === 'Internacional' ? 'Internacional' : (rawMercado === 'Nacional' ? 'Nacional' : 'Sin clasificar');
+            const cat = categories[m];
+            if (cat) {
+                cat.regs += 1;
+                tRegs += 1;
+
+                let cantProds = 1;
+                if (Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0) {
+                    cantProds = d.productos_novedad.reduce((acc, p) => acc + (p.cantidad || 1), 0);
+                }
+                cat.prods += cantProds;
+                tProds += cantProds;
+
+                const inv = ((d as any).valor_servicio || 0) + ((d as any).valor_flete || 0) + ((d as any).valor_producto || 0);
+                cat.inversion += inv;
+                tInv += inv;
+
+                const canal = d.canal_venta || 'Sin canal';
+                cat.canales[canal] = (cat.canales[canal] || 0) + 1;
+            }
+        });
+
+        const totalToUse = tRegs || 1;
+        const totalProdsToUse = tProds || 1;
+
+        const list = Object.values(categories)
+            .filter(cat => cat.id !== 'Sin clasificar' || cat.regs > 0)
+            .map(cat => {
+                const pctRegsVal = (cat.regs / totalToUse) * 100;
+                const pctProdsVal = (cat.prods / totalProdsToUse) * 100;
+                return {
+                    ...cat,
+                    participacionVal: pctRegsVal,
+                    participacion: pctRegsVal.toFixed(1) + '%',
+                    participacionProdsVal: pctProdsVal,
+                    participacionProds: pctProdsVal.toFixed(1) + '%'
+                };
+            });
+
+        return { mercadosData: list, totalRegs: tRegs, totalProds: tProds, totalInversion: tInv };
+    }, [data, dataForMercado]);
+
+    const activeMercadoFilters = filters.mercado || [];
+    const hasFilter = activeMercadoFilters.length > 0;
+
+    return (
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-4">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-[#254153]/10 text-[#254153] flex items-center justify-center">
+                        <Globe className="w-3.5 h-3.5" />
+                    </div>
+                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                        Mercados <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 normal-case font-normal">(% de Participación)</span>
+                    </h3>
+                    {hasFilter && (
+                        <div className="flex items-center gap-1.5 ml-2">
+                            <span className="text-[10px] font-bold bg-[#254153] text-white px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                Filtrando: {activeMercadoFilters.join(', ')}
+                            </span>
+                            <button
+                                onClick={() => activeMercadoFilters.forEach(f => onFilterToggle('mercado', f))}
+                                className="text-[10px] font-bold text-gray-400 hover:text-red-500 underline ml-1 cursor-pointer transition-colors"
+                                title="Limpiar filtro de mercado"
+                            >
+                                Limpiar
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-3 text-xs">
+                    <div className="hidden sm:flex items-center gap-2 text-[11px] text-gray-500 bg-gray-50 border border-gray-200/60 px-2.5 py-1 rounded-lg">
+                        <span>Total: <strong className="text-gray-800 font-bold">{totalRegs.toLocaleString('es-CO')}</strong> reg.</span>
+                        <span className="text-gray-300">|</span>
+                        <span><strong className="text-amber-700 font-bold">{totalProds.toLocaleString('es-CO')}</strong> prods.</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-gray-400 hidden md:inline">
+                        Clic en una tarjeta para filtro cruzado
+                    </span>
+                </div>
+            </div>
+
+            {/* Barra acumulada horizontal proporcional */}
+            <div className="w-full h-3 bg-gray-100 rounded-full flex overflow-hidden p-0.5 gap-0.5">
+                {mercadosData.map(cat => {
+                    const isSelected = activeMercadoFilters.includes(cat.id);
+                    const isDimmed = hasFilter && !isSelected;
+                    return (
+                        <div
+                            key={cat.id}
+                            style={{ width: `${Math.max(cat.participacionVal, 2)}%`, backgroundColor: cat.color }}
+                            className={`h-full rounded-sm transition-all duration-300 cursor-pointer ${
+                                isDimmed ? 'opacity-25 hover:opacity-60' : 'opacity-100 hover:opacity-85'
+                            }`}
+                            onClick={(e) => onFilterToggle('mercado', cat.id, e)}
+                            title={`${cat.nombre}: ${cat.participacion} (${cat.regs} reg. | ${cat.prods} unid.) - Clic para filtrar`}
+                        />
+                    );
+                })}
+            </div>
+
+            {/* Tarjetas de Mercado */}
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${mercadosData.length > 2 ? 'lg:grid-cols-3' : ''} gap-4`}>
+                {mercadosData.map(cat => {
+                    const isSelected = activeMercadoFilters.includes(cat.id);
+                    const isDimmed = hasFilter && !isSelected;
+
+                    return (
+                        <div
+                            key={cat.id}
+                            onClick={(e) => onFilterToggle('mercado', cat.id, e)}
+                            className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                                isSelected
+                                    ? `bg-white ${cat.activeBorderClass} shadow-md ring-2 ${cat.activeRingClass} border-2`
+                                    : isDimmed
+                                    ? 'bg-gray-50/50 border-gray-100 opacity-40 hover:opacity-95 hover:border-gray-300'
+                                    : 'bg-white border-gray-200 shadow-xs hover:shadow-md hover:border-gray-300'
+                            }`}
+                        >
+                            {/* Color Dot + Name + % Participación */}
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2 truncate pr-1">
+                                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                                    <span className="text-xs font-bold text-gray-800 truncate">{cat.nombre}</span>
+                                    <span className="text-[10px] font-semibold text-gray-400 hidden xl:inline">({cat.subtitulo})</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-black text-gray-900">{cat.participacion}</span>
+                                    {isSelected && (
+                                        <span className="text-[9px] font-bold bg-[#254153] text-white px-1.5 py-0.5 rounded-full">Activo</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Mini barra de progreso */}
+                            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-3">
+                                <div
+                                    className="h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${cat.participacionVal}%`, backgroundColor: cat.color }}
+                                />
+                            </div>
+
+                            {/* Métricas: Cantidad en Total Registros y Total Unidades */}
+                            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
+                                <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
+                                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block leading-tight">Total Registros</span>
+                                    <div className="flex items-baseline gap-1 mt-0.5">
+                                        <span className="text-sm font-black text-gray-800">{cat.regs.toLocaleString('es-CO')}</span>
+                                        <span className="text-[10px] font-semibold text-gray-400">reg.</span>
+                                    </div>
+                                </div>
+                                <div className="bg-amber-50/50 p-2.5 rounded-lg border border-amber-100/80">
+                                    <span className="text-[9px] font-bold text-amber-900/80 uppercase tracking-wider block leading-tight">Total Unidades</span>
+                                    <div className="flex items-baseline gap-1 mt-0.5">
+                                        <span className="text-sm font-black text-amber-800">{cat.prods.toLocaleString('es-CO')}</span>
+                                        <span className="text-[10px] font-semibold text-amber-600/80">prods.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Pie de la tarjeta */}
+                            <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2.5 pt-2 border-t border-gray-100">
+                                <span className="truncate">Inversión: <strong className="text-gray-700 font-semibold">{formatMoney(cat.inversion)}</strong></span>
+                                <span className={`text-[9px] font-semibold transition-colors ${
+                                    isSelected ? 'text-[#254153] font-bold' : 'text-gray-400 group-hover:text-gray-700'
+                                }`}>
+                                    {isSelected ? '✕ Quitar filtro' : 'Clic para filtrar'}
+                                </span>
+                            </div>
+
+                            {/* Tooltip emergente al pasar el mouse por encima */}
+                            <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700">
+                                <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                        {cat.nombre}
+                                    </span>
+                                    <span className="text-sky-400 font-black">{cat.participacion}</span>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between text-slate-300">
+                                        <span className="text-[11px]">Total Registros hechos:</span>
+                                        <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{cat.regs} ({cat.participacion})</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-slate-300">
+                                        <span className="text-[11px]">Total Unidades con novedad:</span>
+                                        <span className="font-bold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods} ({cat.participacionProds})</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-slate-300">
+                                        <span className="text-[11px]">Valor invertido estimado:</span>
+                                        <span className="font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/50">{formatMoney(cat.inversion)}</span>
+                                    </div>
+                                    {Object.keys(cat.canales).length > 0 && (
+                                        <div className="border-t border-slate-700/80 pt-1.5 mt-1.5">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                                Desglose por Canal de Venta:
+                                            </div>
+                                            <div className="space-y-1 max-h-24 overflow-y-auto">
+                                                {Object.entries(cat.canales).map(([canal, count]) => (
+                                                    <div key={canal} className="flex items-center justify-between text-[10px] text-slate-300">
+                                                        <span className="truncate pr-2">{canal}:</span>
+                                                        <span className="font-bold text-slate-200">{count}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-2 pt-1.5 border-t border-slate-700/60 text-[10px] text-sky-300 text-center font-medium">
+                                    {isSelected ? 'Haz clic para quitar filtro cruzado' : 'Haz clic para aplicar filtro cruzado'}
+                                </div>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Canales de Venta Component ──────────────────────────────────────────────
 export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterToggle }: {
     data: RegistroMAC[];
@@ -655,7 +1079,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
     filters: FilterState;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
 }) => {
-    const canalVentaData = useMemo(() => {
+    const { canalVentaData, globalMercados } = useMemo(() => {
         const categories: Record<string, {
             id: string;
             nombre: string;
@@ -663,6 +1087,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
             color: string;
             regs: number;
             prods: number;
+            mercados: Record<string, number>;
         }> = {
             'distribucion': {
                 id: 'distribucion',
@@ -680,7 +1105,8 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                 ],
                 color: '#254153',
                 regs: 0,
-                prods: 0
+                prods: 0,
+                mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
             },
             'constructor': {
                 id: 'constructor',
@@ -688,7 +1114,8 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                 matchingKeys: ['Canal Constructor', 'canal_constructor', 'Constructor'],
                 color: '#749094',
                 regs: 0,
-                prods: 0
+                prods: 0,
+                mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
             },
             'canal_propio': {
                 id: 'canal_propio',
@@ -703,12 +1130,22 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                 ],
                 color: '#3b82f6',
                 regs: 0,
-                prods: 0
+                prods: 0,
+                mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
             }
         };
 
         const sourceData = dataForCanalVenta || data;
+        let globalNac = 0;
+        let globalInt = 0;
+        let globalSin = 0;
+
         sourceData.forEach(d => {
+            const m = d._mercado || 'Sin clasificar';
+            if (m === 'Nacional') globalNac++;
+            else if (m === 'Internacional') globalInt++;
+            else globalSin++;
+
             const canalRaw = d.canal_venta || '';
             let matchedCatKey: string | null = null;
 
@@ -720,6 +1157,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 
             if (matchedCatKey && categories[matchedCatKey]) {
                 categories[matchedCatKey].regs += 1;
+                categories[matchedCatKey].mercados[m] = (categories[matchedCatKey].mercados[m] || 0) + 1;
                 if (Array.isArray(d.productos_novedad)) {
                     categories[matchedCatKey].prods += d.productos_novedad.reduce((acc, p) => acc + (p.cantidad || 1), 0);
                 }
@@ -727,15 +1165,39 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
         });
 
         const totalCalculatedRegs = Object.values(categories).reduce((acc, c) => acc + c.regs, 0) || (sourceData.length || 1);
+        const globalTotal = sourceData.length || 1;
 
-        return Object.values(categories).map(cat => {
+        const globalMercados = {
+            total: sourceData.length,
+            nacionalCount: globalNac,
+            nacionalPct: ((globalNac / globalTotal) * 100).toFixed(1),
+            internacionalCount: globalInt,
+            internacionalPct: ((globalInt / globalTotal) * 100).toFixed(1),
+            sinClasificarCount: globalSin,
+            sinClasificarPct: ((globalSin / globalTotal) * 100).toFixed(1),
+        };
+
+        const list = Object.values(categories).map(cat => {
             const pctVal = (cat.regs / totalCalculatedRegs) * 100;
+            const catTotal = cat.regs || 1;
+            const nacCount = cat.mercados['Nacional'] || 0;
+            const intCount = cat.mercados['Internacional'] || 0;
+            const sinCount = cat.mercados['Sin clasificar'] || 0;
+
             return {
                 ...cat,
                 participacionVal: pctVal,
-                participacion: pctVal.toFixed(1) + '%'
+                participacion: pctVal.toFixed(1) + '%',
+                mercadoNacionalRegs: nacCount,
+                mercadoNacionalPct: ((nacCount / catTotal) * 100).toFixed(1),
+                mercadoInternacionalRegs: intCount,
+                mercadoInternacionalPct: ((intCount / catTotal) * 100).toFixed(1),
+                mercadoSinClasificarRegs: sinCount,
+                mercadoSinClasificarPct: ((sinCount / catTotal) * 100).toFixed(1),
             };
         });
+
+        return { canalVentaData: list, globalMercados };
     }, [data, dataForCanalVenta]);
 
     const activeCanalFilters = filters.canalVenta || [];
@@ -743,11 +1205,64 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
     return (
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-4">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                    Canales de Venta <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 normal-case font-normal">(% de Participación)</span>
-                </h3>
-                <span className="text-[10px] font-semibold text-gray-400">Pasa el mouse para ver detalles</span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                        Canales de Venta <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 normal-case font-normal">(% de Participación)</span>
+                    </h3>
+                </div>
+
+                {/* Resumen Global de Participación por Mercado */}
+                <div className="flex items-center gap-2">
+                    <div className="relative group cursor-help bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-lg px-2.5 py-1 flex items-center gap-2 text-[10px] transition-colors shadow-xs">
+                        <span className="font-bold text-slate-600 uppercase tracking-wider">Mercados:</span>
+                        <span className="font-black text-emerald-700">Nac: {globalMercados.nacionalPct}%</span>
+                        <span className="text-slate-300 font-light">|</span>
+                        <span className="font-black text-sky-700">Int: {globalMercados.internacionalPct}%</span>
+                        {globalMercados.sinClasificarCount > 0 && (
+                            <>
+                                <span className="text-slate-300 font-light">|</span>
+                                <span className="font-semibold text-slate-500">Sin clasif: {globalMercados.sinClasificarPct}%</span>
+                            </>
+                        )}
+
+                        {/* Tooltip con desglose global al pasar el mouse */}
+                        <div className="hidden group-hover:block absolute right-0 top-full mt-2 w-64 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700">
+                            <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
+                                <span>Participación Total por Mercado</span>
+                                <span className="text-[10px] font-bold text-slate-400">{globalMercados.total} casos</span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between text-slate-300 text-[11px]">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        Mercado Nacional:
+                                    </span>
+                                    <span className="font-bold text-emerald-400">{globalMercados.nacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({globalMercados.nacionalCount})</span></span>
+                                </div>
+                                <div className="flex items-center justify-between text-slate-300 text-[11px]">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-sky-400" />
+                                        Mercado Internacional:
+                                    </span>
+                                    <span className="font-bold text-sky-400">{globalMercados.internacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({globalMercados.internacionalCount})</span></span>
+                                </div>
+                                {globalMercados.sinClasificarCount > 0 && (
+                                    <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                                        <span className="flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-slate-500" />
+                                            Sin clasificar:
+                                        </span>
+                                        <span className="font-bold text-slate-300">{globalMercados.sinClasificarPct}% <span className="text-[10px] text-slate-400 font-normal">({globalMercados.sinClasificarCount})</span></span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="absolute top-0 right-6 -translate-y-full border-4 border-transparent border-b-slate-900" />
+                        </div>
+                    </div>
+
+                    <span className="text-[10px] font-semibold text-gray-400 hidden sm:inline">Pasa el mouse para ver detalles</span>
+                </div>
             </div>
 
             {/* Barra acumulada horizontal proporcional */}
@@ -762,7 +1277,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                 isActive ? 'opacity-100 hover:opacity-80' : 'opacity-25 hover:opacity-60'
                             }`}
                             onClick={(e) => onFilterToggle('canalVenta', cat.id, e)}
-                            title={`${cat.nombre}: ${cat.participacion} | Registros: ${cat.regs} | Productos con Novedad: ${cat.prods}`}
+                            title={`${cat.nombre}: ${cat.participacion} | Registros: ${cat.regs} | Mercado Nac: ${cat.mercadoNacionalPct}%, Int: ${cat.mercadoInternacionalPct}%`}
                         />
                     );
                 })}
@@ -801,7 +1316,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                             </div>
 
                             {/* Tooltip emergente al pasar el mouse por encima */}
-                            <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none">
+                            <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700">
                                 <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
                                     <span>{cat.nombre}</span>
                                     <span className="text-sky-400 font-black">{cat.participacion}</span>
@@ -815,14 +1330,55 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                         <span className="text-[11px] text-slate-300">Productos con novedad:</span>
                                         <span className="font-bold text-amber-300 text-xs bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods}</span>
                                     </div>
+
+                                    {/* Participación por Mercado en este Canal */}
+                                    <div className="border-t border-slate-700/80 pt-2 mt-1">
+                                        <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                                            <span>Participación por Mercado:</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between text-[11px]">
+                                                <span className="text-slate-300 flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                    Nacional:
+                                                </span>
+                                                <span className="font-bold text-emerald-400">
+                                                    {cat.mercadoNacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({cat.mercadoNacionalRegs})</span>
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[11px]">
+                                                <span className="text-slate-300 flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                                    Internacional:
+                                                </span>
+                                                <span className="font-bold text-sky-400">
+                                                    {cat.mercadoInternacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({cat.mercadoInternacionalRegs})</span>
+                                                </span>
+                                            </div>
+                                            {cat.mercadoSinClasificarRegs > 0 && (
+                                                <div className="flex items-center justify-between text-[11px]">
+                                                    <span className="text-slate-400 flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                                                        Sin clasificar:
+                                                    </span>
+                                                    <span className="font-bold text-slate-300">
+                                                        {cat.mercadoSinClasificarPct}% <span className="text-[10px] text-slate-400 font-normal">({cat.mercadoSinClasificarRegs})</span>
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                                 {/* Flechita inferior del tooltip */}
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
                             </div>
 
                             {/* Pie de la tarjeta */}
-                            <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-gray-100">
-                                <span><strong className="text-gray-700">{cat.regs}</strong> registros</span>
+                            <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-gray-100 gap-1">
+                                <span><strong className="text-gray-700">{cat.regs}</strong> reg.</span>
+                                <span className="text-[9px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded tracking-tight">
+                                    Nac: {cat.mercadoNacionalPct}% • Int: {cat.mercadoInternacionalPct}%
+                                </span>
                                 <span><strong className="text-[#c96a4e]">{cat.prods}</strong> prods.</span>
                             </div>
                         </div>
@@ -834,7 +1390,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [], filtersComponent }: Props) {
+export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, dataForMercado, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [], filtersComponent }: Props) {
     // ── KPIs memoizados ────────────────────────────────────────────────────────
     const totalNovedades = data.length;
     const { abiertas, cerradas, valorInvertido } = useMemo(() => ({
@@ -884,10 +1440,13 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             tiposSet.add(tipo);
 
             if (!counts[key]) {
-                counts[key] = { key, total: 0 };
+                counts[key] = { key, total: 0, _mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 } };
             }
             counts[key].total += 1;
             counts[key][tipo] = (counts[key][tipo] || 0) + 1;
+            const m = d._mercado || 'Sin clasificar';
+            if (!counts[key]._mercados) counts[key]._mercados = { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 };
+            counts[key]._mercados[m] = (counts[key]._mercados[m] || 0) + 1;
         });
 
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -896,16 +1455,21 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         const typePriority: Record<string, number> = {
             'garantia': 1,
             'garantía': 1,
-            'queja': 2,
-            'reclamo': 3,
-            'solicitud': 4,
-            'peticion': 5,
-            'petición': 5,
-            'servicio': 6,
-            'felicitacion': 7,
-            'felicitación': 7,
+            'encuesta b2c': 2,
+            'encuesta b2b': 3,
+            'atencion': 4,
+            'atención': 4,
+            'solicitud': 5,
+            'peticion': 6,
+            'petición': 6,
+            'servicio': 7,
+            'servicio tecnico': 7,
             'asesoria': 8,
             'asesoría': 8,
+            'reclamo': 9,
+            'queja': 10,
+            'felicitacion': 11,
+            'felicitación': 11,
             'otros': 90,
             'sin definir': 99,
         };
@@ -938,6 +1502,11 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         return { registrosPorMes: sortedData, tiposSolicitudMes: tiposList };
     }, [data, dataForMesCreacion]);
 
+    // Mapa de colores únicos y exclusivos por tipo de solicitud para este conjunto de datos
+    const tipoColorMap = useMemo(() => {
+        return getTipoSolicitudColorMap(tiposSolicitudMes);
+    }, [tiposSolicitudMes]);
+
     // Tooltip enriquecido para el gráfico apilado de Ingresos por Mes
     const CustomIngresosTooltip = ({ active, payload, label }: any) => {
         if (!active || !payload || !payload.length) return null;
@@ -962,10 +1531,11 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     {items.length > 0 ? (
                         items.map((item: any, i: number) => {
                             const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
+                            const itemColor = tipoColorMap[item.name] || tipoColorMap[item.dataKey] || item.color || item.fill;
                             return (
                                 <div key={i} className="flex items-center justify-between gap-3 text-gray-600">
                                     <div className="flex items-center gap-1.5 truncate">
-                                        <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color || item.fill }} />
+                                        <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: itemColor }} />
                                         <span className="truncate font-medium">{item.name}</span>
                                     </div>
                                     <div className="flex items-center gap-1 shrink-0 font-bold text-gray-800">
@@ -979,6 +1549,15 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         <div className="text-gray-400 text-center py-1">Sin detalles</div>
                     )}
                 </div>
+                {/* Participación por Mercado en este mes */}
+                {total > 0 && entry._mercados && (
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10px]">
+                        <span className="text-gray-500 font-bold uppercase tracking-wider">Mercado:</span>
+                        <span className="font-bold text-gray-700">
+                            Nac: <strong className="text-emerald-700">{(((entry._mercados['Nacional'] || 0) / total) * 100).toFixed(1)}%</strong> • Int: <strong className="text-sky-700">{(((entry._mercados['Internacional'] || 0) / total) * 100).toFixed(1)}%</strong>
+                        </span>
+                    </div>
+                )}
                 {filters.mesCreacion.length > 0 && filters.mesCreacion.includes(entry.key) && (
                     <div className="text-[10px] text-brand font-semibold pt-1 border-t border-gray-100">
                         ✓ Mes seleccionado en filtros (clic para deseleccionar)
@@ -1246,7 +1825,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         const sourceData = dataForProductos || data;
 
         sourceData.forEach(d => {
-            if (Array.isArray(d.productos_novedad)) {
+            let hasMatchedItem = false;
+            if (Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0) {
                 d.productos_novedad.forEach((p: any) => {
                     let include = true;
                     if ((filters.defectos && filters.defectos.length > 0) || (filters.responsables && filters.responsables.length > 0)) {
@@ -1260,7 +1840,6 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 }
                                 let matchResp = true;
                                 if (filters.responsables && filters.responsables.length > 0) {
-                                    // O(1) Map lookup
                                     const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
                                     if (!filters.responsables.includes(respNombre)) matchResp = false;
                                 }
@@ -1282,27 +1861,29 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         if (!hasMatchingProblem) include = false;
                     }
 
-                    if (include && !productMatchesFilters(p, filters.productos)) {
+                    if (include && !productMatchesFilters(p, filters.productos, 'GF')) {
                         include = false;
                     }
 
                     if (include) {
-                        let grupoRaw = p._grupo || p.grupo || p.grupo_producto || p.linea || p.familia || p.categoria || '';
-                        if (!grupoRaw) {
-                            const desc = (p.descripcion || p.nombre || '').toUpperCase();
-                            if (desc.includes('COCINA') || desc.includes('MESON') || desc.includes('LAVAPLATOS')) grupoRaw = 'COCINAS';
-                            else if (desc.includes('BAÑO') || desc.includes('BANO') || desc.includes('LAVAMANOS') || desc.includes('LVM') || desc.includes('MUEBLE') || desc.includes('MBLE')) grupoRaw = 'BAÑOS';
-                            else if (desc.includes('HIDROMASAJE') || desc.includes('SPA') || desc.includes('TINA')) grupoRaw = 'HIDROMASAJES';
-                            else if (desc.includes('REPUESTO')) grupoRaw = 'REPUESTOS';
-                            else if (desc.includes('INFRAESTRUCTURA')) grupoRaw = 'INFRAESTRUCTURA';
-                            else grupoRaw = 'OTROS';
-                        }
-                        const grupo = normalizeGrupoName(grupoRaw);
+                        hasMatchedItem = true;
+                        const rawG = p.familia || '';
+                        const grupo = normalizeGrupoName(rawG);
                         if (!stats[grupo]) stats[grupo] = { registrosSet: new Set(), productosAfectados: 0 };
                         stats[grupo].registrosSet.add(d.id);
                         stats[grupo].productosAfectados += (p.cantidad || 1);
                     }
                 });
+            }
+
+            // Radicados sin novedades o donde ninguna novedad tuvo clasificación
+            if (!hasMatchedItem) {
+                const passDefResp = (!filters.defectos || filters.defectos.length === 0) && (!filters.responsables || filters.responsables.length === 0);
+                const passPL = (!filters.productos || !filters.productos.some(f => String(f).toUpperCase().startsWith('PL:')));
+                if (passDefResp && passPL) {
+                    if (!stats['En Blanco']) stats['En Blanco'] = { registrosSet: new Set(), productosAfectados: 0 };
+                    stats['En Blanco'].registrosSet.add(d.id);
+                }
             }
         });
 
@@ -1322,7 +1903,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         const sourceData = dataForProductos || data;
 
         sourceData.forEach(d => {
-            if (Array.isArray(d.productos_novedad)) {
+            let hasMatchedItem = false;
+            if (Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0) {
                 d.productos_novedad.forEach((p: any) => {
                     let include = true;
                     if ((filters.defectos && filters.defectos.length > 0) || (filters.responsables && filters.responsables.length > 0)) {
@@ -1357,17 +1939,29 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         if (!hasMatchingProblem) include = false;
                     }
 
-                    if (include && !productMatchesFilters(p, filters.productos)) {
+                    if (include && !productMatchesFilters(p, filters.productos, 'PL')) {
                         include = false;
                     }
 
                     if (include) {
-                        const planta = p._planta || 'NO DEFINIDA';
+                        hasMatchedItem = true;
+                        const rawP = p.planta || '';
+                        const planta = normalizePlantaName(rawP);
                         if (!stats[planta]) stats[planta] = { registrosSet: new Set(), productosAfectados: 0 };
                         stats[planta].registrosSet.add(d.id);
                         stats[planta].productosAfectados += (p.cantidad || 1);
                     }
                 });
+            }
+
+            // Radicados sin novedades o donde ninguna novedad tuvo clasificación
+            if (!hasMatchedItem) {
+                const passDefResp = (!filters.defectos || filters.defectos.length === 0) && (!filters.responsables || filters.responsables.length === 0);
+                const passGF = (!filters.productos || !filters.productos.some(f => String(f).toUpperCase().startsWith('GF:')));
+                if (passDefResp && passGF) {
+                    if (!stats['En Blanco']) stats['En Blanco'] = { registrosSet: new Set(), productosAfectados: 0 };
+                    stats['En Blanco'].registrosSet.add(d.id);
+                }
             }
         });
 
@@ -1590,6 +2184,12 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         {filtersComponent}
                     </div>
                     <div className="flex-1 min-w-0 space-y-4">
+                        <MercadosParticipacionCard
+                            data={data}
+                            dataForMercado={dataForMercado || data}
+                            filters={filters}
+                            onFilterToggle={onFilterToggle}
+                        />
                         <CanalesVentaCard
                             data={data}
                             dataForCanalVenta={dataForCanalVenta || data}
@@ -1607,12 +2207,26 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
-                    <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
-                    <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
-                    <KpiCard title="Solicitudes Abiertas" value={abiertas} />
-                    <KpiCard title="Solicitudes Cerradas" value={cerradas} />
-                    <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
+                <div className="space-y-4">
+                    <MercadosParticipacionCard
+                        data={data}
+                        dataForMercado={dataForMercado || data}
+                        filters={filters}
+                        onFilterToggle={onFilterToggle}
+                    />
+                    <CanalesVentaCard
+                        data={data}
+                        dataForCanalVenta={dataForCanalVenta || data}
+                        filters={filters}
+                        onFilterToggle={onFilterToggle}
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
+                        <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
+                        <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
+                        <KpiCard title="Solicitudes Abiertas" value={abiertas} />
+                        <KpiCard title="Solicitudes Cerradas" value={cerradas} />
+                        <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
+                    </div>
                 </div>
             )}
 
@@ -1664,7 +2278,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                 />
                                 {tiposSolicitudMes.length > 0 ? (
                                     tiposSolicitudMes.map((tipo, index) => {
-                                        const color = getTipoSolicitudColor(tipo, index);
+                                        const color = tipoColorMap[tipo] || getTipoSolicitudColor(tipo, index);
                                         const isTop = index === tiposSolicitudMes.length - 1;
                                         return (
                                             <Bar
@@ -1932,17 +2546,14 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                     const gruposSet = new Set<string>();
                                     const plantasSet = new Set<string>();
                                     
-                                    if (Array.isArray(d.productos_compra)) {
-                                        d.productos_compra.forEach((p: any) => {
-                                            if (p._grupo) gruposSet.add(normalizeGrupoName(p._grupo));
-                                        });
-                                    }
                                     if (Array.isArray(d.productos_novedad)) {
                                         d.productos_novedad.forEach((p: any) => {
-                                            if (p._grupo) gruposSet.add(normalizeGrupoName(p._grupo));
-                                            if (p._planta) plantasSet.add(String(p._planta));
+                                            gruposSet.add(normalizeGrupoName(p.familia || ''));
+                                            plantasSet.add(normalizePlantaName(p.planta || ''));
                                         });
                                     }
+                                    if (gruposSet.size === 0) gruposSet.add('En Blanco');
+                                    if (plantasSet.size === 0) plantasSet.add('En Blanco');
                                     
                                     const gruposArr = Array.from(gruposSet);
                                     const plantasArr = Array.from(plantasSet);
