@@ -1182,18 +1182,18 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
     const activeCanalFilters = filters.canalVenta || [];
 
     return (
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-4">
+        <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-2.5">
             {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
                         Canales de Venta <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 normal-case font-normal">(% de Participación)</span>
                     </h3>
                 </div>
 
                 {/* Resumen Global de Participación por Mercado */}
                 <div className="flex items-center gap-2">
-                    <div className="relative group cursor-help bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-lg px-2.5 py-1 flex items-center gap-2 text-[10px] transition-colors shadow-xs">
+                    <div className="relative group cursor-help bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-md px-2 py-0.5 flex items-center gap-1.5 text-[9px] transition-colors shadow-2xs">
                         <span className="font-bold text-slate-600 uppercase tracking-wider">Mercados:</span>
                         <span className="font-black text-emerald-700">Nac: {globalMercados.nacionalPct}%</span>
                         <span className="text-slate-300 font-light">|</span>
@@ -1240,14 +1240,15 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                         </div>
                     </div>
 
-                    <span className="text-[10px] font-semibold text-gray-400 hidden sm:inline">Pasa el mouse para ver detalles</span>
+                    <span className="text-[9px] font-medium text-gray-400 hidden sm:inline">Pasa el mouse para ver detalles</span>
                 </div>
             </div>
 
             {/* Barra acumulada horizontal proporcional */}
-            <div className="w-full h-3 bg-gray-100 rounded-full flex overflow-hidden p-0.5 gap-0.5">
+            <div className="w-full h-1.5 bg-gray-100 rounded-full flex overflow-hidden p-0.5 gap-0.5">
                 {canalVentaData.map(cat => {
-                    const isActive = activeCanalFilters.length === 0 || activeCanalFilters.some(f => cat.matchingKeys.some(mk => mk.toLowerCase() === f.toLowerCase() || f.toLowerCase() === cat.id));
+                    const hasActiveFilter = activeCanalFilters.length > 0;
+                    const isActive = !hasActiveFilter || activeCanalFilters.some(f => cat.matchingKeys.some(mk => mk.toLowerCase() === f.toLowerCase() || f.toLowerCase() === cat.id));
                     return (
                         <div
                             key={cat.id}
@@ -1262,36 +1263,52 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                 })}
             </div>
 
-            {/* Tarjetas horizontales de los 3 canales */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Tarjetas horizontales de los 3 canales Compactas */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {canalVentaData.map(cat => {
-                    const isActive = activeCanalFilters.length === 0 || activeCanalFilters.some(f => cat.matchingKeys.some(mk => mk.toLowerCase() === f.toLowerCase() || f.toLowerCase() === cat.id));
+                    const hasActiveFilter = activeCanalFilters.length > 0;
+                    const isSelected = hasActiveFilter && activeCanalFilters.some(f => cat.matchingKeys.some(mk => mk.toLowerCase() === f.toLowerCase() || f.toLowerCase() === cat.id));
+                    const isDimmed = hasActiveFilter && !isSelected;
 
                     return (
                         <div
                             key={cat.id}
                             onClick={(e) => onFilterToggle('canalVenta', cat.id, e)}
-                            className={`group relative p-3.5 rounded-xl border transition-all cursor-pointer ${
-                                isActive 
-                                    ? 'bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300' 
-                                    : 'bg-gray-50/50 border-gray-100 opacity-40 hover:opacity-100'
+                            className={`group relative p-2.5 rounded-lg border transition-all duration-200 cursor-pointer ${
+                                isSelected 
+                                    ? 'bg-white border-2 border-[#254153] ring-1.5 ring-[#254153]/20 shadow-xs' 
+                                    : isDimmed
+                                    ? 'bg-gray-50/50 border-gray-100 opacity-40 hover:opacity-95 hover:border-gray-300'
+                                    : 'bg-white border-gray-200/80 shadow-2xs hover:shadow-xs hover:border-gray-300'
                             }`}
                         >
-                            {/* Color Dot + Name */}
+                            {/* Color Dot + Name + % Participación */}
                             <div className="flex items-center justify-between mb-1.5">
-                                <div className="flex items-center gap-2 truncate pr-1">
-                                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                                    <span className="text-xs font-bold text-gray-700 truncate">{cat.nombre}</span>
+                                <div className="flex items-center gap-1.5 truncate pr-1">
+                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                                    <span className="text-[11px] font-bold text-gray-800 truncate">{cat.nombre}</span>
                                 </div>
-                                <span className="text-xs font-black text-gray-800">{cat.participacion}</span>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <span className="text-xs font-black text-gray-900">{cat.participacion}</span>
+                                    {isSelected && (
+                                        <span className="text-[8px] font-bold bg-[#254153] text-white px-1.5 py-0.2 rounded-full">Activo</span>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* Mini barra de progreso */}
-                            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-2">
-                                <div 
-                                    className="h-full rounded-full transition-all duration-500" 
-                                    style={{ width: `${cat.participacionVal}%`, backgroundColor: cat.color }} 
-                                />
+                            {/* Métricas Compactas en Fila */}
+                            <div className="flex items-center justify-between gap-1 text-[10px] bg-slate-50/80 px-2 py-1 rounded-md border border-slate-100">
+                                <span className="text-gray-600">
+                                    Regs: <strong className="font-bold text-gray-800">{cat.regs.toLocaleString('es-CO')}</strong>
+                                </span>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-amber-800">
+                                    Unids: <strong className="font-bold text-amber-900">{cat.prods.toLocaleString('es-CO')}</strong>
+                                </span>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-[9px] font-medium text-slate-500 truncate" title="Participación por Mercado: Nacional vs Internacional">
+                                    Nac: <strong className="text-emerald-700 font-semibold">{cat.mercadoNacionalPct}%</strong> • Int: <strong className="text-sky-700 font-semibold">{cat.mercadoInternacionalPct}%</strong>
+                                </span>
                             </div>
 
                             {/* Tooltip emergente al pasar el mouse por encima */}
@@ -1303,11 +1320,11 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between text-slate-300">
                                         <span className="text-[11px] text-slate-300">Total de registros hechos:</span>
-                                        <span className="font-bold text-white text-xs bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{cat.regs}</span>
+                                        <span className="font-bold text-white text-xs bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{cat.regs.toLocaleString('es-CO')}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-slate-300">
                                         <span className="text-[11px] text-slate-300">Productos con novedad:</span>
-                                        <span className="font-bold text-amber-300 text-xs bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods}</span>
+                                        <span className="font-bold text-amber-300 text-xs bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods.toLocaleString('es-CO')}</span>
                                     </div>
 
                                     {/* Participación por Mercado en este Canal */}
@@ -1350,15 +1367,6 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                 </div>
                                 {/* Flechita inferior del tooltip */}
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-                            </div>
-
-                            {/* Pie de la tarjeta */}
-                            <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-gray-100 gap-1">
-                                <span><strong className="text-gray-700">{cat.regs}</strong> reg.</span>
-                                <span className="text-[9px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded tracking-tight">
-                                    Nac: {cat.mercadoNacionalPct}% • Int: {cat.mercadoInternacionalPct}%
-                                </span>
-                                <span><strong className="text-[#c96a4e]">{cat.prods}</strong> prods.</span>
                             </div>
                         </div>
                     );
