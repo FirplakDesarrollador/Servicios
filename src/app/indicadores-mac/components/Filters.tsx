@@ -39,43 +39,8 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
         return Array.from(new Set(agentes)).sort();
     }, [data]);
 
-    const mercadoStats = useMemo(() => {
-        const total = data.length || 1;
-        let nac = 0;
-        let int = 0;
-        let sin = 0;
-
-        data.forEach(d => {
-            const m = d._mercado || 'Sin clasificar';
-            if (m === 'Nacional') nac++;
-            else if (m === 'Internacional') int++;
-            else sin++;
-        });
-
-        return {
-            total: data.length,
-            nacionalCount: nac,
-            nacionalPct: ((nac / total) * 100).toFixed(1),
-            internacionalCount: int,
-            internacionalPct: ((int / total) * 100).toFixed(1),
-            sinClasificarCount: sin,
-            sinClasificarPct: ((sin / total) * 100).toFixed(1),
-        };
-    }, [data]);
-
     const handleFilterChange = (key: keyof FilterState, value: any) => {
         setFilters(prev => ({ ...prev, [key]: value }));
-    };
-
-    const toggleArrayFilter = (key: keyof FilterState, option: string) => {
-        setFilters(prev => {
-            const arr = prev[key] as string[];
-            if (arr.includes(option)) {
-                return { ...prev, [key]: arr.filter(item => item !== option) };
-            } else {
-                return { ...prev, [key]: [...arr, option] };
-            }
-        });
     };
 
     // Estilos generales
@@ -84,29 +49,6 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
 
     return (
         <div className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex ${isVertical ? 'flex-col gap-4' : 'flex-wrap gap-4 items-end mb-6'}`}>
-            {/* Filtro Mercado */}
-            <div className={isVertical ? 'w-full' : 'flex-1 min-w-[170px]'}>
-                <div className="flex items-center justify-between mb-1">
-                    <label className={labelClass}>Mercado</label>
-                    {data.length > 0 && (
-                        <span className="text-[9px] font-extrabold text-slate-500 tracking-tight" title="Participación de Mercados">
-                            Nac: <strong className="text-emerald-700">{mercadoStats.nacionalPct}%</strong> | Int: <strong className="text-sky-700">{mercadoStats.internacionalPct}%</strong>
-                        </span>
-                    )}
-                </div>
-                <select 
-                    className={selectClass}
-                    value={filters.mercado && filters.mercado.length > 0 ? filters.mercado[0] : ''}
-                    onChange={(e) => handleFilterChange('mercado', e.target.value ? [e.target.value] : [])}
-                >
-                    <option value="">Todos los Mercados (100%)</option>
-                    <option value="Nacional">Nacional ({mercadoStats.nacionalPct}%)</option>
-                    <option value="Internacional">Internacional ({mercadoStats.internacionalPct}%)</option>
-                    {mercadoStats.sinClasificarCount > 0 && (
-                        <option value="Sin clasificar">Sin clasificar ({mercadoStats.sinClasificarPct}%)</option>
-                    )}
-                </select>
-            </div>
 
             <div className={isVertical ? 'w-full' : 'flex-1 min-w-[150px]'}>
                 <label className={labelClass}>Fecha Inicial</label>

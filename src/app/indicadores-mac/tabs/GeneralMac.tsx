@@ -894,24 +894,24 @@ export const MercadosParticipacionCard = ({
     const hasFilter = activeMercadoFilters.length > 0;
 
     return (
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-4">
+        <div className="bg-white p-3.5 rounded-xl shadow-xs border border-gray-100 flex flex-col space-y-2.5">
             {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-[#254153]/10 text-[#254153] flex items-center justify-center">
-                        <Globe className="w-3.5 h-3.5" />
+                    <div className="w-5 h-5 rounded-md bg-[#254153]/10 text-[#254153] flex items-center justify-center">
+                        <Globe className="w-3 h-3" />
                     </div>
-                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                        Mercados <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 normal-case font-normal">(% de Participación)</span>
+                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                        Mercados <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.2 normal-case font-normal">(% de Participación)</span>
                     </h3>
                     {hasFilter && (
-                        <div className="flex items-center gap-1.5 ml-2">
-                            <span className="text-[10px] font-bold bg-[#254153] text-white px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                        <div className="flex items-center gap-1 ml-1">
+                            <span className="text-[9px] font-bold bg-[#254153] text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                                 Filtrando: {activeMercadoFilters.join(', ')}
                             </span>
                             <button
                                 onClick={() => activeMercadoFilters.forEach(f => onFilterToggle('mercado', f))}
-                                className="text-[10px] font-bold text-gray-400 hover:text-red-500 underline ml-1 cursor-pointer transition-colors"
+                                className="text-[9px] font-bold text-gray-400 hover:text-red-500 underline ml-0.5 cursor-pointer transition-colors"
                                 title="Limpiar filtro de mercado"
                             >
                                 Limpiar
@@ -920,20 +920,20 @@ export const MercadosParticipacionCard = ({
                     )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs">
-                    <div className="hidden sm:flex items-center gap-2 text-[11px] text-gray-500 bg-gray-50 border border-gray-200/60 px-2.5 py-1 rounded-lg">
+                <div className="flex items-center gap-2.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 bg-gray-50 border border-gray-200/60 px-2 py-0.5 rounded-md">
                         <span>Total: <strong className="text-gray-800 font-bold">{totalRegs.toLocaleString('es-CO')}</strong> reg.</span>
                         <span className="text-gray-300">|</span>
                         <span><strong className="text-amber-700 font-bold">{totalProds.toLocaleString('es-CO')}</strong> prods.</span>
                     </div>
-                    <span className="text-[10px] font-semibold text-gray-400 hidden md:inline">
+                    <span className="text-[9px] font-semibold text-gray-400 hidden md:inline">
                         Clic en una tarjeta para filtro cruzado
                     </span>
                 </div>
             </div>
 
-            {/* Barra acumulada horizontal proporcional */}
-            <div className="w-full h-3 bg-gray-100 rounded-full flex overflow-hidden p-0.5 gap-0.5">
+            {/* Barra acumulada horizontal proporcional fina */}
+            <div className="w-full h-1.5 bg-gray-100 rounded-full flex overflow-hidden p-0.2 gap-0.5">
                 {mercadosData.map(cat => {
                     const isSelected = activeMercadoFilters.includes(cat.id);
                     const isDimmed = hasFilter && !isSelected;
@@ -941,7 +941,7 @@ export const MercadosParticipacionCard = ({
                         <div
                             key={cat.id}
                             style={{ width: `${Math.max(cat.participacionVal, 2)}%`, backgroundColor: cat.color }}
-                            className={`h-full rounded-sm transition-all duration-300 cursor-pointer ${
+                            className={`h-full rounded-xs transition-all duration-300 cursor-pointer ${
                                 isDimmed ? 'opacity-25 hover:opacity-60' : 'opacity-100 hover:opacity-85'
                             }`}
                             onClick={(e) => onFilterToggle('mercado', cat.id, e)}
@@ -951,8 +951,8 @@ export const MercadosParticipacionCard = ({
                 })}
             </div>
 
-            {/* Tarjetas de Mercado */}
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${mercadosData.length > 2 ? 'lg:grid-cols-3' : ''} gap-4`}>
+            {/* Tarjetas de Mercado Compactas */}
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${mercadosData.length > 2 ? 'lg:grid-cols-3' : ''} gap-2.5`}>
                 {mercadosData.map(cat => {
                     const isSelected = activeMercadoFilters.includes(cat.id);
                     const isDimmed = hasFilter && !isSelected;
@@ -961,62 +961,41 @@ export const MercadosParticipacionCard = ({
                         <div
                             key={cat.id}
                             onClick={(e) => onFilterToggle('mercado', cat.id, e)}
-                            className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                            className={`group relative p-2.5 rounded-lg border transition-all duration-200 cursor-pointer ${
                                 isSelected
-                                    ? `bg-white ${cat.activeBorderClass} shadow-md ring-2 ${cat.activeRingClass} border-2`
+                                    ? `bg-white ${cat.activeBorderClass} shadow-xs ring-1.5 ${cat.activeRingClass} border-2`
                                     : isDimmed
                                     ? 'bg-gray-50/50 border-gray-100 opacity-40 hover:opacity-95 hover:border-gray-300'
-                                    : 'bg-white border-gray-200 shadow-xs hover:shadow-md hover:border-gray-300'
+                                    : 'bg-white border-gray-200/80 shadow-2xs hover:shadow-xs hover:border-gray-300'
                             }`}
                         >
                             {/* Color Dot + Name + % Participación */}
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2 truncate pr-1">
-                                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                                    <span className="text-xs font-bold text-gray-800 truncate">{cat.nombre}</span>
-                                    <span className="text-[10px] font-semibold text-gray-400 hidden xl:inline">({cat.subtitulo})</span>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 truncate pr-1">
+                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                                    <span className="text-[11px] font-bold text-gray-800 truncate">{cat.nombre}</span>
+                                    <span className="text-[9px] font-medium text-gray-400 hidden xl:inline">({cat.subtitulo})</span>
                                 </div>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-sm font-black text-gray-900">{cat.participacion}</span>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <span className="text-xs font-black text-gray-900">{cat.participacion}</span>
                                     {isSelected && (
-                                        <span className="text-[9px] font-bold bg-[#254153] text-white px-1.5 py-0.5 rounded-full">Activo</span>
+                                        <span className="text-[8px] font-bold bg-[#254153] text-white px-1.5 py-0.2 rounded-full">Activo</span>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Mini barra de progreso */}
-                            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-3">
-                                <div
-                                    className="h-full rounded-full transition-all duration-500"
-                                    style={{ width: `${cat.participacionVal}%`, backgroundColor: cat.color }}
-                                />
-                            </div>
-
-                            {/* Métricas: Cantidad en Total Registros y Total Unidades */}
-                            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
-                                <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block leading-tight">Total Registros</span>
-                                    <div className="flex items-baseline gap-1 mt-0.5">
-                                        <span className="text-sm font-black text-gray-800">{cat.regs.toLocaleString('es-CO')}</span>
-                                        <span className="text-[10px] font-semibold text-gray-400">reg.</span>
-                                    </div>
-                                </div>
-                                <div className="bg-amber-50/50 p-2.5 rounded-lg border border-amber-100/80">
-                                    <span className="text-[9px] font-bold text-amber-900/80 uppercase tracking-wider block leading-tight">Total Unidades</span>
-                                    <div className="flex items-baseline gap-1 mt-0.5">
-                                        <span className="text-sm font-black text-amber-800">{cat.prods.toLocaleString('es-CO')}</span>
-                                        <span className="text-[10px] font-semibold text-amber-600/80">prods.</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Pie de la tarjeta */}
-                            <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2.5 pt-2 border-t border-gray-100">
-                                <span className="truncate">Inversión: <strong className="text-gray-700 font-semibold">{formatMoney(cat.inversion)}</strong></span>
-                                <span className={`text-[9px] font-semibold transition-colors ${
-                                    isSelected ? 'text-[#254153] font-bold' : 'text-gray-400 group-hover:text-gray-700'
-                                }`}>
-                                    {isSelected ? '✕ Quitar filtro' : 'Clic para filtrar'}
+                            {/* Métricas Compactas en Fila */}
+                            <div className="flex items-center justify-between gap-1 text-[10px] bg-slate-50/80 px-2 py-1 rounded-md border border-slate-100">
+                                <span className="text-gray-600">
+                                    Regs: <strong className="font-bold text-gray-800">{cat.regs.toLocaleString('es-CO')}</strong>
+                                </span>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-amber-800">
+                                    Unids: <strong className="font-bold text-amber-900">{cat.prods.toLocaleString('es-CO')}</strong>
+                                </span>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-gray-500 text-[9px] truncate">
+                                    Inv: <strong className="font-semibold text-gray-700">{formatMoney(cat.inversion)}</strong>
                                 </span>
                             </div>
 
