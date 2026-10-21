@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { RegistroMAC, FilterState } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList, ComposedChart } from 'recharts';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Globe, Package, Check, X, Filter } from 'lucide-react';
@@ -893,6 +893,39 @@ export const MercadosParticipacionCard = ({
     const activeMercadoFilters = filters.mercado || [];
     const hasFilter = activeMercadoFilters.length > 0;
 
+    const [tooltipPlacements, setTooltipPlacements] = useState<Record<string, { vertical: 'top' | 'bottom'; horizontal: 'center' | 'left' | 'right' }>>({});
+
+    const handleMouseEnterCard = (id: string, e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const spaceAbove = rect.top;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const tooltipHeight = 280;
+        const tooltipWidth = 288;
+
+        // Si hacia arriba no cabe toda la info (< 280px), desplegar hacia abajo ('bottom')
+        let vertical: 'top' | 'bottom' = 'bottom';
+        if (spaceAbove < tooltipHeight) {
+            vertical = 'bottom';
+        } else if (spaceBelow < tooltipHeight && spaceAbove >= tooltipHeight) {
+            vertical = 'top';
+        } else {
+            vertical = 'bottom';
+        }
+
+        const cardCenter = rect.left + rect.width / 2;
+        let horizontal: 'center' | 'left' | 'right' = 'center';
+        if (cardCenter - tooltipWidth / 2 < 16) {
+            horizontal = 'left';
+        } else if (cardCenter + tooltipWidth / 2 > window.innerWidth - 16) {
+            horizontal = 'right';
+        }
+
+        setTooltipPlacements(prev => ({
+            ...prev,
+            [id]: { vertical, horizontal }
+        }));
+    };
+
     return (
         <div className="bg-white p-3.5 rounded-xl shadow-xs border border-gray-100 flex flex-col space-y-2.5">
             {/* Header */}
@@ -956,10 +989,23 @@ export const MercadosParticipacionCard = ({
                 {mercadosData.map(cat => {
                     const isSelected = activeMercadoFilters.includes(cat.id);
                     const isDimmed = hasFilter && !isSelected;
+                    const placement = tooltipPlacements[cat.id] || { vertical: 'bottom', horizontal: 'center' };
+                    const isBottom = placement.vertical === 'bottom';
+                    const horizontalClass = placement.horizontal === 'left'
+                        ? 'left-0'
+                        : placement.horizontal === 'right'
+                        ? 'right-0'
+                        : 'left-1/2 -translate-x-1/2';
+                    const arrowHorizontalClass = placement.horizontal === 'left'
+                        ? 'left-6'
+                        : placement.horizontal === 'right'
+                        ? 'right-6'
+                        : 'left-1/2 -translate-x-1/2';
 
                     return (
                         <div
                             key={cat.id}
+                            onMouseEnter={(e) => handleMouseEnterCard(cat.id, e)}
                             onClick={(e) => onFilterToggle('mercado', cat.id, e)}
                             className={`group relative p-2.5 rounded-lg border transition-all duration-200 cursor-pointer ${
                                 isSelected
@@ -999,8 +1045,12 @@ export const MercadosParticipacionCard = ({
                                 </span>
                             </div>
 
-                            {/* Tooltip emergente al pasar el mouse por encima */}
-                            <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700">
+                            {/* Tooltip emergente inteligente: hacia abajo si no cabe arriba */}
+                            <div
+                                className={`hidden group-hover:block absolute ${horizontalClass} ${
+                                    isBottom ? 'top-full mt-2' : 'bottom-full mb-2'
+                                } w-72 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700`}
+                            >
                                 <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
                                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
@@ -1011,11 +1061,11 @@ export const MercadosParticipacionCard = ({
                                 <div className="space-y-1.5">
                                     <div className="flex items-center justify-between text-slate-300">
                                         <span className="text-[11px]">Total Registros hechos:</span>
-                                        <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{cat.regs} ({cat.participacion})</span>
+                                        <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{cat.regs.toLocaleString('es-CO')} ({cat.participacion})</span>
                                     </div>
                                     <div className="flex items-center justify-between text-slate-300">
                                         <span className="text-[11px]">Total Unidades con novedad:</span>
-                                        <span className="font-bold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods} ({cat.participacionProds})</span>
+                                        <span className="font-bold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods.toLocaleString('es-CO')} ({cat.participacionProds})</span>
                                     </div>
                                     <div className="flex items-center justify-between text-slate-300">
                                         <span className="text-[11px]">Valor invertido estimado:</span>
@@ -1026,7 +1076,7 @@ export const MercadosParticipacionCard = ({
                                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                                 Desglose por Canal de Venta:
                                             </div>
-                                            <div className="space-y-1 max-h-24 overflow-y-auto">
+                                            <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
                                                 {Object.entries(cat.canales).map(([canal, count]) => (
                                                     <div key={canal} className="flex items-center justify-between text-[10px] text-slate-300">
                                                         <span className="truncate pr-2">{canal}:</span>
@@ -1040,7 +1090,14 @@ export const MercadosParticipacionCard = ({
                                 <div className="mt-2 pt-1.5 border-t border-slate-700/60 text-[10px] text-sky-300 text-center font-medium">
                                     {isSelected ? 'Haz clic para quitar filtro cruzado' : 'Haz clic para aplicar filtro cruzado'}
                                 </div>
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                                {/* Flecha del tooltip apuntando al contenedor */}
+                                <div
+                                    className={`absolute ${arrowHorizontalClass} border-4 border-transparent ${
+                                        isBottom
+                                            ? 'bottom-full border-b-slate-900'
+                                            : 'top-full border-t-slate-900'
+                                    }`}
+                                />
                             </div>
                         </div>
                     );
@@ -1181,6 +1238,38 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 
     const activeCanalFilters = filters.canalVenta || [];
 
+    const [canalTooltipPlacements, setCanalTooltipPlacements] = useState<Record<string, { vertical: 'top' | 'bottom'; horizontal: 'center' | 'left' | 'right' }>>({});
+
+    const handleMouseEnterCanalCard = (id: string, e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const spaceAbove = rect.top;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const tooltipHeight = 280;
+        const tooltipWidth = 260;
+
+        let vertical: 'top' | 'bottom' = 'bottom';
+        if (spaceAbove < tooltipHeight) {
+            vertical = 'bottom';
+        } else if (spaceBelow < tooltipHeight && spaceAbove >= tooltipHeight) {
+            vertical = 'top';
+        } else {
+            vertical = 'bottom';
+        }
+
+        const cardCenter = rect.left + rect.width / 2;
+        let horizontal: 'center' | 'left' | 'right' = 'center';
+        if (cardCenter - tooltipWidth / 2 < 16) {
+            horizontal = 'left';
+        } else if (cardCenter + tooltipWidth / 2 > window.innerWidth - 16) {
+            horizontal = 'right';
+        }
+
+        setCanalTooltipPlacements(prev => ({
+            ...prev,
+            [id]: { vertical, horizontal }
+        }));
+    };
+
     return (
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-2.5">
             {/* Header */}
@@ -1269,10 +1358,23 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                     const hasActiveFilter = activeCanalFilters.length > 0;
                     const isSelected = hasActiveFilter && activeCanalFilters.some(f => cat.matchingKeys.some(mk => mk.toLowerCase() === f.toLowerCase() || f.toLowerCase() === cat.id));
                     const isDimmed = hasActiveFilter && !isSelected;
+                    const placement = canalTooltipPlacements[cat.id] || { vertical: 'bottom', horizontal: 'center' };
+                    const isBottom = placement.vertical === 'bottom';
+                    const horizontalClass = placement.horizontal === 'left'
+                        ? 'left-0'
+                        : placement.horizontal === 'right'
+                        ? 'right-0'
+                        : 'left-1/2 -translate-x-1/2';
+                    const arrowHorizontalClass = placement.horizontal === 'left'
+                        ? 'left-6'
+                        : placement.horizontal === 'right'
+                        ? 'right-6'
+                        : 'left-1/2 -translate-x-1/2';
 
                     return (
                         <div
                             key={cat.id}
+                            onMouseEnter={(e) => handleMouseEnterCanalCard(cat.id, e)}
                             onClick={(e) => onFilterToggle('canalVenta', cat.id, e)}
                             className={`group relative p-2.5 rounded-lg border transition-all duration-200 cursor-pointer ${
                                 isSelected 
@@ -1311,8 +1413,12 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                 </span>
                             </div>
 
-                            {/* Tooltip emergente al pasar el mouse por encima */}
-                            <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700">
+                            {/* Tooltip emergente inteligente: hacia abajo si no cabe arriba */}
+                            <div
+                                className={`hidden group-hover:block absolute ${horizontalClass} ${
+                                    isBottom ? 'top-full mt-2' : 'bottom-full mb-2'
+                                } w-64 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700`}
+                            >
                                 <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
                                     <span>{cat.nombre}</span>
                                     <span className="text-sky-400 font-black">{cat.participacion}</span>
@@ -1365,8 +1471,14 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                         </div>
                                     </div>
                                 </div>
-                                {/* Flechita inferior del tooltip */}
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                                {/* Flecha del tooltip apuntando al contenedor */}
+                                <div
+                                    className={`absolute ${arrowHorizontalClass} border-4 border-transparent ${
+                                        isBottom
+                                            ? 'bottom-full border-b-slate-900'
+                                            : 'top-full border-t-slate-900'
+                                    }`}
+                                />
                             </div>
                         </div>
                     );
