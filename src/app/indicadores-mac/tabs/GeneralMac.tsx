@@ -2278,31 +2278,34 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
     return (
         <div className="space-y-4 animate-fade-in">
             {filtersComponent ? (
-                <div className="flex flex-col lg:flex-row gap-6 mb-2">
-                    <div className="w-full lg:w-64 xl:w-72 shrink-0">
-                        {filtersComponent}
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-4">
-                        <MercadosParticipacionCard
-                            data={data}
-                            dataForMercado={dataForMercado || data}
-                            filters={filters}
-                            onFilterToggle={onFilterToggle}
-                        />
-                        <CanalesVentaCard
-                            data={data}
-                            dataForCanalVenta={dataForCanalVenta || data}
-                            filters={filters}
-                            onFilterToggle={onFilterToggle}
-                        />
-                        {/* Tarjetas KPI */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
-                            <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
-                            <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
-                            <KpiCard title="Solicitudes Abiertas" value={abiertas} />
-                            <KpiCard title="Solicitudes Cerradas" value={cerradas} />
-                            <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
+                <div className="space-y-4 mb-2">
+                    {/* Filtros a la izquierda, estirados a la altura de Mercados + Canales */}
+                    <div className="flex flex-col lg:flex-row gap-4">
+                        <div className="w-full lg:w-64 xl:w-72 shrink-0 lg:*:h-full">
+                            {filtersComponent}
                         </div>
+                        <div className="flex-1 min-w-0 space-y-4">
+                            <MercadosParticipacionCard
+                                data={data}
+                                dataForMercado={dataForMercado || data}
+                                filters={filters}
+                                onFilterToggle={onFilterToggle}
+                            />
+                            <CanalesVentaCard
+                                data={data}
+                                dataForCanalVenta={dataForCanalVenta || data}
+                                filters={filters}
+                                onFilterToggle={onFilterToggle}
+                            />
+                        </div>
+                    </div>
+                    {/* Tarjetas KPI en fila completa */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
+                        <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
+                        <KpiCard title="Solicitudes Abiertas" value={abiertas} />
+                        <KpiCard title="Solicitudes Cerradas" value={cerradas} />
+                        <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
                     </div>
                 </div>
             ) : (
