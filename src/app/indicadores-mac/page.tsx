@@ -793,7 +793,8 @@ export default function IndicadoresMacPage() {
                                 dataForCanalVenta={dataForCanalVenta}
                                 dataForProductos={dataForProductos}
                                 dataForPlantas={dataForPlantas}
-                                filters={filters} 
+                                dataForMercado={dataForMercado}
+                                filters={filters}
                                 setFilters={setFilters} 
                                 onFilterToggle={handleFilterToggle} 
                                 filtersComponent={

@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { RegistroMAC, FilterState } from '../types';
 import { supabase } from '@/lib/supabase';
 import {
@@ -25,6 +25,7 @@ interface Props {
     dataForCanalVenta?: RegistroMAC[];
     dataForProductos?: RegistroMAC[];
     dataForPlantas?: RegistroMAC[];
+    dataForMercado?: RegistroMAC[];
 }
 
 interface VentaRecord {
@@ -97,6 +98,24 @@ const normalizeCanalName = (g: string): string => {
     return g;
 };
 
+// Mercado de una venta según tipo_venta (Nacional / Exterior / Excluido)
+const getMercadoVenta = (tipoVenta: string | null | undefined): string => {
+    const t = String(tipoVenta || '').trim().toLowerCase();
+    if (t === 'nacional') return 'Nacional';
+    if (t === 'exterior' || t === 'internacional') return 'Internacional';
+    return 'Sin clasificar';
+};
+
+// Clave YYYY-MM de una fecha de contabilización (sin pasar por Date para evitar el corrimiento de zona horaria)
+const ventaMonthKey = (fecha: string): string => {
+    if (/^\d{4}-\d{2}/.test(fecha || '')) return fecha.slice(0, 7);
+    const d = new Date(fecha);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const MERCADOS = ['Nacional', 'Internacional', 'Sin clasificar'];
+const MERCADO_COLORS: Record<string, string> = { 'Nacional': '#254153', 'Internacional': '#3b82f6', 'Sin clasificar': '#d3b99f' };
+
 const getGrupoFromProduct = (p: any): string => {
     const grupoRaw = p?.familia;
     if (!grupoRaw || typeof grupoRaw !== 'string' || !String(grupoRaw).trim() || String(grupoRaw).toLowerCase().includes('seleccione')) {
@@ -134,7 +153,7 @@ function useSortable<T extends Record<string, any>>(data: T[], defaultKey: strin
 }
 
 // ── Componente Principal ───────────────────────────────────────────────────
-export default function InformeMac({ data, prevData, filters, filtersComponent, onFilterToggle, dataForCanalVenta, dataForProductos, dataForPlantas }: Props) {
+export default function InformeMac({ data, prevData, filters, filtersComponent, onFilterToggle, dataForCanalVenta, dataForProductos, dataForPlantas, dataForMercado }: Props) {
     const [ventas, setVentas] = useState<VentaRecord[]>([]);
     const [loadingVentas, setLoadingVentas] = useState(false);
     const [metricView, setMetricView] = useState<'porcentajes' | 'unidades' | 'inversion'>('unidades');
@@ -168,97 +187,33 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
     }, [filters.fechaInicial, filters.fechaFinal]);
 
 
-    // 2. Aplicar Filtros Globales a Ventas
-    const filteredVentas = useMemo(() => {
+    // 2. Aplicar Filtros Globales a Ventas.
+    // `exclude` deja por fuera un filtro para que su propia sección siga mostrando todas las opciones.
+    const filterVentas = useCallback((exclude: (keyof FilterState)[] = []) => {
+        const activo = (k: keyof FilterState) => !exclude.includes(k) && ((filters[k] as string[]) || []).length > 0;
+        const ciudades = filters.ciudades.map(c => c.toLowerCase());
+        const zonas = filters.zonas.map(z => z.toLowerCase());
+        const productos = filters.productos.map(p => normalizeGrupoName(p).toUpperCase());
+        const canales = (filters.canalVenta || []).map(f => normalizeCanalName(f));
+        const plantas = (filters.plantas || []).map(p => normalizePlantaName(p).toUpperCase());
+
         return ventas.filter(v => {
-            if (filters.ciudades.length > 0 && v.ciudad) {
-                if (!filters.ciudades.map(c => c.toLowerCase()).includes(v.ciudad.toLowerCase())) return false;
-            }
-            if (filters.zonas.length > 0 && v.zona) {
-                if (!filters.zonas.map(z => z.toLowerCase()).includes(v.zona.toLowerCase())) return false;
-            }
-            if (filters.productos.length > 0) {
-                const normFam = normalizeGrupoName(v.familia).toUpperCase();
-                if (!filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes(normFam)) return false;
-            }
-            if (filters.canalVenta && filters.canalVenta.length > 0) {
-                const activeNorms = filters.canalVenta.map(f => normalizeCanalName(f));
-                const vNorm = normalizeCanalName(v.grupo_cliente || '');
-                if (!activeNorms.includes(vNorm)) return false;
-            }
-            if (filters.plantas && filters.plantas.length > 0) {
-                const activeNorms = filters.plantas.map(p => normalizePlantaName(p).toUpperCase());
-                const vNorm = normalizePlantaName(v.planta || '').toUpperCase();
-                if (!activeNorms.includes(vNorm)) return false;
-            }
+            if (activo('mesCreacion') && !filters.mesCreacion.includes(ventaMonthKey(v.fecha_contabilizacion))) return false;
+            if (activo('mercado') && !filters.mercado.includes(getMercadoVenta(v.tipo_venta))) return false;
+            if (activo('ciudades') && v.ciudad && !ciudades.includes(v.ciudad.toLowerCase())) return false;
+            if (activo('zonas') && v.zona && !zonas.includes(v.zona.toLowerCase())) return false;
+            if (activo('productos') && !productos.includes(normalizeGrupoName(v.familia).toUpperCase())) return false;
+            if (activo('canalVenta') && !canales.includes(normalizeCanalName(v.grupo_cliente || ''))) return false;
+            if (activo('plantas') && !plantas.includes(normalizePlantaName(v.planta || '').toUpperCase())) return false;
             return true;
         });
     }, [ventas, filters]);
 
-    // Ventas filtradas por todo EXCEPTO canalVenta (para mantener visibles todos los canales)
-    const ventasForCanal = useMemo(() => {
-        return ventas.filter(v => {
-            if (filters.ciudades.length > 0 && v.ciudad) {
-                if (!filters.ciudades.map(c => c.toLowerCase()).includes(v.ciudad.toLowerCase())) return false;
-            }
-            if (filters.zonas.length > 0 && v.zona) {
-                if (!filters.zonas.map(z => z.toLowerCase()).includes(v.zona.toLowerCase())) return false;
-            }
-            if (filters.productos.length > 0) {
-                const normFam = normalizeGrupoName(v.familia).toUpperCase();
-                if (!filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes(normFam)) return false;
-            }
-            if (filters.plantas && filters.plantas.length > 0) {
-                const activeNorms = filters.plantas.map(p => normalizePlantaName(p).toUpperCase());
-                const vNorm = normalizePlantaName(v.planta || '').toUpperCase();
-                if (!activeNorms.includes(vNorm)) return false;
-            }
-            return true;
-        });
-    }, [ventas, filters.ciudades, filters.zonas, filters.productos, filters.plantas]);
-
-    const ventasForProductos = useMemo(() => {
-        return ventas.filter(v => {
-            if (filters.ciudades.length > 0 && v.ciudad) {
-                if (!filters.ciudades.map(c => c.toLowerCase()).includes(v.ciudad.toLowerCase())) return false;
-            }
-            if (filters.zonas.length > 0 && v.zona) {
-                if (!filters.zonas.map(z => z.toLowerCase()).includes(v.zona.toLowerCase())) return false;
-            }
-            if (filters.canalVenta && filters.canalVenta.length > 0) {
-                const activeNorms = filters.canalVenta.map(f => normalizeCanalName(f));
-                const vNorm = normalizeCanalName(v.grupo_cliente || '');
-                if (!activeNorms.includes(vNorm)) return false;
-            }
-            if (filters.plantas && filters.plantas.length > 0) {
-                const activeNorms = filters.plantas.map(p => normalizePlantaName(p).toUpperCase());
-                const vNorm = normalizePlantaName(v.planta || '').toUpperCase();
-                if (!activeNorms.includes(vNorm)) return false;
-            }
-            return true;
-        });
-    }, [ventas, filters.ciudades, filters.zonas, filters.canalVenta, filters.plantas]);
-
-    const ventasForPlantas = useMemo(() => {
-        return ventas.filter(v => {
-            if (filters.ciudades.length > 0 && v.ciudad) {
-                if (!filters.ciudades.map(c => c.toLowerCase()).includes(v.ciudad.toLowerCase())) return false;
-            }
-            if (filters.zonas.length > 0 && v.zona) {
-                if (!filters.zonas.map(z => z.toLowerCase()).includes(v.zona.toLowerCase())) return false;
-            }
-            if (filters.canalVenta && filters.canalVenta.length > 0) {
-                const activeNorms = filters.canalVenta.map(f => normalizeCanalName(f));
-                const vNorm = normalizeCanalName(v.grupo_cliente || '');
-                if (!activeNorms.includes(vNorm)) return false;
-            }
-            if (filters.productos.length > 0) {
-                const normFam = normalizeGrupoName(v.familia).toUpperCase();
-                if (!filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes(normFam)) return false;
-            }
-            return true;
-        });
-    }, [ventas, filters.ciudades, filters.zonas, filters.canalVenta, filters.productos]);
+    const filteredVentas = useMemo(() => filterVentas(), [filterVentas]);
+    const ventasForCanal = useMemo(() => filterVentas(['canalVenta']), [filterVentas]);
+    const ventasForProductos = useMemo(() => filterVentas(['productos']), [filterVentas]);
+    const ventasForPlantas = useMemo(() => filterVentas(['plantas']), [filterVentas]);
+    const ventasForMercado = useMemo(() => filterVentas(['mercado']), [filterVentas]);
 
     // 3. Procesar y Agrupar Datos (Cruce Real)
     const analytics = useMemo(() => {
@@ -303,8 +258,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             unidadesVendidas += (v.cantidad || 0);
             ventasTotales += (v.valor_total || 0);
 
-            const date = new Date(v.fecha_contabilizacion);
-            const mKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const mKey = ventaMonthKey(v.fecha_contabilizacion);
             const gKey = normalizeGrupoName(v.familia);
             const pKey = `${v.codigo_articulo || 'N/A'} - ${v.descripcion_articulo || 'Sin Nombre'}`;
             const zKey = normalizeZoneName(v.zona);
@@ -596,6 +550,38 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
 
         return computePct(Array.from(byCanalVenta.values())).sort((a,b) => b.ventasTotales - a.ventasTotales);
     }, [ventasForCanal, dataForCanalVenta, prevData]);
+
+    // 5. Indicadores por Mercado (mantiene todos los mercados ignorando el filtro de mercado)
+    const analyticsMercados = useMemo(() => {
+        const byMercado = new Map<string, any>(MERCADOS.map(m => [m, { name: m, unidadesVendidas: 0, ventasTotales: 0, registros: 0, unidadesNovedad: 0, inversion: 0 }]));
+
+        ventasForMercado.forEach(v => {
+            const obj = byMercado.get(getMercadoVenta(v.tipo_venta))!;
+            obj.unidadesVendidas += (v.cantidad || 0);
+            obj.ventasTotales += (v.valor_total || 0);
+        });
+
+        (dataForMercado || prevData).forEach(r => {
+            const m = MERCADOS.includes(r._mercado || '') ? r._mercado! : 'Sin clasificar';
+            const obj = byMercado.get(m)!;
+            obj.registros += 1;
+            obj.inversion += ((r as any).valor_servicio || 0) + ((r as any).valor_flete || 0) + ((r as any).valor_producto || 0);
+            const novs = Array.isArray(r.productos_novedad) ? r.productos_novedad : [];
+            obj.unidadesNovedad += novs.length === 0 ? 1 : novs.reduce((acc: number, p: any) => acc + (p.cantidad || 1), 0);
+        });
+
+        const totalVentas = Array.from(byMercado.values()).reduce((acc, i) => acc + i.ventasTotales, 0);
+        return Array.from(byMercado.values())
+            // "Sin clasificar" solo se muestra si tiene movimiento
+            .filter(i => i.name !== 'Sin clasificar' || i.ventasTotales > 0 || i.registros > 0)
+            .map(i => ({
+                ...i,
+                participacion: totalVentas > 0 ? (i.ventasTotales / totalVentas) * 100 : 0,
+                pctNovedad: i.unidadesVendidas > 0 ? (i.unidadesNovedad / i.unidadesVendidas) * 100 : null,
+                pctInversion: i.ventasTotales > 0 ? (i.inversion / i.ventasTotales) * 100 : null,
+                pctCasos: i.unidadesVendidas > 0 ? (i.registros / i.unidadesVendidas) * 100 : null,
+            }));
+    }, [ventasForMercado, dataForMercado, prevData]);
 
     const analyticsProductos = useMemo(() => {
         const byGroup = new Map<string, any>();
@@ -945,6 +931,84 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                     </div>
                 </div>
 
+            </div>
+
+            {/* INDICADORES POR MERCADO */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-[#254153] uppercase tracking-wider">Mercados</h3>
+                        <span className="text-[10px] text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">(% de Participación en Ventas)</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">Clic en una tarjeta para filtrar todo el informe por mercado</span>
+                </div>
+
+                {/* STACKED PROGRESS BAR */}
+                <div className="w-full h-2 flex rounded-full overflow-hidden mb-6 bg-slate-100">
+                    {analyticsMercados.map((m: any) => m.participacion > 0 && (
+                        <div
+                            key={m.name}
+                            onClick={() => onFilterToggle('mercado', m.name)}
+                            title={`${m.name}: ${m.participacion.toFixed(1)}%`}
+                            style={{ width: `${m.participacion}%`, backgroundColor: MERCADO_COLORS[m.name] }}
+                            className={`h-full border-r-2 border-white last:border-0 cursor-pointer transition-opacity ${filters.mercado.length > 0 && !filters.mercado.includes(m.name) ? 'opacity-30' : 'opacity-100'}`}
+                        />
+                    ))}
+                </div>
+
+                {/* CARDS */}
+                <div className={`grid grid-cols-1 gap-4 ${analyticsMercados.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+                    {analyticsMercados.map((m: any) => {
+                        const isActive = filters.mercado.includes(m.name);
+                        const indicadores = [
+                            { label: '% Producto con Novedad', value: m.pctNovedad, meta: META_CALIDAD },
+                            { label: '% Casos con Novedad', value: m.pctCasos, meta: META_CALIDAD },
+                            { label: '% Inversión / Venta', value: m.pctInversion, meta: META_ECONOMICA },
+                        ];
+                        return (
+                            <div
+                                key={m.name}
+                                onClick={() => onFilterToggle('mercado', m.name)}
+                                className={`p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all cursor-pointer ${isActive ? 'border-[#254153] ring-1 ring-[#254153]' : 'border-slate-200'} ${filters.mercado.length > 0 && !isActive ? 'opacity-40 hover:opacity-100' : 'opacity-100'}`}
+                            >
+                                {/* Header */}
+                                <div className="flex justify-between items-center mb-2.5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: MERCADO_COLORS[m.name] }} />
+                                        <span className="text-[12px] font-bold text-[#254153]">Mercado {m.name}</span>
+                                    </div>
+                                    <span className="text-[12px] font-black text-[#1d1d1b]">{m.participacion.toFixed(1)}%</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-100 rounded-full mb-3.5 overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width: `${m.participacion}%`, backgroundColor: MERCADO_COLORS[m.name] }} />
+                                </div>
+
+                                {/* Totales */}
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px] pb-3 border-b border-slate-100">
+                                    <span className="text-slate-500">Ventas: <strong className="text-[#254153]">{fmt$(m.ventasTotales)}</strong></span>
+                                    <span className="text-slate-500 text-right">Inv MAC: <strong className="text-[#254153]">{fmt$(m.inversion)}</strong></span>
+                                    <span className="text-slate-500">Unds vendidas: <strong className="text-[#254153]">{fmtN(m.unidadesVendidas)}</strong></span>
+                                    <span className="text-slate-500 text-right">Unds novedad: <strong className="text-[#254153]">{fmtN(m.unidadesNovedad)}</strong></span>
+                                    <span className="text-slate-500">Casos: <strong className="text-[#254153]">{fmtN(m.registros)}</strong></span>
+                                </div>
+
+                                {/* Indicadores vs meta */}
+                                <div className="grid grid-cols-3 gap-2 pt-3">
+                                    {indicadores.map(ind => {
+                                        const ok = ind.value === null || ind.value <= ind.meta;
+                                        return (
+                                            <div key={ind.label} className={`rounded-lg px-2 py-1.5 text-center ${ok ? 'bg-[#f5f1ea]' : 'bg-red-50'}`}>
+                                                <div className="text-[8px] font-bold text-[#749094] uppercase tracking-wide leading-tight min-h-[20px]">{ind.label}</div>
+                                                <div className={`text-sm font-black ${ok ? 'text-[#254153]' : 'text-red-700'}`}>{fmtPct(ind.value)}</div>
+                                                <div className="text-[9px] text-slate-400">Meta ≤ {ind.meta.toFixed(2)}%</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* PARTICIPACIÓN POR CANALES DE VENTA */}
