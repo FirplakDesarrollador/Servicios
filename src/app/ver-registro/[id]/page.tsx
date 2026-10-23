@@ -607,10 +607,9 @@ export default function VerRegistroPage() {
                                                 }
 
                                                 // Validar Familia y Planta con opciones válidas del clasificador
-                                                const validFamilias = ['Cocinas','Hidroterapia','Baño','Labores','Servicios','Plomeria','Cuidado&Mantenimiento','Griferia'];
-                                                const validPlantas = ['Marmol','Muebles','Fibra','Comercializado','Servicios','RTM','Quarztone'];
-                                                const faltaFamilia = (productos as any[]).some((p: any) => !validFamilias.includes(p.familia));
-                                                const faltaPlanta = (productos as any[]).some((p: any) => !validPlantas.includes(p.planta));
+                                                // Misma comparación que usan los selectores (sin mayúsculas ni espacios)
+                                                const faltaFamilia = (productos as any[]).some((p: any) => !matchOption(FAMILIA_OPTIONS, p.familia));
+                                                const faltaPlanta = (productos as any[]).some((p: any) => !matchOption(PLANTA_OPTIONS, p.planta));
                                                 if (faltaFamilia && faltaPlanta) {
                                                     missingFields.push('Familia y Planta por cada Producto de Novedad (pestana Clasificacion)');
                                                 } else if (faltaFamilia) {
@@ -1417,7 +1416,12 @@ const PLANTA_OPTIONS = [
     'RTM',
     'Quarztone',
 ];
-function ClasificacionTab({ 
+
+// Devuelve la opción canónica que coincide con el valor (ignorando mayúsculas y espacios), o '' si no hay
+const matchOption = (options: string[], value: any): string =>
+    options.find(o => o.toLowerCase() === String(value || '').trim().toLowerCase()) || '';
+
+function ClasificacionTab({
     registro, 
     usuariosList, 
     razonesQueja, 
@@ -1560,7 +1564,12 @@ function ClasificacionTab({
             const { error } = await supabase
                 .from('registro_solicitudes')
                 .update({
-                    productos_novedad: editClasificacionProductos,
+                    // Guardar Familia/Planta con el texto exacto de las opciones
+                    productos_novedad: editClasificacionProductos.map((p: any) => ({
+                        ...p,
+                        familia: matchOption(FAMILIA_OPTIONS, p.familia) || p.familia,
+                        planta: matchOption(PLANTA_OPTIONS, p.planta) || p.planta,
+                    })),
                     vendedor_id: globalClasificacion.vendedor_id || null,
                     valor_servicio: parseNum(globalClasificacion.valor_servicio),
                     valor_flete: parseNum(globalClasificacion.valor_flete),
@@ -1692,7 +1701,7 @@ function ClasificacionTab({
                                                 <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
                                             </label>
                                             <select
-                                                value={FAMILIA_OPTIONS.find(f => f.toLowerCase() === String(prod.familia || '').trim().toLowerCase()) || ''}
+                                                value={matchOption(FAMILIA_OPTIONS, prod.familia)}
                                                 onChange={(e) => updateClasificacionProduct(idx, 'familia', e.target.value)}
                                                 className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
                                                     globalClasificacion.fecha_verificacion && !prod.familia
@@ -1713,7 +1722,7 @@ function ClasificacionTab({
                                                 <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
                                             </label>
                                             <select
-                                                value={PLANTA_OPTIONS.find(p => p.toLowerCase() === String(prod.planta || '').trim().toLowerCase()) || ''}
+                                                value={matchOption(PLANTA_OPTIONS, prod.planta)}
                                                 onChange={(e) => updateClasificacionProduct(idx, 'planta', e.target.value)}
                                                 className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
                                                     globalClasificacion.fecha_verificacion && !prod.planta
