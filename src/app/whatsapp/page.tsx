@@ -39,6 +39,8 @@ export default function WhatsAppPage() {
   const [sending, setSending] = useState(false);
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<any[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -216,9 +218,16 @@ export default function WhatsAppPage() {
       })
       .subscribe();
 
-    return () => { 
-      supabase.removeChannel(chatSub); 
-      supabase.removeChannel(asesoresSub); 
+    // Respaldo de la lista de chats si realtime no entrega eventos
+    const refreshChats = () => { if (!document.hidden) fetchChats(); };
+    const chatsInterval = setInterval(refreshChats, 10000);
+    document.addEventListener('visibilitychange', refreshChats);
+
+    return () => {
+      supabase.removeChannel(chatSub);
+      supabase.removeChannel(asesoresSub);
+      clearInterval(chatsInterval);
+      document.removeEventListener('visibilitychange', refreshChats);
     };
   }, []);
 
@@ -268,7 +277,41 @@ export default function WhatsAppPage() {
         console.log('Realtime status:', status);
       });
 
-    return () => { supabase.removeChannel(msgSub); };
+    // Respaldo por si realtime no entrega eventos (conexión caída, pestaña en segundo plano):
+    // se consulta el chat abierto cada pocos segundos y se fusiona con lo que hay en pantalla.
+    const chatId = activeChat.id;
+    const pollMessages = async () => {
+      if (document.hidden) return;
+      const { data } = await supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
+      if (!data) return;
+      const prev = messagesRef.current;
+      const prevIds = new Set(prev.map(m => m.id));
+      const added = data.filter(m => !prevIds.has(m.id));
+      const changed = added.length > 0 || data.some(m => {
+        const local = prev.find(p => p.id === m.id);
+        return local && (local.status !== m.status || local.wam_id !== m.wam_id);
+      });
+      if (!changed) return;
+      setMessages(current => {
+        // Se conservan los mensajes optimistas que el servidor aún no ha guardado
+        const serverIds = new Set(data.map(m => m.id));
+        return [...data, ...current.filter(m => !serverIds.has(m.id))];
+      });
+      if (added.length > 0) setTimeout(scrollToBottom, 100);
+      if (added.some(m => m.sender === 'them')) setChatUnread(chatId, 0);
+    };
+    const pollInterval = setInterval(pollMessages, 5000);
+    document.addEventListener('visibilitychange', pollMessages);
+
+    return () => {
+      supabase.removeChannel(msgSub);
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', pollMessages);
+    };
   }, [activeChat?.id]);
 
   // ── Send text message ────────────────────────────────────────────────────────
