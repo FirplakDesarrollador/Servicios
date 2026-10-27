@@ -26,6 +26,9 @@ export default function WhatsAppPage() {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [asesorFilterSearch, setAsesorFilterSearch] = useState('');
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+  // Menú de opciones de un chat (tres puntos o clic derecho), en coordenadas de pantalla
+  const [chatMenu, setChatMenu] = useState<{ chat: any; x: number; y: number; fromHeader?: boolean } | null>(null);
+  const chatMenuRef = useRef<HTMLDivElement>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentUserName, setCurrentUserName] = useState<string>('');
@@ -89,6 +92,32 @@ export default function WhatsAppPage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close chat options menu on outside click, Escape, scroll or resize
+  useEffect(() => {
+    if (!chatMenu) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (chatMenuRef.current && !chatMenuRef.current.contains(e.target as Node)) setChatMenu(null);
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setChatMenu(null); };
+    const close = () => setChatMenu(null);
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKey);
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKey);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [chatMenu]);
+
+  const openChatMenuAtButton = (e: React.MouseEvent<HTMLElement>, chat: any, fromHeader = false) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setChatMenu({ chat, x: rect.right, y: rect.bottom + 4, fromHeader });
+  };
 
   // ── Fetch Current Logged In User Profile ─────────────────────────────────────
   const fetchCurrentUser = async () => {
@@ -715,6 +744,10 @@ export default function WhatsAppPage() {
               <div
                 key={chat.id}
                 onClick={() => setActiveChat(chat)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setChatMenu({ chat, x: e.clientX, y: e.clientY });
+                }}
                 className={`group flex items-center p-3 cursor-pointer rounded-2xl transition-all ${activeChat?.id === chat.id ? 'bg-white shadow-md border border-white/80' : 'hover:bg-white/50 border border-transparent'}`}
               >
                 <div className="flex flex-col items-center shrink-0 mr-3 w-16">
@@ -755,15 +788,11 @@ export default function WhatsAppPage() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (chat.unread_count > 0) setChatUnread(chat.id, 0);
-                          else markChatAsUnread(chat.id);
-                        }}
-                        className="p-1 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title={chat.unread_count > 0 ? 'Marcar como leído' : 'Marcar como no leído'}
+                        onClick={(e) => openChatMenuAtButton(e, chat)}
+                        className={`p-1 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-opacity ${chatMenu?.chat.id === chat.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        title="Más opciones"
                       >
-                        {chat.unread_count > 0 ? <MailOpen className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
+                        <MoreVertical className="w-4 h-4" />
                       </button>
                       {chat.unread_count > 0 && (
                         <span className="bg-emerald-500 rounded-full px-1.5 py-0.5 text-white text-[10px] font-bold">{chat.unread_count}</span>
@@ -854,21 +883,14 @@ export default function WhatsAppPage() {
                 </div>
 
                 <button
-                  onClick={() => markChatAsUnread(activeChat.id)}
-                  className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs"
-                  title="Marcar como no leído"
-                >
-                  <Mail className="w-4 h-4" />
-                </button>
-                <button
                   onClick={() => setShowContactInfo(!showContactInfo)}
                   className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs"
                   title="Ver información del contacto"
                 >
                   <Search className="w-4 h-4" />
                 </button>
-                <button 
-                  onClick={() => setShowContactInfo(!showContactInfo)}
+                <button
+                  onClick={(e) => openChatMenuAtButton(e, activeChat, true)}
                   className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs"
                   title="Más opciones"
                 >
@@ -878,7 +900,8 @@ export default function WhatsAppPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-2">
+            {/* Bloque normal (no flex) para que los mensajes no se encojan y se vean completos al subir */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-2">
               {messages.map((msg) => {
                 const isMe = msg.sender === 'me';
                 const hasMedia = !!msg.media_url;
@@ -890,7 +913,7 @@ export default function WhatsAppPage() {
                 const quotedMsg = msg.reply_to_wam_id ? messages.find(m => m.wam_id === msg.reply_to_wam_id) : null;
 
                 return (
-                  <div key={msg.id} className={`group flex w-full items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  <div key={msg.id} className={`group flex w-full shrink-0 items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
                     {/* Solo se puede citar un mensaje que ya tiene id de WhatsApp */}
                     {isMe && msg.wam_id && (
                       <button
@@ -1160,6 +1183,50 @@ export default function WhatsAppPage() {
           </div>
         )}
       </div>
+
+      {/* ── Chat options menu (tres puntos / clic derecho) ── */}
+      {chatMenu && (() => {
+        const menuChat = chats.find(c => c.id === chatMenu.chat.id) || chatMenu.chat;
+        const isUnread = menuChat.unread_count > 0;
+        const menuWidth = 220;
+        // Se alinea a la derecha del punto y se mantiene dentro de la ventana
+        const left = Math.max(8, Math.min(chatMenu.x - (chatMenu.fromHeader ? menuWidth : 0), window.innerWidth - menuWidth - 8));
+        const top = Math.min(chatMenu.y, window.innerHeight - 140);
+        return (
+          <div
+            ref={chatMenuRef}
+            style={{ left, top, width: menuWidth }}
+            className="fixed z-50 bg-white rounded-2xl shadow-xl border border-slate-100 p-1.5 animate-in fade-in zoom-in-95 duration-100"
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                if (isUnread) setChatUnread(menuChat.id, 0);
+                else markChatAsUnread(menuChat.id);
+                setChatMenu(null);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              {isUnread ? <MailOpen className="w-4 h-4 text-indigo-500" /> : <Mail className="w-4 h-4 text-indigo-500" />}
+              {isUnread ? 'Marcar como leído' : 'Marcar como no leído'}
+            </button>
+            {chatMenu.fromHeader && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowContactInfo(true);
+                  setChatMenu(null);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <UserCheck className="w-4 h-4 text-indigo-500" />
+                Info. del contacto
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       <NewMessageModal
         isOpen={isNewMessageModalOpen}
