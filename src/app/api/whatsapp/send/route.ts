@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { chat_id, text_body, id } = await request.json();
+    const { chat_id, text_body, id, reply_to_wam_id } = await request.json();
 
     if (!chat_id || !text_body) {
       return NextResponse.json({ error: 'chat_id and text_body are required' }, { status: 400 });
@@ -37,6 +37,8 @@ export async function POST(request: Request) {
         to: phoneNumber,
         type: 'text',
         text: { body: text_body },
+        // Con context, WhatsApp muestra el mensaje citado encima de la respuesta
+        ...(reply_to_wam_id ? { context: { message_id: reply_to_wam_id } } : {}),
       }),
     });
 
@@ -60,6 +62,7 @@ export async function POST(request: Request) {
           text_body,
           sender: 'me',
           status: 'sent',
+          ...(reply_to_wam_id ? { reply_to_wam_id } : {}),
         }
       ])
       .select()

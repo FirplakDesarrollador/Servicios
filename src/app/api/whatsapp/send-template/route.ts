@@ -4,7 +4,9 @@ import { getNextAssignedAsesor, normalizePhoneNumber } from '@/lib/whatsappAssig
 
 export async function POST(request: Request) {
   try {
-    const { phone_number, template_name, parameters, template_text, language_code } = await request.json();
+    const { phone_number, template_name, parameters, template_text, language_code, responsable } = await request.json();
+    // Solo llega cuando quien abre la conversación tiene rol MAC
+    const autoResponsable: string | null = typeof responsable === 'string' && responsable.trim() ? responsable.trim() : null;
 
     if (!phone_number || !template_name) {
       return NextResponse.json({ error: 'phone_number and template_name are required' }, { status: 400 });
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
     
     const { data: existingChats, error: chatError } = await supabase
       .from('whatsapp_chats')
-      .select('id, contact_name, phone_number')
+      .select('id, contact_name, phone_number, responsable')
       .in('phone_number', [cleanPhone, altPhone]);
 
     if (chatError) {
@@ -30,18 +32,22 @@ export async function POST(request: Request) {
     if (existingChats && existingChats.length > 0) {
       chat_id = existingChats[0].id;
       contact_name = existingChats[0].contact_name;
-      if (existingChats[0].phone_number !== cleanPhone) {
-        await supabase.from('whatsapp_chats').update({ phone_number: cleanPhone }).eq('id', chat_id);
+      const chatUpdate: Record<string, string> = {};
+      if (existingChats[0].phone_number !== cleanPhone) chatUpdate.phone_number = cleanPhone;
+      // Un chat existente sin responsable queda asignado a quien lo retoma (rol MAC)
+      if (autoResponsable && !existingChats[0].responsable) chatUpdate.responsable = autoResponsable;
+      if (Object.keys(chatUpdate).length > 0) {
+        await supabase.from('whatsapp_chats').update(chatUpdate).eq('id', chat_id);
       }
     } else {
-      // Outbound initiated chat defaults to unassigned (null)
+      // Outbound initiated chat: assigned to the MAC user who opened it, otherwise unassigned (null)
       const { data: newChat, error: newChatError } = await supabase
         .from('whatsapp_chats')
-        .insert([{ 
-          phone_number: cleanPhone, 
-          contact_name: 'Unknown', 
+        .insert([{
+          phone_number: cleanPhone,
+          contact_name: 'Unknown',
           unread_count: 0,
-          responsable: null
+          responsable: autoResponsable
         }])
         .select()
         .single();

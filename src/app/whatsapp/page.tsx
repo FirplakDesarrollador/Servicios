@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
@@ -15,6 +15,9 @@ export default function WhatsAppPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState('');
+  // Mensaje que se está respondiendo (se envía como cita con context.message_id)
+  const [replyTo, setReplyTo] = useState<any>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
   const [newMessageTemplate, setNewMessageTemplate] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResponsableFilter, setSelectedResponsableFilter] = useState('todos');
@@ -44,6 +47,34 @@ export default function WhatsAppPage() {
   const formatTime = (isoString: string) => {
     if (!isoString) return '';
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getMessagePreview = (msg: any) => {
+    if (msg.text_body?.trim()) return msg.text_body;
+    if (msg.media_type === 'image') return '📷 Imagen';
+    if (msg.media_type === 'video') return '🎥 Video';
+    if (msg.media_type === 'audio' || msg.media_type === 'voice') return '🎤 Audio';
+    if (msg.media_type === 'sticker') return '💟 Sticker';
+    if (msg.media_type === 'document') return `📄 ${msg.media_filename || 'Documento'}`;
+    return 'Mensaje';
+  };
+
+  const getSenderLabel = (msg: any) => {
+    if (msg.sender === 'me') return 'Tú';
+    return activeChat?.contact_name && activeChat.contact_name !== 'Unknown' ? activeChat.contact_name : `+${activeChat?.phone_number}`;
+  };
+
+  const startReply = (msg: any) => {
+    setReplyTo(msg);
+    messageInputRef.current?.focus();
+  };
+
+  const scrollToMessage = (wamId: string) => {
+    const el = document.getElementById(`wa-msg-${wamId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('ring-2', 'ring-indigo-300');
+    setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-300'), 1500);
   };
 
   // Close filter dropdown on outside click
@@ -177,6 +208,7 @@ export default function WhatsAppPage() {
   useEffect(() => {
     if (!activeChat) return;
 
+    setReplyTo(null);
     fetchMessages(activeChat.id);
 
     // Clear unread
@@ -223,7 +255,9 @@ export default function WhatsAppPage() {
     if (!messageText.trim() || !activeChat || sending || isRecording) return;
 
     const text = messageText.trim();
+    const replyToWamId: string | null = replyTo?.wam_id || null;
     setMessageText('');
+    setReplyTo(null);
 
     // Optimistic update
     const msgId = crypto.randomUUID();
@@ -234,6 +268,7 @@ export default function WhatsAppPage() {
       sender: 'me',
       status: 'sent',
       created_at: new Date().toISOString(),
+      reply_to_wam_id: replyToWamId,
     };
     setMessages(prev => [...prev, optimisticMsg]);
     setTimeout(scrollToBottom, 50);
@@ -243,7 +278,7 @@ export default function WhatsAppPage() {
       const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: activeChat.id, text_body: text, id: msgId }),
+        body: JSON.stringify({ chat_id: activeChat.id, text_body: text, id: msgId, reply_to_wam_id: replyToWamId }),
       });
       if (!res.ok) throw new Error('Error enviando');
     } catch (err) {
@@ -273,6 +308,8 @@ export default function WhatsAppPage() {
           language_code: data.template.languageCode,
           parameters: data.parameters,
           template_text: templateText,
+          // Rol MAC: la conversación que abre queda asignada a esa persona
+          responsable: currentUser?.rol === 'mac' ? currentUserName : null,
         }),
       });
       if (!res.ok) {
@@ -764,13 +801,40 @@ export default function WhatsAppPage() {
                 const isVideo = msg.media_type === 'video';
                 const isDoc = msg.media_type === 'document' && !isAudio;
                 const isDefaultLabel = !msg.text_body || ['Imagen','Audio','Video','Documento','Nota de voz','📷 Imagen','🎤 Mensaje de voz','🎵 Audio','🎥 Video','💟 Sticker','📄 Documento'].includes(msg.text_body.trim());
+                const quotedMsg = msg.reply_to_wam_id ? messages.find(m => m.wam_id === msg.reply_to_wam_id) : null;
 
                 return (
-                  <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] rounded-2xl shadow-sm overflow-hidden ${isMe
+                  <div key={msg.id} className={`group flex w-full items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    {/* Solo se puede citar un mensaje que ya tiene id de WhatsApp */}
+                    {isMe && msg.wam_id && (
+                      <button
+                        type="button"
+                        onClick={() => startReply(msg)}
+                        className="p-1.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Responder"
+                      >
+                        <Reply className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div
+                      id={msg.wam_id ? `wa-msg-${msg.wam_id}` : undefined}
+                      className={`max-w-[75%] rounded-2xl shadow-sm overflow-hidden transition-shadow ${isMe
                       ? 'bg-indigo-50 border border-indigo-100 text-slate-800 rounded-tr-sm'
                       : 'bg-white text-slate-800 border border-gray-100 rounded-tl-sm'
                     }`}>
+                      {/* Mensaje citado */}
+                      {msg.reply_to_wam_id && (
+                        <button
+                          type="button"
+                          onClick={() => scrollToMessage(msg.reply_to_wam_id)}
+                          className={`block w-[calc(100%-1rem)] text-left mx-2 mt-2 px-3 py-1.5 rounded-lg border-l-4 border-indigo-400 ${isMe ? 'bg-indigo-100/70' : 'bg-slate-100'}`}
+                        >
+                          <p className="text-[11px] font-bold text-indigo-600">{quotedMsg ? getSenderLabel(quotedMsg) : 'Mensaje citado'}</p>
+                          <p className="text-[12px] text-slate-600 line-clamp-2 whitespace-pre-wrap break-words">
+                            {quotedMsg ? getMessagePreview(quotedMsg) : 'Mensaje no disponible'}
+                          </p>
+                        </button>
+                      )}
                       {/* Image or Sticker */}
                       {hasMedia && isImage && (
                         <div className="overflow-hidden rounded-t-2xl bg-black/5">
@@ -819,6 +883,16 @@ export default function WhatsAppPage() {
                         {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-blue-500' : 'text-slate-400'}`} />}
                       </div>
                     </div>
+                    {!isMe && msg.wam_id && (
+                      <button
+                        type="button"
+                        onClick={() => startReply(msg)}
+                        className="p-1.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Responder"
+                      >
+                        <Reply className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -827,6 +901,18 @@ export default function WhatsAppPage() {
 
             {/* Input — shrink-0 keeps it at the bottom always */}
             <div className="shrink-0 px-4 py-3 bg-white/60 border-t border-gray-100 z-10">
+              {replyTo && !recordedAudio && (
+                <div className="flex items-center gap-2 mb-2 bg-white rounded-xl border border-gray-200 px-3 py-2 shadow-sm">
+                  <Reply className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <div className="flex-1 min-w-0 border-l-4 border-indigo-400 pl-3">
+                    <p className="text-[11px] font-bold text-indigo-600">Respondiendo a {getSenderLabel(replyTo)}</p>
+                    <p className="text-[12px] text-slate-600 truncate">{getMessagePreview(replyTo)}</p>
+                  </div>
+                  <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-full" title="Cancelar respuesta">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
               <form onSubmit={handleSendMessage} className="flex items-center gap-2 bg-white rounded-2xl border border-gray-200 px-3 py-2 shadow-sm focus-within:border-indigo-300 transition-colors">
                 {recordedAudio ? (
                   <div className="flex-1 flex items-center gap-3 bg-indigo-50/50 rounded-xl px-3 py-1 border border-indigo-100">
@@ -863,8 +949,10 @@ export default function WhatsAppPage() {
                       </div>
                     ) : (
                       <input
+                        ref={messageInputRef}
                         type="text"
                         value={messageText}
+                        onKeyDown={(e) => { if (e.key === 'Escape') setReplyTo(null); }}
                         onChange={(e) => setMessageText(e.target.value)}
                         placeholder="Escribe un mensaje..."
                         className="flex-1 bg-transparent outline-none text-slate-700 placeholder:text-slate-400 text-[15px] py-1"

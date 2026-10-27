@@ -300,7 +300,9 @@ export async function POST(request: Request) {
                     media_url: media_url,
                     media_type: media_type,
                     media_mime_type: media_mime_type,
-                    media_filename: media_filename
+                    media_filename: media_filename,
+                    // El cliente respondió citando un mensaje anterior
+                    ...(message.context?.id ? { reply_to_wam_id: message.context.id } : {})
                   }]);
               }
             }
