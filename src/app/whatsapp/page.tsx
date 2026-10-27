@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
@@ -164,6 +164,24 @@ export default function WhatsAppPage() {
       .eq('id', chatId);
   };
 
+  // ── Read / unread ────────────────────────────────────────────────────────────
+  // Se actualiza primero el estado local para que el cambio se vea de inmediato,
+  // sin esperar el refresco por realtime.
+  const setChatUnread = async (chatId: string, unreadCount: number) => {
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread_count: unreadCount } : c));
+    const { error } = await supabase
+      .from('whatsapp_chats')
+      .update({ unread_count: unreadCount })
+      .eq('id', chatId);
+    if (error) console.error('Error actualizando leído/no leído:', error);
+  };
+
+  const markChatAsUnread = (chatId: string) => {
+    // Si es el chat abierto se cierra; si no, se volvería a marcar como leído al verlo
+    if (activeChat?.id === chatId) setActiveChat(null);
+    setChatUnread(chatId, 1);
+  };
+
   // ── Fetch messages ───────────────────────────────────────────────────────────
   const fetchMessages = async (chatId: string) => {
     const { data } = await supabase
@@ -211,9 +229,9 @@ export default function WhatsAppPage() {
     setReplyTo(null);
     fetchMessages(activeChat.id);
 
-    // Clear unread
+    // Al abrir el chat sus mensajes quedan leídos
     if (activeChat.unread_count > 0) {
-      supabase.from('whatsapp_chats').update({ unread_count: 0 }).eq('id', activeChat.id).then();
+      setChatUnread(activeChat.id, 0);
     }
 
     // Subscribe to ALL new messages, filter client-side
@@ -232,6 +250,10 @@ export default function WhatsAppPage() {
             return [...prev, payload.new];
           });
           setTimeout(scrollToBottom, 100);
+          // Un mensaje que llega con el chat abierto ya se está viendo
+          if (payload.new.sender === 'them') {
+            setChatUnread(activeChat.id, 0);
+          }
         }
       )
       .on(
@@ -650,7 +672,7 @@ export default function WhatsAppPage() {
               <div
                 key={chat.id}
                 onClick={() => setActiveChat(chat)}
-                className={`flex items-center p-3 cursor-pointer rounded-2xl transition-all ${activeChat?.id === chat.id ? 'bg-white shadow-md border border-white/80' : 'hover:bg-white/50 border border-transparent'}`}
+                className={`group flex items-center p-3 cursor-pointer rounded-2xl transition-all ${activeChat?.id === chat.id ? 'bg-white shadow-md border border-white/80' : 'hover:bg-white/50 border border-transparent'}`}
               >
                 <div className="flex flex-col items-center shrink-0 mr-3 w-16">
                   <div className="relative">
@@ -687,9 +709,23 @@ export default function WhatsAppPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <p className="text-xs text-slate-500 truncate pr-2">{chat.last_message || 'Multimedia'}</p>
-                    {chat.unread_count > 0 && (
-                      <span className="bg-emerald-500 rounded-full px-1.5 py-0.5 text-white text-[10px] font-bold shrink-0">{chat.unread_count}</span>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (chat.unread_count > 0) setChatUnread(chat.id, 0);
+                          else markChatAsUnread(chat.id);
+                        }}
+                        className="p-1 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={chat.unread_count > 0 ? 'Marcar como leído' : 'Marcar como no leído'}
+                      >
+                        {chat.unread_count > 0 ? <MailOpen className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
+                      </button>
+                      {chat.unread_count > 0 && (
+                        <span className="bg-emerald-500 rounded-full px-1.5 py-0.5 text-white text-[10px] font-bold">{chat.unread_count}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -774,9 +810,16 @@ export default function WhatsAppPage() {
                   </div>
                 </div>
 
-                <button 
+                <button
+                  onClick={() => markChatAsUnread(activeChat.id)}
+                  className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs"
+                  title="Marcar como no leído"
+                >
+                  <Mail className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => setShowContactInfo(!showContactInfo)}
-                  className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs" 
+                  className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs"
                   title="Ver información del contacto"
                 >
                   <Search className="w-4 h-4" />
