@@ -41,12 +41,15 @@ export default function WhatsAppPage() {
   const audioChunksRef = useRef<BlobPart[]>([]);
   const [sending, setSending] = useState(false);
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<any[]>([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // No usar scrollIntoView: también desplaza la columna del chat y el encabezado
+    // sticky termina tapando el inicio de la lista de mensajes.
+    const container = messagesContainerRef.current;
+    if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   };
 
   const formatTime = (isoString: string) => {
@@ -77,7 +80,13 @@ export default function WhatsAppPage() {
   const scrollToMessage = (wamId: string) => {
     const el = document.getElementById(`wa-msg-${wamId}`);
     if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const container = messagesContainerRef.current;
+    if (container) {
+      const cRect = container.getBoundingClientRect();
+      const eRect = el.getBoundingClientRect();
+      const top = container.scrollTop + (eRect.top - cRect.top) - (cRect.height - eRect.height) / 2;
+      container.scrollTo({ top, behavior: 'smooth' });
+    }
     el.classList.add('ring-2', 'ring-indigo-300');
     setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-300'), 1500);
   };
@@ -811,7 +820,8 @@ export default function WhatsAppPage() {
         {activeChat ? (
           <>
           {/* Main Chat Column */}
-          <div className="flex-1 h-full flex flex-col min-h-0 bg-white/80 backdrop-blur-xl overflow-hidden relative">
+          {/* overflow-clip (no hidden): recorta igual pero el navegador no puede desplazar esta columna */}
+          <div className="flex-1 h-full flex flex-col min-h-0 bg-white/80 backdrop-blur-xl overflow-clip relative">
 
             {/* Glow effects */}
             <div className="pointer-events-none absolute top-0 left-0 w-64 h-64 bg-indigo-300/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
@@ -901,7 +911,7 @@ export default function WhatsAppPage() {
 
             {/* Messages */}
             {/* Bloque normal (no flex) para que los mensajes no se encojan y se vean completos al subir */}
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-2">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-2">
               {messages.map((msg) => {
                 const isMe = msg.sender === 'me';
                 const hasMedia = !!msg.media_url;
@@ -1005,7 +1015,6 @@ export default function WhatsAppPage() {
                   </div>
                 );
               })}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* Input — shrink-0 keeps it at the bottom always */}
