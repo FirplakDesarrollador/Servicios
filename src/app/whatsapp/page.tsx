@@ -17,7 +17,17 @@ export default function WhatsAppPage() {
   const [messageText, setMessageText] = useState('');
   // Mensaje que se está respondiendo (se envía como cita con context.message_id)
   const [replyTo, setReplyTo] = useState<any>(null);
-  const messageInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const MESSAGE_INPUT_MAX_HEIGHT = 200;
+
+  // El cuadro de texto crece con el contenido (como WhatsApp) hasta un máximo y luego hace scroll
+  useEffect(() => {
+    const el = messageInputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, MESSAGE_INPUT_MAX_HEIGHT)}px`;
+    el.style.overflowY = el.scrollHeight > MESSAGE_INPUT_MAX_HEIGHT ? 'auto' : 'hidden';
+  }, [messageText]);
   const [newMessageTemplate, setNewMessageTemplate] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResponsableFilter, setSelectedResponsableFilter] = useState('todos');
@@ -1031,7 +1041,7 @@ export default function WhatsAppPage() {
                   </button>
                 </div>
               )}
-              <form onSubmit={handleSendMessage} className="flex items-center gap-2 bg-white rounded-2xl border border-gray-200 px-3 py-2 shadow-sm focus-within:border-indigo-300 transition-colors">
+              <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-white rounded-2xl border border-gray-200 px-3 py-2 shadow-sm focus-within:border-indigo-300 transition-colors">
                 {recordedAudio ? (
                   <div className="flex-1 flex items-center gap-3 bg-indigo-50/50 rounded-xl px-3 py-1 border border-indigo-100">
                     <button type="button" onClick={discardAudio} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Eliminar audio">
@@ -1066,14 +1076,21 @@ export default function WhatsAppPage() {
                         </div>
                       </div>
                     ) : (
-                      <input
+                      <textarea
                         ref={messageInputRef}
-                        type="text"
+                        rows={1}
                         value={messageText}
-                        onKeyDown={(e) => { if (e.key === 'Escape') setReplyTo(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setReplyTo(null);
+                          // Enter envía; Shift+Enter agrega un salto de línea
+                          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
                         onChange={(e) => setMessageText(e.target.value)}
                         placeholder="Escribe un mensaje..."
-                        className="flex-1 bg-transparent outline-none text-slate-700 placeholder:text-slate-400 text-[15px] py-1"
+                        className="flex-1 min-w-0 bg-transparent outline-none resize-none text-slate-700 placeholder:text-slate-400 text-[15px] leading-6 py-1 max-h-[200px] overflow-hidden"
                       />
                     )}
                     
