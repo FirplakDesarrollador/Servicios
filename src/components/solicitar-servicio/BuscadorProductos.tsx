@@ -15,7 +15,7 @@ interface BuscadorProductosProps {
 const GRUPOS = [
     'TODOS', 'BANO', 'BANERA', 'COCINAS', 'EXHIBIDOR', 'HIDROEMP', 'HIDROPOR',
     'MPDIRECT', 'PLOMERIA', 'REPUESTO', 'ROPAS', 'SERVICIOS',
-    'ZOCALOS', 'QUARTZSTONE', 'GRIFERIA'
+    'ZOCALOS', 'QUARTZSTONE', 'GRIFERIA', 'WELLNESS'
 ];
 
 export default function BuscadorProductos({ productosSeleccionados, onAdd, onRemove, onClose }: BuscadorProductosProps) {

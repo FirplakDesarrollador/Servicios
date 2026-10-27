@@ -11,6 +11,7 @@ export const maxDuration = 300;
 const GRUPOS_VALIDOS = new Set([
   'BANERA', 'BANO', 'COCINAS', 'EXHIBIDOR', 'GRIFERIA', 'HIDROEMP', 'HIDROPOR',
   'MPDIRECT', 'PLOMERIA', 'REPUESTO', 'ROPAS', 'SERVICIOS', 'ZOCALOS', 'QUARTZSTONE',
+  'WELLNESS',
 ]);
 
 // Nombres que usa SAP distintos al enum de Supabase.
