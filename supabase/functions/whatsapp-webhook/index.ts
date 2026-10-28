@@ -10,7 +10,7 @@ const supabase = createClient(
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN") ?? "Frp!2026_wH4ts4p_v3r1fy_T0k3n";
 const WA_PERMANENT_TOKEN = Deno.env.get("WHATSAPP_PERMANENT_TOKEN") ?? "EAGJBa2zR4FgBSa4NtnItcwOKvxUutCKK0aShm98StSSkkxJZBVg0Cbr7ZCC94AMXf8HG955HwfSfaHesLU23wl50O1XrATZANFZBUPdIYGOWbpsZCVZBL0yVWsv2yriQU1o1bZBptDqCdtZBYXXIGAW5ZARHrQIw5Wcq8kjinXeiVujGTiDnv5wsZCKsdxBMSGzj3yZBgZDZD";
 
-const DEFAULT_ASESORES = ['Xime', 'Tati', 'Andrew'];
+const DEFAULT_ASESORES = ['Xime', 'Tati', 'Andrey'];
 
 // Helper to download media from Meta Graph API and upload to Supabase Storage
 async function downloadAndSaveWhatsAppMedia(mediaId: string, mimeTypeFallback?: string) {

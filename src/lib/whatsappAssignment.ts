@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-const DEFAULT_ASESORES = ['Xime', 'Tati', 'Andrew'];
+const DEFAULT_ASESORES = ['Xime', 'Tati', 'Andrey'];
 
 /**
  * Normalizes phone numbers so Colombian numbers (10 digits starting with 3)

@@ -31,7 +31,7 @@ export default function WhatsAppPage() {
   const [newMessageTemplate, setNewMessageTemplate] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResponsableFilter, setSelectedResponsableFilter] = useState('todos');
-  const [asesoresList, setAsesoresList] = useState<string[]>(['Xime', 'Tati', 'Andrew']);
+  const [asesoresList, setAsesoresList] = useState<string[]>(['Xime', 'Tati', 'Andrey']);
   const [isAsesoresModalOpen, setIsAsesoresModalOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [asesorFilterSearch, setAsesorFilterSearch] = useState('');
@@ -258,6 +258,16 @@ export default function WhatsAppPage() {
     setActiveChat((prev: any) => prev?.id === chatId ? { ...prev, nombre_guardado: value } : prev);
     setContactEditor(null);
   };
+
+  // Esc cierra el panel de info del contacto (si no hay otra ventana o menú abierto encima)
+  useEffect(() => {
+    if (!showContactInfo) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !chatMenu && !contactEditor) setShowContactInfo(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [showContactInfo, chatMenu, contactEditor]);
 
   // ── Update chat responsable ──────────────────────────────────────────────────
   const handleUpdateResponsable = async (chatId: string, value: string) => {
@@ -1190,13 +1200,21 @@ export default function WhatsAppPage() {
 
           {/* ── Contact Info Sidebar ── */}
           {showContactInfo && (
-            <div className="w-[340px] h-full shrink-0 bg-[#0b141a] text-gray-200 overflow-y-auto flex flex-col border-l border-white/10 shadow-xl transition-all duration-300 animate-in slide-in-from-right-8">
-              {/* Sidebar Header */}
-              <div className="h-[72px] shrink-0 flex items-center px-6 border-b border-white/10 bg-[#202c33]">
-                <button onClick={() => setShowContactInfo(false)} className="mr-4 hover:bg-white/10 p-2 rounded-full transition-colors">
-                  <X className="w-5 h-5 text-gray-300" />
+            <div className="w-[340px] h-full shrink-0 bg-[#0b141a] text-gray-200 overflow-y-auto overflow-x-hidden flex flex-col border-l border-white/10 shadow-xl transition-all duration-300 animate-in slide-in-from-right-8">
+              {/* Sidebar Header: sticky para que el botón de cerrar siempre esté visible */}
+              <div className="sticky top-0 z-10 h-[72px] shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-[#202c33]">
+                <div className="flex items-center min-w-0">
+                  <button onClick={() => setShowContactInfo(false)} className="mr-3 hover:bg-white/10 p-2 rounded-full transition-colors" title="Cerrar">
+                    <X className="w-5 h-5 text-gray-300" />
+                  </button>
+                  <h2 className="text-[15px] font-medium text-gray-100 truncate">Info. del contacto</h2>
+                </div>
+                <button
+                  onClick={() => setShowContactInfo(false)}
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-200 bg-white/10 hover:bg-white/20 rounded-lg transition-colors shrink-0"
+                >
+                  Cerrar
                 </button>
-                <h2 className="text-[15px] font-medium text-gray-100">Info. del contacto</h2>
               </div>
               
               {/* Profile Details */}
@@ -1218,8 +1236,8 @@ export default function WhatsAppPage() {
                   {hasProfileName(activeChat) ? `~${activeChat.contact_name.trim()}` : ''}
                 </p>
                 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-4">
+                {/* Action Buttons (4 × 72px + gaps caben en los 340px del panel) */}
+                <div className="flex items-center justify-center gap-1 px-2 w-full">
                   <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
                     <Phone className="w-6 h-6 text-emerald-500" />
                     <span className="text-[11px] font-medium">Llamar</span>
