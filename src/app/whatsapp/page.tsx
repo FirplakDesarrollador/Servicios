@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
@@ -77,9 +77,30 @@ export default function WhatsAppPage() {
     return 'Mensaje';
   };
 
+  // Un nombre de contacto sin letras (".", emojis, "Unknown") no sirve para mostrar ni para iniciales
+  const hasRealName = (chat: any) =>
+    !!chat?.contact_name && chat.contact_name !== 'Unknown' && /\p{L}/u.test(chat.contact_name);
+
+  const getDisplayName = (chat: any) => hasRealName(chat) ? chat.contact_name.trim() : `+${chat?.phone_number}`;
+
+  // Iniciales de las dos primeras palabras con letras: "Martha Velandia" → "MV"
+  const getInitials = (chat: any) => {
+    if (!hasRealName(chat)) return '';
+    const words = String(chat.contact_name).split(/\s+/)
+      .map((w: string) => w.replace(/[^\p{L}]/gu, ''))
+      .filter(Boolean);
+    return words.slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('');
+  };
+
+  // La API de WhatsApp no entrega la foto de perfil del cliente: se usa contact_avatar solo si existe
+  const renderAvatarContent = (chat: any, iconClassName: string) => {
+    const initials = getInitials(chat);
+    return initials || <User className={iconClassName} />;
+  };
+
   const getSenderLabel = (msg: any) => {
     if (msg.sender === 'me') return 'Tú';
-    return activeChat?.contact_name && activeChat.contact_name !== 'Unknown' ? activeChat.contact_name : `+${activeChat?.phone_number}`;
+    return getDisplayName(activeChat);
   };
 
   const startReply = (msg: any) => {
@@ -771,9 +792,13 @@ export default function WhatsAppPage() {
               >
                 <div className="flex flex-col items-center shrink-0 mr-3 w-16">
                   <div className="relative">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold shadow-sm ${activeChat?.id === chat.id ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-300 to-slate-400'}`}>
-                      {(chat.contact_name && chat.contact_name !== 'Unknown') ? chat.contact_name.charAt(0).toUpperCase() : chat.phone_number?.slice(-2)}
-                    </div>
+                    {chat.contact_avatar ? (
+                      <img src={chat.contact_avatar} alt="Avatar" className="w-11 h-11 rounded-full object-cover shadow-sm" />
+                    ) : (
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm ${activeChat?.id === chat.id ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-300 to-slate-400'}`}>
+                        {renderAvatarContent(chat, 'w-5 h-5')}
+                      </div>
+                    )}
                     {chat.unread_count > 0 && (
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
                     )}
@@ -796,7 +821,7 @@ export default function WhatsAppPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-0.5">
                     <h3 className="font-semibold text-sm text-slate-800 truncate">
-                      {chat.contact_name && chat.contact_name !== 'Unknown' ? chat.contact_name : `+${chat.phone_number}`}
+                      {getDisplayName(chat)}
                     </h3>
                     <span className={`text-[10px] font-medium shrink-0 ml-2 ${chat.unread_count > 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
                       {formatTime(chat.last_message_time)}
@@ -848,17 +873,17 @@ export default function WhatsAppPage() {
                      <img src={activeChat.contact_avatar} alt="Avatar" className="w-11 h-11 rounded-full object-cover shadow-sm border border-slate-200" />
                   ) : (
                     <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm text-base">
-                      {(activeChat.contact_name && activeChat.contact_name !== 'Unknown') ? activeChat.contact_name.charAt(0).toUpperCase() : String(activeChat.phone_number || '').slice(-2)}
+                      {renderAvatarContent(activeChat, 'w-5 h-5')}
                     </div>
                   )}
                   <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-xs"></span>
                 </div>
                 <div className="flex flex-col min-w-0">
                   <h2 className="font-bold text-slate-900 text-[16px] leading-tight truncate">
-                    {activeChat.contact_name && activeChat.contact_name !== 'Unknown' ? activeChat.contact_name : `+${activeChat.phone_number}`}
+                    {getDisplayName(activeChat)}
                   </h2>
                   <div className="flex items-center gap-2 text-xs leading-tight mt-0.5">
-                    {activeChat.contact_name && activeChat.contact_name !== 'Unknown' && (
+                    {hasRealName(activeChat) && (
                       <span className="text-slate-500 font-medium">+{activeChat.phone_number}</span>
                     )}
                     <span className="text-emerald-600 font-semibold flex items-center gap-1">
@@ -1144,14 +1169,14 @@ export default function WhatsAppPage() {
                     <img src={activeChat.contact_avatar} alt="Avatar" className="w-48 h-48 rounded-full object-cover shadow-2xl mb-5 border-4 border-[#202c33]" />
                 ) : (
                     <div className="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-2xl text-6xl mb-5 border-4 border-[#202c33]">
-                    {(activeChat.contact_name && activeChat.contact_name !== 'Unknown') ? activeChat.contact_name.charAt(0).toUpperCase() : String(activeChat.phone_number || '').slice(-2)}
+                    {renderAvatarContent(activeChat, 'w-20 h-20')}
                     </div>
                 )}
                 <h2 className="text-2xl font-normal text-gray-100 mb-1">
                   +{activeChat.phone_number}
                 </h2>
                 <p className="text-[15px] text-gray-400 mb-6">
-                  {activeChat.contact_name && activeChat.contact_name !== 'Unknown' ? `~${activeChat.contact_name}` : ''}
+                  {hasRealName(activeChat) ? `~${activeChat.contact_name.trim()}` : ''}
                 </p>
                 
                 {/* Action Buttons */}
