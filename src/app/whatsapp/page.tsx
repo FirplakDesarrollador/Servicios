@@ -77,16 +77,22 @@ export default function WhatsAppPage() {
     return 'Mensaje';
   };
 
-  // Un nombre de contacto sin letras (".", emojis, "Unknown") no sirve para mostrar ni para iniciales
-  const hasRealName = (chat: any) =>
+  // Un nombre de perfil sin letras (".", emojis, "Unknown") no sirve para mostrar ni para iniciales
+  const hasProfileName = (chat: any) =>
     !!chat?.contact_name && chat.contact_name !== 'Unknown' && /\p{L}/u.test(chat.contact_name);
 
-  const getDisplayName = (chat: any) => hasRealName(chat) ? chat.contact_name.trim() : `+${chat?.phone_number}`;
+  // Prioridad: nombre guardado por un asesor > nombre de perfil de WhatsApp > nada
+  const getContactName = (chat: any): string =>
+    chat?.nombre_guardado?.trim() || (hasProfileName(chat) ? chat.contact_name.trim() : '');
+
+  const hasRealName = (chat: any) => !!getContactName(chat);
+
+  const getDisplayName = (chat: any) => getContactName(chat) || `+${chat?.phone_number}`;
 
   // Iniciales de las dos primeras palabras con letras: "Martha Velandia" → "MV"
   const getInitials = (chat: any) => {
     if (!hasRealName(chat)) return '';
-    const words = String(chat.contact_name).split(/\s+/)
+    const words = getContactName(chat).split(/\s+/)
       .map((w: string) => w.replace(/[^\p{L}]/gu, ''))
       .filter(Boolean);
     return words.slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('');
@@ -195,7 +201,7 @@ export default function WhatsAppPage() {
   // ── Filter chats ──────────────────────────────────────────────────────────────
   const filteredChats = chats.filter((chat) => {
     const q = searchQuery.toLowerCase().trim();
-    const nameMatch = chat.contact_name?.toLowerCase().includes(q);
+    const nameMatch = chat.contact_name?.toLowerCase().includes(q) || chat.nombre_guardado?.toLowerCase().includes(q);
     const phoneMatch = chat.phone_number?.includes(q);
     const msgMatch = chat.last_message?.toLowerCase().includes(q);
     const respMatchText = chat.responsable?.toLowerCase().includes(q);
@@ -221,6 +227,36 @@ export default function WhatsAppPage() {
       .order('last_message_time', { ascending: false });
     if (data) setChats(data);
     setLoading(false);
+  };
+
+  // ── Guardar contacto (nombre_guardado) ───────────────────────────────────────
+  // Va en una columna aparte porque el webhook sobrescribe contact_name con el nombre de perfil
+  const [contactEditor, setContactEditor] = useState<{ chat: any; value: string } | null>(null);
+  const [savingContact, setSavingContact] = useState(false);
+
+  const openContactEditor = (chat: any) => {
+    setContactEditor({ chat, value: chat.nombre_guardado || '' });
+  };
+
+  const handleSaveContactName = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!contactEditor || savingContact) return;
+    const chatId = contactEditor.chat.id;
+    const value: string | null = contactEditor.value.trim() || null;
+    setSavingContact(true);
+    const { error } = await supabase
+      .from('whatsapp_chats')
+      .update({ nombre_guardado: value })
+      .eq('id', chatId);
+    setSavingContact(false);
+    if (error) {
+      console.error('Error guardando el contacto:', error);
+      alert('No se pudo guardar el contacto. Intenta de nuevo.');
+      return;
+    }
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, nombre_guardado: value } : c));
+    setActiveChat((prev: any) => prev?.id === chatId ? { ...prev, nombre_guardado: value } : prev);
+    setContactEditor(null);
   };
 
   // ── Update chat responsable ──────────────────────────────────────────────────
@@ -1172,11 +1208,14 @@ export default function WhatsAppPage() {
                     {renderAvatarContent(activeChat, 'w-20 h-20')}
                     </div>
                 )}
-                <h2 className="text-2xl font-normal text-gray-100 mb-1">
-                  +{activeChat.phone_number}
+                <h2 className="text-2xl font-normal text-gray-100 mb-1 px-4 text-center">
+                  {getDisplayName(activeChat)}
                 </h2>
+                {hasRealName(activeChat) && (
+                  <p className="text-[15px] text-gray-300 mb-1">+{activeChat.phone_number}</p>
+                )}
                 <p className="text-[15px] text-gray-400 mb-6">
-                  {hasRealName(activeChat) ? `~${activeChat.contact_name.trim()}` : ''}
+                  {hasProfileName(activeChat) ? `~${activeChat.contact_name.trim()}` : ''}
                 </p>
                 
                 {/* Action Buttons */}
@@ -1189,9 +1228,13 @@ export default function WhatsAppPage() {
                     <Video className="w-6 h-6 text-emerald-500" />
                     <span className="text-[11px] font-medium">Video</span>
                   </button>
-                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
-                    <UserPlus className="w-6 h-6 text-emerald-500" />
-                    <span className="text-[11px] font-medium">Añadir</span>
+                  <button
+                    onClick={() => openContactEditor(activeChat)}
+                    className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors"
+                    title={activeChat.nombre_guardado ? 'Editar contacto' : 'Guardar contacto'}
+                  >
+                    {activeChat.nombre_guardado ? <Edit2 className="w-6 h-6 text-emerald-500" /> : <UserPlus className="w-6 h-6 text-emerald-500" />}
+                    <span className="text-[11px] font-medium">{activeChat.nombre_guardado ? 'Editar' : 'Guardar'}</span>
                   </button>
                   <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
                     <Search className="w-6 h-6 text-emerald-500" />
@@ -1242,7 +1285,7 @@ export default function WhatsAppPage() {
         const menuWidth = 220;
         // Se alinea a la derecha del punto y se mantiene dentro de la ventana
         const left = Math.max(8, Math.min(chatMenu.x - (chatMenu.fromHeader ? menuWidth : 0), window.innerWidth - menuWidth - 8));
-        const top = Math.min(chatMenu.y, window.innerHeight - 140);
+        const top = Math.min(chatMenu.y, window.innerHeight - 180);
         return (
           <div
             ref={chatMenuRef}
@@ -1262,6 +1305,17 @@ export default function WhatsAppPage() {
               {isUnread ? <MailOpen className="w-4 h-4 text-indigo-500" /> : <Mail className="w-4 h-4 text-indigo-500" />}
               {isUnread ? 'Marcar como leído' : 'Marcar como no leído'}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                openContactEditor(menuChat);
+                setChatMenu(null);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              {menuChat.nombre_guardado ? <Edit2 className="w-4 h-4 text-indigo-500" /> : <UserPlus className="w-4 h-4 text-indigo-500" />}
+              {menuChat.nombre_guardado ? 'Editar contacto' : 'Guardar contacto'}
+            </button>
             {chatMenu.fromHeader && (
               <button
                 type="button"
@@ -1278,6 +1332,53 @@ export default function WhatsAppPage() {
           </div>
         );
       })()}
+
+      {/* ── Guardar / editar contacto ── */}
+      {contactEditor && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setContactEditor(null); }}
+        >
+          <form onSubmit={handleSaveContactName} className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-800">
+                {contactEditor.chat.nombre_guardado ? 'Editar contacto' : 'Guardar contacto'}
+              </h3>
+              <button type="button" onClick={() => setContactEditor(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 mb-1">Número</p>
+            <p className="text-sm font-semibold text-slate-800 mb-4">+{contactEditor.chat.phone_number}</p>
+            {hasProfileName(contactEditor.chat) && (
+              <>
+                <p className="text-sm text-slate-500 mb-1">Nombre en WhatsApp</p>
+                <p className="text-sm text-slate-700 mb-4">~{contactEditor.chat.contact_name.trim()}</p>
+              </>
+            )}
+            <label className="block text-sm text-slate-500 mb-1" htmlFor="nombre-guardado">Nombre del contacto</label>
+            <input
+              id="nombre-guardado"
+              autoFocus
+              value={contactEditor.value}
+              onChange={(e) => setContactEditor(prev => prev ? { ...prev, value: e.target.value } : prev)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setContactEditor(null); }}
+              placeholder="Ej: Carlos Pérez – Obra Bogotá"
+              maxLength={80}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:border-indigo-300 focus:bg-white transition-colors"
+            />
+            <p className="text-[11px] text-slate-400 mt-1.5">Déjalo vacío y guarda para quitar el nombre guardado.</p>
+            <div className="flex justify-end gap-2 mt-6">
+              <button type="button" onClick={() => setContactEditor(null)} className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+                Cancelar
+              </button>
+              <button type="submit" disabled={savingContact} className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 transition-colors">
+                {savingContact ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <NewMessageModal
         isOpen={isNewMessageModalOpen}
