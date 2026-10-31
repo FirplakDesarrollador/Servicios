@@ -5,7 +5,8 @@ import {
   ArrowLeft, Search, Printer, FileSpreadsheet, FileText, Download, 
   Lock, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   Plus, Trash2, ChevronUp, ChevronDown, Check, X, HelpCircle, User,
-  Building, Calendar, DollarSign, Package, AlertCircle, Eye, Info
+  Building, Calendar, DollarSign, Package, AlertCircle, Eye, Info,
+  Receipt, Factory, ClipboardList, Truck, Maximize2, Minus, GitBranch
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { SAP_DOC_TYPES, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
@@ -50,8 +51,8 @@ export interface GridRow {
 
 const getRowTextColor = (treeType?: string) => {
   if (treeType === 'i' || treeType === 'S') return 'text-red-600 font-bold';
-  if (treeType === 'I') return 'text-slate-500 font-medium italic';
-  return 'text-slate-800 font-medium';
+  if (treeType === 'I') return 'text-stone-500 font-medium italic';
+  return 'text-brand-dark font-medium';
 };
 
 export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinimizeChange, initialDocNum }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice', onMinimizeChange?: (isMin: boolean) => void, initialDocNum?: string }) {
@@ -786,352 +787,339 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
     }
   };
 
+  const docTitle = mode === 'Invoice' ? 'Factura de deudores' : mode === 'ProductionOrder' ? 'Orden de fabricación' : mode === 'Order' ? 'Orden de venta' : mode === 'Delivery' ? 'Entrega' : 'Oferta de ventas';
+  const DocIcon = mode === 'Invoice' ? Receipt : mode === 'ProductionOrder' ? Factory : mode === 'Order' ? ClipboardList : mode === 'Delivery' ? Truck : FileText;
+
   if (isMinimized) {
     return (
-      <div 
-        className="fixed bottom-0 left-8 bg-gradient-to-r from-[#D97706] to-[#F59E0B] text-white px-4 py-2 rounded-t-lg font-bold text-xs cursor-pointer shadow-[0_-4px_10px_rgba(0,0,0,0.2)] border border-b-0 border-amber-600 flex items-center justify-between gap-4 hover:from-amber-500 hover:to-amber-400 z-50 w-64 transition-all"
+      <div
+        className="fixed bottom-4 left-6 bg-white text-brand-dark pl-2 pr-3 py-2 rounded-2xl text-sm font-semibold cursor-pointer shadow-[0_12px_30px_-12px_rgba(37,65,83,0.45)] border border-border flex items-center gap-3 hover:border-brand-light z-50 w-72 transition-all"
         onClick={() => setIsMinimized(false)}
+        title="Restaurar"
       >
-        <span className="truncate">
-          {mode === 'Invoice' ? 'Factura de deudores' : mode === 'ProductionOrder' ? 'Orden de fabricación' : mode === 'Order' ? 'Orden de venta' : mode === 'Delivery' ? 'Entrega' : 'Oferta de ventas'}
-        </span>
-        <div className="flex items-center gap-1 opacity-80">
-          <span className="hover:bg-white/20 px-1.5 rounded" title="Restaurar">□</span>
-        </div>
+        <span className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center shrink-0"><DocIcon className="w-4 h-4" /></span>
+        <span className="truncate flex-1">{docTitle}{docNum ? ` · ${docNum}` : ''}</span>
+        <Maximize2 className="w-4 h-4 text-stone-400" />
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-[#CBD5E1] text-slate-800 font-sans p-2 select-none min-h-screen relative">
+    <div className="w-full bg-cream text-brand-dark font-sans select-none min-h-screen relative">
       {isLoading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]">
-          <div className="bg-white p-6 rounded-lg shadow-2xl flex flex-col items-center gap-4 border border-slate-200">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
-            <p className="text-slate-700 font-bold text-sm tracking-wide">Consultando en SAP B1...</p>
+        <div className="absolute inset-0 z-50 flex items-start justify-center pt-40 bg-cream/60 backdrop-blur-[2px]">
+          <div className="bg-white px-6 py-5 rounded-2xl shadow-[0_20px_50px_-20px_rgba(37,65,83,0.5)] flex items-center gap-3 border border-border">
+            <div className="w-6 h-6 border-[3px] border-border border-t-brand rounded-full animate-spin"></div>
+            <p className="text-brand-dark font-medium text-sm">Consultando en SAP…</p>
           </div>
         </div>
       )}
       {/* ── Main Body Split Layout ─────────────────────────────────────────── */}
-      <div className="flex gap-2 p-2 border border-slate-300 rounded-lg bg-[#E2E8F0] min-h-[640px]">
+      <div className="flex gap-4 min-h-[640px]">
 
         {/* ── Left Sidebar: Campos de usuario (User Fields) ──────────────────── */}
-        <div className="w-64 bg-[#F8FAFC] border border-slate-300 rounded-md shadow-sm flex flex-col shrink-0 overflow-hidden text-[11px]">
+        <div className="w-64 bg-white border border-border rounded-2xl flex flex-col shrink-0 overflow-hidden text-[11px]">
           {/* Header */}
-          <div className="bg-[#334155] text-white px-2.5 py-1.5 font-bold flex items-center justify-between border-b border-slate-400">
-            <div className="flex items-center gap-1">
-              <button className="text-[10px] hover:text-amber-300">◀</button>
-              <span>
-                {mode === 'Invoice'
-                  ? 'Factura de deudores'
-                  : mode === 'Delivery'
-                  ? 'Entrega'
-                  : mode === 'Order'
-                  ? 'Orden de venta'
-                  : mode === 'ProductionOrder'
-                  ? 'Orden de fabricación'
-                  : 'Oferta de ventas'}
-              </span>
-              <button className="text-[10px] hover:text-amber-300">▶</button>
-            </div>
-            <span className="text-[10px] text-slate-300">Campos U.</span>
+          <div className="px-4 py-3.5 border-b border-border">
+            <p className="text-[10px] font-medium tracking-[0.16em] uppercase text-brand-light">Campos de usuario</p>
+            <p className="text-sm font-semibold text-brand-dark mt-0.5">{docTitle}</p>
           </div>
 
           {/* Form Fields */}
-          <div className="p-2 space-y-2 overflow-y-auto max-h-[580px]">
+          <div className="p-4 space-y-3 overflow-y-auto max-h-[640px]">
             {mode === 'ProductionOrder' ? (
               <>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Sugerida Liberacion TOC</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Sugerida Liberacion TOC</label>
+                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Liberacion Planificacion</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Liberacion Planificacion</label>
+                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Requisión</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Requisión</label>
+                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha Real Liberacion</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Real Liberacion</label>
+                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Num. Lote</label>
-                  <input type="text" value={numLote} onChange={e => setNumLote(e.target.value)} className="w-full bg-[#FFFDE7] border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs font-semibold text-slate-800" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Num. Lote</label>
+                  <input type="text" value={numLote} onChange={e => setNumLote(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs font-semibold text-brand-dark" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Tipo de Orden</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                  <label className="text-stone-500 block mb-0.5 font-medium">Tipo de Orden</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
                     <option value="STANDARD">STANDARD</option>
                     <option value="SPECIAL">SPECIAL</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Socio de negocio</label>
-                  <input type="text" value={businessPartner || cardCode} onChange={e => setBusinessPartner(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs font-semibold text-slate-800" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Socio de negocio</label>
+                  <input type="text" value={businessPartner || cardCode} onChange={e => setBusinessPartner(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs font-semibold text-brand-dark" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha de finalización (desatraso)</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha de finalización (desatraso)</label>
+                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Razón de retraso 2</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5 font-medium">Razón de retraso 2</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Fecha de finalización (desatraso) 2</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha de finalización (desatraso) 2</label>
+                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Razón de retraso</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5 font-medium">Razón de retraso</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Orden de Compra</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5 font-medium">Orden de Compra</label>
+                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
               </>
             ) : mode === 'Invoice' ? (
               <>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Tiene Autorretención</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                  <label className="text-stone-500 block mb-0.5">Tiene Autorretención</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">BPCOST</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-stone-500 block mb-0.5">BPCOST</label>
+                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">WUID</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-stone-500 block mb-0.5">WUID</label>
+                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Tipo de Nota</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Tipo de Nota</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Codigo de DifCambio</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Codigo de DifCambio</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">IVA x Muestras pagado</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                  <label className="text-stone-500 block mb-0.5">IVA x Muestras pagado</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Tiene Retefuente</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                  <label className="text-stone-500 block mb-0.5">Tiene Retefuente</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Tiene ReteICA</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value="No">No</option><option value="Si">Si</option></select>
+                  <label className="text-stone-500 block mb-0.5">Tiene ReteICA</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Incoterm</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Incoterm</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha Real de Despacho</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha Real de Despacho</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Puerto Destino</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Puerto Destino</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Medio de transporte</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Medio de transporte</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha salida del Puerto</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha salida del Puerto</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha llegada de documentos</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha llegada de documentos</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha llegada al puerto destin</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha llegada al puerto destin</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha d Pre inspección</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha d Pre inspección</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha Pago Anticipo</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha Pago Anticipo</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha de levante</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha de levante</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha de llegada a Firplak</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha de llegada a Firplak</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Plan Vallejo</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Plan Vallejo</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Importación Fraccionada</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Importación Fraccionada</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Servicio (Calificación)</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Servicio (Calificación)</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Calidad (Calificación)</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Calidad (Calificación)</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Cantidad (calificación)</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Cantidad (calificación)</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Cumplimiento (Calificación)</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Cumplimiento (Calificación)</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Tipo de devolucion NC</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Tipo de devolucion NC</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5 font-medium">Validación E almacén vs Factur</label>
-                  <select value={validativeEAlmacen} onChange={e => setValidativeEAlmacen(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                  <label className="text-stone-500 block mb-0.5 font-medium">Validación E almacén vs Factur</label>
+                  <select value={validativeEAlmacen} onChange={e => setValidativeEAlmacen(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
                     <option value="No requiere Autorizacion">No requiere Autorizacion</option>
                     <option value="Requiere Autorizacion">Requiere Autorizacion</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">QRObservac</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-stone-500 block mb-0.5">QRObservac</label>
+                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Codigo del vendedor Junior</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-stone-500 block mb-0.5">Codigo del vendedor Junior</label>
+                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Autorizacion de descuentos</label>
-                  <select className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"><option value=""></option></select>
+                  <label className="text-stone-500 block mb-0.5">Autorizacion de descuentos</label>
+                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Lugar de entrega</label>
-                  <input type="text" className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-stone-500 block mb-0.5">Lugar de entrega</label>
+                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha esperada de entrega</label>
-                  <input type="date" className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha esperada de entrega</label>
+                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
               </>
             ) : mode === 'Delivery' ? (
               <>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha Real de Despacho</label>
-                  <input type="date" value={fechaRealDespacho} onChange={e => setFechaRealDespacho(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha Real de Despacho</label>
+                  <input type="date" value={fechaRealDespacho} onChange={e => setFechaRealDespacho(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Numero de guia</label>
-                  <textarea rows={3} value={numeroGuia} onChange={e => setNumeroGuia(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-1 outline-none text-xs resize-none" />
+                  <label className="text-stone-500 block mb-0.5">Numero de guia</label>
+                  <textarea rows={3} value={numeroGuia} onChange={e => setNumeroGuia(e.target.value)} className="w-full bg-white border border-border rounded px-1.5 py-1 outline-none text-xs resize-none" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Transportador</label>
-                  <input type="text" value={transportador} onChange={e => setTransportador(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-stone-500 block mb-0.5">Transportador</label>
+                  <input type="text" value={transportador} onChange={e => setTransportador(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Anticipo</label>
-                  <select value={anticipoPct} onChange={e => setAnticipoPct(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                  <label className="text-stone-500 block mb-0.5">Anticipo</label>
+                  <select value={anticipoPct} onChange={e => setAnticipoPct(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
                     <option value="SI tiene anticipo">SI tiene anticipo</option>
                     <option value="NO tiene anticipo">NO tiene anticipo</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Aplicacion Anticipo ?</label>
-                  <select value={aplicacionAnticipo} onChange={e => setAplicacionAnticipo(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                  <label className="text-stone-500 block mb-0.5">Aplicacion Anticipo ?</label>
+                  <select value={aplicacionAnticipo} onChange={e => setAplicacionAnticipo(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
                     <option value="NO">NO</option>
                     <option value="SI">SI</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Tipo de pedido</label>
-                  <select value={tipoPedido} onChange={e => setTipoPedido(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                  <label className="text-stone-500 block mb-0.5">Tipo de pedido</label>
+                  <select value={tipoPedido} onChange={e => setTipoPedido(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
                     <option value="Cliente Final">Cliente Final</option>
                     <option value="Normal">Normal</option>
                     <option value="Servicios">Servicios</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">% de amortizacion factura</label>
-                  <input type="text" value={amortizacionFacturaPct} onChange={e => setAmortizacionFacturaPct(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600" />
+                  <label className="text-stone-500 block mb-0.5">% de amortizacion factura</label>
+                  <input type="text" value={amortizacionFacturaPct} onChange={e => setAmortizacionFacturaPct(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Bloqueado para Despacho</label>
-                  <select value={bloqueadoDespacho} onChange={e => setBloqueadoDespacho(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                  <label className="text-stone-500 block mb-0.5">Bloqueado para Despacho</label>
+                  <select value={bloqueadoDespacho} onChange={e => setBloqueadoDespacho(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
                     <option value="No Bloqueado">No Bloqueado</option>
                     <option value="Bloqueado">Bloqueado</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Actualizar BF</label>
-                  <select value={actualizarBF} onChange={e => setActualizarBF(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                  <label className="text-stone-500 block mb-0.5">Actualizar BF</label>
+                  <select value={actualizarBF} onChange={e => setActualizarBF(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
                     <option value="NO">NO</option>
                     <option value="SI">SI</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Orden de Venta</label>
-                  <input type="text" value={ordenVenta} onChange={e => setOrdenVenta(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none" />
+                  <label className="text-stone-500 block mb-0.5">Orden de Venta</label>
+                  <input type="text" value={ordenVenta} onChange={e => setOrdenVenta(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">FechaRealEntregaEnt</label>
-                  <input type="date" value={fechaRealEntregaEnt} onChange={e => setFechaRealEntregaEnt(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">FechaRealEntregaEnt</label>
+                  <input type="date" value={fechaRealEntregaEnt} onChange={e => setFechaRealEntregaEnt(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">StatusEntrega</label>
-                  <select value={statusEntrega} onChange={e => setStatusEntrega(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                  <label className="text-stone-500 block mb-0.5">StatusEntrega</label>
+                  <select value={statusEntrega} onChange={e => setStatusEntrega(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
                     <option value="Entregada">Entregada</option>
                     <option value="En Ruta">En Ruta</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">FechaRetPOD</label>
-                  <input type="date" value={fechaRetPOD} onChange={e => setFechaRetPOD(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">FechaRetPOD</label>
+                  <input type="date" value={fechaRetPOD} onChange={e => setFechaRetPOD(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">POF?</label>
-                  <select value={pof} onChange={e => setPof(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs">
+                  <label className="text-stone-500 block mb-0.5">POF?</label>
+                  <select value={pof} onChange={e => setPof(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
                     <option value=""></option>
                     <option value="SI">SI</option>
                     <option value="NO">NO</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Estado de la Oferta de Venta</label>
-                  <select value={estadoOfertaVenta} onChange={e => setEstadoOfertaVenta(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs">
+                  <label className="text-stone-500 block mb-0.5">Estado de la Oferta de Venta</label>
+                  <select value={estadoOfertaVenta} onChange={e => setEstadoOfertaVenta(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
                     <option value="Confirmada">Confirmada</option>
                     <option value="Pendiente">Pendiente</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha Planeada Entrega Cliente</label>
-                  <input type="date" value={fechaPlaneadaEntregaCliente} onChange={e => setFechaPlaneadaEntregaCliente(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none text-xs" />
+                  <label className="text-stone-500 block mb-0.5">Fecha Planeada Entrega Cliente</label>
+                  <input type="date" value={fechaPlaneadaEntregaCliente} onChange={e => setFechaPlaneadaEntregaCliente(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">% Contenedor</label>
-                  <input type="text" value={pctContenedor} onChange={e => setPctContenedor(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs" />
+                  <label className="text-stone-500 block mb-0.5">% Contenedor</label>
+                  <input type="text" value={pctContenedor} onChange={e => setPctContenedor(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs" />
                 </div>
               </>
             ) : (
               <>
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Anticipo</label>
+                  <label className="text-stone-500 block mb-0.5">Anticipo</label>
                   <select 
                     value={anticipoPct}
                     onChange={e => setAnticipoPct(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
                   >
                     <option value="SI tiene anticipo">SI tiene anticipo</option>
                     <option value="NO tiene anticipo">NO tiene anticipo</option>
@@ -1143,21 +1131,21 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">% de amortizacion factura</label>
+                  <label className="text-stone-500 block mb-0.5">% de amortizacion factura</label>
                   <input 
                     type="text"
                     value={amortizacionFacturaPct}
                     onChange={e => setAmortizacionFacturaPct(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-right focus:border-brand-light"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Aplicacion Anticipo ?</label>
+                  <label className="text-stone-500 block mb-0.5">Aplicacion Anticipo ?</label>
                   <select 
                     value={aplicacionAnticipo}
                     onChange={e => setAplicacionAnticipo(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
                   >
                     <option value="NO">NO</option>
                     <option value="SI">SI</option>
@@ -1165,21 +1153,21 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">% Contenedor</label>
+                  <label className="text-stone-500 block mb-0.5">% Contenedor</label>
                   <input 
                     type="text"
                     value={pctContenedor}
                     onChange={e => setPctContenedor(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-right focus:border-brand-light"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Actualizar BF</label>
+                  <label className="text-stone-500 block mb-0.5">Actualizar BF</label>
                   <select 
                     value={actualizarBF}
                     onChange={e => setActualizarBF(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
                   >
                     <option value="NO">NO</option>
                     <option value="SI">SI</option>
@@ -1187,21 +1175,21 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Fecha de cierre</label>
+                  <label className="text-stone-500 block mb-0.5">Fecha de cierre</label>
                   <input 
                     type="date"
                     value={fechaCierre}
                     onChange={e => setFechaCierre(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1 py-0.5 outline-none focus:border-blue-600 text-xs"
+                    className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none focus:border-brand-light text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Bloqueado para Despacho</label>
+                  <label className="text-stone-500 block mb-0.5">Bloqueado para Despacho</label>
                   <select 
                     value={bloqueadoDespacho}
                     onChange={e => setBloqueadoDespacho(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
                   >
                     <option value="No Bloqueado">No Bloqueado</option>
                     <option value="Bloqueado">Bloqueado</option>
@@ -1209,11 +1197,11 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Estado de la Oferta de Venta</label>
+                  <label className="text-stone-500 block mb-0.5">Estado de la Oferta de Venta</label>
                   <select 
                     value={estadoOfertaVenta}
                     onChange={e => setEstadoOfertaVenta(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
                   >
                     <option value="Confirmada">Confirmada</option>
                     <option value="Pendiente">Pendiente</option>
@@ -1227,11 +1215,11 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Tipo de pedido</label>
+                  <label className="text-stone-500 block mb-0.5">Tipo de pedido</label>
                   <select 
                     value={tipoPedido}
                     onChange={e => setTipoPedido(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
                   >
                     <option value="Normal">Normal</option>
                     <option value="Llenado Eventos">Llenado Eventos</option>
@@ -1255,22 +1243,22 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div>
-                  <label className="text-slate-600 block mb-0.5">Valor Anticipo</label>
+                  <label className="text-stone-500 block mb-0.5">Valor Anticipo</label>
                   <input 
                     type="text"
                     value={valorAnticipo}
                     onChange={e => setValorAnticipo(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-right focus:border-blue-600"
+                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-right focus:border-brand-light"
                   />
                 </div>
 
                 {mode === 'Order' && (
                   <div>
-                    <label className="text-slate-600 block mb-0.5 font-medium">Tipo Facturacion</label>
+                    <label className="text-stone-500 block mb-0.5 font-medium">Tipo Facturacion</label>
                     <select 
                       value={tipoFacturacion}
                       onChange={e => setTipoFacturacion(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 text-xs"
+                      className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
                     >
                       <option value="Sin POD">Sin POD</option>
                       <option value="Con POD">Con POD</option>
@@ -1287,52 +1275,69 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
         {/* ── Right Main Window: Oferta de ventas ───────────────────────────── */}
         <div 
-          className="flex-1 bg-[#F8FAFC] border border-slate-300 rounded-md shadow-sm flex flex-col overflow-hidden text-[11px] relative"
+          className="flex-1 min-w-0 bg-white border border-border rounded-2xl flex flex-col overflow-hidden text-[11px] relative"
           onContextMenu={(e) => {
             e.preventDefault();
             setContextMenu({ x: e.clientX, y: e.clientY });
           }}
         >
-          
-          {/* SAP Orange Window Title Bar */}
-          <div className="bg-gradient-to-r from-[#D97706] to-[#F59E0B] text-white px-3 py-1 font-bold text-xs flex items-center justify-between shadow-sm">
-            <span>
-              {mode === 'Invoice'
-                ? 'Factura de deudores'
-                : mode === 'ProductionOrder' 
-                ? 'Orden de fabricación' 
-                : mode === 'Order' 
-                ? 'Orden de venta' 
-                : mode === 'Delivery' 
-                ? 'Entrega' 
-                : 'Oferta de ventas'}
-            </span>
-            <div className="flex items-center gap-2 opacity-90 text-sm">
-              <span 
-                className="hover:bg-white/20 px-1.5 rounded cursor-pointer transition-colors" 
+
+          {/* Encabezado del documento */}
+          <div className="px-5 py-3.5 border-b border-border flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center shrink-0">
+                <DocIcon className="w-5 h-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium tracking-[0.16em] uppercase text-brand-light">Documento SAP</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-brand-dark truncate">
+                    {docTitle}{docNum ? <span className="text-stone-400 font-normal"> · {docNum}</span> : null}
+                  </h2>
+                  {docStatus && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                      docStatus === 'Cancelado' ? 'bg-red-50 text-red-700' : docStatus === 'Cerrado' ? 'bg-stone-100 text-stone-500' : 'bg-[#3E6E5E]/10 text-[#3E6E5E]'
+                    }`}>
+                      {docStatus === 'Abiertos' ? 'Abierto' : docStatus}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {docNum && (
+                <button
+                  onClick={() => setIsMapaRelacionesModalOpen(true)}
+                  className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 mr-1 rounded-lg border border-border text-xs font-medium text-stone-600 hover:border-brand-light hover:text-brand transition-colors cursor-pointer"
+                >
+                  <GitBranch className="w-3.5 h-3.5" /> Mapa de relaciones
+                </button>
+              )}
+              <button
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-400 hover:text-brand hover:bg-cream-light transition-colors cursor-pointer"
                 title="Minimizar"
                 onClick={() => setIsMinimized(true)}
               >
-                _
-              </span>
-              <span 
-                className="hover:bg-red-500 hover:text-white px-1.5 rounded cursor-pointer transition-colors" 
+                <Minus className="w-4 h-4" />
+              </button>
+              <button
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 title="Cerrar"
                 onClick={() => window.location.href = '/consultas-sap'}
               >
-                ✕
-              </span>
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
           {/* Form Header Section */}
           {mode === 'ProductionOrder' ? (
-            <div className="p-3 bg-[#F1F5F9] border-b border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="px-5 py-4 bg-white border-b border-border grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-xs">
               {/* Left Header Fields */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Tipo</label>
-                  <select value={productionOrderType} onChange={e => setProductionOrderType(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <label className="w-36 text-stone-500 text-right">Tipo</label>
+                  <select value={productionOrderType} onChange={e => setProductionOrderType(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium">
                     <option value="Estándar">Estándar</option>
                     <option value="Especial">Especial</option>
                     <option value="Desmontaje">Desmontaje</option>
@@ -1340,8 +1345,8 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Estado</label>
-                  <select value={productionOrderStatus} onChange={e => setProductionOrderStatus(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <label className="w-36 text-stone-500 text-right">Estado</label>
+                  <select value={productionOrderStatus} onChange={e => setProductionOrderStatus(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium">
                     <option value="Planif.">Planif.</option>
                     <option value="Liberado">Liberado</option>
                     <option value="Cerrado">Cerrado</option>
@@ -1350,53 +1355,53 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Nº producto</label>
+                  <label className="w-36 text-stone-500 text-right">Nº producto</label>
                   <div className="flex-1 flex items-center gap-1">
-                    <input type="text" value={productNo || (rows[0]?.itemCode || '')} onChange={e => setProductNo(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-semibold text-slate-800" />
-                    <button onClick={() => setIsItemModalOpen(true)} className="w-4 h-4 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-900 border border-amber-600 cursor-pointer">◯</button>
+                    <input type="text" value={productNo || (rows[0]?.itemCode || '')} onChange={e => setProductNo(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-semibold text-brand-dark" />
+                    <button onClick={() => setIsItemModalOpen(true)} className="w-4 h-4 bg-sage-soft hover:bg-brand hover:text-white rounded-full flex items-center justify-center text-[9px] font-bold text-brand border border-brand-light/40 cursor-pointer">◯</button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Descripción producto</label>
-                  <input type="text" value={productDescription || (rows[0]?.description || '')} onChange={e => setProductDescription(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <label className="w-36 text-stone-500 text-right">Descripción producto</label>
+                  <input type="text" value={productDescription || (rows[0]?.description || '')} onChange={e => setProductDescription(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Cantidad planificada</label>
+                  <label className="w-36 text-stone-500 text-right">Cantidad planificada</label>
                   <div className="flex-1 flex items-center gap-2">
-                    <input type="number" value={plannedQuantity} onChange={e => setPlannedQuantity(e.target.value)} className="w-24 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-bold text-slate-800 text-right" />
-                    <span className="text-slate-600">Nombre de</span>
-                    <input type="text" defaultValue="UN" readOnly className="w-12 bg-slate-100 border border-slate-300 rounded px-1 py-0.5 text-center text-slate-600" />
+                    <input type="number" value={plannedQuantity} onChange={e => setPlannedQuantity(e.target.value)} className="w-24 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-bold text-brand-dark text-right" />
+                    <span className="text-stone-500">Nombre de</span>
+                    <input type="text" defaultValue="UN" readOnly className="w-12 bg-cream-light border border-border rounded px-1 py-0.5 text-center text-stone-500" />
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Almacén</label>
-                  <input type="text" value={warehouse} onChange={e => setWarehouse(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <label className="w-36 text-stone-500 text-right">Almacén</label>
+                  <input type="text" value={warehouse} onChange={e => setWarehouse(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Socio de negocio</label>
+                  <label className="w-36 text-stone-500 text-right">Socio de negocio</label>
                   <div className="flex-1 flex items-center gap-1">
-                    <input type="text" value={businessPartner || cardCode || ''} onChange={e => setBusinessPartner(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium text-slate-800" />
-                    <button onClick={() => setIsCustomerModalOpen(true)} className="w-4 h-4 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-900 border border-amber-600 cursor-pointer">◯</button>
+                    <input type="text" value={businessPartner || cardCode || ''} onChange={e => setBusinessPartner(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium text-brand-dark" />
+                    <button onClick={() => setIsCustomerModalOpen(true)} className="w-4 h-4 bg-sage-soft hover:bg-brand hover:text-white rounded-full flex items-center justify-center text-[9px] font-bold text-brand border border-brand-light/40 cursor-pointer">◯</button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Cálculo de fecha de enrutamiento</label>
-                  <select value={routingDateCalculation} onChange={e => setRoutingDateCalculation(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <label className="w-36 text-stone-500 text-right">Cálculo de fecha de enrutamiento</label>
+                  <select value={routingDateCalculation} onChange={e => setRoutingDateCalculation(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium">
                     <option value="En Fecha de inicio">En Fecha de inicio</option>
                     <option value="En Fecha de finalización">En Fecha de finalización</option>
                   </select>
-                  <button className="px-2 py-0.5 bg-gradient-to-b from-slate-200 to-slate-300 hover:from-slate-300 hover:to-slate-400 text-slate-700 font-semibold rounded border border-slate-400 text-[10px] whitespace-nowrap cursor-pointer">Actualizar ahora</button>
+                  <button className="px-2 py-0.5 bg-white hover:bg-cream-light text-stone-600 font-semibold rounded border border-border text-[10px] whitespace-nowrap cursor-pointer">Actualizar ahora</button>
                 </div>
 
                 <div className="flex items-center gap-2 pt-0.5">
-                  <label className="w-36 text-slate-600 text-right"></label>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium">
-                    <input type="checkbox" checked={procureOrder} onChange={e => setProcureOrder(e.target.checked)} className="rounded text-amber-500" />
+                  <label className="w-36 text-stone-500 text-right"></label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-stone-600 font-medium">
+                    <input type="checkbox" checked={procureOrder} onChange={e => setProcureOrder(e.target.checked)} className="rounded text-brand-light" />
                     <span>Aprovisionar artículos</span>
                   </label>
                 </div>
@@ -1405,9 +1410,9 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               {/* Right Header Fields */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Nº</label>
+                  <label className="w-36 text-stone-500 text-right">Nº</label>
                   <div className="flex items-center gap-1">
-                    <select value={docSeries} onChange={e => setDocSeries(e.target.value)} className="bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs">
+                    <select value={docSeries} onChange={e => setDocSeries(e.target.value)} className="bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
                       <option value="OF-Produ">OF-Produ</option>
                       <option value="OF-Planta">OF-Planta</option>
                       <option value="OF-Especial">OF-Especial</option>
@@ -1419,39 +1424,39 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                         value={docNum} 
                         onChange={e => setDocNum(e.target.value)} 
                         onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(e.currentTarget.value); }}
-                        className="w-28 bg-[#FFFDE7] border border-amber-400 font-bold rounded pl-1.5 pr-6 py-0.5 outline-none text-right text-slate-900 focus:ring-2 focus:ring-amber-500 text-xs shadow-inner" 
+                        className="w-28 bg-white border border-brand-light font-bold rounded pl-1.5 pr-6 py-0.5 outline-none text-right text-brand-dark focus:ring-2 focus:ring-brand/10 text-xs shadow-inner" 
                       />
-                      <button onClick={() => handleSearchSapDocument(docNum)} className="absolute right-1 text-slate-600 hover:text-amber-700 font-bold text-xs p-0.5 cursor-pointer">🔍</button>
+                      <button onClick={() => handleSearchSapDocument(docNum)} className="absolute right-1 text-stone-500 hover:text-brand font-bold text-xs p-0.5 cursor-pointer">🔍</button>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Fecha orden de fabricación</label>
-                  <input type="date" value={postingDate} onChange={e => setPostingDate(e.target.value)} className="w-36 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="w-36 text-stone-500 text-right">Fecha orden de fabricación</label>
+                  <input type="date" value={postingDate} onChange={e => setPostingDate(e.target.value)} className="w-36 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Fecha de inicio</label>
-                  <input type="date" value={startDate || postingDate} onChange={e => setStartDate(e.target.value)} className="w-36 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="w-36 text-stone-500 text-right">Fecha de inicio</label>
+                  <input type="date" value={startDate || postingDate} onChange={e => setStartDate(e.target.value)} className="w-36 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Fecha de finalización</label>
-                  <input type="date" value={dueDate || validUntil} onChange={e => setDueDate(e.target.value)} className="w-36 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none text-xs" />
+                  <label className="w-36 text-stone-500 text-right">Fecha de finalización</label>
+                  <input type="date" value={dueDate || validUntil} onChange={e => setDueDate(e.target.value)} className="w-36 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Usuario</label>
-                  <select value={poUserSignature} onChange={e => setPoUserSignature(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <label className="w-36 text-stone-500 text-right">Usuario</label>
+                  <select value={poUserSignature} onChange={e => setPoUserSignature(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium">
                     <option value="Luis Guillermo Escobar">Luis Guillermo Escobar</option>
                     <option value="Mayerly Marin">Mayerly Marin</option>
                   </select>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Origen</label>
-                  <select value={poOrigin} onChange={e => setPoOrigin(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <label className="w-36 text-stone-500 text-right">Origen</label>
+                  <select value={poOrigin} onChange={e => setPoOrigin(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium">
                     <option value="Manual">Manual</option>
                     <option value="MRP">MRP</option>
                     <option value="Pedido de cliente">Pedido de cliente</option>
@@ -1459,41 +1464,41 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Vinculados a</label>
-                  <select value={poLinkedTo} onChange={e => setPoLinkedTo(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium">
+                  <label className="w-36 text-stone-500 text-right">Vinculados a</label>
+                  <select value={poLinkedTo} onChange={e => setPoLinkedTo(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium">
                     <option value="Pedido de cliente">Pedido de cliente</option>
                     <option value="Ninguno">Ninguno</option>
                   </select>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Pedido vinculado</label>
-                  <input type="text" value={poLinkedOrder || ordenVenta} onChange={e => setPoLinkedOrder(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <label className="w-36 text-stone-500 text-right">Pedido vinculado</label>
+                  <input type="text" value={poLinkedOrder || ordenVenta} onChange={e => setPoLinkedOrder(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Cliente</label>
-                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} onKeyDown={handleCustomerSearchShortcut} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <label className="w-36 text-stone-500 text-right">Cliente</label>
+                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} onKeyDown={handleCustomerSearchShortcut} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right font-bold text-slate-800">Centro de Costos</label>
-                  <input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <label className="w-36 text-stone-500 text-right font-bold text-brand-dark">Centro de Costos</label>
+                  <input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="w-36 text-slate-600 text-right">Proyecto</label>
-                  <input type="text" value={poProject} onChange={e => setPoProject(e.target.value)} className="flex-1 bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 outline-none font-medium" />
+                  <label className="w-36 text-stone-500 text-right">Proyecto</label>
+                  <input type="text" value={poProject} onChange={e => setPoProject(e.target.value)} className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium" />
                 </div>
               </div>
             </div>
           ) : (
-            <div className="p-3 bg-[#F1F5F9] border-b border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="px-5 py-4 bg-white border-b border-border grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             
             {/* Left Header Fields */}
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <label className="w-28 text-slate-600 text-right">Cliente</label>
+                <label className="w-28 text-stone-500 text-right">Cliente</label>
                 <div className="flex-1 flex items-center gap-1">
                   <div className="relative flex-1">
                     <input 
@@ -1501,11 +1506,11 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                       value={cardCode}
                       onChange={e => setCardCode(e.target.value)}
                       onKeyDown={handleCustomerSearchShortcut}
-                      className="w-full bg-[#FFFDE7] border border-slate-400 rounded px-1.5 py-0.5 font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-600"
+                      className="w-full bg-white border border-border rounded px-1.5 py-0.5 font-semibold text-brand-dark outline-none focus:ring-1 focus:ring-blue-600"
                     />
                     <button 
                       onClick={() => setIsCustomerModalOpen(true)}
-                      className="absolute right-1 top-0.5 w-4 h-4 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-900 border border-amber-600"
+                      className="absolute right-1 top-0.5 w-4 h-4 bg-sage-soft hover:bg-brand hover:text-white rounded-full flex items-center justify-center text-[9px] font-bold text-brand border border-brand-light/40"
                       title="Buscar Cliente en SAP B1"
                     >
                       ◯
@@ -1515,31 +1520,31 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-slate-600 text-right">Nombre</label>
+                <label className="w-28 text-stone-500 text-right">Nombre</label>
                 <input 
                   type="text"
                   value={cardName}
                   onChange={e => setCardName(e.target.value)}
                   onKeyDown={handleCustomerSearchShortcut}
-                  className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                  className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-slate-600 text-right">Persona de contacto</label>
+                <label className="w-28 text-stone-500 text-right">Persona de contacto</label>
                 <div className="flex-1 flex items-center gap-1">
                   <input 
                     type="text"
                     value={contactPerson}
                     onChange={e => setContactPerson(e.target.value)}
-                    className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600 font-medium text-slate-800 text-xs"
+                    className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light font-medium text-brand-dark text-xs"
                   />
-                  <span className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[9px] font-bold text-slate-600 cursor-pointer" title="Información de contacto">i</span>
+                  <span className="w-4 h-4 rounded-full bg-stone-100 border border-border flex items-center justify-center text-[9px] font-bold text-stone-500 cursor-pointer" title="Información de contacto">i</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-slate-600 text-right">
+                <label className="w-28 text-stone-500 text-right">
                   {mode === 'Order' 
                     ? 'OC / COT' 
                     : mode === 'Delivery'
@@ -1551,16 +1556,16 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   value={refNumber}
                   onChange={e => setRefNumber(e.target.value)}
                   onKeyDown={handleCustomerSearchShortcut}
-                  className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                  className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-slate-600 text-right">Moneda local</label>
+                <label className="w-28 text-stone-500 text-right">Moneda local</label>
                 <select 
                   value={currency}
                   onChange={e => setCurrency(e.target.value)}
-                  className="w-32 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-600"
+                  className="w-32 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
                 >
                   <option value="COP">COP - Pesos</option>
                   <option value="USD">USD - Dólares</option>
@@ -1571,12 +1576,12 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
             {/* Right Header Fields */}
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <label className="w-36 text-slate-600 text-right">Nº</label>
+                <label className="w-36 text-stone-500 text-right">Nº</label>
                 <div className="flex items-center gap-1">
                   <select 
                     value={docSeries}
                     onChange={e => setDocSeries(e.target.value)}
-                    className="bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"
+                    className="bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"
                   >
                     <option value={mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}>
                       {mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : 'Cot-Nal'}
@@ -1595,11 +1600,11 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                         setOrdenVenta(e.target.value);
                       }}
                       onKeyDown={e => { if (e.key === 'Enter') handleSearchSapDocument(e.currentTarget.value); }}
-                      className="w-32 bg-[#FFFDE7] border border-amber-400 font-bold rounded pl-1.5 pr-6 py-0.5 outline-none text-right text-slate-900 focus:ring-2 focus:ring-amber-500 text-xs shadow-inner"
+                      className="w-32 bg-white border border-brand-light font-bold rounded pl-1.5 pr-6 py-0.5 outline-none text-right text-brand-dark focus:ring-2 focus:ring-brand/10 text-xs shadow-inner"
                     />
                     <button
                       onClick={() => handleSearchSapDocument(docNum)}
-                      className="absolute right-1 text-slate-600 hover:text-amber-700 font-bold text-xs p-0.5 cursor-pointer hover:scale-110 transition-transform"
+                      className="absolute right-1 text-stone-500 hover:text-brand font-bold text-xs p-0.5 cursor-pointer hover:scale-110 transition-transform"
                       title="Consultar Documento en SAP B1"
                     >
                       🔍
@@ -1609,27 +1614,27 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-36 text-slate-600 text-right">Estado</label>
+                <label className="w-36 text-stone-500 text-right">Estado</label>
                 <input 
                   type="text"
                   value={docStatus}
                   readOnly
-                  className="w-32 bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 outline-none"
+                  className="w-32 bg-cream-light border border-border rounded px-1.5 py-0.5 text-stone-500 outline-none"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-36 text-slate-600 text-right">Fecha de contabilización</label>
+                <label className="w-36 text-stone-500 text-right">Fecha de contabilización</label>
                 <input 
                   type="date"
                   value={postingDate}
                   onChange={e => setPostingDate(e.target.value)}
-                  className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"
+                  className="w-36 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-36 text-slate-600 text-right">
+                <label className="w-36 text-stone-500 text-right">
                   {mode === 'Order' 
                     ? 'Fecha Plan Despacho' 
                     : mode === 'Delivery'
@@ -1640,17 +1645,17 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   type="date"
                   value={validUntil}
                   onChange={e => setValidUntil(e.target.value)}
-                  className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"
+                  className="w-36 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-36 text-slate-600 text-right">Fecha del documento</label>
+                <label className="w-36 text-stone-500 text-right">Fecha del documento</label>
                 <input 
                   type="date"
                   value={docDate}
                   onChange={e => setDocDate(e.target.value)}
-                  className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none text-xs"
+                  className="w-36 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"
                 />
               </div>
             </div>
@@ -1661,35 +1666,35 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
           <div className="flex-1 flex flex-col bg-white">
             
             {/* Tab Headers */}
-            <div className="flex items-center bg-[#E2E8F0] border-b border-slate-300 px-2 pt-1 gap-1 text-xs">
+            <div className="flex items-center bg-white border-b border-border px-5 text-xs">
               {mode === 'ProductionOrder' ? (
                 <>
                   <button
                     onClick={() => setActiveTab('componentes')}
-                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                    className={`px-1 py-3 mr-6 border-b-2 -mb-px font-medium transition-colors cursor-pointer ${
                       activeTab === 'componentes' || activeTab === 'contenido'
-                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-stone-400 hover:text-brand-dark'
                     }`}
                   >
                     Componentes
                   </button>
                   <button
                     onClick={() => setActiveTab('resumen')}
-                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                    className={`px-1 py-3 mr-6 border-b-2 -mb-px font-medium transition-colors cursor-pointer ${
                       activeTab === 'resumen'
-                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-stone-400 hover:text-brand-dark'
                     }`}
                   >
                     Resumen
                   </button>
                   <button
                     onClick={() => setActiveTab('anexos')}
-                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                    className={`px-1 py-3 mr-6 border-b-2 -mb-px font-medium transition-colors cursor-pointer ${
                       activeTab === 'anexos'
-                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-stone-400 hover:text-brand-dark'
                     }`}
                   >
                     Anexos
@@ -1699,30 +1704,30 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 <>
                   <button
                     onClick={() => setActiveTab('contenido')}
-                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                    className={`px-1 py-3 mr-6 border-b-2 -mb-px font-medium transition-colors cursor-pointer ${
                       activeTab === 'contenido'
-                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-stone-400 hover:text-brand-dark'
                     }`}
                   >
                     Contenido
                   </button>
                   <button
                     onClick={() => setActiveTab('logistica')}
-                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                    className={`px-1 py-3 mr-6 border-b-2 -mb-px font-medium transition-colors cursor-pointer ${
                       activeTab === 'logistica'
-                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-stone-400 hover:text-brand-dark'
                     }`}
                   >
                     Logística
                   </button>
                   <button
                     onClick={() => setActiveTab('anexos')}
-                    className={`px-4 py-1 rounded-t border-t-2 font-bold transition-all ${
+                    className={`px-1 py-3 mr-6 border-b-2 -mb-px font-medium transition-colors cursor-pointer ${
                       activeTab === 'anexos'
-                        ? 'bg-white border-t-amber-500 border-x border-slate-300 text-slate-800'
-                        : 'bg-slate-200 border-t-transparent hover:bg-slate-100 text-slate-600'
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-stone-400 hover:text-brand-dark'
                     }`}
                   >
                     Anexos
@@ -1738,93 +1743,93 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 <div className="flex-1 overflow-auto min-h-[240px] relative">
                   <table className="min-w-[900px] w-full text-left border-collapse text-[11px]">
                     <thead>
-                      <tr className="bg-[#CBD5E1] text-slate-700 font-bold border-b border-slate-300 sticky top-0 z-10">
-                        <th className="p-1.5 w-8 text-center border-r border-slate-300">#</th>
-                        <th className="p-1.5 w-32 text-center border-r border-slate-300">Tipo</th>
-                        <th className="p-1.5 w-44 border-r border-slate-300">Nº</th>
-                        <th className="p-1.5 min-w-[220px] border-r border-slate-300">Descripción</th>
-                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Cantidad base</th>
-                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Ratio base</th>
-                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Ctd. requerida</th>
-                        <th className="p-1.5 w-20 text-right border-r border-slate-300">Consumido</th>
-                        <th className="p-1.5 w-24 text-right border-r border-slate-300">Disponible</th>
+                      <tr className="bg-cream-light text-stone-400 text-[10px] uppercase tracking-wider font-medium border-b border-border sticky top-0 z-10">
+                        <th className="p-1.5 w-8 text-center border-r border-border">#</th>
+                        <th className="p-1.5 w-32 text-center border-r border-border">Tipo</th>
+                        <th className="p-1.5 w-44 border-r border-border">Nº</th>
+                        <th className="p-1.5 min-w-[220px] border-r border-border">Descripción</th>
+                        <th className="p-1.5 w-24 text-right border-r border-border">Cantidad base</th>
+                        <th className="p-1.5 w-24 text-right border-r border-border">Ratio base</th>
+                        <th className="p-1.5 w-24 text-right border-r border-border">Ctd. requerida</th>
+                        <th className="p-1.5 w-20 text-right border-r border-border">Consumido</th>
+                        <th className="p-1.5 w-24 text-right border-r border-border">Disponible</th>
                         <th className="p-1.5 w-7 text-center"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
+                    <tbody className="divide-y divide-border/70 bg-white">
                       {rows.map((row, idx) => (
                         <tr key={row.id} className={`hover:bg-blue-50/30 group transition-colors ${
                           !row.itemCode ? 'bg-white' : ''
                         }`}>
                           {/* # */}
-                          <td className="p-1 text-center bg-[#F1F5F9] font-semibold text-slate-500 border-r border-slate-300 text-[10px]">{idx + 1}</td>
+                          <td className="p-1 text-center bg-cream-light font-semibold text-stone-500 border-r border-border text-[10px]">{idx + 1}</td>
                           {/* Tipo - dropdown + arrow */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <div className="flex items-center gap-0.5 px-0.5">
                               <select
                                 value={row.unitMsr || 'Artículo'}
                                 onChange={e => handleRowChange(row.id, 'unitMsr', e.target.value)}
-                                className="flex-1 py-1 bg-transparent outline-none text-slate-700 text-[10px] border-0"
+                                className="flex-1 py-1 bg-transparent outline-none text-stone-600 text-[10px] border-0"
                               >
                                 <option value="Artículo">Artículo</option>
                                 <option value="Trabajo">Trabajo</option>
                               </select>
-                              {row.itemCode && <span className="text-blue-600 text-[10px] cursor-pointer hover:text-blue-800" title="Ver artículo">→</span>}
+                              {row.itemCode && <span className="text-brand text-[10px] cursor-pointer hover:text-blue-800" title="Ver artículo">→</span>}
                             </div>
                           </td>
                           {/* Nº - item code with link arrow */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <div className="flex items-center gap-0.5">
-                              {row.itemCode && <span className="text-blue-600 text-[10px] px-0.5 cursor-pointer" title="Abrir">→</span>}
+                              {row.itemCode && <span className="text-brand text-[10px] px-0.5 cursor-pointer" title="Abrir">→</span>}
                               <input
                                 type="text"
                                 value={row.itemCode}
                                 onChange={e => handleRowChange(row.id, 'itemCode', e.target.value)}
-                                className="flex-1 px-1 py-1 bg-[#FFFDE7] outline-none font-semibold text-slate-800 text-[10px] min-w-0"
+                                className="flex-1 px-1 py-1 bg-white outline-none font-semibold text-brand-dark text-[10px] min-w-0"
                                 placeholder="Nº artículo..."
                               />
                             </div>
                           </td>
                           {/* Descripción */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input
                               type="text"
                               value={row.description}
                               onChange={e => handleRowChange(row.id, 'description', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-[#FFFDE7] outline-none text-slate-700 text-[10px]"
+                              className="w-full px-1.5 py-1 bg-white outline-none text-stone-600 text-[10px]"
                               placeholder="Descripción..."
                             />
                           </td>
                           {/* Cantidad base */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input
                               type="number"
                               value={row.quantity}
                               onChange={e => handleRowChange(row.id, 'quantity', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-[#FFFDE7] text-right outline-none font-medium text-[10px]"
+                              className="w-full px-1.5 py-1 bg-white text-right outline-none font-medium text-[10px]"
                             />
                           </td>
                           {/* Ratio base - stored in barCode field */}
-                          <td className="p-1.5 text-right text-slate-600 border-r border-slate-200 text-[10px] font-medium bg-slate-50">
+                          <td className="p-1.5 text-right text-stone-500 border-r border-border/70 text-[10px] font-medium bg-cream-light">
                             {row.barCode && row.barCode !== 'N/A' ? row.barCode : (row.quantity > 0 ? String(row.quantity) : '—')}
                           </td>
                           {/* Ctd. requerida - stored in total field */}
-                          <td className="p-1.5 text-right font-semibold text-slate-800 border-r border-slate-200 text-[10px] bg-slate-50/50">
+                          <td className="p-1.5 text-right font-semibold text-brand-dark border-r border-border/70 text-[10px] bg-cream-light/50">
                             {Number(row.total) > 0 ? Number(row.total).toFixed(2) : (row.quantity > 0 ? row.quantity : '—')}
                           </td>
                           {/* Consumido - stored in price field */}
-                          <td className="p-1.5 text-right text-slate-500 border-r border-slate-200 text-[10px]">
+                          <td className="p-1.5 text-right text-stone-500 border-r border-border/70 text-[10px]">
                             {Number(row.price) > 0 ? Number(row.price).toFixed(2) : '0'}
                           </td>
                           {/* Disponible - stored in salesEmployee field */}
-                          <td className={`p-1.5 text-right text-[10px] border-r border-slate-200 font-medium ${
-                            Number(row.salesEmployee) < 0 ? 'text-red-600' : 'text-slate-700'
+                          <td className={`p-1.5 text-right text-[10px] border-r border-border/70 font-medium ${
+                            Number(row.salesEmployee) < 0 ? 'text-red-600' : 'text-stone-600'
                           }`}>
                             {row.salesEmployee && row.salesEmployee !== 'Firplak' ? Number(row.salesEmployee).toFixed(2) : '—'}
                           </td>
                           {/* Delete */}
                           <td className="p-1 text-center">
-                            <button onClick={() => handleRemoveRow(row.id)} className="text-slate-300 hover:text-rose-600 transition-colors cursor-pointer" title="Eliminar fila">
+                            <button onClick={() => handleRemoveRow(row.id)} className="text-stone-300 hover:text-rose-600 transition-colors cursor-pointer" title="Eliminar fila">
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </td>
@@ -1834,9 +1839,9 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   </table>
                 </div>
                 {/* Row navigation arrows (SAP B1 style) */}
-                <div className="flex justify-end px-2 py-1 bg-[#F1F5F9] border-t border-slate-200 gap-1">
-                  <button className="w-5 h-5 border border-slate-400 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] flex items-center justify-center cursor-pointer rounded-sm">▲</button>
-                  <button className="w-5 h-5 border border-slate-400 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] flex items-center justify-center cursor-pointer rounded-sm">▼</button>
+                <div className="flex justify-end px-2 py-1 bg-cream-light border-t border-border/70 gap-1">
+                  <button className="w-5 h-5 border border-border bg-stone-100 hover:bg-stone-100 text-stone-500 text-[10px] flex items-center justify-center cursor-pointer rounded-sm">▲</button>
+                  <button className="w-5 h-5 border border-border bg-stone-100 hover:bg-stone-100 text-stone-500 text-[10px] flex items-center justify-center cursor-pointer rounded-sm">▼</button>
                 </div>
               </div>
             )}
@@ -1846,42 +1851,42 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               <div className="flex-1 flex gap-8 p-4 overflow-y-auto bg-white min-h-[300px] text-xs">
                 {/* Column 1: Costos */}
                 <div className="flex flex-col gap-4 w-[280px]">
-                  <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1 mb-1">Costos</div>
+                  <div className="font-semibold text-brand-dark border-b border-border pb-1 mb-1">Costos</div>
                   <div className="flex flex-col gap-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 flex items-center gap-1 font-bold">Costo de componente real-SAL<span className="text-amber-500 font-bold">→</span></label>
-                      <input type="text" readOnly className="w-24 bg-[#FFFDE7] border border-slate-300 rounded px-1.5 py-0.5 text-right font-medium outline-none" value="$ 0.00" />
+                      <label className="text-stone-500 flex items-center gap-1 font-bold">Costo de componente real-SAL<span className="text-brand-light font-bold">→</span></label>
+                      <input type="text" readOnly className="w-24 bg-white border border-border rounded px-1.5 py-0.5 text-right font-medium outline-none" value="$ 0.00" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Costo de componente de recurso real</label>
-                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Costo de componente de recurso real</label>
+                      <input type="text" readOnly className="w-24 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Costo adicional real MO+CIF</label>
-                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
+                      <label className="text-stone-500 font-bold">Costo adicional real MO+CIF</label>
+                      <input type="text" readOnly className="w-24 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 flex items-center gap-1 font-bold">Costo de producto real+VALE P<span className="text-amber-500 font-bold">→</span></label>
-                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
+                      <label className="text-stone-500 flex items-center gap-1 font-bold">Costo de producto real+VALE P<span className="text-brand-light font-bold">→</span></label>
+                      <input type="text" readOnly className="w-24 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Coste real de subproductos</label>
-                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Coste real de subproductos</label>
+                      <input type="text" readOnly className="w-24 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 flex items-center gap-1 font-bold">Desviación total<span className="text-amber-500 font-bold">→</span></label>
-                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
+                      <label className="text-stone-500 flex items-center gap-1 font-bold">Desviación total<span className="text-brand-light font-bold">→</span></label>
+                      <input type="text" readOnly className="w-24 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="$ 0.00" />
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <label className="text-slate-600 font-bold">Asiento contable</label>
+                      <label className="text-stone-500 font-bold">Asiento contable</label>
                       <div className="flex items-center gap-1">
-                        <span className="text-amber-500 font-bold">→</span>
-                        <input type="text" readOnly className="w-40 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value={poJournalRemarks} />
+                        <span className="text-brand-light font-bold">→</span>
+                        <input type="text" readOnly className="w-40 bg-cream-light border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" value={poJournalRemarks} />
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <label className="text-slate-600 font-bold">Documento de referencia</label>
-                      <button className="bg-amber-400 hover:bg-amber-500 border border-slate-400 rounded px-3 py-0.5 font-bold shadow-sm text-slate-800">...</button>
+                      <label className="text-stone-500 font-bold">Documento de referencia</label>
+                      <button className="bg-brand hover:bg-brand-hover border border-brand rounded px-3 py-0.5 font-bold text-white">...</button>
                     </div>
                   </div>
                 </div>
@@ -1889,34 +1894,34 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 {/* Column 2: Cantidades & Fechas */}
                 <div className="flex flex-col gap-6 w-[220px]">
                   <div className="flex flex-col gap-2">
-                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Cantidades</div>
+                    <div className="font-semibold text-brand-dark border-b border-border pb-1">Cantidades</div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Cantidad planificada</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value={plannedQuantity} />
+                      <label className="text-stone-500 font-bold">Cantidad planificada</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value={plannedQuantity} />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Cantidad completada</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value={poCompletedQty} />
+                      <label className="text-stone-500 font-bold">Cantidad completada</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value={poCompletedQty} />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Cantidad rechazada</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value={poRejectedQty} />
+                      <label className="text-stone-500 font-bold">Cantidad rechazada</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value={poRejectedQty} />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Fechas</div>
+                    <div className="font-semibold text-brand-dark border-b border-border pb-1">Fechas</div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Fecha de finalización</label>
-                      <input type="date" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value={dueDate} />
+                      <label className="text-stone-500 font-bold">Fecha de finalización</label>
+                      <input type="date" readOnly className="w-24 bg-cream-light border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" value={dueDate} />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Fecha de cierre real</label>
-                      <input type="date" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value={poClosingDate} />
+                      <label className="text-stone-500 font-bold">Fecha de cierre real</label>
+                      <input type="date" readOnly className="w-24 bg-cream-light border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" value={poClosingDate} />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Vencido</label>
-                      <input type="text" readOnly className="w-24 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Vencido</label>
+                      <input type="text" readOnly className="w-24 bg-cream-light border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" value="" />
                     </div>
                   </div>
                 </div>
@@ -1924,34 +1929,34 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 {/* Column 3: Tiempos planificados & Días planificados */}
                 <div className="flex flex-col gap-6 w-[240px]">
                   <div className="flex flex-col gap-2">
-                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Tiempos planificados</div>
+                    <div className="font-semibold text-brand-dark border-b border-border pb-1">Tiempos planificados</div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Tiempo de producción total</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Tiempo de producción total</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Tiempo adicional total</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Tiempo adicional total</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Tiempo de ejecución total</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Tiempo de ejecución total</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <div className="font-semibold text-slate-800 border-b border-slate-300 pb-1">Días planificados</div>
+                    <div className="font-semibold text-brand-dark border-b border-border pb-1">Días planificados</div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Total de días solicitados</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Total de días solicitados</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Total de días de espera</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Total de días de espera</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <label className="text-slate-600 font-bold">Días totales</label>
-                      <input type="text" readOnly className="w-16 bg-[#E2E8F0] border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none" value="" />
+                      <label className="text-stone-500 font-bold">Días totales</label>
+                      <input type="text" readOnly className="w-16 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right outline-none" value="" />
                     </div>
                   </div>
                 </div>
@@ -1961,16 +1966,16 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
             {/* Tab 1: Contenido (Grid Table) - only for non-ProductionOrder */}
             {activeTab === 'contenido' && mode !== 'ProductionOrder' && (
-              <div className="p-3 flex-1 flex flex-col">
+              <div className="p-5 flex-1 flex flex-col">
                 
                 {/* Top Controls inside Contenido */}
                 <div className="flex items-center justify-between mb-2 text-xs">
                   <div className="flex items-center gap-2">
-                    <label className="text-slate-600 font-semibold">Clase de artículo/servicio</label>
+                    <label className="text-stone-500 font-semibold">Clase de artículo/servicio</label>
                     <select
                       value={itemClass}
                       onChange={e => setItemClass(e.target.value)}
-                      className="bg-white border border-slate-300 rounded px-2 py-0.5 outline-none font-medium"
+                      className="bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium"
                     >
                       <option value="Artículo">Artículo</option>
                       <option value="Servicio">Servicio</option>
@@ -1978,11 +1983,11 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-slate-600 font-semibold">Clase de resumen</label>
+                    <label className="text-stone-500 font-semibold">Clase de resumen</label>
                     <select
                       value={summaryClass}
                       onChange={e => setSummaryClass(e.target.value)}
-                      className="bg-white border border-slate-300 rounded px-2 py-0.5 outline-none font-medium"
+                      className="bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium"
                     >
                       <option value="Sin resumen">Sin resumen</option>
                       <option value="Por categoría">Por categoría</option>
@@ -1991,43 +1996,43 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
 
                 {/* Data Grid Table Container (Wide Horizontal Scrollbar) */}
-                <div className="flex-1 border border-slate-300 rounded overflow-x-auto relative min-h-[280px] shadow-inner bg-slate-50">
+                <div className="flex-1 border border-border rounded-xl overflow-x-auto relative min-h-[280px] bg-white">
                   <table className="min-w-[1750px] w-full text-left border-collapse text-[11px]">
                     <thead>
-                      <tr className="bg-[#CBD5E1] text-slate-700 font-bold border-b border-slate-300 sticky top-0 z-10">
-                        <th className="p-1.5 w-8 text-center border-r border-slate-300">#</th>
-                        <th className="p-1.5 w-48 border-r border-slate-300">Número de artículo</th>
-                        <th className="p-1.5 min-w-[320px] border-r border-slate-300">Descripción del artículo</th>
-                        <th className="p-1.5 w-36 border-r border-slate-300">Código de barra</th>
-                        <th className="p-1.5 w-20 text-right border-r border-slate-300">Cantidad</th>
-                        <th className="p-1.5 w-24 text-center border-r border-slate-300">Unidad de medida</th>
-                        <th className="p-1.5 w-32 text-right border-r border-slate-300">Precio por unidad</th>
-                        <th className="p-1.5 w-24 text-right border-r border-slate-300">% de descuento</th>
-                        <th className="p-1.5 w-28 text-center border-r border-slate-300">Indicador de impuesto</th>
-                        <th className="p-1.5 w-36 text-right border-r border-slate-300">Total (ML)</th>
-                        <th className="p-1.5 w-24 text-center border-r border-slate-300">Almacén</th>
-                        <th className="p-1.5 w-36 text-center border-r border-slate-300">Centro de Costo</th>
-                        <th className="p-1.5 w-44 text-center border-r border-slate-300">Empleado de ventas</th>
-                        <th className="p-1.5 w-24 text-center border-r border-slate-300">Estado de Línea</th>
+                      <tr className="bg-cream-light text-stone-400 text-[10px] uppercase tracking-wider font-medium border-b border-border sticky top-0 z-10">
+                        <th className="p-1.5 w-8 text-center border-r border-border">#</th>
+                        <th className="p-1.5 w-48 border-r border-border">Número de artículo</th>
+                        <th className="p-1.5 min-w-[320px] border-r border-border">Descripción del artículo</th>
+                        <th className="p-1.5 w-36 border-r border-border">Código de barra</th>
+                        <th className="p-1.5 w-20 text-right border-r border-border">Cantidad</th>
+                        <th className="p-1.5 w-24 text-center border-r border-border">Unidad de medida</th>
+                        <th className="p-1.5 w-32 text-right border-r border-border">Precio por unidad</th>
+                        <th className="p-1.5 w-24 text-right border-r border-border">% de descuento</th>
+                        <th className="p-1.5 w-28 text-center border-r border-border">Indicador de impuesto</th>
+                        <th className="p-1.5 w-36 text-right border-r border-border">Total (ML)</th>
+                        <th className="p-1.5 w-24 text-center border-r border-border">Almacén</th>
+                        <th className="p-1.5 w-36 text-center border-r border-border">Centro de Costo</th>
+                        <th className="p-1.5 w-44 text-center border-r border-border">Empleado de ventas</th>
+                        <th className="p-1.5 w-24 text-center border-r border-border">Estado de Línea</th>
                         <th className="p-1.5 w-8 text-center"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
+                    <tbody className="divide-y divide-border/70 bg-white">
                       {rows.map((row, idx) => (
-                        <tr key={row.id} className="hover:bg-amber-50/50 group transition-colors">
+                        <tr key={row.id} className="hover:bg-sage-soft/50 group transition-colors">
                           {/* Row Number */}
-                          <td className="p-1 text-center bg-[#F1F5F9] font-semibold text-slate-500 border-r border-slate-300">
+                          <td className="p-1 text-center bg-cream-light font-semibold text-stone-500 border-r border-border">
                             {idx + 1}
                           </td>
 
                           {/* Item Code Input */}
-                          <td className="p-0 border-r border-slate-200 relative">
+                          <td className="p-0 border-r border-border/70 relative">
                             <div className="flex items-center">
                               <input 
                                 type="text"
                                 value={row.itemCode}
                                 onChange={e => handleRowChange(row.id, 'itemCode', e.target.value)}
-                                className={`w-full px-1.5 py-1 bg-transparent outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
+                                className={`w-full px-1.5 py-1 bg-transparent outline-none focus:bg-sage-soft ${getRowTextColor(row.treeType)}`}
                                 placeholder="Escriba código..."
                               />
                               <button 
@@ -2035,7 +2040,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                                   setActiveRowIdForSearch(row.id);
                                   setIsItemModalOpen(true);
                                 }}
-                                className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
+                                className="p-1 text-stone-400 hover:text-brand cursor-pointer"
                                 title="Buscar artículo SAP B1"
                               >
                                 <Search className="w-3 h-3" />
@@ -2044,18 +2049,18 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                           </td>
 
                           {/* Description Input */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="text"
                               value={row.description}
                               onChange={e => handleRowChange(row.id, 'description', e.target.value)}
-                              className={`w-full px-1.5 py-1 bg-transparent outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
+                              className={`w-full px-1.5 py-1 bg-transparent outline-none focus:bg-sage-soft ${getRowTextColor(row.treeType)}`}
                               placeholder="Descripción del artículo..."
                             />
                           </td>
 
                           {/* BarCode */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="text"
                               value={row.barCode || ''}
@@ -2066,18 +2071,18 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                           </td>
 
                           {/* Quantity */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="number"
                               min="1"
                               value={row.quantity}
                               onChange={e => handleRowChange(row.id, 'quantity', e.target.value)}
-                              className={`w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
+                              className={`w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-sage-soft ${getRowTextColor(row.treeType)}`}
                             />
                           </td>
 
                           {/* Unit Measure */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="text"
                               value={row.unitMsr || 'UND'}
@@ -2087,57 +2092,57 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                           </td>
 
                           {/* Unit Price */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="number"
                               value={row.price}
                               onChange={e => handleRowChange(row.id, 'price', e.target.value)}
-                              className={`w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-amber-50 ${getRowTextColor(row.treeType)}`}
+                              className={`w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-sage-soft ${getRowTextColor(row.treeType)}`}
                             />
                           </td>
 
                           {/* Discount % */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="number"
                               step="0.1"
                               value={row.discount}
                               onChange={e => handleRowChange(row.id, 'discount', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-amber-50"
+                              className="w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-sage-soft"
                             />
                           </td>
 
                           {/* Tax Code */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="text"
                               value={row.taxCode || 'IVA 19%'}
                               onChange={e => handleRowChange(row.id, 'taxCode', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-600"
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-stone-500"
                             />
                           </td>
 
                           {/* Total */}
-                          <td className={`p-1.5 text-right bg-slate-50/50 border-r border-slate-200 ${getRowTextColor(row.treeType)}`}>
+                          <td className={`p-1.5 text-right bg-cream-light/50 border-r border-border/70 ${getRowTextColor(row.treeType)}`}>
                             {formatMoney(row.total)}
                           </td>
 
                           {/* Warehouse Code */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="text"
                               value={row.whsCode || 'PT-01'}
                               onChange={e => handleRowChange(row.id, 'whsCode', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-700 font-semibold"
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-stone-600 font-semibold"
                             />
                           </td>
 
                           {/* Costing Code (Centro de costos - Real SAP DistributionRules) */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <select 
                               value={row.costingCode || ''}
                               onChange={e => handleRowChange(row.id, 'costingCode', e.target.value)}
-                              className="w-full px-1 py-1 bg-transparent text-center outline-none text-slate-700 font-semibold text-[10px]"
+                              className="w-full px-1 py-1 bg-transparent text-center outline-none text-stone-600 font-semibold text-[10px]"
                             >
                               <option value="">-- Sin asignar --</option>
                               {costCentersList.map((cc) => (
@@ -2149,20 +2154,20 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                           </td>
 
                           {/* Empleado de ventas (Sales Employee) */}
-                          <td className="p-0 border-r border-slate-200">
+                          <td className="p-0 border-r border-border/70">
                             <input 
                               type="text"
                               value={row.salesEmployee || salesEmployee || 'Firplak'}
                               onChange={e => handleRowChange(row.id, 'salesEmployee', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-slate-700 font-medium"
+                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-stone-600 font-medium"
                               placeholder="Empleado ventas"
                             />
                           </td>
 
                           {/* Line Status */}
-                          <td className="p-1.5 text-center font-semibold text-slate-600 border-r border-slate-200">
+                          <td className="p-1.5 text-center font-semibold text-stone-500 border-r border-border/70">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                              row.lineStatus === 'Abierto' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                              row.lineStatus === 'Abierto' ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-stone-500'
                             }`}>
                               {row.lineStatus || 'Abierto'}
                             </span>
@@ -2172,7 +2177,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                           <td className="p-1 text-center">
                             <button 
                               onClick={() => handleRemoveRow(row.id)}
-                              className="text-slate-300 hover:text-rose-600 transition-colors cursor-pointer"
+                              className="text-stone-300 hover:text-rose-600 transition-colors cursor-pointer"
                               title="Eliminar fila"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2188,25 +2193,25 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
             {/* Tab 2: Logística */}
             {activeTab === 'logistica' && (
-              <div className="p-4 grid grid-cols-2 gap-6 text-xs bg-slate-50 flex-1">
-                <div className="space-y-2 bg-white p-3 border border-slate-200 rounded shadow-sm">
-                  <h4 className="font-bold text-slate-700 border-b pb-1">Dirección de Destino / Despacho</h4>
+              <div className="p-4 grid grid-cols-2 gap-6 text-xs bg-cream-light flex-1">
+                <div className="space-y-2 bg-white p-3 border border-border/70 rounded shadow-sm">
+                  <h4 className="font-bold text-stone-600 border-b pb-1">Dirección de Destino / Despacho</h4>
                   <textarea 
                     value={shipToAddressText}
                     onChange={(e) => setShipToAddressText(e.target.value)}
                     rows={5}
                     placeholder="Dirección de Destino..."
-                    className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/50"
+                    className="w-full border border-border rounded p-2 outline-none font-sans text-xs leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-cream-light/50"
                   />
                 </div>
-                <div className="space-y-2 bg-white p-3 border border-slate-200 rounded shadow-sm">
-                  <h4 className="font-bold text-slate-700 border-b pb-1">Dirección de Facturación</h4>
+                <div className="space-y-2 bg-white p-3 border border-border/70 rounded shadow-sm">
+                  <h4 className="font-bold text-stone-600 border-b pb-1">Dirección de Facturación</h4>
                   <textarea 
                     value={payToAddressText}
                     onChange={(e) => setPayToAddressText(e.target.value)}
                     rows={5}
                     placeholder="Dirección de Facturación..."
-                    className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/50"
+                    className="w-full border border-border rounded p-2 outline-none font-sans text-xs leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-cream-light/50"
                   />
                 </div>
               </div>
@@ -2214,43 +2219,43 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
             {/* Tab 3: Anexos */}
             {activeTab === 'anexos' && (
-              <div className="flex-1 flex bg-[#F1F5F9] border-t border-slate-300 relative overflow-hidden">
+              <div className="flex-1 flex bg-cream-light border-t border-border relative overflow-hidden">
                 {/* Table Section */}
-                <div className="flex-1 overflow-auto bg-white m-2 border border-slate-300 shadow-sm">
+                <div className="flex-1 overflow-auto bg-white m-2 border border-border shadow-sm">
                   <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#E2E8F0] sticky top-0 shadow-sm z-10">
+                    <thead className="bg-cream-light sticky top-0 shadow-sm z-10">
                       <tr>
-                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 w-8 text-center whitespace-nowrap">#</th>
-                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[120px]">Vía de acceso d...</th>
-                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[120px]">Nombre de ...</th>
-                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[100px]">Fecha del anexo</th>
-                        <th className="p-1 px-2 border-b border-r border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[150px]">Texto libre</th>
-                        <th className="p-1 px-2 border-b border-slate-300 font-normal text-slate-700 whitespace-nowrap min-w-[100px] text-center">Copiar a docu...</th>
+                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 w-8 text-center whitespace-nowrap">#</th>
+                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[120px]">Vía de acceso d...</th>
+                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[120px]">Nombre de ...</th>
+                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[100px]">Fecha del anexo</th>
+                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[150px]">Texto libre</th>
+                        <th className="p-1 px-2 border-b border-border font-normal text-stone-600 whitespace-nowrap min-w-[100px] text-center">Copiar a docu...</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-[#F8FAFC]">
+                    <tbody className="bg-white">
                       <tr 
-                        className="hover:bg-amber-50 cursor-pointer"
+                        className="hover:bg-sage-soft cursor-pointer"
                         onDoubleClick={() => setIsDocumentViewerOpen(true)}
                       >
-                        <td className="p-1 px-2 border-b border-r border-slate-200 text-center font-medium text-slate-700">1</td>
-                        <td className="p-1 px-2 border-b border-r border-slate-200 font-medium text-slate-800">\\PES\Adjuntossap</td>
-                        <td className="p-1 px-2 border-b border-r border-slate-200 font-medium text-slate-800">Rem. 91253</td>
-                        <td className="p-1 px-2 border-b border-r border-slate-200 font-medium text-slate-800">01/09/2026</td>
-                        <td className="p-1 px-2 border-b border-r border-slate-200 bg-white"></td>
-                        <td className="p-1 px-2 border-b border-slate-200 bg-white text-center">
-                          <input type="checkbox" className="rounded-sm border-slate-300" />
+                        <td className="p-1 px-2 border-b border-r border-border/70 text-center font-medium text-stone-600">1</td>
+                        <td className="p-1 px-2 border-b border-r border-border/70 font-medium text-brand-dark">\\PES\Adjuntossap</td>
+                        <td className="p-1 px-2 border-b border-r border-border/70 font-medium text-brand-dark">Rem. 91253</td>
+                        <td className="p-1 px-2 border-b border-r border-border/70 font-medium text-brand-dark">01/09/2026</td>
+                        <td className="p-1 px-2 border-b border-r border-border/70 bg-white"></td>
+                        <td className="p-1 px-2 border-b border-border/70 bg-white text-center">
+                          <input type="checkbox" className="rounded-sm border-border" />
                         </td>
                       </tr>
                       {/* Empty rows to fill space */}
                       {Array.from({ length: 15 }).map((_, i) => (
                         <tr key={i}>
-                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
-                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
-                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
-                          <td className="p-2 border-b border-r border-slate-200 bg-[#F1F5F9]/50"></td>
-                          <td className="p-2 border-b border-r border-slate-200 bg-white"></td>
-                          <td className="p-2 border-b border-slate-200 bg-[#F1F5F9]/50"></td>
+                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
+                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
+                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
+                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
+                          <td className="p-2 border-b border-r border-border/70 bg-white"></td>
+                          <td className="p-2 border-b border-border/70 bg-cream-light/50"></td>
                         </tr>
                       ))}
                     </tbody>
@@ -2258,15 +2263,15 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
                 
                 {/* Right Buttons Panel */}
-                <div className="w-28 bg-[#F1F5F9] p-2 flex flex-col gap-8 pt-8">
-                  <button className="w-full bg-gradient-to-b from-[#FFD54F] to-[#FFCA28] hover:from-[#FFCA28] hover:to-[#FFC107] border border-amber-600 rounded-sm text-slate-900 font-semibold text-xs py-1 shadow-sm flex items-center justify-between px-2">
+                <div className="w-28 bg-cream-light p-2 flex flex-col gap-8 pt-8">
+                  <button className="w-full border border-brand rounded-lg text-white font-semibold text-xs py-1 flex items-center justify-between px-2 bg-brand hover:bg-brand-hover">
                     <span>Explorar</span>
-                    <span className="text-[9px] text-amber-900 ml-1">▼</span>
+                    <span className="text-[9px] text-brand ml-1">▼</span>
                   </button>
-                  <button className="w-full bg-gradient-to-b from-[#FFD54F] to-[#FFCA28] hover:from-[#FFCA28] hover:to-[#FFC107] border border-amber-600 rounded-sm text-slate-900 font-semibold text-xs py-1 shadow-sm">
+                  <button className="w-full border border-brand rounded-lg text-white font-semibold text-xs py-1 bg-brand hover:bg-brand-hover">
                     Visualizar
                   </button>
-                  <button className="w-full bg-gradient-to-b from-[#FFD54F] to-[#FFCA28] hover:from-[#FFCA28] hover:to-[#FFC107] border border-amber-600 rounded-sm text-slate-900 font-semibold text-xs py-1 shadow-sm mt-auto mb-20">
+                  <button className="w-full border border-brand rounded-lg text-white font-semibold text-xs py-1 mt-auto mb-20 bg-brand hover:bg-brand-hover">
                     Borrar
                   </button>
                 </div>
@@ -2277,29 +2282,29 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
           {/* ── Footer Section: Employee & Totals ────────────────────────────── */}
           {mode === 'ProductionOrder' ? (
-            <div className="p-3 bg-[#F1F5F9] border-t border-slate-300 flex flex-col gap-3 text-xs">
+            <div className="px-5 py-4 bg-white border-t border-border flex flex-col gap-3 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Left Footer */}
                 <div className="flex items-start gap-2">
-                  <label className="w-32 text-slate-600 text-right font-medium pt-1">Comentarios</label>
+                  <label className="w-32 text-stone-500 text-right font-medium pt-1">Comentarios</label>
                   <textarea 
                     value={comments}
                     onChange={e => setComments(e.target.value)}
                     rows={2}
                     placeholder="Comentarios de producción..."
-                    className="flex-1 bg-white border border-slate-300 rounded p-1.5 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
+                    className="flex-1 bg-white border border-border rounded p-1.5 outline-none font-sans text-xs text-brand-dark leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
                   />
                 </div>
 
                 {/* Right Footer */}
                 <div className="flex items-start gap-2">
-                  <label className="w-44 text-slate-600 text-right font-medium pt-1">Observaciones sobre empaque</label>
+                  <label className="w-44 text-stone-500 text-right font-medium pt-1">Observaciones sobre empaque</label>
                   <textarea 
                     value={pickRemarks}
                     onChange={e => setPickRemarks(e.target.value)}
                     rows={2}
                     placeholder="Observaciones de empaque..."
-                    className="flex-1 bg-white border border-slate-300 rounded p-1.5 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
+                    className="flex-1 bg-white border border-border rounded p-1.5 outline-none font-sans text-xs text-brand-dark leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
                   />
                 </div>
               </div>
@@ -2308,7 +2313,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               <div className="flex items-center gap-2 pt-1">
                 <button 
                   onClick={() => handleSearchSapDocument(docNum)}
-                  className="px-6 py-1 bg-gradient-to-b from-[#FAD961] to-[#E8A000] hover:from-[#fbbf24] hover:to-[#d97706] text-slate-900 font-bold rounded border border-amber-600 shadow-sm cursor-pointer"
+                  className="px-6 py-1 text-white font-semibold rounded-lg border border-brand cursor-pointer bg-brand hover:bg-brand-hover"
                 >
                   OK
                 </button>
@@ -2322,19 +2327,19 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                     setStatusMessage('● Ingrese un número de Orden de Fabricación y presione OK.');
                     setStatusType('info');
                   }}
-                  className="px-4 py-1 bg-gradient-to-b from-slate-200 to-slate-300 hover:bg-slate-300 text-slate-800 font-bold rounded border border-slate-400 shadow-sm cursor-pointer"
+                  className="px-4 py-1 bg-white hover:bg-cream-light text-brand-dark font-bold rounded border border-border shadow-sm cursor-pointer"
                 >
                   Cancelar
                 </button>
               </div>
             </div>
           ) : (
-            <div className="p-3 bg-[#F1F5F9] border-t border-slate-300 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="px-5 py-4 bg-white border-t border-border grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             
             {/* Left Footer */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <label className="w-32 text-slate-600 text-right font-medium">
+                <label className="w-32 text-stone-500 text-right font-medium">
                   {mode === 'Invoice' ? 'Empleado dpto.ventas' : 'Empleado de ventas'}
                 </label>
                 <div className="flex-1 flex items-center gap-1">
@@ -2342,30 +2347,30 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                     type="text"
                     value={salesEmployee}
                     onChange={e => setSalesEmployee(e.target.value)}
-                    className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium text-slate-800"
+                    className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium text-brand-dark"
                   />
-                  <span className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[9px] font-bold text-slate-600">i</span>
+                  <span className="w-4 h-4 rounded-full bg-stone-100 border border-border flex items-center justify-center text-[9px] font-bold text-stone-500">i</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-32 text-slate-600 text-right font-medium">Propietario</label>
+                <label className="w-32 text-stone-500 text-right font-medium">Propietario</label>
                 <input 
                   type="text"
                   value={owner}
                   onChange={e => setOwner(e.target.value)}
-                  className="flex-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-medium text-slate-800"
+                  className="flex-1 bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light font-medium text-brand-dark"
                 />
               </div>
 
               <div className="flex items-start gap-2 pt-1">
-                <label className="w-32 text-slate-600 text-right font-medium pt-1">Comentarios</label>
+                <label className="w-32 text-stone-500 text-right font-medium pt-1">Comentarios</label>
                 <textarea 
                   value={comments}
                   onChange={e => setComments(e.target.value)}
                   rows={3}
                   placeholder="Comentarios u observaciones..."
-                  className="flex-1 bg-white border border-slate-300 rounded p-1.5 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
+                  className="flex-1 bg-white border border-border rounded p-1.5 outline-none font-sans text-xs text-brand-dark leading-relaxed resize-none focus:ring-2 focus:ring-brand/20"
                 />
               </div>
             </div>
@@ -2373,63 +2378,63 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
             {/* Right Footer Totals */}
             <div className="space-y-1 text-right">
               <div className="flex items-center justify-end gap-2">
-                <span className="text-slate-600">Total antes del descuento:</span>
+                <span className="text-stone-500">Total antes del descuento:</span>
                 <input 
                   type="text" 
                   value={formatMoney(subtotalRows)} 
                   readOnly 
-                  className="w-40 bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-right font-bold text-slate-700 outline-none"
+                  className="w-40 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right font-bold text-stone-600 outline-none"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2">
-                <span className="text-slate-600">Descuento</span>
+                <span className="text-stone-500">Descuento</span>
                 <input 
                   type="number" 
                   value={headerDiscountPct} 
                   onChange={e => setHeaderDiscountPct(Number(e.target.value))} 
-                  className="w-14 bg-white border border-slate-300 rounded px-1 py-0.5 text-right outline-none"
+                  className="w-14 bg-white border border-border rounded px-1 py-0.5 text-right outline-none"
                 />
                 <span>%</span>
                 <input 
                   type="text" 
                   value={formatMoney(headerDiscountAmount)} 
                   readOnly 
-                  className="w-36 bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-right font-semibold text-slate-700 outline-none"
+                  className="w-36 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right font-semibold text-stone-600 outline-none"
                 />
               </div>
 
               {mode === 'Invoice' && (
                 <div className="flex items-center justify-end gap-2">
-                  <button className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 rounded text-[10px] font-bold text-slate-700 border border-slate-300 cursor-pointer">...</button>
-                  <span className="text-slate-600">Anticipo total</span>
+                  <button className="px-1.5 py-0.5 bg-stone-100 hover:bg-stone-100 rounded text-[10px] font-bold text-stone-600 border border-border cursor-pointer">...</button>
+                  <span className="text-stone-500">Anticipo total</span>
                   <input 
                     type="text" 
                     value={anticipoTotal} 
                     onChange={e => setAnticipoTotal(e.target.value)} 
-                    className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none font-bold text-slate-800"
+                    className="w-36 bg-white border border-border rounded px-1.5 py-0.5 text-right outline-none font-bold text-brand-dark"
                   />
                 </div>
               )}
 
               <div className="flex items-center justify-end gap-2">
-                <span className="text-slate-600">Gastos adicionales:</span>
-                <button className="px-1.5 py-0.5 bg-amber-400 hover:bg-amber-500 rounded text-[9px] font-bold text-slate-900 border border-amber-600">=&gt;</button>
+                <span className="text-stone-500">Gastos adicionales:</span>
+                <button className="px-1.5 py-0.5 bg-brand hover:bg-brand-hover rounded text-[9px] font-bold text-white border border-brand">=&gt;</button>
                 <input 
                   type="number" 
                   value={additionalExpenses} 
                   onChange={e => setAdditionalExpenses(Number(e.target.value))} 
-                  className="w-36 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-right outline-none"
+                  className="w-36 bg-white border border-border rounded px-1.5 py-0.5 text-right outline-none"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2">
-                <label className="flex items-center gap-1 cursor-pointer text-slate-600">
+                <label className="flex items-center gap-1 cursor-pointer text-stone-500">
                   <input 
                     type="checkbox" 
                     checked={rounding} 
                     onChange={e => setRounding(e.target.checked)} 
-                    className="rounded text-amber-500 focus:ring-0"
+                    className="rounded text-brand-light focus:ring-0"
                   />
                   <span>Redondeo</span>
                 </label>
@@ -2437,27 +2442,27 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   type="text" 
                   value="$ 0,00" 
                   readOnly 
-                  className="w-36 bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-right text-slate-500 outline-none"
+                  className="w-36 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right text-stone-500 outline-none"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2">
-                <span className="text-slate-600">Impuesto (IVA 19%):</span>
+                <span className="text-stone-500">Impuesto (IVA 19%):</span>
                 <input 
                   type="text" 
                   value={formatMoney(vatTax)} 
                   readOnly 
-                  className="w-40 bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-right font-bold text-slate-700 outline-none"
+                  className="w-40 bg-cream-light border border-border rounded px-1.5 py-0.5 text-right font-bold text-stone-600 outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-300">
-                <span className="text-sm font-black text-slate-900 uppercase">Total:</span>
+              <div className="flex items-center justify-end gap-2 pt-1 border-t border-border">
+                <span className="text-sm font-bold text-brand-dark uppercase">Total:</span>
                 <input 
                   type="text" 
                   value={formatMoney(grandTotal)} 
                   readOnly 
-                  className="w-44 bg-amber-100/80 border border-amber-400 rounded px-2 py-1 text-right font-black text-sm text-slate-900 outline-none shadow-sm"
+                  className="w-44 bg-sage-soft border border-brand-light rounded px-2 py-1 text-right font-bold text-sm text-brand-dark outline-none shadow-sm"
                 />
               </div>
             </div>
@@ -2465,28 +2470,28 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
           )}
 
           {/* ── Bottom Action Buttons Bar ──────────────────────────────────────── */}
-          <div className="p-3 bg-[#E2E8F0] border-t border-slate-300 flex items-center justify-between text-xs">
+          <div className="px-5 py-4 bg-white border-t border-border flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <button 
                 onClick={handleCreateDocument}
-                className="px-6 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 font-bold rounded border border-amber-600 shadow-sm transition-all cursor-pointer"
+                className="px-6 py-1.5 text-white font-semibold rounded-lg border border-brand transition-all cursor-pointer bg-brand hover:bg-brand-hover"
               >
                 Crear
               </button>
-              <button className="px-5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded border border-slate-400 shadow-sm transition-all cursor-pointer">
+              <button className="px-5 py-1.5 bg-cream-light hover:bg-stone-100 text-stone-600 font-bold rounded border border-border shadow-sm transition-all cursor-pointer">
                 Cancelar
               </button>
             </div>
 
             <div className="flex items-center gap-2">
-              <select className="bg-slate-100 border border-slate-400 rounded px-3 py-1 font-bold text-slate-700 cursor-pointer">
+              <select className="bg-cream-light border border-border rounded px-3 py-1 font-bold text-stone-600 cursor-pointer">
                 <option value="">Copiar a...</option>
                 <option value="orden">Orden de Venta</option>
                 <option value="entrega">Entrega</option>
                 <option value="factura">Factura de Clientes</option>
               </select>
 
-              <select className="bg-slate-100 border border-slate-400 rounded px-3 py-1 font-bold text-slate-700 cursor-pointer">
+              <select className="bg-cream-light border border-border rounded px-3 py-1 font-bold text-stone-600 cursor-pointer">
                 <option value="">Copiar de...</option>
                 <option value="oportunidad">Oportunidad de Venta</option>
               </select>
@@ -2497,30 +2502,30 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       </div>
 
       {/* ── 5. Bottom SAP Operational Status Bar ─────────────────────────────── */}
-      <div className={`mt-1 border border-slate-300 rounded px-3 py-1 text-xs font-semibold flex items-center justify-between shadow-inner ${
+      <div className={`mt-4 border border-border rounded-xl px-4 py-2.5 text-xs font-medium flex items-center justify-between ${
         statusType === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
         statusType === 'error' ? 'bg-rose-50 text-rose-800 border-rose-300' :
-        'bg-[#F1F5F9] text-slate-600'
+        'bg-white text-stone-500'
       }`}>
         <span>{statusMessage}</span>
-        <span className="text-[11px] text-slate-500 font-medium">
-          Luis Guillermo Esteban | 01/09/2026 | 12:25 p.m.
+        <span className="text-[11px] text-stone-500 font-medium">
+          SAP Business One
         </span>
       </div>
 
       {/* 🗂️ Document List Modal */}
       {isDocListModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="bg-[#334155] text-white px-4 py-2 font-bold text-xs flex justify-between items-center">
+        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] border border-border w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-white border-b border-border text-brand-dark px-4 py-3 font-semibold text-sm flex justify-between items-center">
               <span>SAP B1 - Lista de Pedidos de cliente</span>
-              <button onClick={() => setIsDocListModalOpen(false)} className="hover:text-amber-300">✕</button>
+              <button onClick={() => setIsDocListModalOpen(false)} className="hover:text-brand-light"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-3">
-              <div className="border border-slate-300 rounded overflow-hidden">
+              <div className="border border-border rounded overflow-hidden">
                 <div className="max-h-80 overflow-y-auto">
                   <table className="w-full text-left text-xs whitespace-nowrap">
-                    <thead className="bg-slate-100 border-b sticky top-0">
+                    <thead className="bg-cream-light border-b sticky top-0">
                       <tr>
                         <th className="p-2 font-semibold">#</th>
                         <th className="p-2 font-semibold">Fecha</th>
@@ -2534,7 +2539,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                     <tbody>
                       {isDocListLoading ? (
                         <tr>
-                          <td colSpan={7} className="text-center p-8 text-slate-500 font-medium">Cargando documentos...</td>
+                          <td colSpan={7} className="text-center p-8 text-stone-500 font-medium">Cargando documentos...</td>
                         </tr>
                       ) : docListResults.length > 0 ? (
                         docListResults.map((doc, idx) => (
@@ -2544,20 +2549,20 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                               handleSearchSapDocument(String(doc.DocNum || doc.DocumentNumber));
                               setIsDocListModalOpen(false);
                             }}
-                            className="border-b last:border-b-0 hover:bg-amber-100/50 cursor-pointer transition-colors"
+                            className="border-b last:border-b-0 hover:bg-sage-soft/50 cursor-pointer transition-colors"
                           >
-                            <td className="p-2 font-bold text-slate-800">{doc.DocNum || doc.DocumentNumber}</td>
-                            <td className="p-2 text-slate-600">{doc.DocDate || doc.PostingDate}</td>
-                            <td className="p-2 text-slate-600 font-medium">{doc.CardCode || doc.CustomerCode}</td>
-                            <td className="p-2 text-slate-600 truncate max-w-[200px]">{doc.CardName || doc.ProductDescription}</td>
-                            <td className="p-2 text-right font-bold text-slate-700">{(doc.DocTotal !== undefined ? formatMoney(doc.DocTotal) : doc.PlannedQuantity)}</td>
-                            <td className="p-2 text-slate-600">{doc.NumAtCard || '-'}</td>
-                            <td className="p-2 text-slate-600">{doc.DocumentStatus || doc.ProductionOrderStatus || 'bost_Open'}</td>
+                            <td className="p-2 font-bold text-brand-dark">{doc.DocNum || doc.DocumentNumber}</td>
+                            <td className="p-2 text-stone-500">{doc.DocDate || doc.PostingDate}</td>
+                            <td className="p-2 text-stone-500 font-medium">{doc.CardCode || doc.CustomerCode}</td>
+                            <td className="p-2 text-stone-500 truncate max-w-[200px]">{doc.CardName || doc.ProductDescription}</td>
+                            <td className="p-2 text-right font-bold text-stone-600">{(doc.DocTotal !== undefined ? formatMoney(doc.DocTotal) : doc.PlannedQuantity)}</td>
+                            <td className="p-2 text-stone-500">{doc.NumAtCard || '-'}</td>
+                            <td className="p-2 text-stone-500">{doc.DocumentStatus || doc.ProductionOrderStatus || 'bost_Open'}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={7} className="text-center p-8 text-slate-500 font-medium">No se encontraron documentos relacionados a la búsqueda.</td>
+                          <td colSpan={7} className="text-center p-8 text-stone-500 font-medium">No se encontraron documentos relacionados a la búsqueda.</td>
                         </tr>
                       )}
                     </tbody>
@@ -2568,7 +2573,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               <div className="mt-3 flex justify-end gap-2">
                 <button 
                   onClick={() => setIsDocListModalOpen(false)}
-                  className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded border border-slate-300 shadow-sm text-xs"
+                  className="px-4 py-1.5 bg-stone-100 hover:bg-stone-100 text-stone-600 font-bold rounded border border-border shadow-sm text-xs"
                 >
                   Cerrar
                 </button>
@@ -2580,15 +2585,15 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
       {/* ── Customer Search Modal ─────────────────────────────────────────────── */}
       {isCustomerModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="bg-[#334155] text-white px-4 py-2 font-bold text-xs flex justify-between items-center">
+        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] border border-border w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-white border-b border-border text-brand-dark px-4 py-3 font-semibold text-sm flex justify-between items-center">
               <span>SAP B1 - Selección de Clientes</span>
-              <button onClick={() => setIsCustomerModalOpen(false)} className="hover:text-amber-300">✕</button>
+              <button onClick={() => setIsCustomerModalOpen(false)} className="hover:text-brand-light"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-3">
-              <div className="flex items-center px-2 py-1 bg-slate-50 border border-slate-300 rounded mb-3">
-                <Search className="w-4 h-4 text-slate-400 mr-2" />
+              <div className="flex items-center px-2 py-1 bg-cream-light border border-border rounded mb-3">
+                <Search className="w-4 h-4 text-stone-400 mr-2" />
                 <input 
                   type="text"
                   placeholder="Buscar por Nombre o Código de Cliente..."
@@ -2599,9 +2604,9 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 />
               </div>
 
-              <div className="max-h-60 overflow-y-auto border border-slate-200 rounded">
+              <div className="max-h-60 overflow-y-auto border border-border/70 rounded">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 border-b">
+                  <thead className="bg-cream-light border-b">
                     <tr>
                       <th className="p-2">Código</th>
                       <th className="p-2">Nombre del Cliente</th>
@@ -2616,12 +2621,12 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                         <tr 
                           key={c.cardCode}
                           onClick={() => handleSelectCustomer(c)}
-                          className="hover:bg-amber-50 cursor-pointer"
+                          className="hover:bg-sage-soft cursor-pointer"
                         >
-                          <td className="p-2 font-bold text-blue-700">{c.cardCode}</td>
-                          <td className="p-2 font-medium text-slate-800">{c.cardName}</td>
-                          <td className="p-2 text-slate-500">{c.nit}</td>
-                          <td className="p-2 text-slate-600">{c.contact}</td>
+                          <td className="p-2 font-bold text-brand">{c.cardCode}</td>
+                          <td className="p-2 font-medium text-brand-dark">{c.cardName}</td>
+                          <td className="p-2 text-stone-500">{c.nit}</td>
+                          <td className="p-2 text-stone-500">{c.contact}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -2634,15 +2639,15 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
       {/* ── Article / Item Search Modal ───────────────────────────────────────── */}
       {isItemModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="bg-[#334155] text-white px-4 py-2 font-bold text-xs flex justify-between items-center">
+        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] border border-border w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-white border-b border-border text-brand-dark px-4 py-3 font-semibold text-sm flex justify-between items-center">
               <span>SAP B1 - Lista de Artículos (Inventario Firplak)</span>
-              <button onClick={() => setIsItemModalOpen(false)} className="hover:text-amber-300">✕</button>
+              <button onClick={() => setIsItemModalOpen(false)} className="hover:text-brand-light"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-3">
-              <div className="flex items-center px-2 py-1 bg-slate-50 border border-slate-300 rounded mb-3">
-                <Search className="w-4 h-4 text-slate-400 mr-2" />
+              <div className="flex items-center px-2 py-1 bg-cream-light border border-border rounded mb-3">
+                <Search className="w-4 h-4 text-stone-400 mr-2" />
                 <input 
                   type="text"
                   placeholder="Buscar por Código de Artículo o Descripción..."
@@ -2653,9 +2658,9 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 />
               </div>
 
-              <div className="max-h-72 overflow-y-auto border border-slate-200 rounded">
+              <div className="max-h-72 overflow-y-auto border border-border/70 rounded">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 border-b">
+                  <thead className="bg-cream-light border-b">
                     <tr>
                       <th className="p-2">Número de artículo</th>
                       <th className="p-2">Descripción del artículo</th>
@@ -2672,11 +2677,11 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                         <tr 
                           key={item.itemCode}
                           onClick={() => handleSelectItemForGroup(item)}
-                          className="hover:bg-amber-50 cursor-pointer"
+                          className="hover:bg-sage-soft cursor-pointer"
                         >
-                          <td className="p-2 font-bold text-amber-700">{item.itemCode}</td>
-                          <td className="p-2 font-medium text-slate-800">{item.description}</td>
-                          <td className="p-2 text-right font-bold text-slate-900">{formatMoney(item.price)}</td>
+                          <td className="p-2 font-bold text-brand">{item.itemCode}</td>
+                          <td className="p-2 font-medium text-brand-dark">{item.description}</td>
+                          <td className="p-2 text-right font-bold text-brand-dark">{formatMoney(item.price)}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -2690,70 +2695,70 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       {/* ── Custom Context Menu (Right Click SAP Menu) ────────────────────────── */}
       {contextMenu && (
         <div 
-          className="fixed bg-white border border-slate-300 shadow-2xl rounded py-1 z-50 text-xs text-slate-800 w-56 animate-in fade-in zoom-in-95"
+          className="fixed bg-white border border-border shadow-2xl rounded py-1 z-50 text-xs text-brand-dark w-56 animate-in fade-in zoom-in-95"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >
           {Boolean(cardCode && cardCode.trim() && docNum && docNum.trim()) ? (
             <>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Duplicar documento SAP'); }}
               >
                 <span className="w-4 text-center">📋</span> Duplicar
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Documento destino'); }}
               >
                 <span className="w-4 text-center">➡️</span> Documento destino...
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Info detallada de fila'); }}
               >
                 <span className="w-4 text-center">🔍</span> Info detallada de fila...
               </button>
-              <div className="border-t border-slate-200 my-1"></div>
+              <div className="border-t border-border/70 my-1"></div>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Actividad nueva'); }}
               >
                 <span className="w-4 text-center">📅</span> Actividad nueva
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Ganancia bruta'); }}
               >
                 <span className="w-4 text-center">📊</span> Ganancia bruta...
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Cálculo de volumen y peso'); }}
               >
                 <span className="w-4 text-center">⚖️</span> Cálculo de volumen y peso...
               </button>
-              <div className="border-t border-slate-200 my-1"></div>
+              <div className="border-t border-border/70 my-1"></div>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-amber-900 bg-amber-50/50 flex items-center gap-2"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft font-bold text-brand bg-sage-soft/50 flex items-center gap-2"
                 onClick={() => { setContextMenu(null); setIsComentariosModalOpen(true); }}
               >
                 <span className="w-4 text-center">📝</span> Comentarios iniciales y finales...
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Actividades relacionadas'); }}
               >
                 <span className="w-4 text-center">📌</span> Actividades relacionadas
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Oportunidades relacionadas'); }}
               >
                 <span className="w-4 text-center">🎯</span> Oportunidades relacionadas
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 font-bold text-blue-900 bg-blue-50/50 flex items-center gap-2"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft font-bold text-brand bg-blue-50/50 flex items-center gap-2"
                 onClick={() => { setContextMenu(null); setIsMapaRelacionesModalOpen(true); }}
               >
                 <span className="w-4 text-center">🌿</span> Mapa de relaciones...
@@ -2762,13 +2767,13 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
           ) : (
             <>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Actividad nueva'); }}
               >
                 <span className="w-4 text-center">📅</span> Actividad nueva
               </button>
               <button 
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-100 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-sage-soft flex items-center gap-2 text-stone-600"
                 onClick={() => { setContextMenu(null); alert('Ganancia bruta'); }}
               >
                 <span className="w-4 text-center">📊</span> Ganancia bruta...
@@ -2780,52 +2785,52 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
       {/* ── Modal: Comentarios Iniciales y Finales ───────────────────────────── */}
       {isComentariosModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 py-2 font-bold text-xs flex justify-between items-center shadow-sm">
+        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] border border-border w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-white border-b border-border text-brand-dark px-4 py-3 font-semibold text-sm flex justify-between items-center">
               <span className="flex items-center gap-2">
                 <span>📝</span> Comentarios iniciales y finales - Documento Nº {docNum || 'Nuevo'}
               </span>
-              <button onClick={() => setIsComentariosModalOpen(false)} className="hover:text-amber-200 text-sm">✕</button>
+              <button onClick={() => setIsComentariosModalOpen(false)} className="hover:text-brand-light text-sm"><X className="w-4 h-4" /></button>
             </div>
 
-            <div className="p-4 space-y-4 text-xs bg-slate-50">
-              <div className="bg-white p-3 border border-slate-200 rounded shadow-xs space-y-1">
-                <label className="font-bold text-slate-700 block">Comentarios iniciales (Encabezado)</label>
+            <div className="p-4 space-y-4 text-xs bg-cream-light">
+              <div className="bg-white p-3 border border-border/70 rounded shadow-xs space-y-1">
+                <label className="font-bold text-stone-600 block">Comentarios iniciales (Encabezado)</label>
                 <textarea 
                   value={openingRemarks}
                   onChange={(e) => setOpeningRemarks(e.target.value)}
                   rows={4}
                   placeholder="Ingrese los comentarios iniciales del documento..."
-                  className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/30"
+                  className="w-full border border-border rounded p-2 outline-none font-sans text-xs text-brand-dark leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-cream-light/30"
                 />
               </div>
 
-              <div className="bg-white p-3 border border-slate-200 rounded shadow-xs space-y-1">
-                <label className="font-bold text-slate-700 block">Comentarios finales (Pie de página / Observaciones)</label>
+              <div className="bg-white p-3 border border-border/70 rounded shadow-xs space-y-1">
+                <label className="font-bold text-stone-600 block">Comentarios finales (Pie de página / Observaciones)</label>
                 <textarea 
                   value={closingRemarks}
                   onChange={(e) => setClosingRemarks(e.target.value)}
                   rows={4}
                   placeholder="Ingrese los comentarios finales del documento..."
-                  className="w-full border border-slate-300 rounded p-2 outline-none font-sans text-xs text-slate-800 leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-slate-50/30"
+                  className="w-full border border-border rounded p-2 outline-none font-sans text-xs text-brand-dark leading-relaxed resize-none focus:ring-2 focus:ring-brand/20 bg-cream-light/30"
                 />
               </div>
             </div>
 
-            <div className="p-3 bg-slate-100 border-t border-slate-200 flex justify-end gap-2 text-xs">
+            <div className="p-3 bg-cream-light border-t border-border/70 flex justify-end gap-2 text-xs">
               <button 
                 onClick={() => {
                   setComments(closingRemarks);
                   setIsComentariosModalOpen(false);
                 }}
-                className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded border border-amber-600 shadow-xs"
+                className="px-4 py-1.5 bg-brand hover:bg-brand-hover text-white font-semibold rounded-lg border border-brand"
               >
                 OK
               </button>
               <button 
                 onClick={() => setIsComentariosModalOpen(false)}
-                className="px-4 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded border border-slate-300"
+                className="px-4 py-1.5 bg-white hover:bg-cream-light text-stone-600 font-semibold rounded border border-border"
               >
                 Cancelar
               </button>
@@ -2834,39 +2839,41 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
         </div>
       )}
 
-      {/* ── Modal: Mapa de Relaciones SAP (Nativo 1-a-1 SAP B1) ────────────────────── */}
+      {/* ── Modal: Mapa de relaciones (lectura en vivo desde SAP) ─────────────── */}
       {isMapaRelacionesModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-[#E2E8F0] rounded shadow-2xl border border-slate-400 w-full max-w-5xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[92vh]">
-            
-            {/* Title Bar */}
-            <div className="bg-gradient-to-r from-[#475569] to-[#334155] text-white px-3 py-1.5 font-bold text-xs flex justify-between items-center shadow-sm">
-              <span>Mapa de relaciones</span>
-              <div className="flex items-center gap-2">
-                <span className="cursor-pointer hover:opacity-100 opacity-80">_</span>
-                <span className="cursor-pointer hover:opacity-100 opacity-80">□</span>
-                <button onClick={() => setIsMapaRelacionesModalOpen(false)} className="hover:text-amber-300 font-bold ml-1">✕</button>
+        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={() => setIsMapaRelacionesModalOpen(false)}>
+          <div
+            className="bg-white rounded-2xl shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] border border-border w-full max-w-6xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[92vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="w-9 h-9 rounded-xl bg-sage-soft text-brand flex items-center justify-center shrink-0">
+                  <GitBranch className="w-4 h-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-brand-dark">Mapa de relaciones</p>
+                  <p className="text-xs text-stone-500 truncate">
+                    {cardName ? `${cardName} · ${cardCode}` : cardCode || '—'}
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => setIsMapaRelacionesModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-400 hover:text-brand hover:bg-cream-light transition-colors cursor-pointer"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Main Graph View Canvas */}
-            <div className="p-6 bg-white flex-1 overflow-auto relative min-h-[440px] text-[11px] font-sans">
-              
+            <div className="p-6 bg-cream-light flex-1 overflow-auto relative min-h-[360px] text-[11px]">
               {isLoadingMap && (
-                <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-50 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
-                  <span className="ml-3 text-sm font-bold text-slate-700">Cargando relaciones...</span>
+                <div className="absolute inset-0 z-10 flex items-center justify-center gap-3">
+                  <div className="w-6 h-6 border-[3px] border-border border-t-brand rounded-full animate-spin"></div>
+                  <span className="text-sm text-stone-500">Recorriendo documentos vinculados…</span>
                 </div>
               )}
-
-              {/* Socio de negocios */}
-              <div className="mb-6 inline-block border border-slate-300 rounded-lg bg-white shadow-sm px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Socio de negocios</p>
-                <p className="font-bold text-slate-800">{cardCode || '—'}</p>
-                <p className="text-slate-600 max-w-[260px] truncate">{cardName}</p>
-              </div>
-
-              {/* Árbol de documentos vinculados (lectura en vivo desde SAP) */}
               {relationshipMap ? (
                 <MapaRelaciones
                   map={relationshipMap}
@@ -2877,67 +2884,39 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 />
               ) : (
                 !isLoadingMap && (
-                  <p className="text-center text-sm text-slate-500 py-20">No se encontraron documentos vinculados para este documento.</p>
+                  <p className="text-center text-sm text-stone-500 py-20">No se encontraron documentos vinculados para este documento.</p>
                 )
               )}
-
             </div>
 
-            {/* SAP Bottom Control Bar */}
-            <div className="p-2 bg-[#F1F5F9] border-t border-slate-300 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-3">
-                <select className="bg-white border border-slate-300 rounded px-2 py-0.5 outline-none font-medium text-slate-700 text-xs">
-                  <option>Documento de marketing: árbol de documentos</option>
-                  <option>Detalles de cuenta</option>
-                  <option>Documentos de referencia</option>
-                </select>
-                <label className="flex items-center gap-1.5 text-slate-700 cursor-pointer">
-                  <input type="checkbox" className="rounded text-brand" />
-                  <span>Documentos de referencia</span>
-                </label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setIsMapaRelacionesModalOpen(false)}
-                  className="px-6 py-1 bg-[#F0C050] hover:bg-amber-400 text-slate-900 font-bold rounded border border-amber-600 shadow-xs"
-                >
-                  OK
-                </button>
-                <button 
-                  disabled 
-                  className="px-4 py-1 bg-slate-200 text-slate-400 font-semibold rounded border border-slate-300 cursor-not-allowed"
-                >
-                  Volver
-                </button>
-                <button 
-                  disabled 
-                  className="px-4 py-1 bg-slate-200 text-slate-400 font-semibold rounded border border-slate-300 cursor-not-allowed"
-                >
-                  Ir adelante
-                </button>
-              </div>
+            <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-stone-400">
+              <span>Clic en un documento para abrirlo</span>
+              <button
+                onClick={() => setIsMapaRelacionesModalOpen(false)}
+                className="h-9 px-5 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold cursor-pointer"
+              >
+                Listo
+              </button>
             </div>
-
           </div>
         </div>
       )}
 
       {/* ── Document Viewer Modal ────────────────────────────────────────────── */}
       {isDocumentViewerOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-200 rounded-md shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col border border-slate-400 overflow-hidden">
+        <div className="fixed inset-0 bg-brand-dark/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-stone-100 rounded-md shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col border border-border overflow-hidden">
             
             {/* Toolbar */}
-            <div className="bg-slate-800 text-white p-2 px-4 flex items-center justify-between text-sm shadow-md z-10">
+            <div className="bg-brand text-white p-2 px-4 flex items-center justify-between text-sm shadow-md z-10">
               <div className="flex items-center gap-3">
-                <span className="font-semibold text-slate-200">Rem. 91253.pdf</span>
-                <span className="text-slate-400 text-xs bg-slate-700 px-2 py-0.5 rounded">Visualizador PDF</span>
+                <span className="font-semibold text-stone-200">Rem. 91253.pdf</span>
+                <span className="text-stone-400 text-xs bg-white/15 px-2 py-0.5 rounded">Visualizador PDF</span>
               </div>
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setIsDocumentViewerOpen(false)}
-                  className="hover:bg-red-500 hover:text-white text-slate-400 p-1 px-2 rounded font-bold transition-colors"
+                  className="hover:bg-red-500 hover:text-white text-stone-400 p-1 px-2 rounded font-bold transition-colors"
                 >
                   ✕ Cerrar
                 </button>
@@ -2945,7 +2924,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
             </div>
 
             {/* Document Content Area */}
-            <div className="flex-1 bg-slate-300 relative">
+            <div className="flex-1 bg-cream relative">
               <iframe 
                 src={`/api/sap/attachments?path=${encodeURIComponent('\\\\PES\\Adjuntossap\\Rem. 91253.pdf')}`}
                 className="w-full h-full border-0"

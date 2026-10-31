@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Download, Copy } from 'lucide-react';
+import { Search, Loader2, Download, Copy, Boxes, Minus, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 
@@ -28,13 +28,13 @@ const formatNumber = (num: number) => {
 
 /** Paleta de colores por nivel, igual a SAP */
 const NIVEL_STYLES: Record<number, { bg: string; text: string; weight: string; indent: number }> = {
-  1: { bg: 'bg-[#CBD5E1]', text: 'text-slate-900', weight: 'font-black', indent: 0 },
-  2: { bg: 'bg-[#EFF6FF]', text: 'text-slate-800', weight: 'font-semibold', indent: 16 },
-  3: { bg: 'bg-white',    text: 'text-slate-700', weight: 'font-normal', indent: 32 },
-  4: { bg: 'bg-slate-50', text: 'text-slate-600', weight: 'font-normal', indent: 48 },
+  1: { bg: 'bg-cream', text: 'text-brand-dark', weight: 'font-bold', indent: 0 },
+  2: { bg: 'bg-white', text: 'text-brand-dark', weight: 'font-semibold', indent: 16 },
+  3: { bg: 'bg-white',    text: 'text-stone-600', weight: 'font-normal', indent: 32 },
+  4: { bg: 'bg-cream-light', text: 'text-stone-500', weight: 'font-normal', indent: 48 },
 };
 const getNivelStyle = (nivel: number) =>
-  NIVEL_STYLES[nivel] ?? { bg: 'bg-white', text: 'text-slate-500', weight: 'font-normal', indent: (nivel - 1) * 16 };
+  NIVEL_STYLES[nivel] ?? { bg: 'bg-white', text: 'text-stone-500', weight: 'font-normal', indent: (nivel - 1) * 16 };
 
 export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
   const [code1, setCode1] = useState('');
@@ -159,18 +159,18 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
     let paddingLeft = '0.5rem';
     let bg = 'bg-white';
     let fontWeight = 'font-normal';
-    let textColor = 'text-slate-800';
+    let textColor = 'text-brand-dark';
     
     if (nivel === 1) {
       fontWeight = 'font-bold';
-      bg = 'bg-slate-100';
-      textColor = 'text-slate-900';
+      bg = 'bg-cream-light';
+      textColor = 'text-brand-dark';
     } else if (nivel === 2) {
       paddingLeft = '1.5rem';
-      bg = 'bg-slate-50';
+      bg = 'bg-cream-light';
     } else if (nivel >= 3) {
       paddingLeft = `${(nivel - 1) * 1.5 + 1.5}rem`;
-      textColor = 'text-slate-600';
+      textColor = 'text-stone-500';
     }
 
     return { paddingLeft, bg, fontWeight, textColor };
@@ -184,26 +184,34 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
           isMinimized ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100 relative z-10'
         }`}
       >
-        <div className="w-full max-w-[1700px] h-full rounded shadow-2xl border border-slate-300 bg-[#E2E8F0] flex flex-col font-sans overflow-hidden min-h-[85vh]">
+        <div className="w-full max-w-[1700px] h-full rounded-2xl border border-border bg-white flex flex-col font-sans overflow-hidden min-h-[85vh]">
 
-          {/* ── Barra de título estilo SAP ── */}
-          <div className="bg-gradient-to-r from-[#475569] to-[#334155] text-white px-3 py-1.5 flex justify-between items-center shadow-md z-10 select-none">
-            <span className="font-bold text-[11px] tracking-wide uppercase">
-              HBT — Costo Actual de Producto Terminado
-            </span>
-            <div className="flex gap-2 text-white/80">
-              <button onClick={handleMinimize} className="hover:text-white text-lg leading-none cursor-pointer px-1" title="Minimizar">_</button>
-              <span className="hover:text-white text-lg leading-none cursor-pointer px-1">□</span>
-              <span className="hover:text-white text-sm leading-none cursor-pointer font-bold px-1">✕</span>
+          {/* ── Encabezado ── */}
+          <div className="px-5 py-3.5 border-b border-border flex justify-between items-center gap-4 select-none">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center shrink-0">
+                <Boxes className="w-5 h-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium tracking-[0.16em] uppercase text-brand-light">LDM Costos</p>
+                <h2 className="text-base font-semibold text-brand-dark truncate">Costo actual de producto terminado</h2>
+              </div>
             </div>
+            <button
+              onClick={handleMinimize}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-400 hover:text-brand hover:bg-cream-light transition-colors cursor-pointer"
+              title="Minimizar"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
           </div>
 
           {/* ── Formulario de búsqueda ── */}
-          <div className="bg-[#F1F5F9] px-4 py-3 border-b border-slate-300 flex flex-wrap items-end gap-4 shadow-inner">
+          <div className="bg-cream-light px-5 py-4 border-b border-border flex flex-wrap items-end gap-4">
             {/* @Code1 */}
             <div className="flex flex-col min-w-[260px]">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                Artículo superior &nbsp;<span className="text-slate-400 font-normal normal-case">(@Code1)</span>
+              <label className="text-[10px] font-medium text-brand-light uppercase tracking-[0.14em] mb-1.5">
+                Artículo superior desde
               </label>
               <input
                 id="ldm-code1"
@@ -211,7 +219,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
                 value={code1}
                 onChange={(e) => setCode1(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && fetchCostos()}
-                className="border border-[#a1a1aa] rounded-sm px-2 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 uppercase bg-[#FFF4C2] font-semibold shadow-inner w-full"
+                className="h-10 border border-border rounded-xl px-3 text-sm text-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/10 focus:border-brand-light uppercase bg-white font-medium w-full transition-colors"
                 placeholder="Ej: VBAN01-0038-000-0100"
                 autoComplete="off"
               />
@@ -219,8 +227,8 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
 
             {/* @Code2 */}
             <div className="flex flex-col min-w-[260px]">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                Artículo superior &nbsp;<span className="text-slate-400 font-normal normal-case">(@Code2)</span>
+              <label className="text-[10px] font-medium text-brand-light uppercase tracking-[0.14em] mb-1.5">
+                Artículo superior hasta
               </label>
               <input
                 id="ldm-code2"
@@ -228,7 +236,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
                 value={code2}
                 onChange={(e) => setCode2(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && fetchCostos()}
-                className="border border-[#a1a1aa] rounded-sm px-2 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 uppercase bg-[#FFF4C2] font-semibold shadow-inner w-full"
+                className="h-10 border border-border rounded-xl px-3 text-sm text-brand-dark focus:outline-none focus:ring-4 focus:ring-brand/10 focus:border-brand-light uppercase bg-white font-medium w-full transition-colors"
                 placeholder="Ej: VBAN01-0038-000-0100"
                 autoComplete="off"
               />
@@ -239,10 +247,10 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
               id="ldm-ejecutar"
               onClick={fetchCostos}
               disabled={isLoading || !code1.trim() || !code2.trim()}
-              className={`px-5 py-1.5 rounded text-xs font-bold shadow-sm transition-all flex items-center gap-2 border cursor-pointer ${
+              className={`h-10 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 border cursor-pointer ${
                 isLoading || !code1.trim() || !code2.trim()
-                  ? 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'
-                  : 'bg-[#F0C050] hover:bg-amber-400 text-slate-900 border-amber-500'
+                  ? 'bg-stone-100 text-stone-400 border-border cursor-not-allowed'
+                  : 'bg-brand hover:bg-brand-hover text-white border-brand'
               }`}
             >
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
@@ -253,7 +261,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
             <button
               id="ldm-cancelar"
               onClick={() => { setData([]); setError(null); setCode1(''); setCode2(''); }}
-              className="px-5 py-1.5 rounded text-xs font-bold shadow-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all cursor-pointer"
+              className="h-10 px-5 rounded-xl text-sm font-medium border border-border bg-white hover:border-brand-light hover:text-brand text-stone-600 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
@@ -263,7 +271,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
               <button
                 id="ldm-exportar"
                 onClick={exportExcel}
-                className="ml-auto px-4 py-1.5 rounded text-xs font-bold shadow-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="ml-auto h-10 px-4 rounded-xl text-sm font-medium border border-border bg-white hover:border-brand-light hover:text-brand text-stone-600 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 Copiar datos
@@ -272,7 +280,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
 
             {/* Error */}
             {error && (
-              <div className="w-full mt-1 text-xs font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded border border-red-200">
+              <div className="w-full mt-1 text-xs font-medium text-red-700 bg-red-50 px-3 py-2 rounded-xl border border-red-200">
                 {error}
               </div>
             )}
@@ -295,10 +303,10 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
                 <col style={{ width: '110px' }} />
                 <col style={{ width: '110px' }} />
               </colgroup>
-              <thead className="bg-[#CBD5E1] sticky top-0 z-10 border-b-2 border-slate-400">
+              <thead className="bg-cream-light sticky top-0 z-10 border-b border-border">
                 <tr>
-                  {['#','Codigo','Descripcion','UnidadMedida','Nivel','Cantidad','Costo_Unitario','Costo_Mp','Costo_Mo','Costo_Cif','Costo_Total'].map((col) => (
-                    <th key={col} className="border border-slate-300 px-2 py-1.5 text-left font-bold text-slate-700 whitespace-nowrap">{col}</th>
+                  {['#','Código','Descripción','Unidad','Nivel','Cantidad','Costo unitario','Costo MP','Costo MO','Costo CIF','Costo total'].map((col) => (
+                    <th key={col} className="border-b border-border px-2 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-stone-400 whitespace-nowrap">{col}</th>
                   ))}
                 </tr>
               </thead>
@@ -306,7 +314,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
                 {/* Vacío */}
                 {data.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan={10} className="text-center py-16 text-slate-400 font-medium text-xs">
+                    <td colSpan={10} className="text-center py-16 text-stone-400 font-medium text-xs">
                       Ingrese los códigos de artículo y presione <strong>Ejecutar</strong> para consultar la lista de materiales con costos.
                     </td>
                   </tr>
@@ -314,8 +322,8 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
                 {/* Cargando */}
                 {isLoading && (
                   <tr>
-                    <td colSpan={10} className="text-center py-16 text-slate-400 font-medium text-xs">
-                      <Loader2 className="w-6 h-6 animate-spin inline mr-2 text-amber-500" />
+                    <td colSpan={10} className="text-center py-16 text-stone-400 font-medium text-xs">
+                      <Loader2 className="w-6 h-6 animate-spin inline mr-2 text-brand-light" />
                       Consultando SAP Business One...
                     </td>
                   </tr>
@@ -324,22 +332,22 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
                 {!isLoading && data.map((row) => {
                   const s = getNivelStyle(row.Nivel);
                   return (
-                    <tr key={row.index} className={`${s.bg} border-b border-slate-200 hover:bg-amber-50 transition-colors`}>
-                      <td className="border-r border-slate-200 px-1 py-0.5 text-slate-400 text-center">{row.index}</td>
-                      <td className={`border-r border-slate-200 px-2 py-0.5 ${s.weight} ${s.text} font-mono truncate`}>{row.Codigo}</td>
+                    <tr key={row.index} className={`${s.bg} border-b border-border/70 hover:bg-sage-soft transition-colors`}>
+                      <td className="border-r border-border/70 px-1 py-0.5 text-stone-400 text-center">{row.index}</td>
+                      <td className={`border-r border-border/70 px-2 py-0.5 ${s.weight} ${s.text} font-mono truncate`}>{row.Codigo}</td>
                       <td
-                        className={`border-r border-slate-200 py-0.5 ${s.weight} ${s.text} truncate`}
+                        className={`border-r border-border/70 py-0.5 ${s.weight} ${s.text} truncate`}
                         style={{ paddingLeft: `${s.indent + 8}px` }}
                         title={row.Descripcion}
                       >{row.Descripcion}</td>
-                      <td className="border-r border-slate-200 px-2 py-0.5 text-center text-slate-600">{row.UnidadMedida}</td>
-                      <td className="border-r border-slate-200 px-2 py-0.5 text-center font-bold text-slate-700">{row.Nivel}</td>
-                      <td className="border-r border-slate-200 px-2 py-0.5 text-right text-slate-700">{formatNumber(row.Cantidad)}</td>
-                      <td className="border-r border-slate-200 px-2 py-0.5 text-right text-slate-700">{formatNumber(row.Costo_Unitario)}</td>
-                      <td className={`border-r border-slate-200 px-2 py-0.5 text-right ${row.Costo_Mp > 0 ? 'text-blue-700 font-semibold' : 'text-slate-400'}`}>{formatNumber(row.Costo_Mp)}</td>
-                      <td className={`border-r border-slate-200 px-2 py-0.5 text-right ${row.Costo_Mo > 0 ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>{formatNumber(row.Costo_Mo)}</td>
-                      <td className={`border-r border-slate-200 px-2 py-0.5 text-right ${row.Costo_Cif > 0 ? 'text-violet-700 font-semibold' : 'text-slate-400'}`}>{formatNumber(row.Costo_Cif)}</td>
-                      <td className={`px-2 py-0.5 text-right font-black ${row.Costo_Total > 0 ? 'text-slate-800' : 'text-slate-400'}`}>{formatNumber(row.Costo_Total)}</td>
+                      <td className="border-r border-border/70 px-2 py-0.5 text-center text-stone-500">{row.UnidadMedida}</td>
+                      <td className="border-r border-border/70 px-2 py-0.5 text-center font-bold text-stone-600">{row.Nivel}</td>
+                      <td className="border-r border-border/70 px-2 py-0.5 text-right text-stone-600">{formatNumber(row.Cantidad)}</td>
+                      <td className="border-r border-border/70 px-2 py-0.5 text-right text-stone-600">{formatNumber(row.Costo_Unitario)}</td>
+                      <td className={`border-r border-border/70 px-2 py-0.5 text-right ${row.Costo_Mp > 0 ? 'text-brand font-semibold' : 'text-stone-400'}`}>{formatNumber(row.Costo_Mp)}</td>
+                      <td className={`border-r border-border/70 px-2 py-0.5 text-right ${row.Costo_Mo > 0 ? 'text-[#3E6E5E] font-semibold' : 'text-stone-400'}`}>{formatNumber(row.Costo_Mo)}</td>
+                      <td className={`border-r border-border/70 px-2 py-0.5 text-right ${row.Costo_Cif > 0 ? 'text-[#9A7442] font-semibold' : 'text-stone-400'}`}>{formatNumber(row.Costo_Cif)}</td>
+                      <td className={`px-2 py-0.5 text-right font-bold ${row.Costo_Total > 0 ? 'text-brand-dark' : 'text-stone-400'}`}>{formatNumber(row.Costo_Total)}</td>
                     </tr>
                   );
                 })}
@@ -349,8 +357,8 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
           </div>
 
           {/* ── Barra de estado ── */}
-          <div className="bg-[#E2E8F0] px-3 py-1.5 flex justify-between items-center border-t border-slate-400 text-[10px] text-slate-600 font-semibold shadow-inner z-10 select-none">
-            <span>FIRPLAK SA &nbsp;|&nbsp; LDM Costos &nbsp;·&nbsp; HBT Costo Actual de Producto Terminado</span>
+          <div className="bg-white px-5 py-2.5 flex justify-between items-center border-t border-border text-[11px] text-stone-400 z-10 select-none">
+            <span>FIRPLAK · LDM Costos</span>
             <span>{data.length > 0 ? `${data.length} líneas recuperadas` : 'Listo'}</span>
           </div>
         </div>
@@ -364,18 +372,18 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
-            className="fixed z-[9999] bg-white border border-slate-300 shadow-xl rounded w-64 text-sm text-slate-700 py-1"
+            className="fixed z-[9999] bg-white border border-border shadow-[0_20px_40px_-16px_rgba(37,65,83,0.45)] rounded-xl w-64 text-sm text-stone-600 p-1"
             style={{ top: contextMenu.y, left: contextMenu.x }}
           >
             <button
-              className="w-full text-left px-4 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer transition-colors"
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-cream-light flex items-center gap-2 cursor-pointer transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 copyTableToClipboard();
                 setContextMenu(null);
               }}
             >
-              <Copy className="w-4 h-4 text-slate-500" />
+              <Copy className="w-4 h-4 text-stone-500" />
               Copiar tabla al portapapeles
             </button>
           </motion.div>
@@ -389,9 +397,9 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
             initial={{ opacity: 0, y: 50, x: "-50%" }}
             animate={{ opacity: 1, y: 0, x: "-50%" }}
             exit={{ opacity: 0, y: 50, x: "-50%" }}
-            className="fixed bottom-20 left-1/2 bg-slate-800 text-white px-4 py-2 rounded shadow-lg text-xs font-bold z-50 flex items-center gap-2"
+            className="fixed bottom-20 left-1/2 bg-brand text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-medium z-50 flex items-center gap-2"
           >
-            <Copy className="w-4 h-4 text-green-400" />
+            <Copy className="w-4 h-4 text-brand-light" />
             ¡Tabla copiada al portapapeles! (Pega directamente en Excel)
           </motion.div>
         )}
@@ -403,22 +411,13 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-4 left-6 z-50 flex items-center bg-white rounded shadow-xl border border-slate-300 overflow-hidden cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all"
+            className="fixed bottom-4 left-6 z-50 w-72 flex items-center gap-3 bg-white rounded-2xl border border-border pl-2 pr-3 py-2 cursor-pointer shadow-[0_12px_30px_-12px_rgba(37,65,83,0.45)] hover:border-brand-light transition-colors"
             onClick={handleRestore}
+            title="Restaurar"
           >
-            <div className="bg-[#475569] w-2 h-full absolute left-0"></div>
-            <div className="pl-4 pr-3 py-2 flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
-                <Search className="w-4 h-4 text-slate-600" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">HBT - Costos</span>
-                <span className="text-xs font-black text-slate-800">Costo Producto</span>
-              </div>
-              <div className="ml-2 w-6 h-6 flex items-center justify-center bg-slate-100 rounded hover:bg-slate-200 text-slate-500 text-lg font-bold">
-                □
-              </div>
-            </div>
+            <span className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center shrink-0"><Boxes className="w-4 h-4" /></span>
+            <span className="flex-1 text-sm font-semibold text-brand-dark truncate">LDM Costos</span>
+            <Maximize2 className="w-4 h-4 text-stone-400" />
           </motion.div>
         )}
       </AnimatePresence>
