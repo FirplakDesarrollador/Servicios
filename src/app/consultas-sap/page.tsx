@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Server, ArrowLeft, FileText, Factory, Package, Truck, Receipt, Boxes, ChevronRight, Sparkles, Search, GitBranch } from 'lucide-react';
+import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, Boxes, ChevronRight, Search, Warehouse } from 'lucide-react';
 import { motion } from 'framer-motion';
 import OfertaDeVenta from '@/components/sap/OfertaDeVenta';
 import LDMCostos from '@/components/sap/LDMCostos';
 import ExploradorSap, { type ClassicSapMode } from '@/components/sap/ExploradorSap';
+import FirplakMark from '@/components/sap/explorer/FirplakMark';
 
 const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   Quotation: 'oferta-venta',
@@ -16,10 +17,32 @@ const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   ProductionOrder: 'orden-fabricacion',
 };
 
+const SAP_MODULES = [
+  { id: 'oferta-venta', title: 'Oferta de venta', description: 'Creación y consulta de ofertas de ventas.', icon: FileText, active: true },
+  { id: 'orden-venta', title: 'Orden de venta', description: 'Seguimiento y detalle de pedidos de clientes.', icon: ClipboardList, active: true },
+  { id: 'orden-fabricacion', title: 'Orden de fabricación', description: 'Estado de las órdenes de fabricación en planta.', icon: Factory, active: true },
+  { id: 'entrega-despacho', title: 'Entrega', description: 'Documentos de entrega y guías de despacho.', icon: Truck, active: true },
+  { id: 'factura-cliente', title: 'Factura de clientes', description: 'Histórico de facturación de clientes.', icon: Receipt, active: true },
+  { id: 'ldm-costos', title: 'LDM Costos', description: 'Costo de producto terminado por lista de materiales.', icon: Boxes, active: true },
+  { id: 'inventario-sap', title: 'Stock e inventario', description: 'Stock por almacenes y artículos.', icon: Warehouse, active: false },
+];
+
+const MODULE_TITLES: Record<string, string> = {
+  explorador: 'Explorador',
+  ...Object.fromEntries(SAP_MODULES.map((m) => [m.id, m.title])),
+};
+
+const SEARCH_EXAMPLES = [
+  { label: 'Cédula / NIT', value: '71619197' },
+  { label: 'Nombre', value: 'gomez zuluaga' },
+  { label: 'Documento', value: '165165' },
+  { label: 'Orden de compra', value: '83118' },
+];
+
 export default function ConsultasSapPage() {
   const router = useRouter();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
-  const [isAppMinimized, setIsAppMinimized] = useState(false);
+  const [, setIsAppMinimized] = useState(false);
   // Explorador SAP: búsqueda inicial y documento abierto desde él en una pantalla clásica
   const [heroQuery, setHeroQuery] = useState('');
   const [explorerQuery, setExplorerQuery] = useState<string | null>(null);
@@ -46,128 +69,35 @@ export default function ConsultasSapPage() {
     }
   };
 
-  const sapModules = [
-    {
-      id: 'explorador',
-      title: 'Explorador SAP',
-      description: 'Busque por cédula/NIT, nombre, número de documento u orden de compra y navegue todo lo relacionado.',
-      icon: GitBranch,
-      color: 'bg-gradient-to-tr from-slate-700 to-slate-900 text-white',
-      badge: 'Nuevo',
-      badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
-      active: true
-    },
-    {
-      id: 'oferta-venta',
-      title: 'Oferta de Venta',
-      description: 'Creación y consulta de ofertas de ventas en SAP Business One.',
-      icon: FileText,
-      color: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white',
-      badge: 'Disponible',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      active: true
-    },
-    {
-      id: 'orden-fabricacion',
-      title: 'Orden de Fabricación',
-      description: 'Seguimiento y estado de órdenes de fabricación (OF) en planta.',
-      icon: Factory,
-      color: 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white',
-      badge: 'Disponible',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      active: true
-    },
-    {
-      id: 'orden-venta',
-      title: 'Orden de Venta',
-      description: 'Seguimiento y detalle de órdenes de venta en SAP B1.',
-      icon: Package,
-      color: 'bg-gradient-to-tr from-blue-500 to-indigo-500 text-white',
-      badge: 'Disponible',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      active: true
-    },
-    {
-      id: 'entrega-despacho',
-      title: 'Entrega',
-      description: 'Registro y control de documentos de entrega y guías de despacho.',
-      icon: Truck,
-      color: 'bg-gradient-to-tr from-teal-500 to-emerald-600 text-white',
-      badge: 'Disponible',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      active: true
-    },
-    {
-      id: 'factura-cliente',
-      title: 'Factura de Clientes',
-      description: 'Histórico de facturación y comprobantes fiscales SAP.',
-      icon: Receipt,
-      color: 'bg-gradient-to-tr from-pink-500 to-rose-500 text-white',
-      badge: 'Disponible',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      active: true
-    },
-    {
-      id: 'ldm-costos',
-      title: 'LDM Costos',
-      description: 'Costo actual de producto terminado por lista de materiales.',
-      icon: Boxes,
-      color: 'bg-gradient-to-tr from-cyan-500 to-blue-600 text-white',
-      badge: 'Nuevo',
-      badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
-      active: true
-    },
-    {
-      id: 'inventario-sap',
-      title: 'Stock e Inventario SAP',
-      description: 'Consulta de stock por almacenes y artículos en SAP.',
-      icon: Boxes,
-      color: 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white',
-      badge: 'Próximamente',
-      badgeColor: 'bg-slate-100 text-slate-500 border-slate-200',
-      active: false
-    }
-  ];
+  const backLabel = openedFromExplorer && selectedModule !== 'explorador'
+    ? 'Volver al Explorador SAP'
+    : selectedModule ? 'Volver a Consultas SAP' : 'Volver al Menú Principal';
 
   return (
-    <div className={`min-h-screen font-sans pb-12 transition-colors duration-200 ${
-      selectedModule && selectedModule !== 'explorador' ? 'bg-[#CBD5E1]' : 'bg-[#F1F5F9]'
-    }`}>
-      {/* App Top Bar */}
-      <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={goBack}
-            className="mr-4 p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-            title={openedFromExplorer && selectedModule !== 'explorador' ? 'Volver al Explorador SAP' : selectedModule ? 'Volver a Módulos SAP' : 'Volver al Menú Principal'}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-2">
-            <Server className="w-5 h-5 opacity-70" />
-            <h1 className="font-black text-xl tracking-tight uppercase">
-              {selectedModule === 'explorador'
-                ? 'Consultas SAP — Explorador'
-                : selectedModule === 'orden-fabricacion'
-                ? 'Consultas SAP — Orden de Fabricación'
-                : selectedModule === 'orden-venta' 
-                ? 'Consultas SAP — Orden de Venta' 
-                : selectedModule === 'entrega-despacho'
-                ? 'Consultas SAP — Entrega'
-                : selectedModule === 'factura-cliente'
-                ? 'Consultas SAP — Factura de Clientes'
-                : selectedModule === 'oferta-venta'
-                ? 'Consultas SAP — Oferta de Ventas'
-                : selectedModule === 'ldm-costos'
-                ? 'Consultas SAP — LDM Costos'
-                : 'Consultas SAP'}
-            </h1>
-          </div>
-        </div>
+    <div className="min-h-screen bg-cream font-sans text-brand-dark pb-12">
+      {/* Barra superior */}
+      <header className="fixed top-0 left-0 w-full h-14 z-50 bg-white/90 backdrop-blur border-b border-border flex items-center gap-3 px-4 sm:px-6">
+        <button
+          onClick={goBack}
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-stone-500 hover:text-brand hover:bg-cream-light transition-colors cursor-pointer"
+          title={backLabel}
+          aria-label={backLabel}
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <button onClick={() => { setSelectedModule(null); setExplorerQuery(null); setOpenedFromExplorer(false); setClassicDocNum(undefined); }} className="flex flex-col cursor-pointer" title="Inicio de Consultas SAP">
+          <img src="/logo-firplak-wordmark.png" alt="FIRPLAK" className="h-[15px] w-auto self-start" />
+          <span className="text-[10px] font-medium tracking-[0.2em] uppercase text-brand-light mt-1">Consultas SAP</span>
+        </button>
+        {selectedModule && (
+          <>
+            <span className="w-px h-6 bg-border mx-1" />
+            <span className="text-sm font-semibold text-brand truncate">{MODULE_TITLES[selectedModule] || ''}</span>
+          </>
+        )}
       </header>
 
-      {/* Main Container */}
-      <main className="pt-20 px-4 max-w-[1700px] mx-auto">
+      <main className="pt-14 px-4 max-w-[1700px] mx-auto">
         {explorerQuery !== null && (
           <div className={selectedModule === 'explorador' ? '' : 'hidden'}>
             <ExploradorSap
@@ -182,108 +112,93 @@ export default function ConsultasSapPage() {
         )}
 
         {selectedModule === 'explorador' ? null : !selectedModule ? (
-          /* ── Sub-menu Dashboard Cards (Cuadritos) ────────────────────────── */
-          <div className="max-w-6xl mx-auto pt-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
+          <div className="max-w-5xl mx-auto">
+            {/* Buscador principal */}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-8 text-center"
+              className="pt-14 sm:pt-20 pb-12 flex flex-col items-center text-center"
             >
-              <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold uppercase tracking-widest rounded-full inline-flex items-center gap-1.5 mb-3 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5" />
-                Módulos de Integración SAP Business One
-              </span>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase">
-                Seleccione un Módulo SAP
-              </h2>
-              <p className="text-slate-500 font-medium text-sm mt-1 max-w-md mx-auto">
-                Acceda a las pantallas operativas y consultas oficiales de SAP Business One.
+              <FirplakMark className="w-9 h-9 text-brand" />
+              <h1 className="mt-6 text-3xl sm:text-4xl font-semibold tracking-tight text-brand-dark">
+                ¿Qué necesitas consultar en SAP?
+              </h1>
+              <p className="mt-3 text-sm sm:text-base text-ink-muted max-w-xl">
+                Busca un cliente por cédula o nombre, o cualquier documento por su número u orden de compra. Todo lo relacionado aparece junto.
               </p>
-            </motion.div>
 
-            {/* Buscador global → Explorador SAP */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                openExplorer(heroQuery);
-              }}
-              className="mb-8 flex items-center gap-2 bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-2 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10 transition-all"
-            >
-              <Search className="w-5 h-5 text-slate-400 shrink-0" />
-              <input
-                value={heroQuery}
-                onChange={(e) => setHeroQuery(e.target.value)}
-                placeholder="Buscar en SAP: cédula / NIT, nombre, número de documento u orden de compra…"
-                className="flex-1 min-w-0 bg-transparent outline-none text-base font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-medium py-1.5"
-              />
-              <button type="submit" className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-bold hover:opacity-90 cursor-pointer">
-                Buscar
-              </button>
-            </form>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  openExplorer(heroQuery);
+                }}
+                className="mt-8 w-full max-w-2xl flex items-center gap-2 bg-white rounded-2xl border border-border shadow-[0_8px_30px_-12px_rgba(37,65,83,0.18)] pl-5 pr-2 h-16 focus-within:border-brand-light transition-colors"
+              >
+                <Search className="w-5 h-5 text-brand-light shrink-0" />
+                <input
+                  autoFocus
+                  value={heroQuery}
+                  onChange={(e) => setHeroQuery(e.target.value)}
+                  placeholder="Cédula, NIT, nombre, documento u orden de compra"
+                  className="flex-1 min-w-0 bg-transparent outline-none text-base sm:text-lg text-brand-dark placeholder:text-stone-400"
+                />
+                <button type="submit" className="h-12 px-6 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer">
+                  Buscar
+                </button>
+              </form>
 
-            {/* Grid Cards (Cuadritos) - 3 Columns Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sapModules.map((mod, idx) => (
-                <motion.div
-                  key={mod.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.08 }}
-                  whileHover={mod.active ? { y: -4, scale: 1.01 } : {}}
-                  onClick={() => {
-                    if (!mod.active) return;
-                    if (mod.id === 'explorador') openExplorer('');
-                    else setSelectedModule(mod.id);
-                  }}
-                  className={`bg-white rounded-3xl p-6 border shadow-sm transition-all relative overflow-hidden flex flex-col justify-between ${
-                    mod.active 
-                      ? 'border-slate-200 hover:border-brand/40 hover:shadow-xl hover:shadow-brand/5 cursor-pointer group' 
-                      : 'border-slate-100 opacity-60 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-md ${mod.color}`}>
-                      <mod.icon className="w-7 h-7" />
-                    </div>
-                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${mod.badgeColor}`}>
-                      {mod.badge}
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {SEARCH_EXAMPLES.map((ex) => (
+                  <button
+                    key={ex.value}
+                    onClick={() => openExplorer(ex.value)}
+                    className="h-8 px-3 rounded-full border border-border bg-white/70 text-xs text-stone-600 hover:border-brand-light hover:text-brand transition-colors cursor-pointer"
+                  >
+                    <span className="text-stone-400">{ex.label}:</span> <span className="font-medium">{ex.value}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.section>
+
+            {/* Pantallas SAP */}
+            <section>
+              <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-brand-light mb-3 px-1">Pantallas SAP</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {SAP_MODULES.map((mod, idx) => (
+                  <motion.button
+                    key={mod.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 + idx * 0.04 }}
+                    disabled={!mod.active}
+                    onClick={() => setSelectedModule(mod.id)}
+                    className={`group text-left flex items-center gap-4 bg-white rounded-2xl border border-border p-4 transition-all ${
+                      mod.active ? 'hover:border-brand-light hover:shadow-[0_8px_24px_-14px_rgba(37,65,83,0.35)] cursor-pointer' : 'opacity-55 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="w-11 h-11 shrink-0 rounded-xl bg-sage-soft text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
+                      <mod.icon className="w-5 h-5" />
                     </span>
-                  </div>
-
-                  <div>
-                    <h3 className={`text-xl font-black tracking-tight mb-1 ${
-                      mod.active ? 'text-slate-800 group-hover:text-brand transition-colors' : 'text-slate-500'
-                    }`}>
-                      {mod.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed mb-4">
-                      {mod.description}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
-                    <span className={mod.active ? 'text-brand' : 'text-slate-400'}>
-                      {mod.active ? 'Abrir pantalla SAP' : 'En desarrollo'}
+                    <span className="flex-1 min-w-0">
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold text-brand-dark">{mod.title}</span>
+                        {!mod.active && <span className="text-[10px] px-1.5 py-px rounded-full bg-stone-100 text-stone-500">Próximamente</span>}
+                      </span>
+                      <span className="block text-xs text-ink-muted mt-0.5 leading-snug">{mod.description}</span>
                     </span>
-                    <ChevronRight className={`w-4 h-4 transition-transform ${
-                      mod.active ? 'text-brand group-hover:translate-x-1' : 'text-slate-300'
-                    }`} />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                    {mod.active && <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />}
+                  </motion.button>
+                ))}
+              </div>
+            </section>
           </div>
         ) : (
-          /* ── Full SAP Business One Screen ────────────────────────────────── */
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.15 }}
-          >
+          /* Pantalla clásica SAP */
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="pt-6">
             {selectedModule === 'ldm-costos' ? (
               <LDMCostos onMinimizeChange={setIsAppMinimized} />
             ) : (
-              <OfertaDeVenta 
+              <OfertaDeVenta
                 key={`${selectedModule}-${classicDocNum || ''}`}
                 initialDocNum={classicDocNum}
                 mode={
@@ -292,7 +207,7 @@ export default function ConsultasSapPage() {
                   selectedModule === 'entrega-despacho' ? 'Delivery' :
                   selectedModule === 'factura-cliente' ? 'Invoice' :
                   'Quotation'
-                } 
+                }
                 onMinimizeChange={setIsAppMinimized}
               />
             )}

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, Search, Loader2, User, Building2, Phone, Mail, MapPin, FileText, ExternalLink,
-  ChevronRight, AlertCircle, GitBranch, Users, X,
+  ChevronRight, AlertCircle, GitBranch, Users, X, ListOrdered,
 } from 'lucide-react';
 import {
   SAP_DOC_TYPES,
@@ -73,52 +73,76 @@ function useSapData<T>(url: string | null): { data: T | null; error: string | nu
 
 // ── Piezas visuales ────────────────────────────────────────────────────────────
 
-function TypeBadge({ type }: { type: SapDocType }) {
+const card = 'bg-white rounded-2xl border border-border';
+const eyebrow = 'text-[10px] font-medium tracking-[0.16em] uppercase text-brand-light';
+const ghostBtn = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-white text-xs font-medium text-stone-600 hover:border-brand-light hover:text-brand transition-colors cursor-pointer';
+const primaryBtn = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-brand text-white text-xs font-semibold hover:bg-brand-hover transition-colors cursor-pointer';
+
+function TypeIcon({ type, size = 'md' }: { type: SapDocType; size?: 'sm' | 'md' | 'lg' }) {
+  const s = DOC_TYPE_STYLE[type];
+  const Icon = s.icon;
+  const box = size === 'lg' ? 'w-12 h-12 rounded-xl' : size === 'sm' ? 'w-6 h-6 rounded-md' : 'w-8 h-8 rounded-lg';
+  const ico = size === 'lg' ? 'w-6 h-6' : size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${DOC_TYPE_STYLE[type].badge}`}>
-      {SAP_DOC_TYPES[type].label}
+    <span className={`${box} shrink-0 flex items-center justify-center ${s.soft} ${s.text}`} title={SAP_DOC_TYPES[type].label}>
+      <Icon className={ico} />
     </span>
   );
 }
 
 function StatusBadge({ status }: { status: SapDocSummary['status'] }) {
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold whitespace-nowrap ${statusStyle(status)}`}>{status}</span>
-  );
+  return <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${statusStyle(status)}`}>{status}</span>;
 }
 
 function Loading({ label }: { label: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 py-16 text-slate-500">
-      <Loader2 className="w-5 h-5 animate-spin text-brand" />
-      <span className="text-sm font-semibold">{label}</span>
+    <div className="flex items-center justify-center gap-3 py-16 text-ink-muted">
+      <Loader2 className="w-5 h-5 animate-spin text-brand-light" />
+      <span className="text-sm">{label}</span>
     </div>
   );
 }
 
 function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+    <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700">
       <AlertCircle className="w-5 h-5 shrink-0" />
       <span>{message}</span>
     </div>
   );
 }
 
-function Section({ title, icon: Icon, right, children }: { title: string; icon: React.ElementType; right?: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, icon: Icon, right, children, flush = false }: {
+  title: string;
+  icon: React.ElementType;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+  flush?: boolean;
+}) {
   return (
-    <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-      <header className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-slate-100">
-        <h3 className="flex items-center gap-2 text-sm font-black text-slate-800 uppercase tracking-tight">
-          <Icon className="w-4 h-4 text-brand" />
+    <section className={`${card} overflow-hidden`}>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-border">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-dark">
+          <Icon className="w-4 h-4 text-brand-light" />
           {title}
         </h3>
         {right}
       </header>
-      <div className="p-5">{children}</div>
+      <div className={flush ? '' : 'p-5'}>{children}</div>
     </section>
   );
 }
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className={eyebrow}>{label}</dt>
+      <dd className="mt-1 text-sm font-medium text-brand-dark truncate tabular-nums" title={value}>{value}</dd>
+    </div>
+  );
+}
+
+const th = 'px-3 py-2.5 text-[10px] font-medium tracking-[0.12em] uppercase text-stone-400';
 
 /** Tabla de documentos. Clic en una fila abre el documento. */
 function DocTable({ docs, onOpen, showType = true, showCustomer = true }: {
@@ -128,44 +152,48 @@ function DocTable({ docs, onOpen, showType = true, showCustomer = true }: {
   showCustomer?: boolean;
 }) {
   if (docs.length === 0) {
-    return <p className="text-sm text-slate-400 py-6 text-center">Sin documentos.</p>;
+    return <p className="text-sm text-stone-400 py-10 text-center">Sin documentos.</p>;
   }
   const isPO = docs.every((d) => d.type === 'ProductionOrder');
   return (
-    <div className="overflow-x-auto -mx-5">
+    <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-[10px] uppercase tracking-wider text-slate-400">
-            {showType && <th className="px-5 py-2 font-bold">Tipo</th>}
-            <th className="px-3 py-2 font-bold">Número</th>
-            <th className="px-3 py-2 font-bold">Fecha</th>
-            {showCustomer && <th className="px-3 py-2 font-bold">Cliente</th>}
-            {isPO ? <th className="px-3 py-2 font-bold">Artículo</th> : <th className="px-3 py-2 font-bold">Orden de compra</th>}
-            <th className="px-3 py-2 font-bold text-right">{isPO ? 'Cant.' : 'Total'}</th>
-            <th className="px-5 py-2 font-bold">Estado</th>
+        <thead className="bg-cream-light">
+          <tr className="text-left">
+            <th className={`${th} pl-5`}>Documento</th>
+            <th className={th}>Fecha</th>
+            {showCustomer && <th className={th}>Cliente</th>}
+            <th className={th}>{isPO ? 'Artículo' : 'Orden de compra'}</th>
+            <th className={`${th} text-right`}>{isPO ? 'Cantidad' : 'Total'}</th>
+            <th className={`${th} pr-5`}>Estado</th>
           </tr>
         </thead>
         <tbody>
           {docs.map((d) => (
-            <tr key={d.key} onClick={() => onOpen(d)} className="border-t border-slate-100 hover:bg-amber-50/60 cursor-pointer transition-colors">
-              {showType && <td className="px-5 py-2.5"><TypeBadge type={d.type} /></td>}
-              <td className="px-3 py-2.5 font-black text-slate-800 tabular-nums">{d.docNum}</td>
-              <td className="px-3 py-2.5 text-slate-600 tabular-nums whitespace-nowrap">{formatDate(d.date)}</td>
+            <tr key={d.key} onClick={() => onOpen(d)} className="group border-t border-border hover:bg-cream-light cursor-pointer transition-colors">
+              <td className="pl-5 pr-3 py-3">
+                <div className="flex items-center gap-3">
+                  {showType && <TypeIcon type={d.type} />}
+                  <div className="min-w-0">
+                    <div className="font-semibold text-brand-dark tabular-nums group-hover:text-brand">{d.docNum}</div>
+                    {showType && <div className="text-[11px] text-stone-400 whitespace-nowrap">{SAP_DOC_TYPES[d.type].label}</div>}
+                  </div>
+                </div>
+              </td>
+              <td className="px-3 py-3 text-stone-500 tabular-nums whitespace-nowrap">{formatDate(d.date)}</td>
               {showCustomer && (
-                <td className="px-3 py-2.5 text-slate-700 max-w-[260px]">
-                  <div className="truncate font-semibold">{d.cardName || d.cardCode || '—'}</div>
-                  {d.cardName && <div className="text-[11px] text-slate-400">{d.cardCode}</div>}
+                <td className="px-3 py-3 max-w-[280px]">
+                  <div className="truncate text-brand-dark">{d.cardName || d.cardCode || '—'}</div>
+                  {d.cardName && <div className="text-[11px] text-stone-400">{d.cardCode}</div>}
                 </td>
               )}
-              {isPO ? (
-                <td className="px-3 py-2.5 text-slate-600 max-w-[280px] truncate">{d.itemName || d.itemCode}</td>
-              ) : (
-                <td className="px-3 py-2.5 text-slate-600 tabular-nums">{d.numAtCard || '—'}</td>
-              )}
-              <td className="px-3 py-2.5 text-right font-semibold text-slate-800 tabular-nums whitespace-nowrap">
-                {d.type === 'ProductionOrder' ? `${formatQty(d.completedQty)}/${formatQty(d.plannedQty)}` : formatMoney(d.total, d.currency)}
+              <td className="px-3 py-3 text-stone-500 max-w-[280px] truncate tabular-nums">
+                {isPO ? d.itemName || d.itemCode : d.numAtCard || '—'}
               </td>
-              <td className="px-5 py-2.5"><StatusBadge status={d.status} /></td>
+              <td className="px-3 py-3 text-right font-medium text-brand-dark tabular-nums whitespace-nowrap">
+                {d.type === 'ProductionOrder' ? `${formatQty(d.completedQty)} / ${formatQty(d.plannedQty)}` : formatMoney(d.total, d.currency)}
+              </td>
+              <td className="pl-3 pr-5 py-3"><StatusBadge status={d.status} /></td>
             </tr>
           ))}
         </tbody>
@@ -174,32 +202,36 @@ function DocTable({ docs, onOpen, showType = true, showCustomer = true }: {
   );
 }
 
+const PartnerAvatar = ({ cardCode, large = false }: { cardCode: string; large?: boolean }) => (
+  <span className={`${large ? 'w-14 h-14 rounded-2xl' : 'w-10 h-10 rounded-xl'} shrink-0 bg-brand text-white flex items-center justify-center`}>
+    {cardCode.startsWith('CN') ? <User className={large ? 'w-6 h-6' : 'w-5 h-5'} /> : <Building2 className={large ? 'w-6 h-6' : 'w-5 h-5'} />}
+  </span>
+);
+
 function PartnerCard({ p, onOpen }: { p: SapBusinessPartner; onOpen: () => void }) {
   return (
-    <button
-      onClick={onOpen}
-      className="text-left bg-white rounded-2xl border border-slate-200 p-4 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5 transition-all cursor-pointer group"
-    >
+    <button onClick={onOpen} className={`${card} text-left p-4 hover:border-brand-light hover:shadow-[0_10px_24px_-16px_rgba(37,65,83,0.45)] transition-all cursor-pointer group`}>
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center shrink-0">
-          {p.cardCode.startsWith('CN') ? <User className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
-        </div>
+        <PartnerAvatar cardCode={p.cardCode} />
         <div className="min-w-0 flex-1">
-          <p className="font-black text-slate-800 leading-tight group-hover:text-brand transition-colors">{p.cardName}</p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {p.cardCode} · NIT/CC {p.federalTaxId || '—'} · <span className="font-semibold">{p.cardType}</span>
+          <p className="font-semibold text-brand-dark leading-tight group-hover:text-brand transition-colors">{p.cardName}</p>
+          <p className="text-xs text-stone-500 mt-1">
+            {p.cardCode} · CC/NIT {p.federalTaxId || '—'}
+            <span className="ml-2 px-1.5 py-px rounded-full bg-sage-soft text-brand text-[10px] font-medium">{p.cardType}</span>
           </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-slate-500">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-stone-400">
             {p.city && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{p.city}</span>}
             {(p.cellular || p.phone) && <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />{p.cellular || p.phone}</span>}
             {p.email && <span className="inline-flex items-center gap-1 truncate max-w-[220px]"><Mail className="w-3 h-3" />{p.email}</span>}
           </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand group-hover:translate-x-0.5 transition-all mt-1" />
+        <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-brand group-hover:translate-x-0.5 transition-all mt-1" />
       </div>
     </button>
   );
 }
+
+const docLabel = (d: SapDocSummary) => `${SAP_DOC_TYPES[d.type].short} ${d.docNum}`;
 
 // ── Vistas ─────────────────────────────────────────────────────────────────────
 
@@ -208,7 +240,7 @@ function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
   const [typeFilter, setTypeFilter] = useState<SapDocType | 'all'>('all');
 
   if (query.length < 2) return <SearchHelp />;
-  if (loading) return <Loading label={`Buscando "${query}" en SAP…`} />;
+  if (loading) return <Loading label={`Buscando “${query}” en SAP…`} />;
   if (error) return <ErrorBox message={error} />;
   if (!data) return null;
 
@@ -217,20 +249,20 @@ function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
 
   if (data.partners.length === 0 && data.documents.length === 0) {
     return (
-      <div className="text-center py-16">
-        <p className="text-lg font-black text-slate-700">Sin resultados para &quot;{query}&quot;</p>
-        <p className="text-sm text-slate-500 mt-1">Prueba con la cédula/NIT sin dígito de verificación, parte del nombre o el número exacto del documento.</p>
+      <div className="text-center py-20">
+        <p className="text-lg font-semibold text-brand-dark">Sin resultados para “{query}”</p>
+        <p className="text-sm text-ink-muted mt-1">Prueba con la cédula o NIT sin dígito de verificación, parte del nombre o el número exacto del documento.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <p className="text-xs text-slate-500">
-        {data.partners.length} socio(s) y {data.documents.length} documento(s) · {(data.tookMs / 1000).toFixed(1)} s
+    <div className="space-y-5">
+      <p className="text-xs text-ink-muted">
+        {data.partners.length} cliente(s) · {data.documents.length} documento(s) · {(data.tookMs / 1000).toFixed(1)} s
       </p>
       {data.partners.length > 0 && (
-        <Section title="Clientes y socios de negocio" icon={Users}>
+        <Section title="Clientes" icon={Users}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {data.partners.map((p) => (
               <PartnerCard key={p.cardCode} p={p} onOpen={() => go({ kind: 'customer', cardCode: p.cardCode, label: p.cardName })} />
@@ -242,6 +274,7 @@ function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
         <Section
           title="Documentos"
           icon={FileText}
+          flush
           right={
             typesFound.length > 1 && (
               <div className="flex flex-wrap gap-1.5 justify-end">
@@ -249,8 +282,8 @@ function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
                   <button
                     key={t}
                     onClick={() => setTypeFilter(t)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
-                      typeFilter === t ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                    className={`h-7 px-2.5 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${
+                      typeFilter === t ? 'bg-brand text-white border-brand' : 'bg-white text-stone-600 border-border hover:border-brand-light'
                     }`}
                   >
                     {t === 'all' ? 'Todos' : SAP_DOC_TYPES[t].short}
@@ -260,7 +293,7 @@ function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
             )
           }
         >
-          <DocTable docs={docs} onOpen={(d) => go({ kind: 'document', type: d.type, docEntry: d.docEntry, label: `${SAP_DOC_TYPES[d.type].short} ${d.docNum}` })} />
+          <DocTable docs={docs} onOpen={(d) => go({ kind: 'document', type: d.type, docEntry: d.docEntry, label: docLabel(d) })} />
         </Section>
       )}
     </div>
@@ -269,18 +302,18 @@ function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
 
 function SearchHelp() {
   const tips = [
-    { title: 'Cédula o NIT', example: '71619197', text: 'Trae el cliente y todas sus cuentas.' },
-    { title: 'Nombre o razón social', example: 'gomez zuluaga', text: 'Coincidencia parcial, sin importar mayúsculas.' },
-    { title: 'Número de documento', example: '165165', text: 'Oferta, pedido, entrega, factura, OF…' },
-    { title: 'Orden de compra del cliente', example: '83118', text: 'Busca en la referencia del cliente (NumAtCard).' },
+    { title: 'Cédula o NIT', text: 'Trae el cliente y todas sus cuentas.', icon: User },
+    { title: 'Nombre o razón social', text: 'Coincidencia parcial, sin importar mayúsculas.', icon: Users },
+    { title: 'Número de documento', text: 'Oferta, pedido, OF, entrega, factura, NC…', icon: FileText },
+    { title: 'Orden de compra', text: 'La referencia del cliente en el documento.', icon: ListOrdered },
   ];
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
       {tips.map((t) => (
-        <div key={t.title} className="bg-white rounded-2xl border border-slate-200 p-4">
-          <p className="text-xs font-black uppercase tracking-tight text-slate-800">{t.title}</p>
-          <p className="text-[11px] text-slate-500 mt-1">{t.text}</p>
-          <code className="inline-block mt-3 px-2 py-1 rounded-lg bg-slate-100 text-xs text-slate-700">{t.example}</code>
+        <div key={t.title} className={`${card} p-4`}>
+          <span className="w-9 h-9 rounded-xl bg-sage-soft text-brand flex items-center justify-center"><t.icon className="w-4 h-4" /></span>
+          <p className="mt-3 text-sm font-semibold text-brand-dark">{t.title}</p>
+          <p className="text-xs text-ink-muted mt-0.5">{t.text}</p>
         </div>
       ))}
     </div>
@@ -327,45 +360,44 @@ function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View) => voi
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center shadow-md shrink-0">
-            {p.cardCode.startsWith('CN') ? <User className="w-7 h-7" /> : <Building2 className="w-7 h-7" />}
-          </div>
+    <div className="space-y-5">
+      <div className={`${card} p-5 sm:p-6`}>
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <PartnerAvatar cardCode={p.cardCode} large />
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">{p.cardName}</h2>
-              {p.frozen && <span className="px-2 py-0.5 rounded-full border border-red-200 bg-red-50 text-red-600 text-[10px] font-bold">INACTIVO</span>}
+            <p className={eyebrow}>{p.cardType}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <h2 className="text-2xl font-semibold tracking-tight text-brand-dark">{p.cardName}</h2>
+              {p.frozen && <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-semibold">Inactivo</span>}
             </div>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {p.cardCode} · NIT/CC <span className="font-semibold text-slate-700">{p.federalTaxId || '—'}</span> · {p.cardType}
+            <p className="text-sm text-stone-500 mt-1">
+              {p.cardCode} · CC/NIT <span className="font-medium text-brand-dark">{p.federalTaxId || '—'}</span>
             </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-slate-600">
-              {p.contactPerson && <span className="inline-flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-slate-400" />{p.contactPerson}</span>}
-              {(p.cellular || p.phone) && <span className="inline-flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" />{[p.cellular, p.phone].filter(Boolean).join(' · ')}</span>}
-              {p.email && <span className="inline-flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-slate-400" />{p.email}</span>}
-              {(p.address || p.city) && <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-slate-400" />{[p.address, p.city].filter(Boolean).join(', ')}</span>}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs text-stone-500">
+              {p.contactPerson && <span className="inline-flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-brand-light" />{p.contactPerson}</span>}
+              {(p.cellular || p.phone) && <span className="inline-flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-brand-light" />{[p.cellular, p.phone].filter(Boolean).join(' · ')}</span>}
+              {p.email && <span className="inline-flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-brand-light" />{p.email}</span>}
+              {(p.address || p.city) && <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-brand-light" />{[p.address, p.city].filter(Boolean).join(', ')}</span>}
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 lg:w-[420px] shrink-0">
-            {kpis.map((k) => (
-              <div key={k.label} className="rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{k.label}</p>
-                <p className="text-sm font-black text-slate-800 truncate tabular-nums">{k.value}</p>
-              </div>
-            ))}
           </div>
         </div>
 
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-px mt-6 rounded-xl overflow-hidden border border-border bg-border">
+          {kpis.map((k) => (
+            <div key={k.label} className="bg-cream-light px-4 py-3">
+              <Field label={k.label} value={k.value} />
+            </div>
+          ))}
+        </dl>
+
         {relatedAccounts.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-slate-100">
+          <div className="mt-5">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <p className="text-xs font-bold text-slate-600">
-                {relatedAccounts.length} cuenta(s) más con la misma cédula/NIT
+              <p className="text-xs text-stone-500">
+                <span className="font-semibold text-brand-dark">{relatedAccounts.length}</span> cuenta(s) más con la misma cédula/NIT
               </p>
-              <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                <input type="checkbox" checked={includeRelated} onChange={(e) => setIncludeRelated(e.target.checked)} className="rounded" />
+              <label className="inline-flex items-center gap-2 text-xs text-stone-500 cursor-pointer select-none">
+                <input type="checkbox" checked={includeRelated} onChange={(e) => setIncludeRelated(e.target.checked)} className="accent-[#254153]" />
                 Incluir sus documentos
               </label>
             </div>
@@ -374,10 +406,10 @@ function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View) => voi
                 <button
                   key={a.cardCode}
                   onClick={() => go({ kind: 'customer', cardCode: a.cardCode, label: a.cardName })}
-                  className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-[11px] text-slate-600 hover:border-brand/40 hover:text-brand transition-colors cursor-pointer"
+                  className="h-7 px-2.5 rounded-full border border-border bg-white text-[11px] text-stone-500 hover:border-brand-light hover:text-brand transition-colors cursor-pointer"
                   title={a.cardName}
                 >
-                  <span className="font-bold">{a.cardCode}</span> {a.cardName.length > 32 ? `${a.cardName.slice(0, 32)}…` : a.cardName}
+                  <span className="font-medium text-brand-dark">{a.cardCode}</span> {a.cardName.length > 30 ? `${a.cardName.slice(0, 30)}…` : a.cardName}
                 </button>
               ))}
             </div>
@@ -385,46 +417,42 @@ function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View) => voi
         )}
       </div>
 
-      <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex gap-1 overflow-x-auto [scrollbar-width:none] px-3 pt-3 border-b border-slate-100">
+      <section className={`${card} overflow-hidden`}>
+        <div className="flex gap-1 overflow-x-auto [scrollbar-width:none] p-2 border-b border-border">
           {SAP_DOC_TYPE_ORDER.map((t) => {
             const count = listOf(t).count;
             const isActive = t === activeType;
+            const Icon = DOC_TYPE_STYLE[t].icon;
             return (
               <button
                 key={t}
                 onClick={() => setActiveType(t)}
-                className={`shrink-0 px-3.5 py-2 rounded-t-xl text-xs font-bold border-b-2 transition-colors cursor-pointer ${
-                  isActive ? 'border-brand text-brand bg-slate-50' : 'border-transparent text-slate-500 hover:text-slate-800'
-                } ${count === 0 && !isActive ? 'opacity-50' : ''}`}
+                className={`shrink-0 inline-flex items-center gap-2 h-9 px-3 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  isActive ? 'bg-brand-soft text-brand' : count === 0 ? 'text-stone-300 hover:text-stone-500' : 'text-stone-500 hover:bg-cream-light hover:text-brand'
+                }`}
               >
+                <Icon className="w-3.5 h-3.5" />
                 {SAP_DOC_TYPES[t].label}
-                <span className={`ml-1.5 px-1.5 py-px rounded-full text-[10px] ${isActive ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`min-w-[20px] px-1.5 py-px rounded-full text-[10px] tabular-nums ${isActive ? 'bg-brand text-white' : 'bg-stone-100 text-stone-500'}`}>
                   {count.toLocaleString('es-CO')}
                 </span>
               </button>
             );
           })}
         </div>
-        <div className="p-5">
-          <DocTable
-            docs={rows}
-            showType={false}
-            showCustomer={cardCodes.length > 1}
-            onOpen={(d) => go({ kind: 'document', type: d.type, docEntry: d.docEntry, label: `${SAP_DOC_TYPES[d.type].short} ${d.docNum}` })}
-          />
-          {rows.length < active.count && (
-            <div className="text-center mt-4">
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60 cursor-pointer"
-              >
-                {loadingMore ? 'Cargando…' : `Cargar más (${rows.length} de ${active.count.toLocaleString('es-CO')})`}
-              </button>
-            </div>
-          )}
-        </div>
+        <DocTable
+          docs={rows}
+          showType={false}
+          showCustomer={cardCodes.length > 1}
+          onOpen={(d) => go({ kind: 'document', type: d.type, docEntry: d.docEntry, label: docLabel(d) })}
+        />
+        {rows.length < active.count && (
+          <div className="text-center p-4 border-t border-border">
+            <button onClick={loadMore} disabled={loadingMore} className={`${ghostBtn} disabled:opacity-60`}>
+              {loadingMore ? 'Cargando…' : `Cargar más · ${rows.length} de ${active.count.toLocaleString('es-CO')}`}
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -442,7 +470,7 @@ function DocumentView({ type, docEntry, go, onOpenClassic }: {
 
   const openNode = (n: SapDocSummary) => {
     if (n.type === type && n.docEntry === docEntry) return;
-    go({ kind: 'document', type: n.type, docEntry: n.docEntry, label: `${SAP_DOC_TYPES[n.type].short} ${n.docNum}` });
+    go({ kind: 'document', type: n.type, docEntry: n.docEntry, label: docLabel(n) });
   };
 
   if (detailRes.loading) return <Loading label={`Cargando ${info.label.toLowerCase()}…`} />;
@@ -453,130 +481,134 @@ function DocumentView({ type, docEntry, go, onOpenClassic }: {
   const s = d.summary;
   const isPO = type === 'ProductionOrder';
 
+  const fields = [
+    { label: isPO ? 'Fecha de orden' : 'Fecha contabilización', value: formatDate(s.date) },
+    { label: isPO ? 'Fecha de vencimiento' : 'Fecha de entrega', value: formatDate(s.dueDate) },
+    isPO ? { label: 'Cliente', value: s.cardCode || '—' } : { label: 'Orden de compra', value: s.numAtCard || '—' },
+    ...(d.salesPerson ? [{ label: 'Empleado de ventas', value: d.salesPerson }] : []),
+    ...(d.vatSum !== null ? [{ label: 'IVA', value: formatMoney(d.vatSum, s.currency) }] : []),
+    ...d.extra,
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <TypeBadge type={type} />
-              <StatusBadge status={s.status} />
+    <div className="space-y-5">
+      <div className={`${card} p-5 sm:p-6`}>
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
+          <div className="flex items-start gap-4 min-w-0">
+            <TypeIcon type={type} size="lg" />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className={eyebrow}>{info.label}</p>
+                <StatusBadge status={s.status} />
+              </div>
+              <h2 className="text-3xl font-semibold tracking-tight text-brand-dark mt-1 tabular-nums">{s.docNum}</h2>
+              {isPO ? (
+                <p className="text-sm text-stone-500 mt-1">
+                  <span className="font-medium text-brand-dark">{s.itemCode}</span> · {s.itemName}
+                </p>
+              ) : (
+                s.cardCode && (
+                  <button
+                    onClick={() => go({ kind: 'customer', cardCode: s.cardCode!, label: s.cardName || s.cardCode! })}
+                    className="text-sm text-stone-500 mt-1 hover:text-brand transition-colors cursor-pointer text-left"
+                  >
+                    <span className="font-medium text-brand-dark">{s.cardName}</span> · {s.cardCode} <ChevronRight className="inline w-3.5 h-3.5" />
+                  </button>
+                )
+              )}
             </div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight mt-2 tabular-nums">{s.docNum}</h2>
-            {isPO ? (
-              <p className="text-sm text-slate-600 mt-1">
-                <span className="font-bold">{s.itemCode}</span> · {s.itemName}
-              </p>
-            ) : (
-              s.cardCode && (
-                <button
-                  onClick={() => go({ kind: 'customer', cardCode: s.cardCode!, label: s.cardName || s.cardCode! })}
-                  className="text-sm text-slate-600 mt-1 hover:text-brand transition-colors cursor-pointer text-left"
-                >
-                  <span className="font-bold">{s.cardName}</span> · {s.cardCode} <ChevronRight className="inline w-3.5 h-3.5" />
-                </button>
-              )
-            )}
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            {isPO && s.cardCode && (
-              <button
-                onClick={() => go({ kind: 'customer', cardCode: s.cardCode!, label: s.cardCode! })}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
-              >
-                <User className="w-3.5 h-3.5" /> Ver cliente
-              </button>
-            )}
-            {info.classicMode && onOpenClassic && (
-              <button
-                onClick={() => onOpenClassic(info.classicMode!, String(s.docNum))}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand text-white text-xs font-bold hover:opacity-90 cursor-pointer"
-              >
-                <ExternalLink className="w-3.5 h-3.5" /> Abrir en pantalla SAP
-              </button>
-            )}
+          <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
+            <div className="md:text-right">
+              <p className={eyebrow}>{isPO ? 'Completada / planificada' : 'Total documento'}</p>
+              <p className="text-2xl font-semibold text-brand-dark tabular-nums mt-1">
+                {isPO ? `${formatQty(s.completedQty)} / ${formatQty(s.plannedQty)}` : formatMoney(s.total, s.currency)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {isPO && s.cardCode && (
+                <button onClick={() => go({ kind: 'customer', cardCode: s.cardCode!, label: s.cardCode! })} className={ghostBtn}>
+                  <User className="w-3.5 h-3.5" /> Ver cliente
+                </button>
+              )}
+              {info.classicMode && onOpenClassic && (
+                <button onClick={() => onOpenClassic(info.classicMode!, String(s.docNum))} className={primaryBtn}>
+                  <ExternalLink className="w-3.5 h-3.5" /> Abrir en pantalla SAP
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
-          {[
-            { label: isPO ? 'Fecha de orden' : 'Fecha contabilización', value: formatDate(s.date) },
-            { label: isPO ? 'Fecha de vencimiento' : 'Fecha de entrega', value: formatDate(s.dueDate) },
-            isPO
-              ? { label: 'Completada / planificada', value: `${formatQty(s.completedQty)} / ${formatQty(s.plannedQty)}` }
-              : { label: 'Total documento', value: formatMoney(s.total, s.currency) },
-            isPO ? { label: 'Cliente', value: s.cardCode || '—' } : { label: 'Orden de compra', value: s.numAtCard || '—' },
-            ...(d.salesPerson ? [{ label: 'Empleado de ventas', value: d.salesPerson }] : []),
-            ...(d.vatSum !== null ? [{ label: 'IVA', value: formatMoney(d.vatSum, s.currency) }] : []),
-            ...d.extra,
-          ].map((f) => (
-            <div key={f.label} className="rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2 min-w-0">
-              <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{f.label}</dt>
-              <dd className="text-sm font-bold text-slate-800 truncate tabular-nums" title={f.value}>{f.value}</dd>
-            </div>
-          ))}
+        <dl className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 mt-6 pt-5 border-t border-border">
+          {fields.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}
         </dl>
 
         {(d.shipTo || d.comments) && (
-          <div className="grid md:grid-cols-2 gap-3 mt-3 text-xs text-slate-600">
+          <div className="grid md:grid-cols-2 gap-3 mt-5">
             {d.shipTo && (
-              <div className="rounded-2xl border border-slate-100 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Destino</p>
-                <p className="whitespace-pre-line">{d.shipTo.replace(/\|:=:\|/g, '')}</p>
+              <div className="rounded-xl bg-cream-light px-4 py-3">
+                <p className={eyebrow}>Destino</p>
+                <p className="mt-1 text-xs text-stone-600 whitespace-pre-line">{d.shipTo.replace(/\|:=:\|/g, '')}</p>
               </div>
             )}
             {d.comments && (
-              <div className="rounded-2xl border border-slate-100 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Comentarios</p>
-                <p className="whitespace-pre-line">{d.comments}</p>
+              <div className="rounded-xl bg-cream-light px-4 py-3">
+                <p className={eyebrow}>Comentarios</p>
+                <p className="mt-1 text-xs text-stone-600 whitespace-pre-line">{d.comments}</p>
               </div>
             )}
           </div>
         )}
       </div>
 
-      <Section title="Mapa de relaciones" icon={GitBranch} right={mapRes.data && <span className="text-[11px] text-slate-400">{mapRes.data.nodes.length} documento(s) · clic para abrir</span>}>
+      <Section
+        title="Mapa de relaciones"
+        icon={GitBranch}
+        right={mapRes.data && <span className="text-[11px] text-stone-400">{mapRes.data.nodes.length} documento(s) · clic para abrir</span>}
+      >
         {mapRes.loading && <Loading label="Recorriendo documentos vinculados…" />}
         {mapRes.error && <ErrorBox message={mapRes.error} />}
-        {mapRes.data && <MapaRelaciones map={mapRes.data} onOpen={openNode} />}
+        {mapRes.data && <div className="py-2"><MapaRelaciones map={mapRes.data} onOpen={openNode} /></div>}
       </Section>
 
-      <Section title={isPO ? 'Componentes' : 'Contenido'} icon={FileText} right={<span className="text-[11px] text-slate-400">{d.lines.length} línea(s)</span>}>
-        <div className="overflow-x-auto -mx-5">
+      <Section title={isPO ? 'Componentes' : 'Contenido'} icon={FileText} flush right={<span className="text-[11px] text-stone-400">{d.lines.length} línea(s)</span>}>
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[10px] uppercase tracking-wider text-slate-400">
-                <th className="px-5 py-2 font-bold">#</th>
-                <th className="px-3 py-2 font-bold">Artículo</th>
-                <th className="px-3 py-2 font-bold">Descripción</th>
-                <th className="px-3 py-2 font-bold text-right">{isPO ? 'Planificada' : 'Cantidad'}</th>
-                <th className="px-3 py-2 font-bold text-right">{isPO ? 'Emitida' : 'Pendiente'}</th>
-                {!isPO && <th className="px-3 py-2 font-bold text-right">Total línea</th>}
-                <th className="px-3 py-2 font-bold">Almacén</th>
-                {!isPO && <th className="px-5 py-2 font-bold">Origen</th>}
+            <thead className="bg-cream-light">
+              <tr className="text-left">
+                <th className={`${th} pl-5`}>#</th>
+                <th className={th}>Artículo</th>
+                <th className={th}>Descripción</th>
+                <th className={`${th} text-right`}>{isPO ? 'Planificada' : 'Cantidad'}</th>
+                <th className={`${th} text-right`}>{isPO ? 'Emitida' : 'Pendiente'}</th>
+                {!isPO && <th className={`${th} text-right`}>Total línea</th>}
+                <th className={th}>Almacén</th>
+                {!isPO && <th className={`${th} pr-5`}>Origen</th>}
               </tr>
             </thead>
             <tbody>
               {d.lines.map((l, i) => (
-                <tr key={`${l.lineNum}-${i}`} className="border-t border-slate-100">
-                  <td className="px-5 py-2 text-slate-400 tabular-nums">{i + 1}</td>
-                  <td className="px-3 py-2 font-semibold text-slate-800 whitespace-nowrap">{l.itemCode}</td>
-                  <td className="px-3 py-2 text-slate-600 min-w-[240px]">{l.description}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{formatQty(l.quantity)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-500">{formatQty(l.openQty)}</td>
-                  {!isPO && <td className="px-3 py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatMoney(l.lineTotal, s.currency)}</td>}
-                  <td className="px-3 py-2 text-slate-500">{l.warehouse || '—'}</td>
+                <tr key={`${l.lineNum}-${i}`} className="border-t border-border">
+                  <td className="pl-5 pr-3 py-2.5 text-stone-400 tabular-nums">{i + 1}</td>
+                  <td className="px-3 py-2.5 font-medium text-brand-dark whitespace-nowrap">{l.itemCode}</td>
+                  <td className="px-3 py-2.5 text-stone-600 min-w-[240px]">{l.description}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums">{formatQty(l.quantity)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-stone-400">{formatQty(l.openQty)}</td>
+                  {!isPO && <td className="px-3 py-2.5 text-right tabular-nums font-medium whitespace-nowrap">{formatMoney(l.lineTotal, s.currency)}</td>}
+                  <td className="px-3 py-2.5 text-stone-500">{l.warehouse || '—'}</td>
                   {!isPO && (
-                    <td className="px-5 py-2 whitespace-nowrap">
+                    <td className="pl-3 pr-5 py-2.5 whitespace-nowrap">
                       {l.base?.type && l.base.docEntry ? (
                         <button
                           onClick={() => go({ kind: 'document', type: l.base!.type!, docEntry: l.base!.docEntry! })}
-                          className="text-xs font-bold text-brand hover:underline cursor-pointer"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline cursor-pointer"
                         >
+                          <TypeIcon type={l.base.type} size="sm" />
                           {SAP_DOC_TYPES[l.base.type].short}
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-300">—</span>
+                        <span className="text-xs text-stone-300">—</span>
                       )}
                     </td>
                   )}
@@ -636,27 +668,27 @@ export default function ExploradorSap({
 
   const crumbs = stack.map((v) =>
     v.kind === 'search'
-      ? v.query ? `Búsqueda "${v.query}"` : 'Búsqueda'
+      ? v.query ? `“${v.query}”` : 'Búsqueda'
       : v.label || (v.kind === 'customer' ? v.cardCode : `${SAP_DOC_TYPES[v.type].short} ${v.docEntry}`)
   );
 
   return (
-    <div className="max-w-[1400px] mx-auto pb-10">
-      <div className="sticky top-[3.5rem] z-30 -mx-4 px-4 pt-4 pb-3 bg-[#F1F5F9]/95 backdrop-blur">
+    <div className="max-w-[1320px] mx-auto pb-12">
+      <div className="sticky top-14 z-30 -mx-4 px-4 pt-5 pb-3 bg-cream/95 backdrop-blur">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             runSearch(input);
           }}
-          className="flex items-center gap-2 bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-2 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10 transition-all"
+          className="flex items-center gap-2 bg-white rounded-2xl border border-border shadow-[0_8px_30px_-16px_rgba(37,65,83,0.25)] pl-4 pr-2 h-14 focus-within:border-brand-light transition-colors"
         >
-          <Search className="w-5 h-5 text-slate-400 shrink-0" />
+          <Search className="w-5 h-5 text-brand-light shrink-0" />
           <input
             ref={inputRef}
             value={input}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="Cédula / NIT, nombre del cliente, número de documento u orden de compra…"
-            className="flex-1 min-w-0 bg-transparent outline-none text-base font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-medium py-1.5"
+            placeholder="Cédula, NIT, nombre, documento u orden de compra"
+            className="flex-1 min-w-0 bg-transparent outline-none text-base text-brand-dark placeholder:text-stone-400"
           />
           {input && (
             <button
@@ -666,32 +698,32 @@ export default function ExploradorSap({
                 runSearch('');
                 inputRef.current?.focus();
               }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-400 hover:text-brand hover:bg-cream-light cursor-pointer"
               title="Limpiar"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <button type="submit" className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-bold hover:opacity-90 cursor-pointer">
+          <button type="submit" className="h-10 px-5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer">
             Buscar
           </button>
         </form>
 
         {stack.length > 1 && (
-          <nav className="flex items-center gap-1.5 mt-3 text-xs overflow-x-auto whitespace-nowrap">
+          <nav className="flex items-center gap-1 mt-3 text-xs overflow-x-auto [scrollbar-width:none] whitespace-nowrap">
             <button
               onClick={() => setStack((prev) => prev.slice(0, -1))}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              className="inline-flex items-center gap-1 h-7 px-2.5 mr-1 rounded-lg bg-white border border-border font-medium text-stone-600 hover:text-brand hover:border-brand-light cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Atrás
             </button>
             {crumbs.map((c, i) => (
               <React.Fragment key={i}>
-                {i > 0 && <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />}
+                {i > 0 && <ChevronRight className="w-3 h-3 text-stone-300 shrink-0" />}
                 <button
                   onClick={() => setStack((prev) => prev.slice(0, i + 1))}
                   disabled={i === crumbs.length - 1}
-                  className={`px-1.5 py-0.5 rounded ${i === crumbs.length - 1 ? 'font-bold text-slate-800' : 'text-slate-500 hover:text-brand cursor-pointer'}`}
+                  className={`px-1.5 py-0.5 rounded ${i === crumbs.length - 1 ? 'font-semibold text-brand-dark' : 'text-stone-400 hover:text-brand cursor-pointer'}`}
                 >
                   {c}
                 </button>
@@ -701,7 +733,7 @@ export default function ExploradorSap({
         )}
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2">
         {view.kind === 'search' && <SearchView key={view.query} query={view.query} go={go} />}
         {view.kind === 'customer' && <CustomerView key={view.cardCode} cardCode={view.cardCode} go={go} />}
         {view.kind === 'document' && (

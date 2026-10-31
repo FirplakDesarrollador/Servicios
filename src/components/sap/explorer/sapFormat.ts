@@ -1,3 +1,5 @@
+import { ClipboardList, Factory, FileMinus, FileText, Receipt, Truck, Undo2, Wallet } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { SapDocStatus, SapDocType } from '@/lib/sapExplorerTypes';
 
 export const formatMoney = (value: number | null | undefined, currency?: string | null) => {
@@ -19,29 +21,32 @@ export const formatDate = (iso: string | null | undefined) => {
 export const formatQty = (value: number | null | undefined) =>
   value === null || value === undefined ? '—' : value.toLocaleString('es-CO', { maximumFractionDigits: 2 });
 
-/** Colores por tipo de documento (alineados con las tarjetas del menú de Consultas SAP). */
-export const DOC_TYPE_STYLE: Record<SapDocType, { badge: string; bar: string; dot: string }> = {
-  Quotation: { badge: 'bg-amber-50 text-amber-700 border-amber-200', bar: 'bg-amber-500', dot: 'bg-amber-500' },
-  Order: { badge: 'bg-blue-50 text-blue-700 border-blue-200', bar: 'bg-blue-600', dot: 'bg-blue-600' },
-  ProductionOrder: { badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: 'bg-purple-600', dot: 'bg-purple-600' },
-  DownPayment: { badge: 'bg-cyan-50 text-cyan-700 border-cyan-200', bar: 'bg-cyan-600', dot: 'bg-cyan-600' },
-  Delivery: { badge: 'bg-teal-50 text-teal-700 border-teal-200', bar: 'bg-teal-600', dot: 'bg-teal-600' },
-  Invoice: { badge: 'bg-rose-50 text-rose-700 border-rose-200', bar: 'bg-rose-500', dot: 'bg-rose-500' },
-  Return: { badge: 'bg-orange-50 text-orange-700 border-orange-200', bar: 'bg-orange-500', dot: 'bg-orange-500' },
-  CreditNote: { badge: 'bg-slate-100 text-slate-700 border-slate-300', bar: 'bg-slate-500', dot: 'bg-slate-500' },
+/**
+ * Identidad de cada tipo de documento: un ícono y un tono sobrio derivado de la paleta FIRPLAK
+ * (navy #254153, salvia #749094, crema #f5f1ea) para reconocerlos de un vistazo sin recargar la pantalla.
+ */
+export const DOC_TYPE_STYLE: Record<SapDocType, { icon: LucideIcon; text: string; soft: string; bar: string }> = {
+  Quotation: { icon: FileText, text: 'text-[#9A7442]', soft: 'bg-[#9A7442]/10', bar: 'bg-[#9A7442]' },
+  Order: { icon: ClipboardList, text: 'text-[#254153]', soft: 'bg-[#254153]/10', bar: 'bg-[#254153]' },
+  ProductionOrder: { icon: Factory, text: 'text-[#5B7A7E]', soft: 'bg-[#749094]/15', bar: 'bg-[#749094]' },
+  DownPayment: { icon: Wallet, text: 'text-[#4F7F86]', soft: 'bg-[#4F7F86]/10', bar: 'bg-[#4F7F86]' },
+  Delivery: { icon: Truck, text: 'text-[#3E6E5E]', soft: 'bg-[#3E6E5E]/10', bar: 'bg-[#3E6E5E]' },
+  Invoice: { icon: Receipt, text: 'text-[#9C5545]', soft: 'bg-[#9C5545]/10', bar: 'bg-[#9C5545]' },
+  Return: { icon: Undo2, text: 'text-[#A8743A]', soft: 'bg-[#A8743A]/10', bar: 'bg-[#A8743A]' },
+  CreditNote: { icon: FileMinus, text: 'text-[#6F6C66]', soft: 'bg-[#8A8780]/12', bar: 'bg-[#8A8780]' },
 };
 
 export const statusStyle = (status: SapDocStatus) => {
   switch (status) {
     case 'Abierto':
     case 'Liberada':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'bg-[#3E6E5E]/10 text-[#3E6E5E]';
     case 'Planificada':
-      return 'bg-sky-50 text-sky-700 border-sky-200';
+      return 'bg-[#254153]/10 text-[#254153]';
     case 'Cancelado':
     case 'Cancelada':
-      return 'bg-red-50 text-red-600 border-red-200';
+      return 'bg-red-50 text-red-700';
     default:
-      return 'bg-slate-100 text-slate-500 border-slate-200';
+      return 'bg-stone-100 text-stone-500';
   }
 };
