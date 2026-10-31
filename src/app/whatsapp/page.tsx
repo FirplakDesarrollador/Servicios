@@ -215,8 +215,9 @@ export default function WhatsAppPage() {
   // Pone la respuesta en el campo (no la envía) reemplazando {nombre} y {asesor}
   const applyQuickReply = (r: RespuestaRapida) => {
     const texto = r.respuesta_rapida
-      .replace(/\{nombre\}/gi, getContactName(activeChat))
-      .replace(/\{asesor\}/gi, currentUserName || '')
+      // Se acepta con o sin espacios: {nombre} o { nombre }
+      .replace(/\{\s*nombre\s*\}/gi, getContactName(activeChat))
+      .replace(/\{\s*asesor\s*\}/gi, currentUserName || '')
       // Si una variable quedó vacía, no dejar "Hola , ..." ni espacios dobles
       .replace(/[ \t]+([,.!?;:])/g, '$1')
       .replace(/[ \t]{2,}/g, ' ');
