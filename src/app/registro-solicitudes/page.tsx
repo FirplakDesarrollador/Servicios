@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, FileText, Search, Plus, Loader2, Database } from 'lucide-react';
+import { ArrowLeft, FileText, Search, Plus, Loader2, Database, ChevronDown, MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import RegistroCard from './components/RegistroCard';
@@ -230,72 +230,70 @@ export default function RegistroSolicitudesPage() {
     return searchString.includes(searchLower);
   });
 
+  // Paleta FIRPLAK, igual que el módulo de WhatsApp
+  const segmentClass = (active: boolean) =>
+    `flex items-center gap-1.5 px-3 h-7 rounded-md text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+      active ? 'bg-white text-brand shadow-sm' : 'text-stone-500 hover:text-brand'
+    }`;
+  const filterControlClass = 'appearance-none h-8 bg-white border border-border rounded-lg pl-3 pr-7 text-[11px] font-medium text-brand-dark focus:outline-none focus:border-brand-light cursor-pointer hover:bg-cream-light transition-colors';
+
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans p-3 md:p-5 pb-20">
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-gray-100 pb-2.5">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-cream text-brand-dark font-sans p-3 md:p-5 pb-20">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-border pb-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/')}
-            className="p-2.5 bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors shrink-0 text-slate-600 hover:text-slate-800"
+            className="w-9 h-9 flex items-center justify-center bg-white rounded-lg border border-border hover:bg-cream-light transition-colors shrink-0 text-stone-500 hover:text-brand"
             title="Volver al inicio"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
           <div>
-            <h1 className="text-lg md:text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-              <FileText className="w-5 h-5 text-brand hidden sm:block" />
+            <h1 className="text-lg md:text-xl font-semibold text-brand-dark tracking-tight flex items-center gap-2">
+              <FileText className="w-5 h-5 text-brand hidden sm:block" strokeWidth={1.75} />
               Registro Solicitudes
             </h1>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Gestión y listado de solicitudes</p>
+            <p className="text-[11px] font-medium text-brand-light uppercase tracking-[0.14em] mt-0.5">Gestión y listado de solicitudes</p>
           </div>
         </div>
 
         <div className="flex flex-nowrap overflow-x-auto items-center gap-2 pb-1 lg:pb-0 scrollbar-hide">
           {/* Segmented control for status */}
-          <div className="bg-slate-100 border border-slate-200 rounded-lg p-0.5 flex items-center shadow-sm shrink-0">
-            <button
-              onClick={() => setFilterEstado('Todos')}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Todos' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
+          <div className="bg-cream-light border border-border rounded-lg p-0.5 flex items-center shrink-0">
+            <button onClick={() => setFilterEstado('Todos')} className={segmentClass(filterEstado === 'Todos')}>
               Todos
             </button>
-            <button
-              onClick={() => setFilterEstado('Abierto')}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Abierto' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-slate-500 hover:text-amber-800'}`}
-            >
+            <button onClick={() => setFilterEstado('Abierto')} className={segmentClass(filterEstado === 'Abierto')}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
               Abiertos
             </button>
-            <button
-              onClick={() => setFilterEstado('Cerrado')}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${filterEstado === 'Cerrado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-emerald-800'}`}
-            >
+            <button onClick={() => setFilterEstado('Cerrado')} className={segmentClass(filterEstado === 'Cerrado')}>
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-light"></span>
               Cerrados
             </button>
           </div>
-          
+
           {/* Priority filter */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={filterPrioridad}
               onChange={(e) => setFilterPrioridad(e.target.value)}
-              className="appearance-none bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-6 cursor-pointer hover:bg-slate-50 transition-colors shrink-0"
+              className={filterControlClass}
             >
               <option value="Todas">Prioridad: Todas</option>
               <option value="Alta">Prioridad: Alta</option>
               <option value="Media">Prioridad: Media</option>
               <option value="Baja">Prioridad: Baja</option>
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" />
           </div>
-          
+
           {/* Advisor filter */}
           <div className="relative min-w-[120px] shrink-0">
             <select
               value={filterAsesor}
               onChange={(e) => setFilterAsesor(e.target.value)}
-              className="appearance-none bg-white border border-gray-200 rounded-lg px-2 py-1.5 w-full text-[10px] font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand shadow-sm pr-6 cursor-pointer hover:bg-slate-50 transition-colors truncate"
+              className={`${filterControlClass} w-full truncate`}
             >
               <option value="Todos">Todos los Asesores</option>
               <option value="Sin Asignar">Sin Asignar</option>
@@ -303,38 +301,38 @@ export default function RegistroSolicitudesPage() {
                 <option key={a.id} value={String(a.id)}>{a.nombres} {a.apellidos}</option>
               ))}
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" />
           </div>
 
           {/* Search input */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="relative shrink-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" strokeWidth={1.75} />
             <input
               type="text"
-              placeholder="Buscar registros..."
+              placeholder="Buscar registros"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-40 pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-semibold text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm shrink-0"
+              className="w-full sm:w-44 h-8 pl-8 pr-3 bg-white border border-border rounded-lg text-[11px] text-brand-dark placeholder:text-stone-400 focus:outline-none focus:border-brand-light transition-colors"
             />
           </div>
 
           {/* WP Button */}
           <button
             onClick={() => router.push('/whatsapp')}
-            className="flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] tracking-wider transition-all shadow-md shadow-green-500/20 hover:shadow-lg whitespace-nowrap active:scale-95 shrink-0"
+            className="flex items-center justify-center gap-1.5 h-8 px-3 bg-white border border-border hover:border-brand-light hover:bg-cream-light text-brand rounded-lg font-semibold text-[11px] transition-colors whitespace-nowrap shrink-0"
+            title="Abrir WhatsApp"
           >
-            WP
+            <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.75} />
+            WhatsApp
           </button>
 
           {/* Add button */}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center justify-center gap-1.5 bg-brand hover:bg-[#1d3342] text-white px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] tracking-wider transition-all shadow-md shadow-brand/10 hover:shadow-lg whitespace-nowrap active:scale-95 shrink-0"
+            className="flex items-center justify-center gap-1.5 h-8 px-3.5 bg-brand hover:bg-brand-hover text-white rounded-lg font-semibold text-[11px] transition-colors whitespace-nowrap shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
-            Nuevo Registro
+            Nuevo registro
           </button>
         </div>
       </header>
@@ -342,45 +340,45 @@ export default function RegistroSolicitudesPage() {
       <main className="w-full max-w-[96%] xl:max-w-[1800px] mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-brand animate-spin mb-4" />
-            <p className="text-slate-500 font-medium">Cargando registros...</p>
+            <Loader2 className="w-8 h-8 text-brand animate-spin mb-4" />
+            <p className="text-stone-500 text-sm">Cargando registros...</p>
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
             {filteredRegistros.length > 0 ? (
-              <motion.div 
+              <motion.div
                 className="flex flex-col gap-2"
               >
                 {filteredRegistros.map((registro, index) => (
-                  <RegistroCard 
-                    key={registro.id || index} 
-                    registro={registro} 
+                  <RegistroCard
+                    key={registro.id || index}
+                    registro={registro}
                     onClick={() => router.push(`/ver-registro/${registro.id}`)}
                   />
                 ))}
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-xl p-8 md:p-16 shadow-sm border border-gray-200/80 flex flex-col items-center justify-center text-center mt-4"
+                className="bg-white rounded-xl p-8 md:p-16 border border-border flex flex-col items-center justify-center text-center mt-4"
               >
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                  <Database className="w-8 h-8 text-slate-300" />
+                <div className="w-14 h-14 bg-cream-light border border-border rounded-2xl flex items-center justify-center mb-5">
+                  <Database className="w-6 h-6 text-brand-light" strokeWidth={1.5} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">No hay registros</h3>
-                <p className="text-slate-500 max-w-md">
-                  {searchTerm 
-                    ? `No se encontraron resultados para "${searchTerm}". Intenta con otra búsqueda.` 
+                <h3 className="text-lg font-semibold text-brand-dark mb-2">No hay registros</h3>
+                <p className="text-stone-500 text-sm max-w-md">
+                  {searchTerm
+                    ? `No se encontraron resultados para "${searchTerm}". Intenta con otra búsqueda.`
                     : "Aún no hay ninguna solicitud registrada. Crea un nuevo registro para comenzar."}
                 </p>
                 {searchTerm && (
-                  <button 
+                  <button
                     onClick={() => setSearchTerm('')}
-                    className="mt-6 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-bold transition-colors"
+                    className="mt-6 h-9 px-4 bg-white border border-border hover:bg-cream-light text-brand rounded-lg text-sm font-semibold transition-colors"
                   >
-                    Limpiar Búsqueda
+                    Limpiar búsqueda
                   </button>
                 )}
               </motion.div>
