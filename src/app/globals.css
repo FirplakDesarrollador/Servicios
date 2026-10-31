@@ -16,6 +16,13 @@
   --color-accent: #749094;
   --color-success: #10B981;
   --color-border: #e8e2d5;
+  /* Tonos de apoyo de la paleta FIRPLAK (navy #254153, salvia #749094, crema #f5f1ea) */
+  --color-brand-hover: #1c3443;
+  --color-brand-soft: #e9eef1;
+  --color-sage-soft: #eef3f3;
+  --color-cream: #f5f1ea;
+  --color-cream-light: #faf8f4;
+  --color-ink-muted: #8a8780;
 }
 
 body {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, Speech, Square, SendHorizontal, Zap, Settings2, BookmarkPlus } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, Speech, Square, SendHorizontal, FileText, Zap, Settings2, BookmarkPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
@@ -10,8 +10,12 @@ import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whats
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 
 // Estilos de los botones de la barra de mensaje: iconos secundarios y botón principal (enviar / grabar)
-const composerIconBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-full text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors';
-const composerPrimaryBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 shadow-sm transition-colors';
+const composerIconBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-stone-400 hover:text-brand hover:bg-cream-light transition-colors';
+const composerPrimaryBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-brand text-white hover:bg-brand-hover disabled:opacity-50 transition-colors';
+// Botones de icono de las cabeceras, acciones del panel de contacto y opciones de menú
+const headerIconBtn = 'w-9 h-9 shrink-0 flex items-center justify-center rounded-lg text-stone-500 hover:text-brand hover:bg-cream-light transition-colors';
+const contactActionBtn = 'flex flex-col items-center gap-1.5 py-3 rounded-xl border border-border text-[11px] font-medium text-stone-600 hover:bg-cream-light hover:border-brand-light transition-colors';
+const menuItemClass = 'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-dark hover:bg-cream-light transition-colors';
 
 // Deja la grabación en un formato que acepte WhatsApp: OGG/Opus se envía tal cual; cualquier otro
 // (WebM de Chrome/Edge, MP4 de Safari) se decodifica y se recodifica a MP3 mono.
@@ -859,117 +863,131 @@ export default function WhatsAppPage() {
   };
 
   // ────────────────────────────────────────────────────────────────────────────
+  // Paleta FIRPLAK: navy (brand), salvia (brand-light), negro (brand-dark) y crema (cream)
+  const responsableLabel = selectedResponsableFilter === 'todos'
+    ? 'Todos'
+    : selectedResponsableFilter === 'mis_chats'
+    ? 'Mis chats'
+    : selectedResponsableFilter === 'sin_asignar'
+    ? 'Sin asignar'
+    : selectedResponsableFilter;
+
+  const filterOptionClass = (active: boolean) =>
+    `w-full text-left px-3 py-2 rounded-lg text-[13px] flex items-center justify-between transition-colors ${
+      active ? 'bg-brand-soft text-brand font-semibold' : 'text-stone-600 hover:bg-cream-light'
+    }`;
+
   return (
     // Use fixed positioning to ensure full viewport coverage
-    <div className="fixed inset-0 flex bg-gradient-to-br from-indigo-50 via-slate-50 to-emerald-50 font-sans">
+    <div className="fixed inset-0 flex bg-cream font-sans text-brand-dark">
 
       {/* ── Sidebar ── */}
-      <div className="w-[320px] lg:w-[350px] shrink-0 bg-white/60 backdrop-blur-xl border-r border-white/50 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+      <div className="w-[320px] lg:w-[360px] shrink-0 bg-white border-r border-border flex flex-col z-20">
 
         {/* Header */}
-        <div className="h-[72px] flex items-center px-6 justify-between shrink-0 border-b border-white/50 bg-white/40">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/registro-solicitudes')} className="p-2.5 bg-white shadow-sm hover:shadow-md rounded-full transition-all text-slate-600 border border-gray-100">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="w-11 h-11 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white text-xs uppercase" title={currentUserName || 'Usuario en sesión'}>
-              {currentUserName ? currentUserName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'YO'}
-            </div>
+        <div className="h-[72px] flex items-center px-4 gap-3 shrink-0 border-b border-border">
+          <button
+            onClick={() => router.push('/registro-solicitudes')}
+            className={headerIconBtn}
+            title="Volver"
+          >
+            <ArrowLeft className="w-5 h-5" strokeWidth={1.75} />
+          </button>
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <img src="/logo-firplak-wordmark.png" alt="FIRPLAK" className="h-[15px] w-auto self-start" />
+            <span className="text-[11px] font-medium tracking-[0.18em] uppercase text-brand-light mt-1">WhatsApp</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setIsNewMessageModalOpen(true)} className="p-2.5 hover:bg-white/80 hover:shadow-sm rounded-full transition-all text-indigo-500" title="Nueva Conversación">
-              <MessageSquarePlus className="w-5 h-5" />
-            </button>
-            <button className="p-2.5 hover:bg-white/80 hover:shadow-sm rounded-full transition-all text-slate-500">
-              <MoreVertical className="w-5 h-5" />
-            </button>
+          <button onClick={() => setIsNewMessageModalOpen(true)} className={headerIconBtn} title="Nueva conversación">
+            <MessageSquarePlus className="w-5 h-5" strokeWidth={1.75} />
+          </button>
+          <div
+            className="w-9 h-9 shrink-0 bg-brand rounded-full flex items-center justify-center text-white font-semibold text-xs uppercase"
+            title={currentUserName || 'Usuario en sesión'}
+          >
+            {currentUserName ? currentUserName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'YO'}
           </div>
         </div>
 
         {/* Search & Filter */}
-        <div className="p-4 shrink-0 space-y-2.5">
-          <div className="bg-white/80 border border-white shadow-sm flex items-center px-4 py-2.5 rounded-2xl gap-3">
-            <Search className="w-4 h-4 text-indigo-400 shrink-0" />
+        <div className="px-4 pt-4 pb-3 shrink-0 space-y-2.5 border-b border-border">
+          <div className="bg-cream-light border border-border focus-within:border-brand-light focus-within:bg-white flex items-center px-3.5 h-10 rounded-xl gap-2.5 transition-colors">
+            <Search className="w-4 h-4 text-stone-400 shrink-0" strokeWidth={1.75} />
             <input
               type="text"
-              placeholder="Buscar mensajes o chats..."
+              placeholder="Buscar chats o mensajes"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent outline-none w-full text-sm text-slate-700 placeholder:text-slate-400"
+              className="bg-transparent outline-none w-full text-sm text-brand-dark placeholder:text-stone-400"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="text-xs text-slate-400 hover:text-slate-600 font-bold px-1">✕</button>
+              <button onClick={() => setSearchQuery('')} className="text-stone-400 hover:text-brand-dark" title="Limpiar">
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
 
           {/* Searchable Dropdown & Asesores Settings Button */}
-          <div className="flex items-center justify-between gap-2 relative z-30" ref={filterDropdownRef}>
-            
+          <div className="flex items-center gap-2 relative z-30" ref={filterDropdownRef}>
+
             {/* Dropdown Button */}
             <button
               type="button"
               onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-              className="flex-1 bg-white/80 hover:bg-white border border-white shadow-sm flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 transition-all cursor-pointer"
+              className={`flex-1 min-w-0 h-9 flex items-center justify-between gap-2 px-3 rounded-lg border text-xs transition-colors cursor-pointer ${
+                isFilterDropdownOpen ? 'border-brand-light bg-white' : 'border-border bg-white hover:bg-cream-light'
+              }`}
             >
-              <div className="flex items-center gap-1.5 truncate">
-                <UserCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                <span className="text-slate-400">Responsable:</span>
-                <span className="text-indigo-600 font-bold truncate">
-                  {selectedResponsableFilter === 'todos' 
-                    ? 'Todos' 
-                    : selectedResponsableFilter === 'mis_chats'
-                    ? 'Mis Chats'
-                    : selectedResponsableFilter === 'sin_asignar' 
-                    ? 'Sin asignar' 
-                    : selectedResponsableFilter}
-                </span>
-              </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
+              <span className="flex items-center gap-1.5 min-w-0">
+                <UserCheck className="w-3.5 h-3.5 text-brand-light shrink-0" strokeWidth={1.75} />
+                <span className="text-stone-500">Responsable</span>
+                <span className="text-brand font-semibold truncate">{responsableLabel}</span>
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-stone-400 shrink-0 transition-transform duration-200 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Button to open Asesores Modal */}
             <button
               onClick={() => setIsAsesoresModalOpen(true)}
-              className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200/80 rounded-xl transition-all flex items-center gap-1 shrink-0 text-xs font-bold shadow-sm cursor-pointer"
-              title="Gestionar Asesores"
+              className="h-9 px-3 rounded-lg border border-border bg-white hover:bg-cream-light text-stone-600 hover:text-brand transition-colors flex items-center gap-1.5 shrink-0 text-xs font-medium cursor-pointer"
+              title="Gestionar asesores"
             >
-              <Settings className="w-4 h-4" />
-              <span>Asesores</span>
+              <Settings className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Asesores
             </button>
 
             {/* Dropdown Popover with Search */}
             {isFilterDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1.5 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-40 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full left-0 mt-1.5 w-full bg-white rounded-xl shadow-lg shadow-brand-dark/5 border border-border p-1.5 z-40 animate-in fade-in zoom-in-95 duration-100">
                 {/* Mini search input inside dropdown */}
-                <div className="flex items-center px-2.5 py-1.5 bg-slate-50 rounded-xl border border-slate-200/70 mb-2">
-                  <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <div className="flex items-center px-2.5 h-8 bg-cream-light rounded-lg border border-border mb-1.5">
+                  <Search className="w-3.5 h-3.5 text-stone-400 mr-2 shrink-0" strokeWidth={1.75} />
                   <input
                     type="text"
-                    placeholder="Buscar asesor..."
+                    placeholder="Buscar asesor"
                     value={asesorFilterSearch}
                     onChange={(e) => setAsesorFilterSearch(e.target.value)}
-                    className="bg-transparent text-xs outline-none w-full text-slate-700 placeholder:text-slate-400"
+                    className="bg-transparent text-xs outline-none w-full text-brand-dark placeholder:text-stone-400"
                     autoFocus
                   />
                   {asesorFilterSearch && (
-                    <button onClick={() => setAsesorFilterSearch('')} className="text-[10px] text-slate-400 hover:text-slate-600 font-bold">✕</button>
+                    <button onClick={() => setAsesorFilterSearch('')} className="text-stone-400 hover:text-brand-dark">
+                      <X className="w-3 h-3" />
+                    </button>
                   )}
                 </div>
 
                 {/* Options List */}
-                <div className="max-h-48 overflow-y-auto space-y-0.5 pr-0.5">
+                <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
                   <button
                     onClick={() => {
                       setSelectedResponsableFilter('todos');
                       setIsFilterDropdownOpen(false);
                       setAsesorFilterSearch('');
                     }}
-                    className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all ${
-                      selectedResponsableFilter === 'todos' ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={filterOptionClass(selectedResponsableFilter === 'todos')}
                   >
                     <span>Todos los responsables</span>
-                    {selectedResponsableFilter === 'todos' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                    {selectedResponsableFilter === 'todos' && <Check className="w-3.5 h-3.5" />}
                   </button>
 
                   {currentUserName && (
@@ -979,15 +997,13 @@ export default function WhatsAppPage() {
                         setIsFilterDropdownOpen(false);
                         setAsesorFilterSearch('');
                       }}
-                      className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all ${
-                        selectedResponsableFilter === 'mis_chats' ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-700 hover:bg-slate-50'
-                      }`}
+                      className={filterOptionClass(selectedResponsableFilter === 'mis_chats')}
                     >
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        Mis Chats ({currentUserName})
+                      <span className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-light"></span>
+                        Mis chats ({currentUserName})
                       </span>
-                      {selectedResponsableFilter === 'mis_chats' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                      {selectedResponsableFilter === 'mis_chats' && <Check className="w-3.5 h-3.5" />}
                     </button>
                   )}
 
@@ -997,15 +1013,13 @@ export default function WhatsAppPage() {
                       setIsFilterDropdownOpen(false);
                       setAsesorFilterSearch('');
                     }}
-                    className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all ${
-                      selectedResponsableFilter === 'sin_asignar' ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={filterOptionClass(selectedResponsableFilter === 'sin_asignar')}
                   >
                     <span>Sin asignar</span>
-                    {selectedResponsableFilter === 'sin_asignar' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                    {selectedResponsableFilter === 'sin_asignar' && <Check className="w-3.5 h-3.5" />}
                   </button>
 
-                  <div className="my-1 border-t border-slate-100"></div>
+                  <div className="my-1 border-t border-border"></div>
 
                   {asesoresList
                     .filter(a => a.toLowerCase().includes(asesorFilterSearch.toLowerCase().trim()))
@@ -1017,17 +1031,15 @@ export default function WhatsAppPage() {
                           setIsFilterDropdownOpen(false);
                           setAsesorFilterSearch('');
                         }}
-                        className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all ${
-                          selectedResponsableFilter === resp ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-700 hover:bg-slate-50'
-                        }`}
+                        className={filterOptionClass(selectedResponsableFilter === resp)}
                       >
                         <span>{resp}</span>
-                        {selectedResponsableFilter === resp && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                        {selectedResponsableFilter === resp && <Check className="w-3.5 h-3.5" />}
                       </button>
                     ))}
 
                   {asesoresList.filter(a => a.toLowerCase().includes(asesorFilterSearch.toLowerCase().trim())).length === 0 && (
-                    <p className="text-[11px] text-slate-400 text-center py-2 italic">No hay asesores con esa búsqueda</p>
+                    <p className="text-[11px] text-stone-400 text-center py-2">No hay asesores con esa búsqueda</p>
                   )}
                 </div>
               </div>
@@ -1036,83 +1048,91 @@ export default function WhatsAppPage() {
         </div>
 
         {/* Chat list */}
-        <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1">
+        <div className="flex-1 overflow-y-auto py-1.5 custom-scrollbar">
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <div className="w-8 h-8 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+              <div className="w-6 h-6 rounded-full border-2 border-brand border-t-transparent animate-spin"></div>
             </div>
           ) : filteredChats.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-              <p className="font-medium text-slate-500 text-sm">No se encontraron chats</p>
-              <p className="text-xs text-slate-400 mt-1">Prueba cambiando los filtros de búsqueda</p>
+            <div className="flex flex-col items-center justify-center h-full py-16 px-6 text-center">
+              <Search className="w-6 h-6 text-stone-300 mb-3" strokeWidth={1.5} />
+              <p className="font-medium text-stone-600 text-sm">No se encontraron chats</p>
+              <p className="text-xs text-stone-400 mt-1">Prueba cambiando la búsqueda o el filtro</p>
             </div>
           ) : (
-            filteredChats.map((chat) => (
-              <div
-                key={chat.id}
-                onClick={() => setActiveChat(chat)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setChatMenu({ chat, x: e.clientX, y: e.clientY });
-                }}
-                className={`group flex items-center p-3 cursor-pointer rounded-2xl transition-all ${activeChat?.id === chat.id ? 'bg-white shadow-md border border-white/80' : 'hover:bg-white/50 border border-transparent'}`}
-              >
-                <div className="flex flex-col items-center shrink-0 mr-3 w-16">
-                  <div className="relative">
+            filteredChats.map((chat) => {
+              const isActive = activeChat?.id === chat.id;
+              const isUnread = chat.unread_count > 0;
+              return (
+                <div
+                  key={chat.id}
+                  onClick={() => setActiveChat(chat)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setChatMenu({ chat, x: e.clientX, y: e.clientY });
+                  }}
+                  className={`group relative flex gap-3 mx-2 px-3 py-3 cursor-pointer rounded-xl transition-colors ${isActive ? 'bg-brand-soft' : 'hover:bg-cream-light'}`}
+                >
+                  {isActive && <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-brand"></span>}
+                  <div className="relative shrink-0">
                     {chat.contact_avatar ? (
-                      <img src={chat.contact_avatar} alt="Avatar" className="w-11 h-11 rounded-full object-cover shadow-sm" />
+                      <img src={chat.contact_avatar} alt="Avatar" className="w-11 h-11 rounded-full object-cover" />
                     ) : (
-                      <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm ${activeChat?.id === chat.id ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-slate-300 to-slate-400'}`}>
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center font-semibold text-sm ${isActive ? 'bg-brand text-white' : 'bg-sage-soft text-brand'}`}>
                         {renderAvatarContent(chat, 'w-5 h-5')}
                       </div>
                     )}
-                    {chat.unread_count > 0 && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
-                    )}
                   </div>
-                  <div className="mt-1 flex flex-col items-center w-full" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Responsable</span>
-                    <select
-                      value={chat.responsable || ''}
-                      onChange={(e) => handleUpdateResponsable(chat.id, e.target.value)}
-                      className={`text-[9px] leading-tight font-semibold truncate max-w-full text-center px-0.5 py-0.5 rounded cursor-pointer outline-none border transition-all ${chat.responsable ? 'text-indigo-600 bg-indigo-50 border-indigo-200 font-bold' : 'text-slate-400 bg-slate-100/80 border-slate-200/60'}`}
-                      title={chat.responsable || 'Sin asignar'}
-                    >
-                      <option value="">Sin asignar</option>
-                      {Array.from(new Set([...asesoresList, ...(chat.responsable ? [chat.responsable] : [])])).map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center mb-0.5">
-                    <h3 className="font-semibold text-sm text-slate-800 truncate">
-                      {getDisplayName(chat)}
-                    </h3>
-                    <span className={`text-[10px] font-medium shrink-0 ml-2 ${chat.unread_count > 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
-                      {formatTime(chat.last_message_time)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-slate-500 truncate pr-2">{chat.last_message || 'Multimedia'}</p>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => openChatMenuAtButton(e, chat)}
-                        className={`p-1 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-opacity ${chatMenu?.chat.id === chat.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                        title="Más opciones"
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline gap-2">
+                      <h3 className={`text-sm truncate ${isUnread ? 'font-bold text-brand-dark' : 'font-semibold text-brand-dark'}`}>
+                        {getDisplayName(chat)}
+                      </h3>
+                      <span className={`text-[11px] shrink-0 ${isUnread ? 'text-brand font-semibold' : 'text-stone-400'}`}>
+                        {formatTime(chat.last_message_time)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 mt-0.5">
+                      <p className={`text-[13px] truncate ${isUnread ? 'text-stone-700' : 'text-stone-500'}`}>{chat.last_message || 'Multimedia'}</p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => openChatMenuAtButton(e, chat)}
+                          className={`p-0.5 rounded-md text-stone-400 hover:text-brand hover:bg-white transition-opacity ${chatMenu?.chat.id === chat.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                          title="Más opciones"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        {isUnread && (
+                          <span className="min-w-[20px] h-5 px-1.5 bg-brand rounded-full text-white text-[11px] font-semibold flex items-center justify-center">{chat.unread_count}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+                      <label
+                        className={`relative inline-flex items-center gap-1 max-w-full h-6 pl-2 pr-1 rounded-md border text-[11px] cursor-pointer transition-colors ${
+                          chat.responsable ? 'bg-white border-border text-brand font-medium' : 'bg-transparent border-dashed border-stone-300 text-stone-400'
+                        }`}
+                        title={chat.responsable || 'Sin asignar'}
                       >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {chat.unread_count > 0 && (
-                        <span className="bg-emerald-500 rounded-full px-1.5 py-0.5 text-white text-[10px] font-bold">{chat.unread_count}</span>
-                      )}
+                        <UserCheck className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                        <select
+                          value={chat.responsable || ''}
+                          onChange={(e) => handleUpdateResponsable(chat.id, e.target.value)}
+                          className="appearance-none [field-sizing:content] bg-transparent outline-none cursor-pointer truncate max-w-[150px] pr-4"
+                        >
+                          <option value="">Sin asignar</option>
+                          {Array.from(new Set([...asesoresList, ...(chat.responsable ? [chat.responsable] : [])])).map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3 h-3 shrink-0 absolute right-1 pointer-events-none" />
+                      </label>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -1123,97 +1143,93 @@ export default function WhatsAppPage() {
           <>
           {/* Main Chat Column */}
           {/* overflow-clip (no hidden): recorta igual pero el navegador no puede desplazar esta columna */}
-          <div className="flex-1 h-full flex flex-col min-h-0 bg-white/80 backdrop-blur-xl overflow-clip relative">
-
-            {/* Glow effects */}
-            <div className="pointer-events-none absolute top-0 left-0 w-64 h-64 bg-indigo-300/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-            <div className="pointer-events-none absolute bottom-0 right-0 w-64 h-64 bg-emerald-300/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
+          <div className="flex-1 h-full flex flex-col min-h-0 bg-cream-light overflow-clip relative">
 
             {/* Chat header - Always fixed at the top */}
-            <div 
-              className="shrink-0 h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center px-6 justify-between z-30 shadow-sm transition-colors sticky top-0 cursor-pointer hover:bg-slate-50/80"
+            <div
+              className="shrink-0 h-[72px] bg-white border-b border-border flex items-center px-5 gap-4 justify-between z-30 sticky top-0 cursor-pointer"
               onClick={() => setShowContactInfo(!showContactInfo)}
             >
-              <div className="flex items-center gap-3.5 min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="relative shrink-0">
                   {activeChat.contact_avatar ? (
-                     <img src={activeChat.contact_avatar} alt="Avatar" className="w-11 h-11 rounded-full object-cover shadow-sm border border-slate-200" />
+                     <img src={activeChat.contact_avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
                   ) : (
-                    <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm text-base">
+                    <div className="w-10 h-10 bg-brand rounded-full flex items-center justify-center text-white font-semibold text-sm">
                       {renderAvatarContent(activeChat, 'w-5 h-5')}
                     </div>
                   )}
-                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-xs"></span>
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-brand-light border-2 border-white rounded-full"></span>
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h2 className="font-bold text-slate-900 text-[16px] leading-tight truncate">
+                  <h2 className="font-semibold text-brand-dark text-[15px] leading-tight truncate">
                     {getDisplayName(activeChat)}
                   </h2>
-                  <div className="flex items-center gap-2 text-xs leading-tight mt-0.5">
+                  <div className="flex items-center gap-2 text-xs leading-tight mt-1">
                     {hasRealName(activeChat) && (
-                      <span className="text-slate-500 font-medium">+{activeChat.phone_number}</span>
+                      <>
+                        <span className="text-stone-500">+{activeChat.phone_number}</span>
+                        <span className="w-1 h-1 rounded-full bg-stone-300"></span>
+                      </>
                     )}
-                    <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      En línea
-                    </span>
+                    <span className="text-brand-light font-medium">En línea</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {/* Asignarme Button */}
                 {currentUserName && activeChat.responsable !== currentUserName && (
                   <button
                     onClick={() => handleUpdateResponsable(activeChat.id, currentUserName)}
-                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl border border-indigo-200/80 transition-all shrink-0 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    className="h-9 px-3.5 rounded-lg border border-brand text-brand hover:bg-brand hover:text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
                     title={`Asignar este chat a ${currentUserName}`}
                   >
-                    <UserCheck className="w-4 h-4 text-indigo-600" />
+                    <UserCheck className="w-4 h-4" strokeWidth={1.75} />
                     Asignarme
                   </button>
                 )}
 
                 {/* Selector Responsable */}
-                <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 px-3 py-1.5 rounded-xl border border-slate-200/70 transition-all">
-                  <UserCheck className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Responsable</span>
-                    <select
-                      value={activeChat.responsable || ''}
-                      onChange={(e) => handleUpdateResponsable(activeChat.id, e.target.value)}
-                      className="bg-transparent text-xs font-bold text-indigo-700 outline-none cursor-pointer border-none p-0 focus:ring-0"
-                    >
-                      <option value="">-- Sin Responsable --</option>
-                      {Array.from(new Set([...asesoresList, ...(activeChat.responsable ? [activeChat.responsable] : [])])).map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                <label className="relative h-9 flex items-center gap-2 pl-3 pr-7 rounded-lg border border-border bg-cream-light hover:bg-white transition-colors cursor-pointer">
+                  <span className="text-[11px] text-stone-400">Responsable</span>
+                  <select
+                    value={activeChat.responsable || ''}
+                    onChange={(e) => handleUpdateResponsable(activeChat.id, e.target.value)}
+                    className="appearance-none [field-sizing:content] bg-transparent text-xs font-semibold text-brand outline-none cursor-pointer border-none p-0 focus:ring-0"
+                  >
+                    <option value="">Sin responsable</option>
+                    {Array.from(new Set([...asesoresList, ...(activeChat.responsable ? [activeChat.responsable] : [])])).map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-stone-400 absolute right-2 pointer-events-none" />
+                </label>
+
+                <div className="w-px h-6 bg-border mx-1"></div>
 
                 <button
                   onClick={() => setShowContactInfo(!showContactInfo)}
-                  className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs"
+                  className={`${headerIconBtn} ${showContactInfo ? 'bg-brand-soft text-brand' : ''}`}
                   title="Ver información del contacto"
                 >
-                  <Search className="w-4 h-4" />
+                  <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={(e) => openChatMenuAtButton(e, activeChat, true)}
-                  className="p-2 bg-white hover:bg-slate-50 rounded-full transition-all border border-slate-200 text-slate-600 shadow-xs"
+                  className={headerIconBtn}
                   title="Más opciones"
                 >
-                  <MoreVertical className="w-4 h-4" />
+                  <MoreVertical className="w-[18px] h-[18px]" strokeWidth={1.75} />
                 </button>
               </div>
             </div>
 
             {/* Messages */}
             {/* Bloque normal (no flex) para que los mensajes no se encojan y se vean completos al subir */}
-            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-2">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-1.5 custom-scrollbar">
               {messages.map((msg) => {
                 const isMe = msg.sender === 'me';
                 const hasMedia = !!msg.media_url;
@@ -1231,87 +1247,89 @@ export default function WhatsAppPage() {
                       <button
                         type="button"
                         onClick={() => startReply(msg)}
-                        className="p-1.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-1.5 rounded-full text-stone-400 hover:text-brand hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Responder"
                       >
-                        <Reply className="w-4 h-4" />
+                        <Reply className="w-4 h-4" strokeWidth={1.75} />
                       </button>
                     )}
                     <div
                       id={msg.wam_id ? `wa-msg-${msg.wam_id}` : undefined}
-                      className={`max-w-[75%] rounded-2xl shadow-sm overflow-hidden transition-shadow ${isMe
-                      ? 'bg-indigo-50 border border-indigo-100 text-slate-800 rounded-tr-sm'
-                      : 'bg-white text-slate-800 border border-gray-100 rounded-tl-sm'
+                      className={`max-w-[70%] rounded-2xl overflow-hidden transition-shadow ${isMe
+                      ? 'bg-brand-soft text-brand-dark rounded-br-md'
+                      : 'bg-white text-brand-dark border border-border rounded-bl-md'
                     }`}>
                       {/* Mensaje citado */}
                       {msg.reply_to_wam_id && (
                         <button
                           type="button"
                           onClick={() => scrollToMessage(msg.reply_to_wam_id)}
-                          className={`block w-[calc(100%-1rem)] text-left mx-2 mt-2 px-3 py-1.5 rounded-lg border-l-4 border-indigo-400 ${isMe ? 'bg-indigo-100/70' : 'bg-slate-100'}`}
+                          className={`block w-[calc(100%-1rem)] text-left mx-2 mt-2 px-3 py-1.5 rounded-lg border-l-[3px] border-brand-light ${isMe ? 'bg-white/70' : 'bg-cream-light'}`}
                         >
-                          <p className="text-[11px] font-bold text-indigo-600">{quotedMsg ? getSenderLabel(quotedMsg) : 'Mensaje citado'}</p>
-                          <p className="text-[12px] text-slate-600 line-clamp-2 whitespace-pre-wrap break-words">
+                          <p className="text-[11px] font-semibold text-brand">{quotedMsg ? getSenderLabel(quotedMsg) : 'Mensaje citado'}</p>
+                          <p className="text-[12px] text-stone-500 line-clamp-2 whitespace-pre-wrap break-words">
                             {quotedMsg ? getMessagePreview(quotedMsg) : 'Mensaje no disponible'}
                           </p>
                         </button>
                       )}
                       {/* Image or Sticker */}
                       {hasMedia && isImage && (
-                        <div className="overflow-hidden rounded-t-2xl bg-black/5">
+                        <div className="overflow-hidden p-1 pb-0">
                           <img
                             src={msg.media_url}
                             alt="Imagen"
-                            className="w-full max-w-[320px] max-h-[380px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                            className="w-full max-w-[320px] max-h-[380px] object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity"
                             onClick={() => window.open(msg.media_url, '_blank')}
                           />
                         </div>
                       )}
                       {/* Audio or Voice Note */}
                       {hasMedia && isAudio && (
-                        <div className="px-3 pt-3 pb-1 flex items-center gap-2">
+                        <div className="px-2 pt-2 flex items-center gap-2">
                           <audio controls preload="metadata" src={msg.media_url} className="w-[260px] sm:w-[300px] h-[40px] outline-none" />
                         </div>
                       )}
                       {/* Video */}
                       {hasMedia && isVideo && (
-                        <div className="overflow-hidden rounded-t-2xl bg-black/5">
-                          <video controls src={msg.media_url} className="w-full max-w-[320px] rounded-t-2xl" />
+                        <div className="overflow-hidden p-1 pb-0">
+                          <video controls src={msg.media_url} className="w-full max-w-[320px] rounded-xl" />
                         </div>
                       )}
                       {/* Document */}
                       {hasMedia && isDoc && (
                         <a href={msg.media_url} target="_blank" rel="noreferrer"
-                          className="flex items-center gap-3 px-4 pt-3 pb-1 hover:underline text-indigo-600 group">
-                          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">📄</div>
+                          className="flex items-center gap-3 mx-2 mt-2 p-2.5 rounded-xl bg-white/70 border border-border hover:border-brand-light transition-colors group/doc">
+                          <div className="w-10 h-10 rounded-lg bg-brand text-white flex items-center justify-center shrink-0">
+                            <FileText className="w-5 h-5" strokeWidth={1.75} />
+                          </div>
                           <div className="overflow-hidden">
-                            <p className="text-sm font-semibold truncate text-slate-800 group-hover:text-indigo-600">{msg.media_filename || 'Documento'}</p>
-                            <span className="text-[11px] text-slate-400">Descargar archivo</span>
+                            <p className="text-sm font-medium truncate text-brand-dark group-hover/doc:text-brand">{msg.media_filename || 'Documento'}</p>
+                            <span className="text-[11px] text-stone-400">Abrir archivo</span>
                           </div>
                         </a>
                       )}
                       {/* Text body */}
                       {((!hasMedia && msg.text_body) || (hasMedia && !isDefaultLabel)) && (
-                        <div className="px-4 py-2">
-                          <p className="text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words text-slate-800">
+                        <div className="px-3.5 pt-2">
+                          <p className="text-[14px] leading-relaxed whitespace-pre-wrap break-words text-brand-dark">
                             {msg.text_body}
                           </p>
                         </div>
                       )}
                       {/* Message Footer / Timestamp */}
-                      <div className="px-3 pb-1.5 flex items-center justify-end gap-1 text-slate-400">
-                        <span className="text-[10px] font-medium">{formatTime(msg.created_at)}</span>
-                        {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-blue-500' : 'text-slate-400'}`} />}
+                      <div className="px-3 pt-0.5 pb-1.5 flex items-center justify-end gap-1 text-stone-400">
+                        <span className="text-[10px]">{formatTime(msg.created_at)}</span>
+                        {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-brand-light' : 'text-stone-300'}`} />}
                       </div>
                     </div>
                     {!isMe && msg.wam_id && (
                       <button
                         type="button"
                         onClick={() => startReply(msg)}
-                        className="p-1.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-1.5 rounded-full text-stone-400 hover:text-brand hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Responder"
                       >
-                        <Reply className="w-4 h-4" />
+                        <Reply className="w-4 h-4" strokeWidth={1.75} />
                       </button>
                     )}
                   </div>
@@ -1320,14 +1338,14 @@ export default function WhatsAppPage() {
             </div>
 
             {/* Input — shrink-0 keeps it at the bottom always */}
-            <div ref={quickPickerAreaRef} className="relative shrink-0 px-4 py-3 bg-white/60 border-t border-gray-100 z-10">
+            <div ref={quickPickerAreaRef} className="relative shrink-0 px-6 pb-5 pt-2 z-10">
               {showQuickPicker && !recordedAudio && !isRecording && (
-                <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden flex flex-col max-h-[340px]">
-                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-indigo-50/40 shrink-0">
-                    <Zap className="w-4 h-4 text-indigo-500 shrink-0" />
+                <div className="absolute bottom-full left-6 right-6 mb-1 bg-white rounded-2xl border border-border shadow-lg shadow-brand-dark/5 overflow-hidden flex flex-col max-h-[340px]">
+                  <div className="flex items-center gap-2 px-4 h-11 border-b border-border shrink-0">
+                    <Zap className="w-4 h-4 text-brand-light shrink-0" strokeWidth={1.75} />
                     {slashQuery !== null ? (
-                      <span className="flex-1 text-xs font-semibold text-slate-500">
-                        Respuestas rápidas <span className="font-normal text-slate-400">· ↑↓ para elegir, Enter para usar, Esc para cerrar</span>
+                      <span className="flex-1 text-xs font-semibold text-brand-dark">
+                        Respuestas rápidas <span className="font-normal text-stone-400">· ↑↓ para elegir, Enter para usar, Esc para cerrar</span>
                       </span>
                     ) : (
                       <input
@@ -1336,17 +1354,17 @@ export default function WhatsAppPage() {
                         value={quickSearch}
                         onChange={(e) => setQuickSearch(e.target.value)}
                         onKeyDown={(e) => { handleQuickPickerKey(e); }}
-                        placeholder="Buscar respuesta rápida..."
-                        className="flex-1 min-w-0 bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                        placeholder="Buscar respuesta rápida"
+                        className="flex-1 min-w-0 bg-transparent outline-none text-sm text-brand-dark placeholder:text-stone-400"
                       />
                     )}
-                    <button type="button" onClick={closeQuickPicker} className="p-1 text-slate-400 hover:text-slate-600 rounded-full" title="Cerrar">
+                    <button type="button" onClick={closeQuickPicker} className="p-1 text-stone-400 hover:text-brand-dark rounded-full" title="Cerrar">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div ref={quickListRef} className="overflow-y-auto">
+                  <div ref={quickListRef} className="overflow-y-auto p-1.5 custom-scrollbar">
                     {quickMatches.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-6 text-center">
+                      <p className="text-xs text-stone-400 py-6 text-center">
                         {respuestasRapidas.length === 0 ? 'Aún no hay respuestas rápidas guardadas.' : 'Ninguna respuesta coincide.'}
                       </p>
                     ) : (
@@ -1357,30 +1375,30 @@ export default function WhatsAppPage() {
                           data-quick-index={i}
                           onMouseEnter={() => setQuickIndex(i)}
                           onClick={() => applyQuickReply(r)}
-                          className={`w-full text-left px-4 py-2.5 border-b border-gray-50 last:border-b-0 transition-colors ${i === quickIndex ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${i === quickIndex ? 'bg-brand-soft' : 'hover:bg-cream-light'}`}
                         >
-                          <span className="block text-xs font-bold text-indigo-600">/{r.nombre_respuesta}</span>
-                          <span className="block text-[13px] text-slate-600 line-clamp-2 whitespace-pre-wrap">{r.respuesta_rapida}</span>
+                          <span className="block text-xs font-semibold text-brand">/{r.nombre_respuesta}</span>
+                          <span className="block text-[13px] text-stone-600 line-clamp-2 whitespace-pre-wrap mt-0.5">{r.respuesta_rapida}</span>
                         </button>
                       ))
                     )}
                   </div>
-                  <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-100 bg-slate-50/60 shrink-0">
+                  <div className="flex items-center justify-between gap-2 px-2 py-1.5 border-t border-border bg-cream-light shrink-0">
                     <button
                       type="button"
                       onClick={() => { closeQuickPicker(); setRespuestasModal({ texto: '' }); }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-stone-600 hover:text-brand hover:bg-white rounded-lg transition-colors"
                     >
-                      <Settings2 className="w-3.5 h-3.5" />
+                      <Settings2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                       Gestionar respuestas
                     </button>
                     {slashQuery === null && messageText.trim() && (
                       <button
                         type="button"
                         onClick={() => { closeQuickPicker(); setRespuestasModal({ texto: messageText.trim() }); }}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-brand hover:bg-white rounded-lg transition-colors"
                       >
-                        <BookmarkPlus className="w-3.5 h-3.5" />
+                        <BookmarkPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
                         Guardar mensaje actual
                       </button>
                     )}
@@ -1388,26 +1406,27 @@ export default function WhatsAppPage() {
                 </div>
               )}
               {replyTo && !recordedAudio && (
-                <div className="flex items-center gap-2 mb-2 bg-white rounded-xl border border-gray-200 px-3 py-2 shadow-sm">
-                  <Reply className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <div className="flex-1 min-w-0 border-l-4 border-indigo-400 pl-3">
-                    <p className="text-[11px] font-bold text-indigo-600">Respondiendo a {getSenderLabel(replyTo)}</p>
-                    <p className="text-[12px] text-slate-600 truncate">{getMessagePreview(replyTo)}</p>
+                <div className="flex items-center gap-3 mb-2 bg-white rounded-xl border border-border px-3 py-2">
+                  <div className="flex-1 min-w-0 border-l-[3px] border-brand-light pl-3">
+                    <p className="text-[11px] font-semibold text-brand flex items-center gap-1">
+                      <Reply className="w-3 h-3" /> Respondiendo a {getSenderLabel(replyTo)}
+                    </p>
+                    <p className="text-[12px] text-stone-500 truncate">{getMessagePreview(replyTo)}</p>
                   </div>
-                  <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-full" title="Cancelar respuesta">
+                  <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-stone-400 hover:text-brand-dark rounded-full" title="Cancelar respuesta">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               )}
-              <form onSubmit={handleSendMessage} className="flex items-end gap-1 bg-white rounded-3xl border border-slate-200 p-1.5 shadow-sm focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
+              <form onSubmit={handleSendMessage} className="flex items-end gap-1 bg-white rounded-2xl border border-border p-1.5 shadow-sm shadow-brand-dark/5 focus-within:border-brand-light transition-colors">
                 {recordedAudio ? (
                   <div className="flex-1 flex items-center gap-2">
-                    <button type="button" onClick={discardAudio} className={composerIconBtn + ' hover:text-red-500! hover:bg-red-50!'} title="Eliminar audio">
+                    <button type="button" onClick={discardAudio} className={composerIconBtn + ' hover:text-red-600! hover:bg-red-50!'} title="Eliminar audio">
                       <Trash2 className="w-5 h-5" strokeWidth={1.75} />
                     </button>
                     <audio controls src={recordedAudio.url} className="flex-1 h-10 outline-none" />
                     <button type="button" onClick={sendAudio} disabled={sending} className={composerPrimaryBtn} title="Enviar audio">
-                      <SendHorizontal className="w-5 h-5" strokeWidth={2} />
+                      <SendHorizontal className="w-5 h-5" strokeWidth={1.75} />
                     </button>
                   </div>
                 ) : (
@@ -1424,7 +1443,7 @@ export default function WhatsAppPage() {
                         <button
                           type="button"
                           onClick={() => (isQuickPickerOpen ? closeQuickPicker() : setIsQuickPickerOpen(true))}
-                          className={`${composerIconBtn} ${isQuickPickerOpen ? 'text-indigo-600! bg-indigo-50!' : ''}`}
+                          className={`${composerIconBtn} ${isQuickPickerOpen ? 'text-brand! bg-brand-soft!' : ''}`}
                           title="Respuestas rápidas (o escribe / en el mensaje)"
                         >
                           <Zap className="w-5 h-5" strokeWidth={1.75} />
@@ -1440,12 +1459,12 @@ export default function WhatsAppPage() {
                     />
 
                     {isRecording ? (
-                      <div className="flex-1 flex items-center justify-between gap-3 h-10 px-4 text-red-500">
-                        <div className="flex items-center gap-2.5">
+                      <div className="flex-1 flex items-center justify-between gap-3 h-10 px-4">
+                        <div className="flex items-center gap-2.5 text-red-600">
                           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
                           <span className="text-sm font-medium">Grabando</span>
                         </div>
-                        <span className="text-sm font-semibold tabular-nums text-slate-600">
+                        <span className="text-sm font-semibold tabular-nums text-brand-dark">
                           {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
                         </span>
                       </div>
@@ -1465,7 +1484,7 @@ export default function WhatsAppPage() {
                         }}
                         onChange={(e) => setMessageText(e.target.value)}
                         placeholder={isDictating ? 'Escuchando... habla ahora' : 'Escribe un mensaje'}
-                        className="flex-1 min-w-0 bg-transparent outline-none resize-none text-slate-700 placeholder:text-slate-400 text-[15px] leading-6 px-2 py-2 max-h-[200px] overflow-hidden"
+                        className="flex-1 min-w-0 bg-transparent outline-none resize-none text-brand-dark placeholder:text-stone-400 text-[15px] leading-6 px-2 py-2 max-h-[200px] overflow-hidden"
                       />
                     )}
 
@@ -1474,7 +1493,7 @@ export default function WhatsAppPage() {
                       <button
                         type="button"
                         onClick={isDictating ? stopDictation : startDictation}
-                        className={`${composerIconBtn} ${isDictating ? 'text-red-500! bg-red-50! animate-pulse' : ''}`}
+                        className={`${composerIconBtn} ${isDictating ? 'text-red-600! bg-red-50! animate-pulse' : ''}`}
                         title={isDictating ? 'Detener dictado' : 'Dictar mensaje (voz a texto)'}
                       >
                         <Speech className="w-5 h-5" strokeWidth={1.75} />
@@ -1483,20 +1502,20 @@ export default function WhatsAppPage() {
 
                     {messageText.trim() ? (
                       <button type="submit" disabled={sending} className={composerPrimaryBtn} title="Enviar">
-                        <SendHorizontal className="w-5 h-5" strokeWidth={2} />
+                        <SendHorizontal className="w-5 h-5" strokeWidth={1.75} />
                       </button>
                     ) : isRecording ? (
                       <button
                         type="button"
                         onClick={stopRecording}
-                        className={composerPrimaryBtn + ' bg-red-500! hover:bg-red-600!'}
+                        className={composerPrimaryBtn + ' bg-red-600! hover:bg-red-700!'}
                         title="Detener y escuchar"
                       >
-                        <Square className="w-4 h-4 fill-current" strokeWidth={2} />
+                        <Square className="w-3.5 h-3.5 fill-current" strokeWidth={2} />
                       </button>
                     ) : (
                       <button type="button" onClick={startRecording} className={composerPrimaryBtn} title="Grabar nota de voz">
-                        <Mic className="w-5 h-5" strokeWidth={2} />
+                        <Mic className="w-5 h-5" strokeWidth={1.75} />
                       </button>
                     )}
                   </>
@@ -1507,97 +1526,95 @@ export default function WhatsAppPage() {
 
           {/* ── Contact Info Sidebar ── */}
           {showContactInfo && (
-            <div className="w-[340px] h-full shrink-0 bg-[#0b141a] text-gray-200 overflow-y-auto overflow-x-hidden flex flex-col border-l border-white/10 shadow-xl transition-all duration-300 animate-in slide-in-from-right-8">
+            <div className="w-[340px] h-full shrink-0 bg-white overflow-y-auto overflow-x-hidden flex flex-col border-l border-border custom-scrollbar animate-in slide-in-from-right-8 duration-200">
               {/* Sidebar Header: sticky para que el botón de cerrar siempre esté visible */}
-              <div className="sticky top-0 z-10 h-[72px] shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-[#202c33]">
-                <div className="flex items-center min-w-0">
-                  <button onClick={() => setShowContactInfo(false)} className="mr-3 hover:bg-white/10 p-2 rounded-full transition-colors" title="Cerrar">
-                    <X className="w-5 h-5 text-gray-300" />
-                  </button>
-                  <h2 className="text-[15px] font-medium text-gray-100 truncate">Info. del contacto</h2>
-                </div>
+              <div className="sticky top-0 z-10 h-[72px] shrink-0 flex items-center justify-between px-4 border-b border-border bg-white">
+                <h2 className="text-[15px] font-semibold text-brand-dark truncate">Información del contacto</h2>
                 <button
                   onClick={() => setShowContactInfo(false)}
-                  className="px-3 py-1.5 text-xs font-semibold text-gray-200 bg-white/10 hover:bg-white/20 rounded-lg transition-colors shrink-0"
+                  className="h-9 pl-2.5 pr-3 flex items-center gap-1.5 rounded-lg border border-border text-xs font-medium text-stone-600 hover:text-brand hover:bg-cream-light transition-colors shrink-0"
+                  title="Cerrar (Esc)"
                 >
+                  <X className="w-4 h-4" strokeWidth={1.75} />
                   Cerrar
                 </button>
               </div>
-              
+
               {/* Profile Details */}
-              <div className="flex flex-col items-center pt-8 pb-6 bg-[#111b21] border-b border-white/10">
+              <div className="flex flex-col items-center pt-8 pb-6 px-5 border-b border-border">
                 {activeChat.contact_avatar ? (
-                    <img src={activeChat.contact_avatar} alt="Avatar" className="w-48 h-48 rounded-full object-cover shadow-2xl mb-5 border-4 border-[#202c33]" />
+                    <img src={activeChat.contact_avatar} alt="Avatar" className="w-28 h-28 rounded-full object-cover mb-4" />
                 ) : (
-                    <div className="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-2xl text-6xl mb-5 border-4 border-[#202c33]">
-                    {renderAvatarContent(activeChat, 'w-20 h-20')}
+                    <div className="w-28 h-28 bg-brand rounded-full flex items-center justify-center text-white font-semibold text-4xl mb-4">
+                    {renderAvatarContent(activeChat, 'w-12 h-12')}
                     </div>
                 )}
-                <h2 className="text-2xl font-normal text-gray-100 mb-1 px-4 text-center">
+                <h2 className="text-xl font-semibold text-brand-dark text-center">
                   {getDisplayName(activeChat)}
                 </h2>
                 {hasRealName(activeChat) && (
-                  <p className="text-[15px] text-gray-300 mb-1">+{activeChat.phone_number}</p>
+                  <p className="text-sm text-stone-500 mt-1">+{activeChat.phone_number}</p>
                 )}
-                <p className="text-[15px] text-gray-400 mb-6">
-                  {hasProfileName(activeChat) ? `~${activeChat.contact_name.trim()}` : ''}
-                </p>
-                
-                {/* Action Buttons (4 × 72px + gaps caben en los 340px del panel) */}
-                <div className="flex items-center justify-center gap-1 px-2 w-full">
-                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
-                    <Phone className="w-6 h-6 text-emerald-500" />
-                    <span className="text-[11px] font-medium">Llamar</span>
+                {hasProfileName(activeChat) && (
+                  <p className="text-sm text-stone-400 mt-0.5">~{activeChat.contact_name.trim()}</p>
+                )}
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-4 gap-2 w-full mt-6">
+                  <button className={contactActionBtn}>
+                    <Phone className="w-5 h-5 text-brand" strokeWidth={1.75} />
+                    <span>Llamar</span>
                   </button>
-                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
-                    <Video className="w-6 h-6 text-emerald-500" />
-                    <span className="text-[11px] font-medium">Video</span>
+                  <button className={contactActionBtn}>
+                    <Video className="w-5 h-5 text-brand" strokeWidth={1.75} />
+                    <span>Video</span>
                   </button>
                   <button
                     onClick={() => openContactEditor(activeChat)}
-                    className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors"
+                    className={contactActionBtn}
                     title={activeChat.nombre_guardado ? 'Editar contacto' : 'Guardar contacto'}
                   >
-                    {activeChat.nombre_guardado ? <Edit2 className="w-6 h-6 text-emerald-500" /> : <UserPlus className="w-6 h-6 text-emerald-500" />}
-                    <span className="text-[11px] font-medium">{activeChat.nombre_guardado ? 'Editar' : 'Guardar'}</span>
+                    {activeChat.nombre_guardado ? <Edit2 className="w-5 h-5 text-brand" strokeWidth={1.75} /> : <UserPlus className="w-5 h-5 text-brand" strokeWidth={1.75} />}
+                    <span>{activeChat.nombre_guardado ? 'Editar' : 'Guardar'}</span>
                   </button>
-                  <button className="flex flex-col items-center gap-2 hover:bg-[#202c33] p-3 rounded-2xl w-[72px] transition-colors">
-                    <Search className="w-6 h-6 text-emerald-500" />
-                    <span className="text-[11px] font-medium">Buscar</span>
+                  <button className={contactActionBtn}>
+                    <Search className="w-5 h-5 text-brand" strokeWidth={1.75} />
+                    <span>Buscar</span>
                   </button>
                 </div>
               </div>
 
               {/* Notes Section */}
-              <div className="p-4 bg-[#111b21] border-b border-white/10 mt-2 hover:bg-[#202c33] cursor-pointer transition-colors flex justify-between items-center">
-                <span className="text-emerald-500 text-[15px]">Añade notas sobre tu cliente</span>
-                <Edit2 className="w-5 h-5 text-gray-400" />
+              <div className="px-5 py-4 border-b border-border hover:bg-cream-light cursor-pointer transition-colors flex justify-between items-center">
+                <span className="text-brand text-sm font-medium">Añade notas sobre tu cliente</span>
+                <Edit2 className="w-4 h-4 text-stone-400" strokeWidth={1.75} />
               </div>
 
               {/* Media Section */}
-              <div className="p-4 bg-[#111b21] border-b border-white/10 mt-2 cursor-pointer transition-colors">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-300 text-[14px]">Archivos, enlaces y documentos</span>
-                  <span className="text-gray-400 text-[14px]">0</span>
-                </div>
+              <div className="px-5 py-4 border-b border-border flex justify-between items-center">
+                <span className="text-stone-600 text-sm">Archivos, enlaces y documentos</span>
+                <span className="text-stone-400 text-sm">0</span>
               </div>
-              
+
               {/* Starred Messages */}
-              <div className="p-4 bg-[#111b21] border-b border-white/10 mt-2 hover:bg-[#202c33] cursor-pointer transition-colors flex items-center gap-4">
-                <Star className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300 text-[15px]">Mensajes destacados</span>
+              <div className="px-5 py-4 border-b border-border hover:bg-cream-light cursor-pointer transition-colors flex items-center gap-3">
+                <Star className="w-4 h-4 text-stone-400" strokeWidth={1.75} />
+                <span className="text-stone-600 text-sm">Mensajes destacados</span>
               </div>
             </div>
           )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center p-12 bg-white/60 rounded-3xl border border-white shadow-sm max-w-md">
-              <div className="w-24 h-24 bg-gradient-to-tr from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Send className="w-10 h-10 text-indigo-500 translate-x-0.5" />
+          <div className="flex-1 flex items-center justify-center bg-cream-light">
+            <div className="text-center px-8 max-w-sm">
+              <img src="/logo-firplak.png" alt="FIRPLAK inspirando hogares" className="w-56 h-auto mx-auto mb-10 opacity-90" />
+              <div className="w-14 h-14 rounded-2xl bg-white border border-border flex items-center justify-center mx-auto mb-5">
+                <MessageSquarePlus className="w-6 h-6 text-brand-light" strokeWidth={1.5} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-3">Selecciona un chat</h2>
-              <p className="text-slate-500 text-sm leading-relaxed">Elige una conversación de la lista o inicia una nueva con el botón +</p>
+              <h2 className="text-lg font-semibold text-brand-dark mb-2">Selecciona una conversación</h2>
+              <p className="text-stone-500 text-sm leading-relaxed">
+                Elige un chat de la lista o inicia uno nuevo con el botón de nueva conversación.
+              </p>
             </div>
           </div>
         )}
@@ -1615,7 +1632,7 @@ export default function WhatsAppPage() {
           <div
             ref={chatMenuRef}
             style={{ left, top, width: menuWidth }}
-            className="fixed z-50 bg-white rounded-2xl shadow-xl border border-slate-100 p-1.5 animate-in fade-in zoom-in-95 duration-100"
+            className="fixed z-50 bg-white rounded-xl shadow-lg shadow-brand-dark/10 border border-border p-1.5 animate-in fade-in zoom-in-95 duration-100"
             onContextMenu={(e) => e.preventDefault()}
           >
             <button
@@ -1625,9 +1642,9 @@ export default function WhatsAppPage() {
                 else markChatAsUnread(menuChat.id);
                 setChatMenu(null);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+              className={menuItemClass}
             >
-              {isUnread ? <MailOpen className="w-4 h-4 text-indigo-500" /> : <Mail className="w-4 h-4 text-indigo-500" />}
+              {isUnread ? <MailOpen className="w-4 h-4 text-brand-light" strokeWidth={1.75} /> : <Mail className="w-4 h-4 text-brand-light" strokeWidth={1.75} />}
               {isUnread ? 'Marcar como leído' : 'Marcar como no leído'}
             </button>
             <button
@@ -1636,9 +1653,9 @@ export default function WhatsAppPage() {
                 openContactEditor(menuChat);
                 setChatMenu(null);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+              className={menuItemClass}
             >
-              {menuChat.nombre_guardado ? <Edit2 className="w-4 h-4 text-indigo-500" /> : <UserPlus className="w-4 h-4 text-indigo-500" />}
+              {menuChat.nombre_guardado ? <Edit2 className="w-4 h-4 text-brand-light" strokeWidth={1.75} /> : <UserPlus className="w-4 h-4 text-brand-light" strokeWidth={1.75} />}
               {menuChat.nombre_guardado ? 'Editar contacto' : 'Guardar contacto'}
             </button>
             {chatMenu.fromHeader && (
@@ -1648,10 +1665,10 @@ export default function WhatsAppPage() {
                   setShowContactInfo(true);
                   setChatMenu(null);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                className={menuItemClass}
               >
-                <UserCheck className="w-4 h-4 text-indigo-500" />
-                Info. del contacto
+                <UserCheck className="w-4 h-4 text-brand-light" strokeWidth={1.75} />
+                Información del contacto
               </button>
             )}
           </div>
@@ -1661,27 +1678,27 @@ export default function WhatsAppPage() {
       {/* ── Guardar / editar contacto ── */}
       {contactEditor && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-brand-dark/40 backdrop-blur-[2px] flex items-center justify-center p-4"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setContactEditor(null); }}
         >
-          <form onSubmit={handleSaveContactName} className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-800">
+          <form onSubmit={handleSaveContactName} className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-semibold text-brand-dark">
                 {contactEditor.chat.nombre_guardado ? 'Editar contacto' : 'Guardar contacto'}
               </h3>
-              <button type="button" onClick={() => setContactEditor(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full">
-                <X className="w-5 h-5" />
+              <button type="button" onClick={() => setContactEditor(null)} className="p-1.5 text-stone-400 hover:text-brand-dark rounded-full">
+                <X className="w-5 h-5" strokeWidth={1.75} />
               </button>
             </div>
-            <p className="text-sm text-slate-500 mb-1">Número</p>
-            <p className="text-sm font-semibold text-slate-800 mb-4">+{contactEditor.chat.phone_number}</p>
+            <p className="text-xs text-stone-400 mb-1">Número</p>
+            <p className="text-sm font-medium text-brand-dark mb-4">+{contactEditor.chat.phone_number}</p>
             {hasProfileName(contactEditor.chat) && (
               <>
-                <p className="text-sm text-slate-500 mb-1">Nombre en WhatsApp</p>
-                <p className="text-sm text-slate-700 mb-4">~{contactEditor.chat.contact_name.trim()}</p>
+                <p className="text-xs text-stone-400 mb-1">Nombre en WhatsApp</p>
+                <p className="text-sm text-stone-600 mb-4">~{contactEditor.chat.contact_name.trim()}</p>
               </>
             )}
-            <label className="block text-sm text-slate-500 mb-1" htmlFor="nombre-guardado">Nombre del contacto</label>
+            <label className="block text-xs text-stone-400 mb-1.5" htmlFor="nombre-guardado">Nombre del contacto</label>
             <input
               id="nombre-guardado"
               autoFocus
@@ -1690,14 +1707,14 @@ export default function WhatsAppPage() {
               onKeyDown={(e) => { if (e.key === 'Escape') setContactEditor(null); }}
               placeholder="Ej: Carlos Pérez – Obra Bogotá"
               maxLength={80}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:border-indigo-300 focus:bg-white transition-colors"
+              className="w-full px-3.5 h-10 rounded-lg border border-border bg-cream-light text-sm text-brand-dark outline-none focus:border-brand-light focus:bg-white transition-colors"
             />
-            <p className="text-[11px] text-slate-400 mt-1.5">Déjalo vacío y guarda para quitar el nombre guardado.</p>
+            <p className="text-[11px] text-stone-400 mt-1.5">Déjalo vacío y guarda para quitar el nombre guardado.</p>
             <div className="flex justify-end gap-2 mt-6">
-              <button type="button" onClick={() => setContactEditor(null)} className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+              <button type="button" onClick={() => setContactEditor(null)} className="h-9 px-4 rounded-lg text-sm font-medium text-stone-600 hover:bg-cream-light transition-colors">
                 Cancelar
               </button>
-              <button type="submit" disabled={savingContact} className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 transition-colors">
+              <button type="submit" disabled={savingContact} className="h-9 px-4 rounded-lg text-sm font-semibold text-white bg-brand hover:bg-brand-hover disabled:opacity-60 transition-colors">
                 {savingContact ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
