@@ -8,6 +8,40 @@ import NewMessageModal from '@/components/whatsapp/NewMessageModal';
 import AsesoresModal from '@/components/whatsapp/AsesoresModal';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 
+// Deja la grabación en un formato que acepte WhatsApp: OGG/Opus y MP4 se envían tal cual;
+// cualquier otro (WebM de Chrome/Edge) se decodifica y se recodifica a MP3 mono.
+async function toWhatsAppAudio(blob: Blob): Promise<File> {
+  const baseType = blob.type.split(';')[0].trim();
+  if (baseType === 'audio/ogg') return new File([blob], 'Nota_de_voz.ogg', { type: 'audio/ogg' });
+  if (baseType === 'audio/mp4') return new File([blob], 'Nota_de_voz.m4a', { type: 'audio/mp4' });
+
+  const { Mp3Encoder } = await import('@breezystack/lamejs');
+  const ctx = new AudioContext();
+  try {
+    const audioBuffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+    const samples = audioBuffer.getChannelData(0);
+    const pcm = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+
+    const encoder = new Mp3Encoder(1, audioBuffer.sampleRate, 64);
+    const chunks: Uint8Array[] = [];
+    const blockSize = 1152;
+    for (let i = 0; i < pcm.length; i += blockSize) {
+      const buf = encoder.encodeBuffer(pcm.subarray(i, i + blockSize));
+      if (buf.length > 0) chunks.push(buf);
+    }
+    const end = encoder.flush();
+    if (end.length > 0) chunks.push(end);
+
+    return new File(chunks as BlobPart[], 'Nota_de_voz.mp3', { type: 'audio/mpeg' });
+  } finally {
+    ctx.close();
+  }
+}
+
 export default function WhatsAppPage() {
   const router = useRouter();
   const [chats, setChats] = useState<any[]>([]);
@@ -558,10 +592,14 @@ export default function WhatsAppPage() {
   };
 
   // ── Audio Recording ──────────────────────────────────────────────────────────
+  // WhatsApp Cloud API solo acepta audio AAC, AMR, MP3, MP4 u OGG/Opus (no WebM).
+  // Se graba en OGG/Opus si el navegador lo soporta (Firefox); si no (Chrome/Edge graban WebM),
+  // se convierte a MP3 antes de enviar.
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const preferredType = ['audio/ogg;codecs=opus', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported(t));
+      const mediaRecorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -570,7 +608,7 @@ export default function WhatsAppPage() {
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
         const url = URL.createObjectURL(audioBlob);
         setRecordedAudio({ blob: audioBlob, url });
         stream.getTracks().forEach(track => track.stop());
@@ -599,25 +637,34 @@ export default function WhatsAppPage() {
   const sendAudio = async () => {
     if (!recordedAudio || !activeChat) return;
 
-    // Send as WebM. The API route will send it as a document so it doesn't get dropped by WhatsApp.
-    const file = new File([recordedAudio.blob], 'Nota_de_voz.webm', { type: 'audio/webm' });
     const msgId = crypto.randomUUID();
     const optimisticMsg = {
       id: msgId,
       chat_id: activeChat.id,
-      text_body: 'Nota de voz',
+      text_body: 'Audio',
       sender: 'me',
       status: 'sending...',
       created_at: new Date().toISOString(),
       media_url: recordedAudio.url,
-      media_type: 'document',
-      media_mime_type: 'audio/webm',
-      media_filename: 'Nota_de_voz.webm'
+      media_type: 'audio',
+      media_mime_type: recordedAudio.blob.type,
+      media_filename: 'Nota_de_voz'
     };
 
     setMessages(prev => [...prev, optimisticMsg]);
+    const audioBlob = recordedAudio.blob;
     setRecordedAudio(null);
     setTimeout(scrollToBottom, 50);
+
+    let file: File;
+    try {
+      file = await toWhatsAppAudio(audioBlob);
+    } catch (err) {
+      console.error('Error convirtiendo la nota de voz:', err);
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+      alert('No se pudo procesar la nota de voz. Intenta de nuevo.');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -629,11 +676,14 @@ export default function WhatsAppPage() {
         method: 'POST',
         body: formData,
       });
-      if (!res.ok) throw new Error('Error enviando audio');
-    } catch (err) {
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.details?.error?.message || data?.error || 'Error enviando audio');
+      }
+    } catch (err: any) {
       console.error(err);
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
-      alert('Error enviando la nota de voz. Intenta de nuevo.');
+      alert('Error enviando la nota de voz: ' + err.message);
     }
   };
 

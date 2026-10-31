@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const { error: uploadError } = await supabase.storage
       .from('whatsapp-media')
-      .upload(filename, arrayBuffer, { contentType: file.type, upsert: false });
+      .upload(filename, arrayBuffer, { contentType: file.type.split(';')[0].trim(), upsert: false });
 
     if (uploadError) {
       return NextResponse.json({ error: 'Upload failed', details: uploadError }, { status: 500 });
@@ -40,21 +40,17 @@ export async function POST(request: Request) {
     const publicUrl = publicData.publicUrl;
 
     // 3. Determine WhatsApp media type
-    const mimeType = file.type;
+    // Sin parámetros tipo ";codecs=opus" para guardar un MIME limpio
+    const mimeType = file.type.split(';')[0].trim();
     let waType = 'document';
-    
+
     if (mimeType.startsWith('image/')) {
       waType = 'image';
     } else if (mimeType.startsWith('video/')) {
       waType = 'video';
     } else if (mimeType.startsWith('audio/')) {
-      // Chrome records in WebM format which Meta API rejects for "audio" type messages.
-      // To ensure delivery, we send WebM recordings as "document" so it arrives as an audio file.
-      if (mimeType.includes('webm')) {
-        waType = 'document';
-      } else {
-        waType = 'audio';
-      }
+      // Las notas de voz llegan ya convertidas (OGG/MP3/MP4) desde el cliente; WhatsApp no acepta WebM
+      waType = 'audio';
     }
 
     // 4. Send via WhatsApp API
