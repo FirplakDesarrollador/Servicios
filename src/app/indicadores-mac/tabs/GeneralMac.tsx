@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useRowLimit } from '../utils/useRowLimit';
+import FechaProductoCard from '../components/FechaProductoCard';
 import { RegistroMAC, FilterState } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList, ComposedChart } from 'recharts';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Globe, Package, Check, X, Filter } from 'lucide-react';
@@ -2144,122 +2145,6 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
     }, [data, dataForClientes]);
 
     // Helper para formatear fecha a "Mes Año" (Ej: "Ene 2026", "Feb 2026")
-    const formatMesAno = (dateStr: string | null | undefined): { key: string; label: string } | null => {
-        if (!dateStr || typeof dateStr !== 'string') return null;
-        const cleanStr = dateStr.trim();
-        if (!cleanStr) return null;
-
-        let d: Date | null = null;
-        if (cleanStr.includes('-')) {
-            const parts = cleanStr.split('T')[0].split('-');
-            if (parts.length === 3) {
-                const year = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1;
-                const day = parseInt(parts[2], 10);
-                if (!isNaN(year) && !isNaN(month)) d = new Date(year, month, day || 1);
-            }
-        } else if (cleanStr.includes('/')) {
-            const parts = cleanStr.split('/');
-            if (parts.length === 3) {
-                if (parts[0].length === 4) {
-                    d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                } else {
-                    d = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-                }
-            }
-        }
-
-        if (!d || isNaN(d.getTime())) d = new Date(cleanStr);
-        if (isNaN(d.getTime())) return null;
-
-        const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const label = `${monthNames[d.getMonth()]} ${yyyy}`;
-        const key = `${yyyy}-${mm}`;
-        return { key, label };
-    };
-
-    // ─── Stats por Fecha de Compra (Mes y Año) ─────────────────────────────────
-    const fechaCompraStats = useMemo(() => {
-        const stats: Record<string, { label: string; key: string; regs: number; prods: number }> = {};
-        const total = data.length || 1;
-
-        data.forEach(d => {
-            let rawFecha: string | null | undefined = (d as any).fecha_compra;
-            if (!rawFecha && Array.isArray(d.productos_compra)) {
-                const p = d.productos_compra.find(pc => pc.fecha_compra);
-                if (p) rawFecha = p.fecha_compra;
-            }
-            if (!rawFecha && Array.isArray(d.productos_novedad)) {
-                const p = d.productos_novedad.find(pn => pn.fecha_compra);
-                if (p) rawFecha = p.fecha_compra;
-            }
-
-            const formatted = formatMesAno(rawFecha);
-            const groupKey = formatted ? formatted.key : 'Sin Fecha';
-            const groupLabel = formatted ? formatted.label : 'Sin Fecha';
-
-            if (!stats[groupKey]) {
-                stats[groupKey] = { label: groupLabel, key: groupKey, regs: 0, prods: 0 };
-            }
-
-            stats[groupKey].regs += 1;
-            if (Array.isArray(d.productos_novedad)) {
-                stats[groupKey].prods += d.productos_novedad.reduce((acc, p) => acc + (p.cantidad || 1), 0);
-            }
-        });
-
-        return Object.values(stats)
-            .sort((a, b) => (a.key === 'Sin Fecha' ? 1 : b.key === 'Sin Fecha' ? -1 : a.key.localeCompare(b.key)))
-            .map(item => ({
-                mesAno: item.label,
-                Registros: item.regs,
-                'Productos Afectados': item.prods,
-                Participacion: ((item.regs / total) * 100).toFixed(1) + '%'
-            }));
-    }, [data]);
-
-    // ─── Stats por Fecha de Fabricación (Mes y Año) ──────────────────────────────
-    const fechaFabricacionStats = useMemo(() => {
-        const stats: Record<string, { label: string; key: string; regs: number; prods: number }> = {};
-        const total = data.length || 1;
-
-        data.forEach(d => {
-            let rawFecha: string | null | undefined = (d as any).fecha_fabricacion;
-            if (!rawFecha && Array.isArray(d.productos_compra)) {
-                const p = d.productos_compra.find(pc => pc.fecha_fabricacion);
-                if (p) rawFecha = p.fecha_fabricacion;
-            }
-            if (!rawFecha && Array.isArray(d.productos_novedad)) {
-                const p = d.productos_novedad.find(pn => pn.fecha_fabricacion);
-                if (p) rawFecha = p.fecha_fabricacion;
-            }
-
-            const formatted = formatMesAno(rawFecha);
-            const groupKey = formatted ? formatted.key : 'Sin Fecha';
-            const groupLabel = formatted ? formatted.label : 'Sin Fecha';
-
-            if (!stats[groupKey]) {
-                stats[groupKey] = { label: groupLabel, key: groupKey, regs: 0, prods: 0 };
-            }
-
-            stats[groupKey].regs += 1;
-            if (Array.isArray(d.productos_novedad)) {
-                stats[groupKey].prods += d.productos_novedad.reduce((acc, p) => acc + (p.cantidad || 1), 0);
-            }
-        });
-
-        return Object.values(stats)
-            .sort((a, b) => (a.key === 'Sin Fecha' ? 1 : b.key === 'Sin Fecha' ? -1 : a.key.localeCompare(b.key)))
-            .map(item => ({
-                mesAno: item.label,
-                Registros: item.regs,
-                'Productos Afectados': item.prods,
-                Participacion: ((item.regs / total) * 100).toFixed(1) + '%'
-            }));
-    }, [data]);
-
     const KpiCard = ({ title, value, prefix = '', suffix = '', variacion, subtitle }: { title: string, value: number | string, prefix?: string, suffix?: string, variacion?: number, subtitle?: string }) => (
         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[70px]">
             <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5">{title}</h3>
@@ -2569,65 +2454,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
             {/* Indicadores por Fecha de Compra y Fecha de Fabricación (Mes y Año) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                {/* Chart: Por Fecha de Compra */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Solicitudes por Fecha de Compra</h3>
-                            <p className="text-[11px] text-stone-400 font-medium mt-0.5">Agrupado por Mes y Año de Compra</p>
-                        </div>
-                        <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2.5 py-0.5">
-                            {fechaCompraStats.length} periodos
-                        </span>
-                    </div>
-                    <div className="h-[320px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={fechaCompraStats} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="mesAno" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780', fontWeight: 600 }} />
-                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780' }} />
-                                <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '10px 14px' }} />
-                                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                                <Bar isAnimationActive={false} dataKey="Registros" fill="#254153" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                                    <LabelList dataKey="Registros" position="top" style={{ fill: '#254153', fontSize: 11, fontWeight: 'bold' }} />
-                                </Bar>
-                                <Bar isAnimationActive={false} dataKey="Productos Afectados" fill="#c96a4e" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                                    <LabelList dataKey="Productos Afectados" position="top" style={{ fill: '#c96a4e', fontSize: 10, fontWeight: 'bold' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Chart: Por Fecha de Fabricación */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Solicitudes por Fecha de Fabricación</h3>
-                            <p className="text-[11px] text-stone-400 font-medium mt-0.5">Agrupado por Mes y Año de Fabricación</p>
-                        </div>
-                        <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2.5 py-0.5">
-                            {fechaFabricacionStats.length} periodos
-                        </span>
-                    </div>
-                    <div className="h-[320px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={fechaFabricacionStats} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="mesAno" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780', fontWeight: 600 }} />
-                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780' }} />
-                                <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '10px 14px' }} />
-                                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                                <Bar isAnimationActive={false} dataKey="Registros" fill="#749094" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                                    <LabelList dataKey="Registros" position="top" style={{ fill: '#749094', fontSize: 11, fontWeight: 'bold' }} />
-                                </Bar>
-                                <Bar isAnimationActive={false} dataKey="Productos Afectados" fill="#c96a4e" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                                    <LabelList dataKey="Productos Afectados" position="top" style={{ fill: '#c96a4e', fontSize: 10, fontWeight: 'bold' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                <FechaProductoCard titulo="Solicitudes por fecha de compra" campo="fecha_compra" color="#254153" data={data} />
+                <FechaProductoCard titulo="Solicitudes por fecha de fabricación" campo="fecha_fabricacion" color="#749094" data={data} />
             </div>
 
             {/* Tabla de Radicados y Comentarios */}
