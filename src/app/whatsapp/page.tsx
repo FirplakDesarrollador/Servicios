@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, AudioLines, Zap, Settings2, BookmarkPlus } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, Speech, Square, SendHorizontal, Zap, Settings2, BookmarkPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
 import AsesoresModal from '@/components/whatsapp/AsesoresModal';
 import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whatsapp/RespuestasRapidasModal';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
+
+// Estilos de los botones de la barra de mensaje: iconos secundarios y botón principal (enviar / grabar)
+const composerIconBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-full text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors';
+const composerPrimaryBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 shadow-sm transition-colors';
 
 // Deja la grabación en un formato que acepte WhatsApp: OGG/Opus se envía tal cual; cualquier otro
 // (WebM de Chrome/Edge, MP4 de Safari) se decodifica y se recodifica a MP3 mono.
@@ -1395,25 +1399,38 @@ export default function WhatsAppPage() {
                   </button>
                 </div>
               )}
-              <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-white rounded-2xl border border-gray-200 px-3 py-2 shadow-sm focus-within:border-indigo-300 transition-colors">
+              <form onSubmit={handleSendMessage} className="flex items-end gap-1 bg-white rounded-3xl border border-slate-200 p-1.5 shadow-sm focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
                 {recordedAudio ? (
-                  <div className="flex-1 flex items-center gap-3 bg-indigo-50/50 rounded-xl px-3 py-1 border border-indigo-100">
-                    <button type="button" onClick={discardAudio} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Eliminar audio">
-                      <Trash2 className="w-5 h-5" />
+                  <div className="flex-1 flex items-center gap-2">
+                    <button type="button" onClick={discardAudio} className={composerIconBtn + ' hover:text-red-500! hover:bg-red-50!'} title="Eliminar audio">
+                      <Trash2 className="w-5 h-5" strokeWidth={1.75} />
                     </button>
-                    <audio controls src={recordedAudio.url} className="flex-1 h-[40px] outline-none" />
-                    <button type="button" onClick={sendAudio} disabled={sending} className="p-1.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full transition-colors shadow-sm ml-2" title="Enviar audio">
-                      <Send className="w-5 h-5 ml-0.5" />
+                    <audio controls src={recordedAudio.url} className="flex-1 h-10 outline-none" />
+                    <button type="button" onClick={sendAudio} disabled={sending} className={composerPrimaryBtn} title="Enviar audio">
+                      <SendHorizontal className="w-5 h-5" strokeWidth={2} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <button type="button" className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-full transition-colors">
-                      <Smile className="w-5 h-5" />
-                    </button>
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-full transition-colors" title="Adjuntar archivo">
-                      <Paperclip className="w-5 h-5" />
-                    </button>
+                    {/* Herramientas de contenido */}
+                    {!isRecording && (
+                      <div className="flex items-center">
+                        <button type="button" className={composerIconBtn} title="Emojis">
+                          <Smile className="w-5 h-5" strokeWidth={1.75} />
+                        </button>
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className={composerIconBtn} title="Adjuntar archivo">
+                          <Paperclip className="w-5 h-5" strokeWidth={1.75} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => (isQuickPickerOpen ? closeQuickPicker() : setIsQuickPickerOpen(true))}
+                          className={`${composerIconBtn} ${isQuickPickerOpen ? 'text-indigo-600! bg-indigo-50!' : ''}`}
+                          title="Respuestas rápidas (o escribe / en el mensaje)"
+                        >
+                          <Zap className="w-5 h-5" strokeWidth={1.75} />
+                        </button>
+                      </div>
+                    )}
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -1421,34 +1438,14 @@ export default function WhatsAppPage() {
                       className="hidden"
                       accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
                     />
-                    {dictationSupported && !isRecording && (
-                      <button
-                        type="button"
-                        onClick={isDictating ? stopDictation : startDictation}
-                        className={`p-1.5 rounded-full transition-colors ${isDictating ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:text-indigo-500'}`}
-                        title={isDictating ? 'Detener dictado' : 'Dictar mensaje (voz a texto)'}
-                      >
-                        <AudioLines className="w-5 h-5" />
-                      </button>
-                    )}
-                    {!isRecording && (
-                      <button
-                        type="button"
-                        onClick={() => (isQuickPickerOpen ? closeQuickPicker() : setIsQuickPickerOpen(true))}
-                        className={`p-1.5 rounded-full transition-colors ${isQuickPickerOpen ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-indigo-500'}`}
-                        title="Respuestas rápidas (o escribe / en el mensaje)"
-                      >
-                        <Zap className="w-5 h-5" />
-                      </button>
-                    )}
 
                     {isRecording ? (
-                      <div className="flex-1 flex items-center justify-between gap-3 px-3 text-red-500 bg-red-50 rounded-xl py-1">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-                          <span className="text-sm font-medium">Grabando...</span>
+                      <div className="flex-1 flex items-center justify-between gap-3 h-10 px-4 text-red-500">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                          <span className="text-sm font-medium">Grabando</span>
                         </div>
-                        <span className="text-sm font-semibold tabular-nums">
+                        <span className="text-sm font-semibold tabular-nums text-slate-600">
                           {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
                         </span>
                       </div>
@@ -1467,36 +1464,39 @@ export default function WhatsAppPage() {
                           }
                         }}
                         onChange={(e) => setMessageText(e.target.value)}
-                        placeholder={isDictating ? 'Escuchando... habla ahora' : 'Escribe un mensaje...'}
-                        className="flex-1 min-w-0 bg-transparent outline-none resize-none text-slate-700 placeholder:text-slate-400 text-[15px] leading-6 py-1 max-h-[200px] overflow-hidden"
+                        placeholder={isDictating ? 'Escuchando... habla ahora' : 'Escribe un mensaje'}
+                        className="flex-1 min-w-0 bg-transparent outline-none resize-none text-slate-700 placeholder:text-slate-400 text-[15px] leading-6 px-2 py-2 max-h-[200px] overflow-hidden"
                       />
                     )}
-                    
-                    {messageText.trim() ? (
+
+                    {/* Voz: dictado (voz a texto) y acción principal (enviar / grabar nota de voz) */}
+                    {dictationSupported && !isRecording && (
                       <button
-                        type="submit"
-                        disabled={sending}
-                        className="p-2 rounded-xl transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+                        type="button"
+                        onClick={isDictating ? stopDictation : startDictation}
+                        className={`${composerIconBtn} ${isDictating ? 'text-red-500! bg-red-50! animate-pulse' : ''}`}
+                        title={isDictating ? 'Detener dictado' : 'Dictar mensaje (voz a texto)'}
                       >
-                        <Send className="w-5 h-5" />
+                        <Speech className="w-5 h-5" strokeWidth={1.75} />
+                      </button>
+                    )}
+
+                    {messageText.trim() ? (
+                      <button type="submit" disabled={sending} className={composerPrimaryBtn} title="Enviar">
+                        <SendHorizontal className="w-5 h-5" strokeWidth={2} />
                       </button>
                     ) : isRecording ? (
                       <button
                         type="button"
                         onClick={stopRecording}
-                        className="p-2 rounded-xl transition-all bg-red-500 text-white hover:bg-red-600 shadow-sm"
+                        className={composerPrimaryBtn + ' bg-red-500! hover:bg-red-600!'}
                         title="Detener y escuchar"
                       >
-                        <CheckCheck className="w-5 h-5" />
+                        <Square className="w-4 h-4 fill-current" strokeWidth={2} />
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={startRecording}
-                        className="p-2 rounded-xl transition-all text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                        title="Grabar nota de voz"
-                      >
-                        <Mic className="w-5 h-5" />
+                      <button type="button" onClick={startRecording} className={composerPrimaryBtn} title="Grabar nota de voz">
+                        <Mic className="w-5 h-5" strokeWidth={2} />
                       </button>
                     )}
                   </>
