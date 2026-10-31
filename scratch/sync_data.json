@@ -1,0 +1,29 @@
+[
+  {
+    "Codigo_provedor": "AC800242427-01",
+    "Provedor": "COMPAÑIA DE DISTRIBUCION Y TRANSPORTE S.A.S. BIC",
+    "Codigo_Articulo": "CACC01-0013-000-0000",
+    "Descripcion_articulo": "MATERA DORA PEQUEÑA BLANCO DEC025B",
+    "Unidad_de_medida": "UN",
+    "Precio": "325935",
+    "Cantidad": "1"
+  },
+  {
+    "Codigo_provedor": "PE444444558-01",
+    "Provedor": "TORNBLOM SOFTWARE AB",
+    "Codigo_Articulo": "CACC01-0017-000-0000",
+    "Descripcion_articulo": "ESPEJO CIRCULO UNICO ILU022C",
+    "Unidad_de_medida": "UN",
+    "Precio": "325935",
+    "Cantidad": "1"
+  },
+  {
+    "Codigo_provedor": "PN902014472-01",
+    "Provedor": "GRUPO OCQ COLOMBIA SAS",
+    "Codigo_Articulo": "CASE01-0008-000-0000",
+    "Descripcion_articulo": "DETERGENTE INDUSTRIAL X 1000 GR",
+    "Unidad_de_medida": "KG",
+    "Precio": "7108",
+    "Cantidad": "1"
+  }
+]
