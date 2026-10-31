@@ -6,11 +6,11 @@ import { sapGet, SapRequestError } from '@/lib/sapServiceLayer';
 // Antes se hacía una consulta por cada código (incluidas las materias primas sin LDM) con 15 peticiones
 // simultáneas sobre la misma sesión, que SAP bloquea entre sí: un producto con ~120 componentes tardaba
 // cerca de un minuto. Ahora se recorre por niveles (una consulta trae las LDM de todos los códigos del nivel)
-// y los costos se piden en lote: ~10 consultas en total. El resultado se guarda 10 minutos en memoria.
+// y los costos se piden en lote: ~10 consultas en total. Sin caché: cada consulta lee los costos vigentes
+// en SAP, porque se usan para simular negocios.
 
 const BATCH = 25;
 const MAX_LEVELS = 12;
-const CACHE_TTL_MS = 10 * 60 * 1000;
 
 interface TreeLine {
   ItemCode: string;
@@ -20,8 +20,6 @@ interface TreeLine {
   InventoryUOM: string | null;
   VisualOrder: number;
 }
-
-const resultCache = new Map<string, { at: number; data: any[] }>();
 
 const odataString = (v: string) => `'${v.replace(/'/g, "''")}'`;
 
@@ -192,11 +190,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Falta el parámetro code2 (Artículo superior fin)' }, { status: 400 });
     }
 
-    const cached = resultCache.get(code1);
-    if (cached && Date.now() - cached.at < CACHE_TTL_MS && searchParams.get('fresh') !== '1') {
-      return NextResponse.json(cached.data);
-    }
-
     const started = Date.now();
     const result = await buildLdm(code1);
     if (!result) {
@@ -204,7 +197,6 @@ export async function GET(request: Request) {
     }
     console.log(`[LDM Costos] ${code1}: ${result.length} líneas en ${Date.now() - started} ms`);
 
-    resultCache.set(code1, { at: Date.now(), data: result });
     return NextResponse.json(result);
   } catch (error: any) {
     console.error('[LDM Costos] Error:', error);
