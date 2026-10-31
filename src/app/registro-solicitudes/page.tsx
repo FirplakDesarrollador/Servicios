@@ -232,32 +232,32 @@ export default function RegistroSolicitudesPage() {
 
   // Paleta FIRPLAK, igual que el módulo de WhatsApp
   const segmentClass = (active: boolean) =>
-    `flex items-center gap-1.5 px-3 h-7 rounded-md text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+    `flex items-center gap-1.5 px-2.5 h-6 rounded-md text-[9px] font-semibold uppercase tracking-wider transition-colors ${
       active ? 'bg-white text-brand shadow-sm' : 'text-stone-500 hover:text-brand'
     }`;
-  const filterControlClass = 'appearance-none h-8 bg-white border border-border rounded-lg pl-3 pr-7 text-[11px] font-medium text-brand-dark focus:outline-none focus:border-brand-light cursor-pointer hover:bg-cream-light transition-colors';
+  const filterControlClass = 'appearance-none h-7 bg-white border border-border rounded-lg pl-2.5 pr-6 text-[10px] font-medium text-brand-dark focus:outline-none focus:border-brand-light cursor-pointer hover:bg-cream-light transition-colors';
 
   return (
     <div className="min-h-screen bg-cream text-brand-dark font-sans p-3 md:p-5 pb-20">
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-border pb-4">
-        <div className="flex items-center gap-3">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3 w-full max-w-[96%] xl:max-w-[1800px] mx-auto border-b border-border pb-3">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => router.push('/')}
-            className="w-9 h-9 flex items-center justify-center bg-white rounded-lg border border-border hover:bg-cream-light transition-colors shrink-0 text-stone-500 hover:text-brand"
+            className="w-8 h-8 flex items-center justify-center bg-white rounded-lg border border-border hover:bg-cream-light transition-colors shrink-0 text-stone-500 hover:text-brand"
             title="Volver al inicio"
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
           <div>
-            <h1 className="text-lg md:text-xl font-semibold text-brand-dark tracking-tight flex items-center gap-2">
-              <FileText className="w-5 h-5 text-brand hidden sm:block" strokeWidth={1.75} />
+            <h1 className="text-sm md:text-base font-semibold text-brand-dark tracking-tight flex items-center gap-1.5 whitespace-nowrap">
+              <FileText className="w-4 h-4 text-brand hidden sm:block" strokeWidth={1.75} />
               Registro Solicitudes
             </h1>
-            <p className="text-[11px] font-medium text-brand-light uppercase tracking-[0.14em] mt-0.5">Gestión y listado de solicitudes</p>
+            <p className="text-[9px] font-medium text-brand-light uppercase tracking-[0.12em] whitespace-nowrap">Gestión y listado de solicitudes</p>
           </div>
         </div>
 
-        <div className="flex flex-nowrap overflow-x-auto items-center gap-2 pb-1 lg:pb-0 scrollbar-hide">
+        <div className="flex flex-wrap lg:flex-nowrap items-center gap-1.5 lg:justify-end">
           {/* Segmented control for status */}
           <div className="bg-cream-light border border-border rounded-lg p-0.5 flex items-center shrink-0">
             <button onClick={() => setFilterEstado('Todos')} className={segmentClass(filterEstado === 'Todos')}>
@@ -285,11 +285,11 @@ export default function RegistroSolicitudesPage() {
               <option value="Media">Prioridad: Media</option>
               <option value="Baja">Prioridad: Baja</option>
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" />
+            <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" />
           </div>
 
           {/* Advisor filter */}
-          <div className="relative min-w-[120px] shrink-0">
+          <div className="relative min-w-[110px] max-w-[180px] shrink-0">
             <select
               value={filterAsesor}
               onChange={(e) => setFilterAsesor(e.target.value)}
@@ -301,37 +301,37 @@ export default function RegistroSolicitudesPage() {
                 <option key={a.id} value={String(a.id)}>{a.nombres} {a.apellidos}</option>
               ))}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" />
+            <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" />
           </div>
 
           {/* Search input */}
           <div className="relative shrink-0">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" strokeWidth={1.75} />
+            <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" strokeWidth={1.75} />
             <input
               type="text"
               placeholder="Buscar registros"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-44 h-8 pl-8 pr-3 bg-white border border-border rounded-lg text-[11px] text-brand-dark placeholder:text-stone-400 focus:outline-none focus:border-brand-light transition-colors"
+              className="w-full sm:w-36 h-7 pl-7 pr-2.5 bg-white border border-border rounded-lg text-[10px] text-brand-dark placeholder:text-stone-400 focus:outline-none focus:border-brand-light transition-colors"
             />
           </div>
 
           {/* WP Button */}
           <button
             onClick={() => router.push('/whatsapp')}
-            className="flex items-center justify-center gap-1.5 h-8 px-3 bg-white border border-border hover:border-brand-light hover:bg-cream-light text-brand rounded-lg font-semibold text-[11px] transition-colors whitespace-nowrap shrink-0"
+            className="flex items-center justify-center gap-1.5 h-7 px-2.5 bg-white border border-border hover:border-brand-light hover:bg-cream-light text-brand rounded-lg font-semibold text-[10px] transition-colors whitespace-nowrap shrink-0"
             title="Abrir WhatsApp"
           >
-            <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <MessageCircle className="w-3 h-3" strokeWidth={1.75} />
             WhatsApp
           </button>
 
           {/* Add button */}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center justify-center gap-1.5 h-8 px-3.5 bg-brand hover:bg-brand-hover text-white rounded-lg font-semibold text-[11px] transition-colors whitespace-nowrap shrink-0"
+            className="flex items-center justify-center gap-1 h-7 px-3 bg-brand hover:bg-brand-hover text-white rounded-lg font-semibold text-[10px] transition-colors whitespace-nowrap shrink-0"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3 h-3" />
             Nuevo registro
           </button>
         </div>
