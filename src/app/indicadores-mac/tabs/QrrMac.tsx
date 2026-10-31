@@ -67,7 +67,7 @@ function generateAlerts(records: QRRRecord[]): QRRAlert[] {
     abiertos.forEach(a => {
         const reincidente = cerrados.find(c => c.problema.toLowerCase() === a.problema.toLowerCase());
         if (reincidente) {
-            alerts.push({ type: 'reincidencia', qrrId: a.id, message: `Posible reincidencia en "${a.problema}" — revisar efectividad de acción correctiva anterior (QRR ${reincidente.id.slice(0, 8)})`, emoji: '🔴', color: '#7c3aed' });
+            alerts.push({ type: 'reincidencia', qrrId: a.id, message: `Posible reincidencia en "${a.problema}" — revisar efectividad de acción correctiva anterior (QRR ${reincidente.id.slice(0, 8)})`, emoji: '🔴', color: '#8c5847' });
         }
     });
     return alerts;
@@ -101,11 +101,11 @@ function newQRR(partial?: Partial<QRRRecord>): QRRRecord {
 
 // ── KPI Card ───────────────────────────────────────────────────────────────
 const KpiCard = ({ title, value, color, emoji }: { title: string; value: number | string; color: string; emoji: string }) => (
-    <div className="bg-white px-3 py-2.5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[68px]">
-        <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
+    <div className="bg-white px-3 py-2.5 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[68px]">
+        <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5">{title}</h3>
         <div className="flex items-center gap-1.5">
             <span className="text-sm">{emoji}</span>
-            <span className="text-lg font-black leading-tight" style={{ color }}>{typeof value === 'number' ? value.toLocaleString('es-CO') : value}</span>
+            <span className="text-lg font-bold leading-tight" style={{ color }}>{typeof value === 'number' ? value.toLocaleString('es-CO') : value}</span>
         </div>
     </div>
 );
@@ -119,30 +119,30 @@ const KanbanCard = ({ record, onClick }: { record: QRRRecord; onClick: () => voi
     return (
         <div
             onClick={onClick}
-            className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-all hover:border-gray-300 group"
+            className="bg-white rounded-lg border border-border p-3 cursor-pointer hover:shadow-md transition-all hover:border-border group"
         >
             <div className="flex items-start justify-between mb-2">
-                <span className="text-[10px] font-bold text-gray-400">QRR-{record.id.slice(0, 6)}</span>
+                <span className="text-[10px] font-bold text-stone-400">QRR-{record.id.slice(0, 6)}</span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: priCfg.bgColor, color: priCfg.color, border: `1px solid ${priCfg.borderColor}` }}>
                     {priCfg.emoji}
                 </span>
             </div>
-            <p className="text-xs font-bold text-gray-800 mb-1 line-clamp-2">{record.problema || 'Sin problema definido'}</p>
-            <p className="text-[10px] text-gray-500 mb-2 truncate">{record.referencia || 'Sin referencia'}</p>
+            <p className="text-xs font-bold text-brand-dark mb-1 line-clamp-2">{record.problema || 'Sin problema definido'}</p>
+            <p className="text-[10px] text-stone-500 mb-2 truncate">{record.referencia || 'Sin referencia'}</p>
             <div className="flex items-center justify-between text-[10px]">
-                <span className="text-gray-500">{record.responsable || '—'}</span>
+                <span className="text-stone-500">{record.responsable || '—'}</span>
                 {record.fechaCompromiso && (
-                    <span className={`font-bold ${days < 0 ? 'text-red-600' : days <= 3 ? 'text-orange-500' : 'text-gray-400'}`}>
+                    <span className={`font-bold ${days < 0 ? 'text-red-600' : days <= 3 ? 'text-orange-500' : 'text-stone-400'}`}>
                         {days < 0 ? `⚠ ${Math.abs(days)}d vencido` : `${days}d`}
                     </span>
                 )}
             </div>
             {record.avancePorcentaje > 0 && (
                 <div className="mt-2">
-                    <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${record.avancePorcentaje}%`, backgroundColor: cfg.color }} />
                     </div>
-                    <span className="text-[9px] text-gray-400 mt-0.5">{record.avancePorcentaje}%</span>
+                    <span className="text-[9px] text-stone-400 mt-0.5">{record.avancePorcentaje}%</span>
                 </div>
             )}
         </div>
@@ -176,7 +176,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
         { key: 'pendiente', label: 'Pendiente', emoji: '🔴', color: '#ef4444' },
         { key: 'en_analisis', label: 'En Análisis', emoji: '🟠', color: '#f97316' },
         { key: 'en_ejecucion', label: 'En Ejecución', emoji: '🟡', color: '#eab308' },
-        { key: 'en_validacion', label: 'En Validación', emoji: '🔵', color: '#3b82f6' },
+        { key: 'en_validacion', label: 'En Validación', emoji: '🔵', color: '#3b778c' },
         { key: 'cerrado', label: 'Cerrado', emoji: '🟢', color: '#10b981' },
     ];
 
@@ -251,9 +251,9 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
             {/* ── KPIs ───────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
                 <KpiCard title="QRR Abiertos" value={stats.abiertos} emoji="📋" color="#254153" />
-                <KpiCard title="QRR Vencidos" value={stats.vencidos} emoji="⚫" color={stats.vencidos > 0 ? '#ef4444' : '#6b7280'} />
+                <KpiCard title="QRR Vencidos" value={stats.vencidos} emoji="⚫" color={stats.vencidos > 0 ? '#ef4444' : '#8a8780'} />
                 <KpiCard title="En Ejecución" value={stats.enEjecucion} emoji="🟡" color="#eab308" />
-                <KpiCard title="En Validación" value={stats.enValidacion} emoji="🔵" color="#3b82f6" />
+                <KpiCard title="En Validación" value={stats.enValidacion} emoji="🔵" color="#3b778c" />
                 <KpiCard title="QRR Cerrados" value={stats.cerrados} emoji="🟢" color="#10b981" />
                 <KpiCard title="Impacto $$$ abierto" value={fmt$(stats.impactoAbierto)} emoji="💰" color="#254153" />
                 <KpiCard title="Casos afectados" value={stats.casosAfectados} emoji="📊" color="#c96a4e" />
@@ -266,13 +266,13 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                     {alerts.slice(0, 5).map((alert, i) => (
                         <div key={i} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-sm" style={{ backgroundColor: alert.color + '08', borderColor: alert.color + '30' }}>
                             <span className="text-sm">{alert.emoji}</span>
-                            <span className="text-xs font-semibold text-gray-700 flex-1">{alert.message}</span>
+                            <span className="text-xs font-semibold text-stone-700 flex-1">{alert.message}</span>
                             <button
                                 onClick={() => {
                                     const rec = qrrRecords.find(r => r.id === alert.qrrId);
                                     if (rec) setEditingQRR({ ...rec });
                                 }}
-                                className="text-[10px] font-bold text-gray-500 hover:text-gray-800 transition-colors"
+                                className="text-[10px] font-bold text-stone-500 hover:text-brand-dark transition-colors"
                             >
                                 Ver →
                             </button>
@@ -286,13 +286,13 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setViewMode('kanban')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-[#254153] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-[#254153] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-100'}`}
                     >
                         Kanban
                     </button>
                     <button
                         onClick={() => setViewMode('table')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'table' ? 'bg-[#254153] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'table' ? 'bg-[#254153] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-100'}`}
                     >
                         Tabla
                     </button>
@@ -317,13 +317,13 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
             {viewMode === 'kanban' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     {kanbanColumns.map(col => (
-                        <div key={col.key} className="bg-gray-50/80 rounded-xl p-3 min-h-[200px]">
+                        <div key={col.key} className="bg-cream-light/80 rounded-xl p-3 min-h-[200px]">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-1.5">
                                     <span className="text-sm">{col.emoji}</span>
-                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-wider">{col.label}</span>
+                                    <span className="text-[10px] font-bold text-stone-600 uppercase tracking-wider">{col.label}</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-gray-400 bg-white rounded-full px-2 py-0.5 shadow-sm">
+                                <span className="text-[10px] font-bold text-stone-400 bg-white rounded-full px-2 py-0.5 shadow-sm">
                                     {kanbanData[col.key]?.length || 0}
                                 </span>
                             </div>
@@ -332,7 +332,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                                     <KanbanCard key={rec.id} record={rec} onClick={() => setEditingQRR({ ...rec })} />
                                 ))}
                                 {(kanbanData[col.key] || []).length === 0 && (
-                                    <p className="text-center text-[10px] text-gray-400 py-8">Sin registros</p>
+                                    <p className="text-center text-[10px] text-stone-400 py-8">Sin registros</p>
                                 )}
                             </div>
                         </div>
@@ -342,59 +342,59 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
 
             {/* ── Vista Tabla ────────────────────────────────────────────────── */}
             {viewMode === 'table' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[1200px]">
                             <thead>
-                                <tr className="bg-gray-50">
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Fecha</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Origen</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Referencia</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Responsable</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Problema</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right">Casos</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right">Uds.</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right">$$$</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Acción</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Compromiso</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500">Estado</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right">Avance</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500"></th>
+                                <tr className="bg-cream-light">
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Fecha</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Origen</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Referencia</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Responsable</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Problema</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Casos</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Uds.</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">$$$</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Acción</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Compromiso</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Estado</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Avance</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {qrrRecords.length === 0 && (
-                                    <tr><td colSpan={13} className="text-center py-12 text-sm text-gray-400">No hay registros QRR. Crea uno nuevo o genera desde Análisis.</td></tr>
+                                    <tr><td colSpan={13} className="text-center py-12 text-sm text-stone-400">No hay registros QRR. Crea uno nuevo o genera desde Análisis.</td></tr>
                                 )}
                                 {qrrRecords.map((r, i) => {
                                     const est = computeEstado(r);
                                     const cfg = QRR_ESTADO_CONFIG[est];
                                     return (
-                                        <tr key={r.id} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'} hover:bg-blue-50/40`}>
-                                            <td className="px-3 py-2.5 text-xs text-gray-600 border-b border-gray-100 whitespace-nowrap">{r.fechaInicio}</td>
-                                            <td className="px-3 py-2.5 text-xs text-gray-600 border-b border-gray-100">{r.origen}</td>
-                                            <td className="px-3 py-2.5 text-xs text-gray-700 border-b border-gray-100 max-w-[100px] truncate" title={r.referencia}>{r.referencia || '—'}</td>
-                                            <td className="px-3 py-2.5 text-xs text-gray-700 border-b border-gray-100">{r.responsable || '—'}</td>
-                                            <td className="px-3 py-2.5 text-xs font-medium text-gray-800 border-b border-gray-100 max-w-[150px] truncate" title={r.problema}>{r.problema}</td>
-                                            <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{r.numCasos}</td>
-                                            <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{r.numUnidades}</td>
-                                            <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-gray-100">{fmt$(r.impactoDinero)}</td>
-                                            <td className="px-3 py-2.5 text-xs text-gray-600 border-b border-gray-100 max-w-[120px] truncate" title={r.accion}>{r.accion || '—'}</td>
-                                            <td className="px-3 py-2.5 text-xs text-gray-600 border-b border-gray-100 whitespace-nowrap">{r.fechaCompromiso || '—'}</td>
-                                            <td className="px-3 py-2.5 border-b border-gray-100">
+                                        <tr key={r.id} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
+                                            <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border whitespace-nowrap">{r.fechaInicio}</td>
+                                            <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border">{r.origen}</td>
+                                            <td className="px-3 py-2.5 text-xs text-stone-700 border-b border-border max-w-[100px] truncate" title={r.referencia}>{r.referencia || '—'}</td>
+                                            <td className="px-3 py-2.5 text-xs text-stone-700 border-b border-border">{r.responsable || '—'}</td>
+                                            <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border max-w-[150px] truncate" title={r.problema}>{r.problema}</td>
+                                            <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{r.numCasos}</td>
+                                            <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{r.numUnidades}</td>
+                                            <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(r.impactoDinero)}</td>
+                                            <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={r.accion}>{r.accion || '—'}</td>
+                                            <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border whitespace-nowrap">{r.fechaCompromiso || '—'}</td>
+                                            <td className="px-3 py-2.5 border-b border-border">
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: cfg.bgColor, color: cfg.color }}>
                                                     {cfg.emoji} {cfg.label}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-2.5 text-xs font-bold text-gray-700 text-right border-b border-gray-100">{r.avancePorcentaje}%</td>
-                                            <td className="px-3 py-2.5 border-b border-gray-100">
+                                            <td className="px-3 py-2.5 text-xs font-bold text-stone-700 text-right border-b border-border">{r.avancePorcentaje}%</td>
+                                            <td className="px-3 py-2.5 border-b border-border">
                                                 <div className="flex items-center gap-1">
-                                                    <button onClick={() => setEditingQRR({ ...r })} className="p-1 rounded hover:bg-gray-100 transition-colors" title="Editar">
-                                                        <EditIcon className="w-3.5 h-3.5 text-gray-500" />
+                                                    <button onClick={() => setEditingQRR({ ...r })} className="p-1 rounded hover:bg-cream-light transition-colors" title="Editar">
+                                                        <EditIcon className="w-3.5 h-3.5 text-stone-500" />
                                                     </button>
                                                     {r.registrosAsociados.length > 0 && (
-                                                        <button onClick={() => setShowRecords(r.registrosAsociados)} className="p-1 rounded hover:bg-gray-100 transition-colors" title="Ver registros">
-                                                            <EyeIcon className="w-3.5 h-3.5 text-gray-500" />
+                                                        <button onClick={() => setShowRecords(r.registrosAsociados)} className="p-1 rounded hover:bg-cream-light transition-colors" title="Ver registros">
+                                                            <EyeIcon className="w-3.5 h-3.5 text-stone-500" />
                                                         </button>
                                                     )}
                                                 </div>
@@ -413,29 +413,29 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setEditingQRR(null)}>
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
                         <div className="bg-[#254153] px-6 py-4 flex items-center justify-between">
-                            <h3 className="text-white font-black text-sm">
+                            <h3 className="text-white font-bold text-sm">
                                 {qrrRecords.find(r => r.id === editingQRR.id) ? `Editar QRR — ${editingQRR.id.slice(0, 8)}` : 'Nuevo QRR'}
                             </h3>
                             <button onClick={() => setEditingQRR(null)} className="text-white/80 hover:text-white transition-colors"><XIcon className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] space-y-4">
                             {/* Flujo de cierre visual */}
-                            <div className="flex items-center gap-1 text-[9px] text-gray-400 font-bold overflow-x-auto pb-2">
+                            <div className="flex items-center gap-1 text-[9px] text-stone-400 font-bold overflow-x-auto pb-2">
                                 {['Problema', 'Causa', 'Acción', 'Responsable', 'Compromiso', 'Ejecución', 'Validación', 'Cierre'].map((step, i) => (
                                     <React.Fragment key={i}>
-                                        <span className={`px-2 py-1 rounded ${i <= (['pendiente', 'en_analisis', 'en_ejecucion', 'en_validacion', 'cerrado'].indexOf(editingQRR.estado) + 1) ? 'bg-[#254153] text-white' : 'bg-gray-100 text-gray-400'}`}>{step}</span>
-                                        {i < 7 && <span className="text-gray-300">→</span>}
+                                        <span className={`px-2 py-1 rounded ${i <= (['pendiente', 'en_analisis', 'en_ejecucion', 'en_validacion', 'cerrado'].indexOf(editingQRR.estado) + 1) ? 'bg-[#254153] text-white' : 'bg-stone-100 text-stone-400'}`}>{step}</span>
+                                        {i < 7 && <span className="text-stone-300">→</span>}
                                     </React.Fragment>
                                 ))}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Fecha Inicio</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Fecha Inicio</label>
                                     <input type="date" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.fechaInicio} onChange={e => setEditingQRR({ ...editingQRR, fechaInicio: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Origen</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Origen</label>
                                     <select className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.origen} onChange={e => setEditingQRR({ ...editingQRR, origen: e.target.value })}>
                                         {QRR_ORIGEN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                                     </select>
@@ -443,92 +443,92 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Problema</label>
+                                <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Problema</label>
                                 <textarea className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none resize-none" rows={2} value={editingQRR.problema} onChange={e => setEditingQRR({ ...editingQRR, problema: e.target.value })} placeholder="Descripción del problema detectado" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Referencia(s)</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Referencia(s)</label>
                                     <input type="text" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.referencia} onChange={e => setEditingQRR({ ...editingQRR, referencia: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Responsable</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Responsable</label>
                                     <input type="text" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.responsable} onChange={e => setEditingQRR({ ...editingQRR, responsable: e.target.value })} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">N° Casos</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">N° Casos</label>
                                     <input type="number" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.numCasos} onChange={e => setEditingQRR({ ...editingQRR, numCasos: parseInt(e.target.value) || 0 })} />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">N° Unidades</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">N° Unidades</label>
                                     <input type="number" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.numUnidades} onChange={e => setEditingQRR({ ...editingQRR, numUnidades: parseInt(e.target.value) || 0 })} />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">$$$ Impacto</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">$$$ Impacto</label>
                                     <input type="number" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.impactoDinero} onChange={e => setEditingQRR({ ...editingQRR, impactoDinero: parseInt(e.target.value) || 0 })} />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Acción Correctiva / Preventiva</label>
+                                <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Acción Correctiva / Preventiva</label>
                                 <textarea className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none resize-none" rows={2} value={editingQRR.accion} onChange={e => setEditingQRR({ ...editingQRR, accion: e.target.value })} placeholder="Acción a ejecutar" />
                             </div>
 
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Fecha Compromiso</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Fecha Compromiso</label>
                                     <input type="date" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.fechaCompromiso} onChange={e => setEditingQRR({ ...editingQRR, fechaCompromiso: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Estado</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Estado</label>
                                     <select className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.estado} onChange={e => setEditingQRR({ ...editingQRR, estado: e.target.value as QRREstado })}>
                                         {Object.entries(QRR_ESTADO_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Avance %</label>
+                                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Avance %</label>
                                     <input type="number" min={0} max={100} className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.avancePorcentaje} onChange={e => setEditingQRR({ ...editingQRR, avancePorcentaje: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })} />
                                 </div>
                             </div>
 
                             {/* Campos de cierre formal */}
                             {(editingQRR.estado === 'en_validacion' || editingQRR.estado === 'cerrado') && (
-                                <div className="border-t border-gray-200 pt-4 mt-4 space-y-4">
-                                    <h4 className="text-xs font-black text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                                <div className="border-t border-border pt-4 mt-4 space-y-4">
+                                    <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center gap-2">
                                         <CheckCircleIcon className="w-4 h-4 text-green-600" />
                                         Cierre Formal
                                     </h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Acción Ejecutada</label>
+                                            <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Acción Ejecutada</label>
                                             <textarea className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none resize-none" rows={2} value={editingQRR.accionEjecutada || ''} onChange={e => setEditingQRR({ ...editingQRR, accionEjecutada: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Fecha Ejecución</label>
+                                            <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Fecha Ejecución</label>
                                             <input type="date" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.fechaEjecucion || ''} onChange={e => setEditingQRR({ ...editingQRR, fechaEjecucion: e.target.value })} />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Responsable Ejecución</label>
+                                            <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Responsable Ejecución</label>
                                             <input type="text" className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none" value={editingQRR.responsableEjecucion || ''} onChange={e => setEditingQRR({ ...editingQRR, responsableEjecucion: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Evidencia / Observación</label>
+                                            <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Evidencia / Observación</label>
                                             <textarea className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none resize-none" rows={2} value={editingQRR.evidenciaCierre || ''} onChange={e => setEditingQRR({ ...editingQRR, evidenciaCierre: e.target.value })} />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Validación</label>
+                                            <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Validación</label>
                                             <textarea className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none resize-none" rows={2} value={editingQRR.validacion || ''} onChange={e => setEditingQRR({ ...editingQRR, validacion: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Resultado</label>
+                                            <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Resultado</label>
                                             <textarea className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none resize-none" rows={2} value={editingQRR.resultado || ''} onChange={e => setEditingQRR({ ...editingQRR, resultado: e.target.value })} />
                                         </div>
                                     </div>
@@ -544,14 +544,14 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                             )}
 
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Observaciones</label>
+                                <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Observaciones</label>
                                 <textarea className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-brand focus:outline-none resize-none" rows={2} value={editingQRR.observaciones} onChange={e => setEditingQRR({ ...editingQRR, observaciones: e.target.value })} />
                             </div>
 
                             {editingQRR.registrosAsociados.length > 0 && (
                                 <button
                                     onClick={() => setShowRecords(editingQRR.registrosAsociados)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#254153] bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#254153] bg-stone-100 hover:bg-stone-100 rounded-lg transition-colors"
                                 >
                                     <EyeIcon className="w-3.5 h-3.5" />
                                     Ver {editingQRR.registrosAsociados.length} registros asociados
@@ -559,7 +559,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                             )}
                         </div>
 
-                        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-cream-light">
                             <div>
                                 {qrrRecords.find(r => r.id === editingQRR.id) && (
                                     <button
@@ -571,7 +571,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                                 )}
                             </div>
                             <div className="flex items-center gap-3">
-                                <button onClick={() => setEditingQRR(null)} className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+                                <button onClick={() => setEditingQRR(null)} className="px-4 py-2 text-xs font-bold text-stone-600 hover:bg-cream-light rounded-lg transition-colors">Cancelar</button>
                                 <button
                                     onClick={() => {
                                         if (editingQRR.estado === 'cerrado' && !(editingQRR.accionEjecutada && editingQRR.fechaEjecucion && editingQRR.responsableEjecucion && editingQRR.validacion && editingQRR.resultado)) {
@@ -595,32 +595,32 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowRecords(null)}>
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
                         <div className="bg-[#254153] px-6 py-4 flex items-center justify-between">
-                            <h3 className="text-white font-black text-sm">Registros Asociados ({associatedRecords.length})</h3>
+                            <h3 className="text-white font-bold text-sm">Registros Asociados ({associatedRecords.length})</h3>
                             <button onClick={() => setShowRecords(null)} className="text-white/80 hover:text-white transition-colors"><XIcon className="w-5 h-5" /></button>
                         </div>
                         <div className="p-4 overflow-auto max-h-[65vh]">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-gray-50">
-                                        <th className="px-3 py-2 text-[10px] font-black uppercase text-gray-500">Radicado</th>
-                                        <th className="px-3 py-2 text-[10px] font-black uppercase text-gray-500">Fecha</th>
-                                        <th className="px-3 py-2 text-[10px] font-black uppercase text-gray-500">Cliente</th>
-                                        <th className="px-3 py-2 text-[10px] font-black uppercase text-gray-500">Estado</th>
-                                        <th className="px-3 py-2 text-[10px] font-black uppercase text-gray-500">Ciudad</th>
-                                        <th className="px-3 py-2 text-[10px] font-black uppercase text-gray-500 text-right">Valor</th>
+                                    <tr className="bg-cream-light">
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Radicado</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Fecha</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Cliente</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Estado</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Ciudad</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500 text-right">Valor</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {associatedRecords.map((r, i) => (
-                                        <tr key={r.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
-                                            <td className="px-3 py-2 text-xs font-bold text-[#254153] border-b border-gray-100">{r.consecutivo}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600 border-b border-gray-100">{new Date(r.created_at).toLocaleDateString('es-CO')}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-700 border-b border-gray-100">{r._clientePrincipalFinal}</td>
-                                            <td className="px-3 py-2 text-xs border-b border-gray-100">
+                                        <tr key={r.id} className={i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'}>
+                                            <td className="px-3 py-2 text-xs font-bold text-[#254153] border-b border-border">{r.consecutivo}</td>
+                                            <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{new Date(r.created_at).toLocaleDateString('es-CO')}</td>
+                                            <td className="px-3 py-2 text-xs text-stone-700 border-b border-border">{r._clientePrincipalFinal}</td>
+                                            <td className="px-3 py-2 text-xs border-b border-border">
                                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.estado === 'Cerrado' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{r.estado}</span>
                                             </td>
-                                            <td className="px-3 py-2 text-xs text-gray-600 border-b border-gray-100">{r._ciudad}</td>
-                                            <td className="px-3 py-2 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{fmt$(r._valorInvertido || 0)}</td>
+                                            <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{r._ciudad}</td>
+                                            <td className="px-3 py-2 text-xs font-bold text-brand-dark text-right border-b border-border">{fmt$(r._valorInvertido || 0)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

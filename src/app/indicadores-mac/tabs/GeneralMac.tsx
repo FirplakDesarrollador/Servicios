@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useRowLimit } from '../utils/useRowLimit';
 import { RegistroMAC, FilterState } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList, ComposedChart } from 'recharts';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Globe, Package, Check, X, Filter } from 'lucide-react';
@@ -229,11 +230,11 @@ const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
-            <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100 text-xs z-50">
-                <p className="font-bold text-gray-800 mb-1">{data.nombre}</p>
-                <p className="text-gray-600">Registros: <span className="font-semibold text-gray-800">{data.Registros}</span></p>
-                <p className="text-gray-600">Prod. Afectados: <span className="font-semibold text-gray-800">{data['Productos Afectados']}</span></p>
-                <p className="text-gray-600">Participación: <span className="font-semibold text-gray-800">{data.Participacion}</span></p>
+            <div className="bg-white p-3 rounded-lg shadow-lg border border-border text-xs z-50">
+                <p className="font-bold text-brand-dark mb-1">{data.nombre}</p>
+                <p className="text-stone-600">Registros: <span className="font-semibold text-brand-dark">{data.Registros}</span></p>
+                <p className="text-stone-600">Prod. Afectados: <span className="font-semibold text-brand-dark">{data['Productos Afectados']}</span></p>
+                <p className="text-stone-600">Participación: <span className="font-semibold text-brand-dark">{data.Participacion}</span></p>
             </div>
         );
     }
@@ -257,9 +258,9 @@ const SingleDataPie = ({ data, color }: { data: any, color: string }) => (
     <div className="relative w-full h-full flex flex-col items-center justify-center animate-fade-in min-h-[220px]">
         <div className="absolute inset-0 m-auto w-40 h-40 rounded-full border-[16px]" style={{ borderColor: color }}></div>
         <div className="z-10 text-center flex flex-col items-center justify-center mt-[-10px]">
-            <p className="text-3xl font-black text-gray-800">100%</p>
-            <p className="text-sm text-gray-600 font-bold mt-1 truncate px-4 max-w-[160px] mx-auto">{data.nombre}</p>
-            <p className="text-xs text-gray-500 mt-1">{data.Registros} Registros</p>
+            <p className="text-3xl font-bold text-brand-dark">100%</p>
+            <p className="text-sm text-stone-600 font-bold mt-1 truncate px-4 max-w-[160px] mx-auto">{data.nombre}</p>
+            <p className="text-xs text-stone-500 mt-1">{data.Registros} Registros</p>
         </div>
     </div>
 );
@@ -269,8 +270,8 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
 
     if (data.length === 1) {
         return (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full min-h-[320px]">
-                <h3 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wider">{title}</h3>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col h-full min-h-[320px]">
+                <h3 className="text-sm font-bold text-brand-dark mb-2 uppercase tracking-wider">{title}</h3>
                 <div className="flex-1 flex items-center justify-center">
                     <SingleDataPie data={data[0]} color={colors[0]} />
                 </div>
@@ -279,8 +280,8 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
     }
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full min-h-[320px]">
-            <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">{title}</h3>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col h-full min-h-[320px]">
+            <h3 className="text-sm font-bold text-brand-dark mb-4 uppercase tracking-wider">{title}</h3>
             
             <div className="flex-1 flex flex-row items-center h-full">
                 {/* Columna Izquierda: Gráfico (65%) */}
@@ -303,7 +304,7 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
                             >
                                 {data.map((entry, index) => {
                                     const isActive = activeFilters.length === 0 || activeFilters.includes(entry.nombre);
-                                    return <Cell key={`cell-${index}`} fill={isActive ? colors[index % colors.length] : '#e5e7eb'} />;
+                                    return <Cell key={`cell-${index}`} fill={isActive ? colors[index % colors.length] : '#e8e2d5'} />;
                                 })}
                             </Pie>
                             <RechartsTooltip content={<CustomPieTooltip />} />
@@ -320,18 +321,18 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
                                 onClick={(e) => onFilterToggle(filterKey as keyof FilterState, item.nombre, e)} 
                                 className={`flex items-center justify-between text-xs w-full cursor-pointer p-1 rounded transition-colors ${
                                     activeFilters.length > 0 && activeFilters.includes(item.nombre)
-                                        ? 'bg-blue-50'
+                                        ? 'bg-brand-soft'
                                         : activeFilters.length > 0 
                                             ? 'opacity-40 hover:opacity-100'
-                                            : 'hover:bg-gray-50'
+                                            : 'hover:bg-cream-light'
                                 }`}
                             >
                                 <div className="flex items-center gap-2 truncate pr-2 flex-1 min-w-0">
-                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: (activeFilters.length === 0 || activeFilters.includes(item.nombre)) ? colors[index % colors.length] : '#e5e7eb' }}></div>
-                                    <span className={`font-semibold truncate ${activeFilters.length > 0 && activeFilters.includes(item.nombre) ? 'text-blue-900' : 'text-gray-700'}`} title={item.nombre}>{item.nombre}</span>
+                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: (activeFilters.length === 0 || activeFilters.includes(item.nombre)) ? colors[index % colors.length] : '#e8e2d5' }}></div>
+                                    <span className={`font-semibold truncate ${activeFilters.length > 0 && activeFilters.includes(item.nombre) ? 'text-brand' : 'text-stone-700'}`} title={item.nombre}>{item.nombre}</span>
                                 </div>
-                                <div className="flex items-center justify-end text-gray-500 whitespace-nowrap flex-shrink-0 ml-1">
-                                    <span className="font-bold text-gray-800 mr-1">{item.Registros}</span>
+                                <div className="flex items-center justify-end text-stone-500 whitespace-nowrap flex-shrink-0 ml-1">
+                                    <span className="font-bold text-brand-dark mr-1">{item.Registros}</span>
                                     <span className="text-[10px]">({item.Participacion})</span>
                                 </div>
                             </div>
@@ -353,12 +354,13 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
     activeFilters?: string[];
 }) => {
     const [query, setQuery] = React.useState('');
+    const rows = useRowLimit([data, query]);
 
     if (!data || data.length === 0) {
         return (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">{title}</h3>
-                <p className="text-sm text-gray-400 text-center py-12">Sin datos</p>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
+                <h3 className="text-sm font-bold text-brand-dark mb-4 uppercase tracking-wider">{title}</h3>
+                <p className="text-sm text-stone-400 text-center py-12">Sin datos</p>
             </div>
         );
     }
@@ -373,18 +375,18 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
         : data;
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
             {/* Header: title + counter */}
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{title}</h3>
-                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">{title}</h3>
+                <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5">
                     {filtered.length}/{data.length} productos
                 </span>
             </div>
 
             {/* Search input */}
             <div className="relative mb-3">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                 </svg>
                 <input
@@ -392,10 +394,10 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder="Buscar por código o producto..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
                 {query && (
-                    <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -404,36 +406,36 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
             </div>
 
             {/* Table */}
-            <div className="overflow-y-auto" style={{ maxHeight: `${maxHeight}px` }}>
+            <div className="overflow-y-auto" style={{ maxHeight: `${maxHeight}px` }} onScroll={rows.onScroll}>
                 {filtered.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{query}&quot;</p>
+                    <p className="text-xs text-stone-400 text-center py-8">Sin resultados para &quot;{query}&quot;</p>
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50">
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Producto</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
+                            <tr className="bg-cream-light">
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Producto</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((item, i) => (
+                            {filtered.slice(0, rows.limit).map((item, i) => (
                                 <tr 
                                     key={i} 
                                     onClick={(e) => onFilterToggle(filterKey as keyof FilterState, item.nombre, e)}
                                     className={`group transition-colors cursor-pointer ${
                                         activeFilters.length > 0 && activeFilters.includes(item.nombre)
-                                            ? 'bg-blue-100 border-l-4 border-blue-500'
+                                            ? 'bg-sage-soft border-l-4 border-brand-light'
                                             : activeFilters.length > 0 
-                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-gray-50'
-                                                : i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'
+                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-cream-light'
+                                                : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'
                                     }`}
                                 >
-                                    <td className="px-3 py-2.5 text-xs font-medium text-gray-700 leading-snug border-b border-gray-100">{item.nombre}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{item.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{item['Productos Afectados']}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-gray-100">{item.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-medium text-stone-700 leading-snug border-b border-border">{item.nombre}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{item.Registros}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{item['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{item.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -450,20 +452,21 @@ const TopCiudadesCard = ({ data, onFilterToggle, activeFilters = [] }: {
     activeFilters?: string[];
 }) => {
     const [q, setQ] = React.useState('');
+    const rows = useRowLimit([data, q]);
     const filtered = q.trim()
         ? data.filter(c => c.nombre.toLowerCase().includes(q.toLowerCase()))
         : data;
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Top Ciudades</h3>
-                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Top Ciudades</h3>
+                <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5">
                     {filtered.length}/{data.length} ciudades
                 </span>
             </div>
             <div className="relative mb-3">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                 </svg>
                 <input
@@ -471,46 +474,46 @@ const TopCiudadesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar ciudad..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
                 {q && (
-                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 )}
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: '380px' }} onScroll={rows.onScroll}>
                 {filtered.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
+                    <p className="text-xs text-stone-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50">
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Ciudad</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
+                            <tr className="bg-cream-light">
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Ciudad</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((c, i) => (
+                            {filtered.slice(0, rows.limit).map((c, i) => (
                                 <tr 
                                     key={i} 
                                     onClick={(e) => onFilterToggle('ciudades', c.nombre, e)}
                                     className={`group transition-colors cursor-pointer ${
                                         activeFilters.length > 0 && activeFilters.includes(c.nombre)
-                                            ? 'bg-blue-100 border-l-4 border-blue-500'
+                                            ? 'bg-sage-soft border-l-4 border-brand-light'
                                             : activeFilters.length > 0 
-                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-gray-50'
-                                                : i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'
+                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-cream-light'
+                                                : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'
                                     }`}
                                 >
-                                    <td className="px-3 py-2.5 text-xs font-medium text-gray-700 leading-snug border-b border-gray-100">{c.nombre}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{c.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{c['Productos Afectados']}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-gray-100">{c.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-medium text-stone-700 leading-snug border-b border-border">{c.nombre}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{c.Registros}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{c['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{c.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -529,20 +532,21 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
     activeFilters?: string[];
 }) => {
     const [q, setQ] = React.useState('');
+    const rows = useRowLimit([data, q]);
     const filtered = q.trim()
         ? data.filter(c => c.Cliente.toLowerCase().includes(q.toLowerCase()))
         : data;
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Top Clientes</h3>
-                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Top Clientes</h3>
+                <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5">
                     {filtered.length}/{data.length} clientes
                 </span>
             </div>
             <div className="relative mb-3">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                 </svg>
                 <input
@@ -550,46 +554,46 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar cliente final..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
                 {q && (
-                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 )}
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: '380px' }} onScroll={rows.onScroll}>
                 {filtered.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
+                    <p className="text-xs text-stone-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50">
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Cliente</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
+                            <tr className="bg-cream-light">
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Cliente</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((c, i) => (
+                            {filtered.slice(0, rows.limit).map((c, i) => (
                                 <tr 
                                     key={i} 
                                     onClick={(e) => onFilterToggle('clientes', c.Cliente, e)}
                                     className={`group transition-colors cursor-pointer ${
                                         activeFilters.length > 0 && activeFilters.includes(c.Cliente)
-                                            ? 'bg-blue-100 border-l-4 border-blue-500'
+                                            ? 'bg-sage-soft border-l-4 border-brand-light'
                                             : activeFilters.length > 0 
-                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-gray-50'
-                                                : i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'
+                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-cream-light'
+                                                : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'
                                     }`}
                                 >
-                                    <td className="px-3 py-2.5 text-xs font-medium text-gray-700 leading-snug border-b border-gray-100">{c.Cliente}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{c.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{c.Productos}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-gray-100">{c.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-medium text-stone-700 leading-snug border-b border-border">{c.Cliente}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{c.Registros}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{c.Productos}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{c.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -613,15 +617,15 @@ const PlantasProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle
         : data;
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{title}</h3>
-                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">{title}</h3>
+                <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5">
                     {filtered.length}/{data.length} plantas
                 </span>
             </div>
             <div className="relative mb-3">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                 </svg>
                 <input
@@ -629,10 +633,10 @@ const PlantasProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar planta..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
                 {q && (
-                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -641,15 +645,15 @@ const PlantasProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle
             </div>
             <div className="overflow-y-auto" style={{ maxHeight: `${maxHeight}px` }}>
                 {filtered.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
+                    <p className="text-xs text-stone-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50">
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Planta</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right rounded-tr-lg">%</th>
+                            <tr className="bg-cream-light">
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Planta</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right rounded-tr-lg">%</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -659,12 +663,12 @@ const PlantasProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle
                                     <tr 
                                         key={item.nombre} 
                                         onClick={(e) => onFilterToggle('productos', `PL:${item.nombre}`, e)}
-                                        className={`cursor-pointer transition-colors ${i !== filtered.length - 1 ? 'border-b border-gray-50' : ''} ${isSelected ? 'bg-[#254153]/10 hover:bg-[#254153]/20' : 'hover:bg-slate-50'}`}
+                                        className={`cursor-pointer transition-colors ${i !== filtered.length - 1 ? 'border-b border-border' : ''} ${isSelected ? 'bg-[#254153]/10 hover:bg-[#254153]/20' : 'hover:bg-cream-light'}`}
                                     >
-                                        <td className="px-3 py-3 text-xs font-bold text-gray-800">{item.nombre}</td>
-                                        <td className="px-3 py-3 text-xs font-semibold text-gray-700 text-right">{item.Registros}</td>
+                                        <td className="px-3 py-3 text-xs font-bold text-brand-dark">{item.nombre}</td>
+                                        <td className="px-3 py-3 text-xs font-semibold text-stone-700 text-right">{item.Registros}</td>
                                         <td className="px-3 py-3 text-xs font-bold text-[#c96a4e] text-right">{item['Productos Afectados']}</td>
-                                        <td className="px-3 py-3 text-[10px] font-medium text-gray-500 text-right">{item.Participacion}</td>
+                                        <td className="px-3 py-3 text-[10px] font-medium text-stone-500 text-right">{item.Participacion}</td>
                                     </tr>
                                 );
                             })}
@@ -690,15 +694,15 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
         : data;
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{title}</h3>
-                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+                <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">{title}</h3>
+                <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5">
                     {filtered.length}/{data.length} grupos
                 </span>
             </div>
             <div className="relative mb-3">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                 </svg>
                 <input
@@ -706,10 +710,10 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar grupo de producto..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
                 {q && (
-                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -718,15 +722,15 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
             </div>
             <div className="overflow-y-auto" style={{ maxHeight: `${maxHeight}px` }}>
                 {filtered.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
+                    <p className="text-xs text-stone-400 text-center py-8">Sin resultados para &quot;{q}&quot;</p>
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50">
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 rounded-tl-lg">Grupo</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Regs.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap">Cant.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-black uppercase text-gray-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
+                            <tr className="bg-cream-light">
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Grupo</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Regs.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap">Cant.</th>
+                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right whitespace-nowrap rounded-tr-lg">%</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -736,16 +740,16 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
                                     onClick={(e) => onFilterToggle('productos', `GF:${item.nombre}`, e)}
                                     className={`group transition-colors cursor-pointer ${
                                         activeFilters.length > 0 && activeFilters.includes(`GF:${item.nombre}`)
-                                            ? 'bg-blue-100 border-l-4 border-blue-500'
+                                            ? 'bg-sage-soft border-l-4 border-brand-light'
                                             : activeFilters.length > 0 
-                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-gray-50'
-                                                : i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'
+                                                ? 'bg-white opacity-40 hover:opacity-100 hover:bg-cream-light'
+                                                : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'
                                     }`}
                                 >
-                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 leading-snug border-b border-gray-100">{item.nombre}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-gray-800 text-right border-b border-gray-100">{item.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-gray-100">{item['Productos Afectados']}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-gray-100">{item.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark leading-snug border-b border-border">{item.nombre}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{item.Registros}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{item['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{item.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -801,10 +805,10 @@ export const MercadosParticipacionCard = ({
                 subtitulo: 'Colombia / Clientes Locales',
                 color: '#254153',
                 hoverColor: '#1a2e3b',
-                borderClass: 'border-slate-200',
+                borderClass: 'border-border',
                 activeBorderClass: 'border-[#254153]',
                 activeRingClass: 'ring-[#254153]/25',
-                activeBgClass: 'bg-slate-50/80',
+                activeBgClass: 'bg-cream-light/80',
                 regs: 0,
                 prods: 0,
                 inversion: 0,
@@ -814,12 +818,12 @@ export const MercadosParticipacionCard = ({
                 id: 'Internacional',
                 nombre: 'Mercado Internacional',
                 subtitulo: 'Exportaciones / Exterior',
-                color: '#3b82f6',
-                hoverColor: '#2563eb',
-                borderClass: 'border-blue-200',
-                activeBorderClass: 'border-blue-600',
-                activeRingClass: 'ring-blue-500/25',
-                activeBgClass: 'bg-blue-50/50',
+                color: '#3b778c',
+                hoverColor: '#254153',
+                borderClass: 'border-brand-light/30',
+                activeBorderClass: 'border-brand',
+                activeRingClass: 'ring-brand-light/25',
+                activeBgClass: 'bg-brand-soft/50',
                 regs: 0,
                 prods: 0,
                 inversion: 0,
@@ -829,12 +833,12 @@ export const MercadosParticipacionCard = ({
                 id: 'Sin clasificar',
                 nombre: 'Sin clasificar',
                 subtitulo: 'Sin asignación de mercado',
-                color: '#94a3b8',
-                hoverColor: '#64748b',
-                borderClass: 'border-slate-200',
-                activeBorderClass: 'border-slate-500',
-                activeRingClass: 'ring-slate-400/25',
-                activeBgClass: 'bg-slate-100/60',
+                color: '#b3bec4',
+                hoverColor: '#8a8780',
+                borderClass: 'border-border',
+                activeBorderClass: 'border-brand-light',
+                activeRingClass: 'ring-border/25',
+                activeBgClass: 'bg-stone-100/60',
                 regs: 0,
                 prods: 0,
                 inversion: 0,
@@ -927,15 +931,15 @@ export const MercadosParticipacionCard = ({
     };
 
     return (
-        <div className="bg-white p-3.5 rounded-xl shadow-xs border border-gray-100 flex flex-col space-y-2.5">
+        <div className="bg-white p-3.5 rounded-xl shadow-xs border border-border flex flex-col space-y-2.5">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-md bg-[#254153]/10 text-[#254153] flex items-center justify-center">
                         <Globe className="w-3 h-3" />
                     </div>
-                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                        Mercados <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.2 normal-case font-normal">(% de Participación)</span>
+                    <h3 className="text-xs font-bold text-brand-dark uppercase tracking-wider flex items-center gap-1.5">
+                        Mercados <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.2 normal-case font-normal">(% de Participación)</span>
                     </h3>
                     {hasFilter && (
                         <div className="flex items-center gap-1 ml-1">
@@ -944,7 +948,7 @@ export const MercadosParticipacionCard = ({
                             </span>
                             <button
                                 onClick={() => activeMercadoFilters.forEach(f => onFilterToggle('mercado', f))}
-                                className="text-[9px] font-bold text-gray-400 hover:text-red-500 underline ml-0.5 cursor-pointer transition-colors"
+                                className="text-[9px] font-bold text-stone-400 hover:text-red-500 underline ml-0.5 cursor-pointer transition-colors"
                                 title="Limpiar filtro de mercado"
                             >
                                 Limpiar
@@ -954,19 +958,19 @@ export const MercadosParticipacionCard = ({
                 </div>
 
                 <div className="flex items-center gap-2.5 text-xs">
-                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 bg-gray-50 border border-gray-200/60 px-2 py-0.5 rounded-md">
-                        <span>Total: <strong className="text-gray-800 font-bold">{totalRegs.toLocaleString('es-CO')}</strong> reg.</span>
-                        <span className="text-gray-300">|</span>
+                    <div className="flex items-center gap-1.5 text-[10px] text-stone-500 bg-cream-light border border-border/60 px-2 py-0.5 rounded-md">
+                        <span>Total: <strong className="text-brand-dark font-bold">{totalRegs.toLocaleString('es-CO')}</strong> reg.</span>
+                        <span className="text-stone-300">|</span>
                         <span><strong className="text-amber-700 font-bold">{totalProds.toLocaleString('es-CO')}</strong> prods.</span>
                     </div>
-                    <span className="text-[9px] font-semibold text-gray-400 hidden md:inline">
+                    <span className="text-[9px] font-semibold text-stone-400 hidden md:inline">
                         Clic en una tarjeta para filtro cruzado
                     </span>
                 </div>
             </div>
 
             {/* Barra acumulada horizontal proporcional fina */}
-            <div className="w-full h-1.5 bg-gray-100 rounded-full flex overflow-hidden p-0.2 gap-0.5">
+            <div className="w-full h-1.5 bg-stone-100 rounded-full flex overflow-hidden p-0.2 gap-0.5">
                 {mercadosData.map(cat => {
                     const isSelected = activeMercadoFilters.includes(cat.id);
                     const isDimmed = hasFilter && !isSelected;
@@ -1011,19 +1015,19 @@ export const MercadosParticipacionCard = ({
                                 isSelected
                                     ? `bg-white ${cat.activeBorderClass} shadow-xs ring-1.5 ${cat.activeRingClass} border-2`
                                     : isDimmed
-                                    ? 'bg-gray-50/50 border-gray-100 opacity-40 hover:opacity-95 hover:border-gray-300'
-                                    : 'bg-white border-gray-200/80 shadow-2xs hover:shadow-xs hover:border-gray-300'
+                                    ? 'bg-cream-light/50 border-border opacity-40 hover:opacity-95 hover:border-border'
+                                    : 'bg-white border-border/80 shadow-2xs hover:shadow-xs hover:border-border'
                             }`}
                         >
                             {/* Color Dot + Name + % Participación */}
                             <div className="flex items-center justify-between mb-1.5">
                                 <div className="flex items-center gap-1.5 truncate pr-1">
                                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                                    <span className="text-[11px] font-bold text-gray-800 truncate">{cat.nombre}</span>
-                                    <span className="text-[9px] font-medium text-gray-400 hidden xl:inline">({cat.subtitulo})</span>
+                                    <span className="text-[11px] font-bold text-brand-dark truncate">{cat.nombre}</span>
+                                    <span className="text-[9px] font-medium text-stone-400 hidden xl:inline">({cat.subtitulo})</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <span className="text-xs font-black text-gray-900">{cat.participacion}</span>
+                                    <span className="text-xs font-bold text-brand-dark">{cat.participacion}</span>
                                     {isSelected && (
                                         <span className="text-[8px] font-bold bg-[#254153] text-white px-1.5 py-0.2 rounded-full">Activo</span>
                                     )}
@@ -1031,17 +1035,17 @@ export const MercadosParticipacionCard = ({
                             </div>
 
                             {/* Métricas Compactas en Fila */}
-                            <div className="flex items-center justify-between gap-1 text-[10px] bg-slate-50/80 px-2 py-1 rounded-md border border-slate-100">
-                                <span className="text-gray-600">
-                                    Regs: <strong className="font-bold text-gray-800">{cat.regs.toLocaleString('es-CO')}</strong>
+                            <div className="flex items-center justify-between gap-1 text-[10px] bg-cream-light/80 px-2 py-1 rounded-md border border-border">
+                                <span className="text-stone-600">
+                                    Regs: <strong className="font-bold text-brand-dark">{cat.regs.toLocaleString('es-CO')}</strong>
                                 </span>
-                                <span className="text-gray-300">|</span>
+                                <span className="text-stone-300">|</span>
                                 <span className="text-amber-800">
                                     Unids: <strong className="font-bold text-amber-900">{cat.prods.toLocaleString('es-CO')}</strong>
                                 </span>
-                                <span className="text-gray-300">|</span>
-                                <span className="text-gray-500 text-[9px] truncate">
-                                    Inv: <strong className="font-semibold text-gray-700">{formatMoney(cat.inversion)}</strong>
+                                <span className="text-stone-300">|</span>
+                                <span className="text-stone-500 text-[9px] truncate">
+                                    Inv: <strong className="font-semibold text-stone-700">{formatMoney(cat.inversion)}</strong>
                                 </span>
                             </div>
 
@@ -1049,45 +1053,45 @@ export const MercadosParticipacionCard = ({
                             <div
                                 className={`hidden group-hover:block absolute ${horizontalClass} ${
                                     isBottom ? 'top-full mt-2' : 'bottom-full mb-2'
-                                } w-72 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700`}
+                                } w-72 p-3.5 bg-brand text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-white/10`}
                             >
-                                <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
+                                <div className="font-bold text-white/85 border-b border-white/10 pb-1.5 mb-2 flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
                                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
                                         {cat.nombre}
                                     </span>
-                                    <span className="text-sky-400 font-black">{cat.participacion}</span>
+                                    <span className="text-brand-light font-bold">{cat.participacion}</span>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <div className="flex items-center justify-between text-slate-300">
+                                    <div className="flex items-center justify-between text-stone-300">
                                         <span className="text-[11px]">Total Registros hechos:</span>
-                                        <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{cat.regs.toLocaleString('es-CO')} ({cat.participacion})</span>
+                                        <span className="font-bold text-white bg-brand-hover px-2 py-0.5 rounded border border-white/10">{cat.regs.toLocaleString('es-CO')} ({cat.participacion})</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-slate-300">
+                                    <div className="flex items-center justify-between text-stone-300">
                                         <span className="text-[11px]">Total Unidades con novedad:</span>
                                         <span className="font-bold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods.toLocaleString('es-CO')} ({cat.participacionProds})</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-slate-300">
+                                    <div className="flex items-center justify-between text-stone-300">
                                         <span className="text-[11px]">Valor invertido estimado:</span>
                                         <span className="font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/50">{formatMoney(cat.inversion)}</span>
                                     </div>
                                     {Object.keys(cat.canales).length > 0 && (
-                                        <div className="border-t border-slate-700/80 pt-1.5 mt-1.5">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                        <div className="border-t border-white/10/80 pt-1.5 mt-1.5">
+                                            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1">
                                                 Desglose por Canal de Venta:
                                             </div>
                                             <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
                                                 {Object.entries(cat.canales).map(([canal, count]) => (
-                                                    <div key={canal} className="flex items-center justify-between text-[10px] text-slate-300">
+                                                    <div key={canal} className="flex items-center justify-between text-[10px] text-stone-300">
                                                         <span className="truncate pr-2">{canal}:</span>
-                                                        <span className="font-bold text-slate-200">{count}</span>
+                                                        <span className="font-bold text-white/85">{count}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-2 pt-1.5 border-t border-slate-700/60 text-[10px] text-sky-300 text-center font-medium">
+                                <div className="mt-2 pt-1.5 border-t border-white/10/60 text-[10px] text-brand-light text-center font-medium">
                                     {isSelected ? 'Haz clic para quitar filtro cruzado' : 'Haz clic para aplicar filtro cruzado'}
                                 </div>
                                 {/* Flecha del tooltip apuntando al contenedor */}
@@ -1164,7 +1168,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                     'Canal Propio',
                     'Propio'
                 ],
-                color: '#3b82f6',
+                color: '#3b778c',
                 regs: 0,
                 prods: 0,
                 mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
@@ -1271,57 +1275,57 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
     };
 
     return (
-        <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-2.5">
+        <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-border flex flex-col space-y-2.5">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                        Canales de Venta <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 normal-case font-normal">(% de Participación)</span>
+                    <h3 className="text-xs font-bold text-brand-dark uppercase tracking-wider flex items-center gap-1.5">
+                        Canales de Venta <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5 normal-case font-normal">(% de Participación)</span>
                     </h3>
                 </div>
 
                 {/* Resumen Global de Participación por Mercado */}
                 <div className="flex items-center gap-2">
-                    <div className="relative group cursor-help bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-md px-2 py-0.5 flex items-center gap-1.5 text-[9px] transition-colors shadow-2xs">
-                        <span className="font-bold text-slate-600 uppercase tracking-wider">Mercados:</span>
-                        <span className="font-black text-emerald-700">Nac: {globalMercados.nacionalPct}%</span>
-                        <span className="text-slate-300 font-light">|</span>
-                        <span className="font-black text-sky-700">Int: {globalMercados.internacionalPct}%</span>
+                    <div className="relative group cursor-help bg-cream-light hover:bg-cream-light border border-border/90 rounded-md px-2 py-0.5 flex items-center gap-1.5 text-[9px] transition-colors shadow-2xs">
+                        <span className="font-bold text-stone-600 uppercase tracking-wider">Mercados:</span>
+                        <span className="font-bold text-emerald-700">Nac: {globalMercados.nacionalPct}%</span>
+                        <span className="text-stone-300 font-light">|</span>
+                        <span className="font-bold text-brand">Int: {globalMercados.internacionalPct}%</span>
                         {globalMercados.sinClasificarCount > 0 && (
                             <>
-                                <span className="text-slate-300 font-light">|</span>
-                                <span className="font-semibold text-slate-500">Sin clasif: {globalMercados.sinClasificarPct}%</span>
+                                <span className="text-stone-300 font-light">|</span>
+                                <span className="font-semibold text-stone-500">Sin clasif: {globalMercados.sinClasificarPct}%</span>
                             </>
                         )}
 
                         {/* Tooltip con desglose global al pasar el mouse */}
-                        <div className="hidden group-hover:block absolute right-0 top-full mt-2 w-64 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700">
-                            <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
+                        <div className="hidden group-hover:block absolute right-0 top-full mt-2 w-64 p-3.5 bg-brand text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-white/10">
+                            <div className="font-bold text-white/85 border-b border-white/10 pb-1.5 mb-2 flex items-center justify-between">
                                 <span>Participación Total por Mercado</span>
-                                <span className="text-[10px] font-bold text-slate-400">{globalMercados.total} casos</span>
+                                <span className="text-[10px] font-bold text-stone-400">{globalMercados.total} casos</span>
                             </div>
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between text-slate-300 text-[11px]">
+                                <div className="flex items-center justify-between text-stone-300 text-[11px]">
                                     <span className="flex items-center gap-1.5">
                                         <span className="w-2 h-2 rounded-full bg-emerald-400" />
                                         Mercado Nacional:
                                     </span>
-                                    <span className="font-bold text-emerald-400">{globalMercados.nacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({globalMercados.nacionalCount})</span></span>
+                                    <span className="font-bold text-emerald-400">{globalMercados.nacionalPct}% <span className="text-[10px] text-stone-400 font-normal">({globalMercados.nacionalCount})</span></span>
                                 </div>
-                                <div className="flex items-center justify-between text-slate-300 text-[11px]">
+                                <div className="flex items-center justify-between text-stone-300 text-[11px]">
                                     <span className="flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-sky-400" />
+                                        <span className="w-2 h-2 rounded-full bg-brand-light" />
                                         Mercado Internacional:
                                     </span>
-                                    <span className="font-bold text-sky-400">{globalMercados.internacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({globalMercados.internacionalCount})</span></span>
+                                    <span className="font-bold text-brand-light">{globalMercados.internacionalPct}% <span className="text-[10px] text-stone-400 font-normal">({globalMercados.internacionalCount})</span></span>
                                 </div>
                                 {globalMercados.sinClasificarCount > 0 && (
-                                    <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                                    <div className="flex items-center justify-between text-stone-400 text-[11px]">
                                         <span className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-slate-500" />
+                                            <span className="w-2 h-2 rounded-full bg-brand-light" />
                                             Sin clasificar:
                                         </span>
-                                        <span className="font-bold text-slate-300">{globalMercados.sinClasificarPct}% <span className="text-[10px] text-slate-400 font-normal">({globalMercados.sinClasificarCount})</span></span>
+                                        <span className="font-bold text-stone-300">{globalMercados.sinClasificarPct}% <span className="text-[10px] text-stone-400 font-normal">({globalMercados.sinClasificarCount})</span></span>
                                     </div>
                                 )}
                             </div>
@@ -1329,12 +1333,12 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                         </div>
                     </div>
 
-                    <span className="text-[9px] font-medium text-gray-400 hidden sm:inline">Pasa el mouse para ver detalles</span>
+                    <span className="text-[9px] font-medium text-stone-400 hidden sm:inline">Pasa el mouse para ver detalles</span>
                 </div>
             </div>
 
             {/* Barra acumulada horizontal proporcional */}
-            <div className="w-full h-1.5 bg-gray-100 rounded-full flex overflow-hidden p-0.5 gap-0.5">
+            <div className="w-full h-1.5 bg-stone-100 rounded-full flex overflow-hidden p-0.5 gap-0.5">
                 {canalVentaData.map(cat => {
                     const hasActiveFilter = activeCanalFilters.length > 0;
                     const isActive = !hasActiveFilter || activeCanalFilters.some(f => cat.matchingKeys.some(mk => mk.toLowerCase() === f.toLowerCase() || f.toLowerCase() === cat.id));
@@ -1380,18 +1384,18 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                 isSelected 
                                     ? 'bg-white border-2 border-[#254153] ring-1.5 ring-[#254153]/20 shadow-xs' 
                                     : isDimmed
-                                    ? 'bg-gray-50/50 border-gray-100 opacity-40 hover:opacity-95 hover:border-gray-300'
-                                    : 'bg-white border-gray-200/80 shadow-2xs hover:shadow-xs hover:border-gray-300'
+                                    ? 'bg-cream-light/50 border-border opacity-40 hover:opacity-95 hover:border-border'
+                                    : 'bg-white border-border/80 shadow-2xs hover:shadow-xs hover:border-border'
                             }`}
                         >
                             {/* Color Dot + Name + % Participación */}
                             <div className="flex items-center justify-between mb-1.5">
                                 <div className="flex items-center gap-1.5 truncate pr-1">
                                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                                    <span className="text-[11px] font-bold text-gray-800 truncate">{cat.nombre}</span>
+                                    <span className="text-[11px] font-bold text-brand-dark truncate">{cat.nombre}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <span className="text-xs font-black text-gray-900">{cat.participacion}</span>
+                                    <span className="text-xs font-bold text-brand-dark">{cat.participacion}</span>
                                     {isSelected && (
                                         <span className="text-[8px] font-bold bg-[#254153] text-white px-1.5 py-0.2 rounded-full">Activo</span>
                                     )}
@@ -1399,17 +1403,17 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                             </div>
 
                             {/* Métricas Compactas en Fila */}
-                            <div className="flex items-center justify-between gap-1 text-[10px] bg-slate-50/80 px-2 py-1 rounded-md border border-slate-100">
-                                <span className="text-gray-600">
-                                    Regs: <strong className="font-bold text-gray-800">{cat.regs.toLocaleString('es-CO')}</strong>
+                            <div className="flex items-center justify-between gap-1 text-[10px] bg-cream-light/80 px-2 py-1 rounded-md border border-border">
+                                <span className="text-stone-600">
+                                    Regs: <strong className="font-bold text-brand-dark">{cat.regs.toLocaleString('es-CO')}</strong>
                                 </span>
-                                <span className="text-gray-300">|</span>
+                                <span className="text-stone-300">|</span>
                                 <span className="text-amber-800">
                                     Unids: <strong className="font-bold text-amber-900">{cat.prods.toLocaleString('es-CO')}</strong>
                                 </span>
-                                <span className="text-gray-300">|</span>
-                                <span className="text-[9px] font-medium text-slate-500 truncate" title="Participación por Mercado: Nacional vs Internacional">
-                                    Nac: <strong className="text-emerald-700 font-semibold">{cat.mercadoNacionalPct}%</strong> • Int: <strong className="text-sky-700 font-semibold">{cat.mercadoInternacionalPct}%</strong>
+                                <span className="text-stone-300">|</span>
+                                <span className="text-[9px] font-medium text-stone-500 truncate" title="Participación por Mercado: Nacional vs Internacional">
+                                    Nac: <strong className="text-emerald-700 font-semibold">{cat.mercadoNacionalPct}%</strong> • Int: <strong className="text-brand font-semibold">{cat.mercadoInternacionalPct}%</strong>
                                 </span>
                             </div>
 
@@ -1417,54 +1421,54 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                             <div
                                 className={`hidden group-hover:block absolute ${horizontalClass} ${
                                     isBottom ? 'top-full mt-2' : 'bottom-full mb-2'
-                                } w-64 p-3.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-slate-700`}
+                                } w-64 p-3.5 bg-brand text-white rounded-xl shadow-2xl text-xs z-50 animate-fade-in pointer-events-none border border-white/10`}
                             >
-                                <div className="font-bold text-slate-100 border-b border-slate-700 pb-1.5 mb-2 flex items-center justify-between">
+                                <div className="font-bold text-white/85 border-b border-white/10 pb-1.5 mb-2 flex items-center justify-between">
                                     <span>{cat.nombre}</span>
-                                    <span className="text-sky-400 font-black">{cat.participacion}</span>
+                                    <span className="text-brand-light font-bold">{cat.participacion}</span>
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-slate-300">
-                                        <span className="text-[11px] text-slate-300">Total de registros hechos:</span>
-                                        <span className="font-bold text-white text-xs bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{cat.regs.toLocaleString('es-CO')}</span>
+                                    <div className="flex items-center justify-between text-stone-300">
+                                        <span className="text-[11px] text-stone-300">Total de registros hechos:</span>
+                                        <span className="font-bold text-white text-xs bg-brand-hover px-2 py-0.5 rounded border border-white/10">{cat.regs.toLocaleString('es-CO')}</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-slate-300">
-                                        <span className="text-[11px] text-slate-300">Productos con novedad:</span>
+                                    <div className="flex items-center justify-between text-stone-300">
+                                        <span className="text-[11px] text-stone-300">Productos con novedad:</span>
                                         <span className="font-bold text-amber-300 text-xs bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">{cat.prods.toLocaleString('es-CO')}</span>
                                     </div>
 
                                     {/* Participación por Mercado en este Canal */}
-                                    <div className="border-t border-slate-700/80 pt-2 mt-1">
-                                        <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                                    <div className="border-t border-white/10/80 pt-2 mt-1">
+                                        <div className="text-[10px] font-bold text-stone-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                                             <span>Participación por Mercado:</span>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="flex items-center justify-between text-[11px]">
-                                                <span className="text-slate-300 flex items-center gap-1.5">
+                                                <span className="text-stone-300 flex items-center gap-1.5">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                                     Nacional:
                                                 </span>
                                                 <span className="font-bold text-emerald-400">
-                                                    {cat.mercadoNacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({cat.mercadoNacionalRegs})</span>
+                                                    {cat.mercadoNacionalPct}% <span className="text-[10px] text-stone-400 font-normal">({cat.mercadoNacionalRegs})</span>
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between text-[11px]">
-                                                <span className="text-slate-300 flex items-center gap-1.5">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                                <span className="text-stone-300 flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-brand-light" />
                                                     Internacional:
                                                 </span>
-                                                <span className="font-bold text-sky-400">
-                                                    {cat.mercadoInternacionalPct}% <span className="text-[10px] text-slate-400 font-normal">({cat.mercadoInternacionalRegs})</span>
+                                                <span className="font-bold text-brand-light">
+                                                    {cat.mercadoInternacionalPct}% <span className="text-[10px] text-stone-400 font-normal">({cat.mercadoInternacionalRegs})</span>
                                                 </span>
                                             </div>
                                             {cat.mercadoSinClasificarRegs > 0 && (
                                                 <div className="flex items-center justify-between text-[11px]">
-                                                    <span className="text-slate-400 flex items-center gap-1.5">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                                                    <span className="text-stone-400 flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-brand-light" />
                                                         Sin clasificar:
                                                     </span>
-                                                    <span className="font-bold text-slate-300">
-                                                        {cat.mercadoSinClasificarPct}% <span className="text-[10px] text-slate-400 font-normal">({cat.mercadoSinClasificarRegs})</span>
+                                                    <span className="font-bold text-stone-300">
+                                                        {cat.mercadoSinClasificarPct}% <span className="text-[10px] text-stone-400 font-normal">({cat.mercadoSinClasificarRegs})</span>
                                                     </span>
                                                 </div>
                                             )}
@@ -1490,6 +1494,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, dataForMercado, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [], filtersComponent }: Props) {
+    const radicadosRows = useRowLimit([data]);
     // ── KPIs memoizados ────────────────────────────────────────────────────────
     const totalNovedades = data.length;
     const { abiertas, cerradas, valorInvertido } = useMemo(() => ({
@@ -1619,10 +1624,10 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
         const total = entry.total || entry.Registros || 0;
 
         return (
-            <div className="bg-white/95 backdrop-blur-sm p-3.5 rounded-xl border border-gray-100 shadow-xl text-xs space-y-2 min-w-[200px]">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-1.5">
-                    <span className="font-bold text-gray-800 text-sm">{label || entry.mes}</span>
-                    <span className="font-extrabold text-[#254153] text-xs bg-slate-100 px-2 py-0.5 rounded-full">
+            <div className="bg-white/95 backdrop-blur-sm p-3.5 rounded-xl border border-border shadow-xl text-xs space-y-2 min-w-[200px]">
+                <div className="flex items-center justify-between border-b border-border pb-1.5">
+                    <span className="font-bold text-brand-dark text-sm">{label || entry.mes}</span>
+                    <span className="font-extrabold text-[#254153] text-xs bg-stone-100 px-2 py-0.5 rounded-full">
                         {total} {total === 1 ? 'solicitud' : 'solicitudes'}
                     </span>
                 </div>
@@ -1632,33 +1637,33 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                             const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
                             const itemColor = tipoColorMap[item.name] || tipoColorMap[item.dataKey] || item.color || item.fill;
                             return (
-                                <div key={i} className="flex items-center justify-between gap-3 text-gray-600">
+                                <div key={i} className="flex items-center justify-between gap-3 text-stone-600">
                                     <div className="flex items-center gap-1.5 truncate">
                                         <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: itemColor }} />
                                         <span className="truncate font-medium">{item.name}</span>
                                     </div>
-                                    <div className="flex items-center gap-1 shrink-0 font-bold text-gray-800">
+                                    <div className="flex items-center gap-1 shrink-0 font-bold text-brand-dark">
                                         <span>{item.value}</span>
-                                        <span className="text-[10px] text-gray-400 font-normal">({pct}%)</span>
+                                        <span className="text-[10px] text-stone-400 font-normal">({pct}%)</span>
                                     </div>
                                 </div>
                             );
                         })
                     ) : (
-                        <div className="text-gray-400 text-center py-1">Sin detalles</div>
+                        <div className="text-stone-400 text-center py-1">Sin detalles</div>
                     )}
                 </div>
                 {/* Participación por Mercado en este mes */}
                 {total > 0 && entry._mercados && (
-                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10px]">
-                        <span className="text-gray-500 font-bold uppercase tracking-wider">Mercado:</span>
-                        <span className="font-bold text-gray-700">
-                            Nac: <strong className="text-emerald-700">{(((entry._mercados['Nacional'] || 0) / total) * 100).toFixed(1)}%</strong> • Int: <strong className="text-sky-700">{(((entry._mercados['Internacional'] || 0) / total) * 100).toFixed(1)}%</strong>
+                    <div className="pt-2 border-t border-border flex items-center justify-between text-[10px]">
+                        <span className="text-stone-500 font-bold uppercase tracking-wider">Mercado:</span>
+                        <span className="font-bold text-stone-700">
+                            Nac: <strong className="text-emerald-700">{(((entry._mercados['Nacional'] || 0) / total) * 100).toFixed(1)}%</strong> • Int: <strong className="text-brand">{(((entry._mercados['Internacional'] || 0) / total) * 100).toFixed(1)}%</strong>
                         </span>
                     </div>
                 )}
                 {filters.mesCreacion.length > 0 && filters.mesCreacion.includes(entry.key) && (
-                    <div className="text-[10px] text-brand font-semibold pt-1 border-t border-gray-100">
+                    <div className="text-[10px] text-brand font-semibold pt-1 border-t border-border">
                         ✓ Mes seleccionado en filtros (clic para deseleccionar)
                     </div>
                 )}
@@ -2256,18 +2261,18 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
     }, [data]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', variacion, subtitle }: { title: string, value: number | string, prefix?: string, suffix?: string, variacion?: number, subtitle?: string }) => (
-        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[70px]">
-            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">{title}</h3>
-            <div className="text-lg font-black text-gray-800 leading-tight">
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[70px]">
+            <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5">{title}</h3>
+            <div className="text-lg font-bold text-brand-dark leading-tight">
                 {prefix}{typeof value === 'number' ? value.toLocaleString('es-CO') : value}{suffix}
             </div>
             {subtitle && (
-                <div className="text-[9px] text-gray-400 font-semibold mt-0.5">
+                <div className="text-[9px] text-stone-400 font-semibold mt-0.5">
                     {subtitle}
                 </div>
             )}
             {variacion !== undefined && (
-                <div className={`flex items-center gap-1 mt-0.5 text-[9px] font-bold ${variacion > 0 ? 'text-green-600' : variacion < 0 ? 'text-red-600' : 'text-gray-500'}`} title="Comparado con el periodo inmediatamente anterior de la misma longitud">
+                <div className={`flex items-center gap-1 mt-0.5 text-[9px] font-bold ${variacion > 0 ? 'text-green-600' : variacion < 0 ? 'text-red-600' : 'text-stone-500'}`} title="Comparado con el periodo inmediatamente anterior de la misma longitud">
                     {variacion > 0 ? <ArrowUpIcon className="w-2.5 h-2.5" /> : variacion < 0 ? <ArrowDownIcon className="w-2.5 h-2.5" /> : <MinusIcon className="w-2.5 h-2.5" />}
                     {Math.abs(variacion)}% vs ant.
                 </div>
@@ -2334,11 +2339,11 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                 {/* Chart 1: Registros por mes apilados por tipo de solicitud */}
-                <div className="xl:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="xl:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-border">
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                         <div>
-                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Ingresos por Mes</h3>
-                            <p className="text-[11px] text-gray-400 font-medium">Distribución apilada por tipo de solicitud</p>
+                            <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Ingresos por Mes</h3>
+                            <p className="text-[11px] text-stone-400 font-medium">Distribución apilada por tipo de solicitud</p>
                         </div>
                         {filters.mesCreacion.length > 0 && (
                             <button
@@ -2354,8 +2359,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={registrosPorMes} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                                <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8a8780' }} />
+                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8a8780' }} />
                                 <RechartsTooltip content={<CustomIngresosTooltip />} cursor={{ fill: '#f9fafb' }} />
                                 <Legend 
                                     iconType="circle" 
@@ -2365,7 +2370,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         const isThisSelected = filters.tipoSolicitud.some(f => f.toLowerCase() === value.toLowerCase());
                                         return (
                                             <span 
-                                                className={`cursor-pointer transition-opacity ${isFiltered && !isThisSelected ? 'opacity-35 line-through' : 'font-semibold text-gray-700'}`}
+                                                className={`cursor-pointer transition-opacity ${isFiltered && !isThisSelected ? 'opacity-35 line-through' : 'font-semibold text-stone-700'}`}
                                                 title={`Clic para filtrar por ${value}`}
                                             >
                                                 {value}
@@ -2436,7 +2441,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         dataKey="total"
                                         position="top"
                                         offset={8}
-                                        style={{ fill: '#374151', fontSize: 12, fontWeight: 'bold' }}
+                                        style={{ fill: '#1d1d1b', fontSize: 12, fontWeight: 'bold' }}
                                     />
                                 </Line>
                             </ComposedChart>
@@ -2445,19 +2450,19 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 </div>
 
                 {/* Chart 5: Tipo de Problemas */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[480px]">
-                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider shrink-0">Tipo de Problemas</h3>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex flex-col h-[480px]">
+                    <h3 className="text-sm font-bold text-brand-dark mb-6 uppercase tracking-wider shrink-0">Tipo de Problemas</h3>
                     <div className="flex-1 overflow-y-auto pr-2 min-h-0 custom-scrollbar">
                         <div style={{ height: `${Math.max(400, tipoProblemaStats.length * 40)}px` }}>
                             <ResponsiveContainer width="99%" height="100%">
                                 <BarChart data={tipoProblemaStats} layout="vertical" margin={{ top: 10, right: 20, left: -25, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
-                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
+                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8a8780' }} />
+                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#8a8780' }} />
                                     <RechartsTooltip 
                                         cursor={{ fill: '#f9fafb' }} 
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '8px 12px' }} 
-                                        labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px', fontSize: '11px' }}
+                                        labelStyle={{ fontWeight: 'bold', color: '#1d1d1b', marginBottom: '4px', fontSize: '11px' }}
                                         itemStyle={{ fontSize: '10px', padding: '2px 0' }}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
@@ -2471,7 +2476,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         {tipoProblemaStats.map((entry, index) => (
                                             <Cell key={`cell-reg-${index}`} fill="#749094" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(entry.nombre) ? 1 : 0.25} />
                                         ))}
-                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 9 }} />
+                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#8a8780', fontSize: 9 }} />
                                     </Bar>
                                     <Bar isAnimationActive={false} 
                                         dataKey="Productos Afectados" 
@@ -2491,19 +2496,19 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 </div>
 
                 {/* Chart: Responsable del Problema */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[480px]">
-                    <h3 className="text-sm font-bold text-gray-800 mb-6 uppercase tracking-wider shrink-0">Responsable del Problema</h3>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex flex-col h-[480px]">
+                    <h3 className="text-sm font-bold text-brand-dark mb-6 uppercase tracking-wider shrink-0">Responsable del Problema</h3>
                     <div className="flex-1 overflow-y-auto pr-2 min-h-0 custom-scrollbar">
                         <div style={{ height: `${Math.max(400, responsableProblemaStats.length * 40)}px` }}>
                             <ResponsiveContainer width="99%" height="100%">
                                 <BarChart data={responsableProblemaStats} layout="vertical" margin={{ top: 10, right: 20, left: -25, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
-                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
+                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8a8780' }} />
+                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#8a8780' }} />
                                     <RechartsTooltip 
                                         cursor={{ fill: '#f9fafb' }} 
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '8px 12px' }} 
-                                        labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px', fontSize: '11px' }}
+                                        labelStyle={{ fontWeight: 'bold', color: '#1d1d1b', marginBottom: '4px', fontSize: '11px' }}
                                         itemStyle={{ fontSize: '10px', padding: '2px 0' }}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
@@ -2517,7 +2522,7 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                         {responsableProblemaStats.map((entry, index) => (
                                             <Cell key={`cell-reg-${index}`} fill="#749094" fillOpacity={filters.responsables.length === 0 || filters.responsables.includes(entry.nombre) ? 1 : 0.25} />
                                         ))}
-                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#6b7280', fontSize: 9 }} />
+                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#8a8780', fontSize: 9 }} />
                                     </Bar>
                                     <Bar isAnimationActive={false} 
                                         dataKey="Productos Afectados" 
@@ -2565,13 +2570,13 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             {/* Indicadores por Fecha de Compra y Fecha de Fabricación (Mes y Año) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 {/* Chart: Por Fecha de Compra */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Solicitudes por Fecha de Compra</h3>
-                            <p className="text-[11px] text-gray-400 font-medium mt-0.5">Agrupado por Mes y Año de Compra</p>
+                            <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Solicitudes por Fecha de Compra</h3>
+                            <p className="text-[11px] text-stone-400 font-medium mt-0.5">Agrupado por Mes y Año de Compra</p>
                         </div>
-                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">
+                        <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2.5 py-0.5">
                             {fechaCompraStats.length} periodos
                         </span>
                     </div>
@@ -2579,8 +2584,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={fechaCompraStats} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="mesAno" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 600 }} />
-                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                                <XAxis dataKey="mesAno" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780', fontWeight: 600 }} />
+                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780' }} />
                                 <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '10px 14px' }} />
                                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                                 <Bar isAnimationActive={false} dataKey="Registros" fill="#254153" radius={[4, 4, 0, 0]} maxBarSize={45}>
@@ -2595,13 +2600,13 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                 </div>
 
                 {/* Chart: Por Fecha de Fabricación */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Solicitudes por Fecha de Fabricación</h3>
-                            <p className="text-[11px] text-gray-400 font-medium mt-0.5">Agrupado por Mes y Año de Fabricación</p>
+                            <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Solicitudes por Fecha de Fabricación</h3>
+                            <p className="text-[11px] text-stone-400 font-medium mt-0.5">Agrupado por Mes y Año de Fabricación</p>
                         </div>
-                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">
+                        <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2.5 py-0.5">
                             {fechaFabricacionStats.length} periodos
                         </span>
                     </div>
@@ -2609,8 +2614,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={fechaFabricacionStats} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="mesAno" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 600 }} />
-                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                                <XAxis dataKey="mesAno" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780', fontWeight: 600 }} />
+                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780' }} />
                                 <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '10px 14px' }} />
                                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                                 <Bar isAnimationActive={false} dataKey="Registros" fill="#749094" radius={[4, 4, 0, 0]} maxBarSize={45}>
@@ -2626,25 +2631,25 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
             </div>
 
             {/* Tabla de Radicados y Comentarios */}
-            <div className="mt-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Relación de Radicados</h3>
-                <div className="overflow-y-auto max-h-[400px] custom-scrollbar">
+            <div className="mt-6 bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
+                <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider mb-4">Relación de Radicados</h3>
+                <div className="overflow-y-auto max-h-[400px] custom-scrollbar" onScroll={radicadosRows.onScroll}>
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50">
-                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 rounded-tl-lg whitespace-nowrap w-[150px]">Radicado</th>
-                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 whitespace-nowrap w-[200px]">Familia(s)</th>
-                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 whitespace-nowrap w-[200px]">Planta(s)</th>
-                                <th className="px-4 py-3 text-xs font-black uppercase text-gray-500 rounded-tr-lg">Comentario</th>
+                            <tr className="bg-cream-light">
+                                <th className="px-4 py-3 text-xs font-bold uppercase text-stone-500 rounded-tl-lg whitespace-nowrap w-[150px]">Radicado</th>
+                                <th className="px-4 py-3 text-xs font-bold uppercase text-stone-500 whitespace-nowrap w-[200px]">Familia(s)</th>
+                                <th className="px-4 py-3 text-xs font-bold uppercase text-stone-500 whitespace-nowrap w-[200px]">Planta(s)</th>
+                                <th className="px-4 py-3 text-xs font-bold uppercase text-stone-500 rounded-tr-lg">Comentario</th>
                             </tr>
                         </thead>
                         <tbody>
                             {data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-gray-400">No hay datos disponibles</td>
+                                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-stone-400">No hay datos disponibles</td>
                                 </tr>
                             ) : (
-                                data.map((d, i) => {
+                                data.slice(0, radicadosRows.limit).map((d, i) => {
                                     const gruposSet = new Set<string>();
                                     const plantasSet = new Set<string>();
                                     
@@ -2661,14 +2666,14 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                     const plantasArr = Array.from(plantasSet);
 
                                     return (
-                                        <tr key={d.id || i} className={i % 2 === 0 ? 'bg-white hover:bg-blue-50/40' : 'bg-gray-50/60 hover:bg-blue-50/40'}>
-                                            <td className="px-4 py-3 text-xs font-bold text-gray-800 whitespace-nowrap border-b border-gray-100 align-top">
+                                        <tr key={d.id || i} className={i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'}>
+                                            <td className="px-4 py-3 text-xs font-bold text-brand-dark whitespace-nowrap border-b border-border align-top">
                                                 {d.consecutivo ? (
                                                     <a 
                                                         href={`/ver-registro/${d.id}`} 
                                                         target="_blank" 
                                                         rel="noopener noreferrer" 
-                                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                        className="text-brand hover:text-brand hover:underline"
                                                         title={`Ver detalles del radicado ${d.consecutivo}`}
                                                     >
                                                         {d.consecutivo}
@@ -2677,13 +2682,13 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
                                                     'N/A'
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100 align-top">
+                                            <td className="px-4 py-3 text-xs text-stone-600 border-b border-border align-top">
                                                 {gruposArr.length > 0 ? gruposArr.join(', ') : '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100 align-top">
+                                            <td className="px-4 py-3 text-xs text-stone-600 border-b border-border align-top">
                                                 {plantasArr.length > 0 ? plantasArr.join(', ') : '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-600 border-b border-gray-100 align-top">{d.comentarios || 'Sin comentarios'}</td>
+                                            <td className="px-4 py-3 text-xs text-stone-600 border-b border-border align-top">{d.comentarios || 'Sin comentarios'}</td>
                                         </tr>
                                     );
                                 })

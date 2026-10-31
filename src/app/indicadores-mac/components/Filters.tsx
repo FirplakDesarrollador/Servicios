@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, createContext, useContext } from 'react';
 import { FilterState, RegistroMAC } from '../types';
 import { supabase } from '@/lib/supabase';
 
@@ -104,11 +104,11 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
     const formatFecha = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '—');
 
     // Estilos generales
-    const selectClass = "block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-brand sm:text-xs sm:leading-6";
-    const labelClass = "block text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1";
+    const selectClass = "block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-brand-dark ring-1 ring-inset ring-border focus:ring-2 focus:ring-brand sm:text-xs sm:leading-6";
+    const labelClass = "block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1";
 
     return (
-        <div className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex ${isVertical ? 'flex-col gap-4' : 'flex-wrap gap-4 items-end mb-6'}`}>
+        <div className={`bg-white p-4 rounded-xl shadow-sm border border-border flex ${isVertical ? 'flex-col gap-4' : 'flex-wrap gap-4 items-end mb-6'}`}>
 
             {activeTab === 3 ? (
                 <div className={isVertical ? 'w-full' : 'flex-1 min-w-[260px]'}>
@@ -118,7 +118,7 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
                             <button
                                 type="button"
                                 onClick={() => setMeses([])}
-                                className="text-[10px] font-semibold text-gray-400 hover:text-red-500 transition-colors"
+                                className="text-[10px] font-semibold text-stone-400 hover:text-red-500 transition-colors"
                             >
                                 Limpiar ✕
                             </button>
@@ -127,7 +127,7 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
                     <div className="space-y-2">
                         {aniosDisponibles.map(anio => (
                             <div key={anio}>
-                                <div className="text-[10px] font-bold text-gray-400 mb-1">{anio}</div>
+                                <div className="text-[10px] font-bold text-stone-400 mb-1">{anio}</div>
                                 <div className="grid grid-cols-4 gap-1">
                                     {MESES_CORTOS.map((nombre, idx) => {
                                         const key = `${anio}-${String(idx + 1).padStart(2, '0')}`;
@@ -143,8 +143,8 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
                                                     activo
                                                         ? 'bg-brand text-white border-brand'
                                                         : disponible
-                                                            ? 'bg-white text-gray-700 border-gray-200 hover:border-brand hover:text-brand'
-                                                            : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                                                            ? 'bg-white text-stone-700 border-border hover:border-brand hover:text-brand'
+                                                            : 'bg-cream-light text-stone-300 border-border cursor-not-allowed'
                                                 }`}
                                             >
                                                 {nombre}
@@ -155,7 +155,7 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
                             </div>
                         ))}
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-2">
+                    <p className="text-[10px] text-stone-400 mt-2">
                         {filters.mesCreacion.length === 0 ? 'Todos los meses · ' : `${filters.mesCreacion.length} ${filters.mesCreacion.length === 1 ? 'mes' : 'meses'} · `}
                         {formatFecha(filters.fechaInicial)} – {formatFecha(filters.fechaFinal)}
                     </p>
@@ -223,4 +223,17 @@ export default function Filters({ filters, setFilters, data, activeTab, isVertic
             )}
         </div>
     );
+}
+
+// Los filtros "vivos" llegan por contexto: así las pestañas (memorizadas) no se redibujan con cada
+// tecla o clic en un filtro; solo este panel se actualiza al instante y las gráficas después.
+export const LiveFiltersContext = createContext<{
+    filters: FilterState;
+    setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
+} | null>(null);
+
+export function LiveFilters(props: Omit<FiltersProps, 'filters' | 'setFilters'>) {
+    const ctx = useContext(LiveFiltersContext);
+    if (!ctx) return null;
+    return <Filters {...props} filters={ctx.filters} setFilters={ctx.setFilters} />;
 }

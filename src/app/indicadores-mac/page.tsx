@@ -1,52 +1,26 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback, Suspense, lazy, useTransition } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Suspense, lazy, useTransition, useDeferredValue } from 'react';
 
 import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState, QRRRecord } from './types';
-import Filters from './components/Filters';
-import { DownloadIcon, XIcon, ListFilterIcon } from 'lucide-react';
+import Filters, { LiveFilters, LiveFiltersContext } from './components/Filters';
+import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, SparklesIcon, ShieldCheckIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
 import * as XLSX from 'xlsx';
 import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
+import { computeFilterViews, normalizeGrupo, normalizePlantaName } from './utils/filterEngine';
 
 // ── Lazy loading de tabs → no bloquea el render inicial ──────────────────────
-const GeneralMac = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: m.default })));
+const GeneralMac = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: React.memo(m.default) })));
 const CanalesVentaCard = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: m.CanalesVentaCard })));
-const DetalleMac = lazy(() => import('./tabs/DetalleMac'));
-const AgentesMac = lazy(() => import('./tabs/AgentesMac'));
-const InformeMac = lazy(() => import('./tabs/InformeMac'));
-const AnalisisMac = lazy(() => import('./tabs/AnalisisMac'));
-const QrrMac = lazy(() => import('./tabs/QrrMac'));
+const DetalleMac = lazy(() => import('./tabs/DetalleMac').then(m => ({ default: React.memo(m.default) })));
+const AgentesMac = lazy(() => import('./tabs/AgentesMac').then(m => ({ default: React.memo(m.default) })));
+const InformeMac = lazy(() => import('./tabs/InformeMac').then(m => ({ default: React.memo(m.default) })));
+const AnalisisMac = lazy(() => import('./tabs/AnalisisMac').then(m => ({ default: React.memo(m.default) })));
+const QrrMac = lazy(() => import('./tabs/QrrMac').then(m => ({ default: React.memo(m.default) })));
 
-// ── Helpers para normalización de grupo / familia ───────────────────────────
-const normalizeGrupo = (g: string): string => {
-    if (!g || g === 'En Blanco' || g.toLowerCase() === 'en blanco') return 'En Blanco';
-    const norm = String(g).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (['COCINA', 'COCINAS'].includes(norm)) return 'Cocinas';
-    if (['BANO', 'BANOS'].includes(norm)) return 'Baño';
-    if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA'].includes(norm)) return 'Hidroterapia';
-    if (['LABOR', 'LABORES'].includes(norm)) return 'Labores';
-    if (['GRIFERIA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
-    if (['PLOMERIA', 'PLOMERIAS'].includes(norm)) return 'Plomeria';
-    if (['SERVICIO', 'SERVICIOS'].includes(norm)) return 'Servicios';
-    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO'].includes(norm)) return 'Cuidado&Mantenimiento';
-    return 'En Blanco';
-};
-
-const normalizePlantaName = (planta: string): string => {
-    if (!planta || !String(planta).trim() || String(planta).trim().toLowerCase().includes('seleccione')) return 'En Blanco';
-    const p = String(planta).toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (['MARMOL', 'MARMOLES', 'PC'].includes(p)) return 'Marmol';
-    if (['MUEBLE', 'MUEBLES', 'MBL'].includes(p)) return 'Muebles';
-    if (['FIBRA', 'FIBRAS', 'FV', 'FVHM', 'FVHMP'].includes(p)) return 'Fibra';
-    if (['COMERCIALIZADO', 'COMERCIALIZADOS'].includes(p)) return 'Comercializado';
-    if (['SERVICIO', 'SERVICIOS'].includes(p)) return 'Servicios';
-    if (p === 'RTM') return 'RTM';
-    if (['QUARZTONE', 'CUARZO'].includes(p)) return 'Quarztone';
-    return 'En Blanco';
-};
-
+// ── Helpers para normalización de grupo / familia (normalizeGrupo / normalizePlantaName en utils/filterEngine) ──
 const getGrupoForProduct = (p: any): string => {
     const rawGrupo = p?.familia;
     if (!rawGrupo || typeof rawGrupo !== 'string' || !String(rawGrupo).trim() || String(rawGrupo).toLowerCase().includes('seleccione')) {
@@ -75,11 +49,19 @@ const CANAL_VENTA_MAP: Record<string, string> = {
     'canal_propio_ecommerce': 'Canal Propio eCommerce',
 };
 
+// ── Densidad de la vista: escala toda la página por igual (mismo orden y estética) ──
+type Densidad = 'compacta' | 'normal' | 'agrandada';
+const DENSIDADES: Array<{ id: Densidad; label: string; zoom: number; size: string }> = [
+    { id: 'compacta', label: 'Compacta', zoom: 0.7, size: 'text-[10px]' },
+    { id: 'normal', label: 'Normal', zoom: 0.8, size: 'text-[12px]' },
+    { id: 'agrandada', label: 'Agrandada', zoom: 1, size: 'text-[14px]' },
+];
+
 // ── TabSuspense wrapper ──────────────────────────────────────────────────────
 function TabFallback() {
     return (
         <div className="flex items-center justify-center py-24">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
+            <div className="w-7 h-7 rounded-full border-[3px] border-border border-t-brand animate-spin" />
         </div>
     );
 }
@@ -96,6 +78,19 @@ export default function IndicadoresMacPage() {
     const [activeTab, setActiveTab] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+
+    const [densidad, setDensidad] = useState<Densidad>('normal');
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('mac_densidad') as Densidad | null;
+            if (stored && DENSIDADES.some(d => d.id === stored)) setDensidad(stored);
+        } catch { /* sin almacenamiento local */ }
+    }, []);
+    const cambiarDensidad = (d: Densidad) => {
+        setDensidad(d);
+        try { localStorage.setItem('mac_densidad', d); } catch { /* sin almacenamiento local */ }
+    };
+    const zoom = DENSIDADES.find(d => d.id === densidad)?.zoom ?? 0.8;
 
     // ── QRR State (localStorage persistence) ────────────────────────────────
     const [qrrRecords, setQrrRecords] = useState<QRRRecord[]>([]);
@@ -455,84 +450,29 @@ export default function IndicadoresMacPage() {
         }
     };
 
-    // ── Filtros: comparar timestamps numéricos en vez de crear Date objects ──
-    const getFilteredData = useCallback((excludeKeys: (keyof FilterState)[] = []) => {
-        // Pre-calcular límites de fecha una sola vez (fuera del loop)
-        const fechaInicialTs = filters.fechaInicial ? new Date(filters.fechaInicial).getTime() : null;
-        const fechaFinalTs = filters.fechaFinal ? new Date(filters.fechaFinal).getTime() + 86400000 : null;
+    // ── Filtros ──────────────────────────────────────────────────────────────
+    // Los controles de filtro se actualizan al instante (filters) y los cálculos usan una copia diferida
+    // (deferredFilters): React recalcula tablas y gráficas sin congelar la pantalla mientras se escribe
+    // una fecha o se encadenan clics. Una sola pasada calcula la vista filtrada y las vistas cruzadas.
+    const deferredFilters = useDeferredValue(filters);
+    const isUpdating = deferredFilters !== filters || isPending;
+    const views = useMemo(() => computeFilterViews(data, deferredFilters), [data, deferredFilters]);
 
-        return data.filter(d => {
-            // Comparar timestamps numéricos (sin crear Date en cada iteración)
-            const ts = (d as any)._createdAtTs as number;
-            if (!excludeKeys.includes('fechaInicial') && fechaInicialTs !== null && ts < fechaInicialTs) return false;
-            if (!excludeKeys.includes('fechaFinal') && fechaFinalTs !== null && ts > fechaFinalTs) return false;
-
-            if (!excludeKeys.includes('estado') && filters.estado.length > 0 && !filters.estado.includes(d.estado)) return false;
-            if (!excludeKeys.includes('mercado') && filters.mercado && filters.mercado.length > 0) {
-                const itemMercado = (d as any)._mercado || 'Sin clasificar';
-                if (!filters.mercado.includes(itemMercado)) return false;
-            }
-            if (!excludeKeys.includes('canalVenta') && filters.canalVenta.length > 0) {
-                const activeFilters = filters.canalVenta.map(f => f.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
-                const dCanal = (d.canal_venta || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const match = activeFilters.some(f =>
-                    dCanal === f || dCanal.includes(f) || f.includes(dCanal) ||
-                    (f.includes('distribucion') && (dCanal.includes('distribuid') || dCanal.includes('ditribuid') || dCanal.includes('export'))) ||
-                    (f.includes('constructor') && dCanal.includes('construct')) ||
-                    ((f.includes('propio') || f.includes('b2c')) && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce') || dCanal.includes('b2c'))) ||
-                    (f.includes('especial') && dCanal.includes('especial'))
-                );
-                if (!match) return false;
-            }
-            if (!excludeKeys.includes('tipoSolicitud') && filters.tipoSolicitud.length > 0) {
-                const normTipoSol = d.tipo_solicitud ? d.tipo_solicitud.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : '';
-                const match = filters.tipoSolicitud.some(f => {
-                    const normF = f.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-                    return normTipoSol === normF || normTipoSol.includes(normF) || normF.includes(normTipoSol);
-                });
-                if (!match) return false;
-            }
-            if (!excludeKeys.includes('agenteMac') && filters.agenteMac.length > 0 && !filters.agenteMac.includes(d._agenteNombre || '')) return false;
-
-            if (!excludeKeys.includes('ciudades') && filters.ciudades.length > 0 && !filters.ciudades.includes(d._ciudad || '')) return false;
-            if (!excludeKeys.includes('zonas') && filters.zonas.length > 0 && !filters.zonas.includes(d._zona || '')) return false;
-            if (!excludeKeys.includes('clientes') && filters.clientes.length > 0 && !filters.clientes.includes(d._clientePrincipalFinal || '')) return false;
-            if (!excludeKeys.includes('mesPresupuesto') && filters.mesPresupuesto.length > 0 && !filters.mesPresupuesto.includes(d._mesPresupuestoKey || '')) return false;
-            if (!excludeKeys.includes('mesCreacion') && filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) return false;
-            if (!excludeKeys.includes('estadoRiesgo') && filters.estadoRiesgo.length > 0 && !filters.estadoRiesgo.includes(d._estadoRiesgo || '')) return false;
-
-            if (!excludeKeys.includes('defectos') && filters.defectos.length > 0 && !filters.defectos.some(f => d._defectosNombres?.some((dn: any) => String(dn).toUpperCase().trim() === String(f).toUpperCase().trim()))) return false;
-            if (!excludeKeys.includes('responsables') && filters.responsables.length > 0 && !filters.responsables.some(f => d._responsablesNombres?.some((rn: any) => String(rn).toUpperCase().trim() === String(f).toUpperCase().trim()))) return false;
-            if (!excludeKeys.includes('productos') && filters.productos.length > 0 && !filters.productos.some(f => {
-                if (String(f).toUpperCase().startsWith('PL:')) {
-                    const plantaName = normalizePlantaName(String(f).substring(3)).toUpperCase().trim();
-                    return d._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === plantaName);
-                } else if (String(f).toUpperCase().startsWith('GF:')) {
-                    const groupName = normalizeGrupo(String(f).substring(3)).toUpperCase().trim();
-                    return (d as any)._gruposNombres?.some((gn: any) => String(gn).toUpperCase().trim() === groupName);
-                } else {
-                    return d._productosNombres?.some((pn: any) => String(pn).toUpperCase().trim() === String(f).toUpperCase().trim());
-                }
-            })) return false;
-            if (!excludeKeys.includes('plantas') && filters.plantas.length > 0 && !filters.plantas.some(f => d._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === String(f).toUpperCase().trim()))) return false;
-
-            return true;
-        });
-    }, [data, filters]);
-
-    const filteredData = useMemo(() => getFilteredData(), [getFilteredData]);
-    const dataForDefectos = useMemo(() => getFilteredData(['defectos']), [getFilteredData]);
-    const dataForResponsables = useMemo(() => getFilteredData(['responsables']), [getFilteredData]);
-    const dataForCiudades = useMemo(() => getFilteredData(['ciudades']), [getFilteredData]);
-    const dataForZonas = useMemo(() => getFilteredData(['zonas']), [getFilteredData]);
-    const dataForClientes = useMemo(() => getFilteredData(['clientes']), [getFilteredData]);
-    const dataForProductos = useMemo(() => getFilteredData(['productos']), [getFilteredData]);
-    const dataForPlantas = useMemo(() => getFilteredData(['plantas']), [getFilteredData]);
-    const dataForMesPresupuesto = useMemo(() => getFilteredData(['mesPresupuesto']), [getFilteredData]);
-    const dataForMesCreacion = useMemo(() => getFilteredData(['mesCreacion']), [getFilteredData]);
-    const dataForCanalVenta = useMemo(() => getFilteredData(['canalVenta']), [getFilteredData]);
-    const dataForMercado = useMemo(() => getFilteredData(['mercado']), [getFilteredData]);
-    const dataForEstadoRiesgo = useMemo(() => getFilteredData(['estadoRiesgo']), [getFilteredData]);
+    const filteredData = views.all;
+    const dataForDefectos = views.except.defectos;
+    const dataForResponsables = views.except.responsables;
+    const dataForCiudades = views.except.ciudades;
+    const dataForZonas = views.except.zonas;
+    const dataForClientes = views.except.clientes;
+    const dataForProductos = views.except.productos;
+    const dataForPlantas = views.except.plantas;
+    const dataForMesPresupuesto = views.except.mesPresupuesto;
+    const dataForMesCreacion = views.except.mesCreacion;
+    const dataForCanalVenta = views.except.canalVenta;
+    const dataForMercado = views.except.mercado;
+    const dataForEstadoRiesgo = views.except.estadoRiesgo;
+    const liveFiltersCtx = useMemo(() => ({ filters, setFilters }), [filters]);
+    const verticalFiltersEl = useMemo(() => <LiveFilters data={data} activeTab={activeTab} isVertical={true} />, [data, activeTab]);
 
     // ── useCallback para evitar re-renders innecesarios en hijos ─────────────
     const handleFilterToggle = useCallback((key: keyof FilterState, value: string, e?: any) => {
@@ -685,66 +625,118 @@ export default function IndicadoresMacPage() {
         XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
-    const tabs = ['General MAC', 'Detalle MAC', 'Agentes MAC', 'Informe', 'Análisis', 'QRR'];
+    const tabs: Array<{ label: string; icon: React.ElementType }> = [
+        { label: 'General', icon: LayoutDashboardIcon },
+        { label: 'Detalle', icon: ListChecksIcon },
+        { label: 'Agentes', icon: UsersIcon },
+        { label: 'Informe', icon: FileTextIcon },
+        { label: 'Análisis', icon: SparklesIcon },
+        { label: 'QRR', icon: ShieldCheckIcon },
+    ];
 
     if (loading) {
-        return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div></div>;
+        return (
+            <div className="flex h-screen flex-col items-center justify-center gap-5 bg-cream">
+                <img src="/logo-firplak-wordmark.png" alt="FIRPLAK" className="h-5 w-auto opacity-90" />
+                <div className="h-1 w-40 overflow-hidden rounded-full bg-border">
+                    <div className="h-full w-1/3 animate-[mac-loading_1.1s_ease-in-out_infinite] rounded-full bg-brand" />
+                </div>
+                <p className="text-xs tracking-[0.18em] uppercase text-brand-light">Cargando indicadores</p>
+                <style>{`@keyframes mac-loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }`}</style>
+            </div>
+        );
     }
 
+    const crossFilterDefs = [
+        { key: 'mercado', label: 'Mercado' },
+        { key: 'defectos', label: 'Defecto' },
+        { key: 'productos', label: 'Producto' },
+        { key: 'ciudades', label: 'Ciudad' },
+        { key: 'responsables', label: 'Responsable' },
+        { key: 'zonas', label: 'Zona' },
+        { key: 'clientes', label: 'Cliente' },
+        { key: 'mesPresupuesto', label: 'Mes SLA' },
+        { key: 'mesCreacion', label: 'Mes Ingreso' },
+    ];
+
     return (
-        <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans" style={{ zoom: 0.8 }}>
-            <header className="bg-white border-b border-gray-200 px-6 pt-4 flex flex-col md:flex-row md:items-center justify-between sticky top-0 z-20 shadow-sm gap-4">
-                <div className="pb-2 md:pb-4">
-                    <h1 className="text-xl font-black text-gray-800 tracking-tight">Indicadores MAC</h1>
-                    <p className="text-xs text-gray-500 font-medium mt-1">Módulo de inteligencia de negocios para Mesa de Atención al Cliente</p>
-                </div>
+        <div className="min-h-screen bg-cream flex flex-col font-sans text-brand-dark" style={{ zoom }}>
+            <header className="bg-white/95 backdrop-blur border-b border-border sticky top-0 z-20">
+                <div className="px-6 h-16 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <a href="/" className="w-9 h-9 flex items-center justify-center rounded-lg text-stone-500 hover:text-brand hover:bg-cream-light transition-colors" title="Volver al menú principal">
+                            <ArrowLeftIcon className="w-5 h-5" />
+                        </a>
+                        <div className="flex flex-col">
+                            <img src="/logo-firplak-wordmark.png" alt="FIRPLAK" className="h-[15px] w-auto self-start" />
+                            <span className="text-[10px] font-medium tracking-[0.2em] uppercase text-brand-light mt-1">Indicadores MAC</span>
+                        </div>
+                        <span className="hidden lg:block w-px h-7 bg-border mx-2" />
+                        <p className="hidden lg:block text-xs text-ink-muted truncate">Inteligencia de la Mesa de Atención al Cliente</p>
+                    </div>
 
-                <div className="flex flex-wrap items-center gap-4 pb-3 md:pb-0">
-                    <button
-                        onClick={() => setShowExportModal(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg shadow-sm transition-all whitespace-nowrap"
-                    >
-                        <DownloadIcon className="w-3.5 h-3.5" />
-                        Exportar Excel
-                    </button>
-
-                    {/* Tabs */}
-                    <div className="flex border-b border-transparent md:-mb-[1px] overflow-x-auto pb-1 md:pb-0">
-                        {tabs.map((tab, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => startTransition(() => setActiveTab(idx))}
-                                className={`
-                                    px-5 py-3 text-xs font-bold whitespace-nowrap transition-colors border-b-2
-                                    ${activeTab === idx
-                                        ? 'border-brand text-brand bg-gray-50/50'
-                                        : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50/30'
-                                    }
-                                `}
-                            >
-                                {tab}
-                            </button>
-                        ))}
+                    <div className="flex items-center gap-3">
+                        <span
+                            className={`hidden sm:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-medium transition-opacity ${isUpdating ? 'opacity-100 bg-sage-soft text-brand' : 'opacity-0'}`}
+                            aria-live="polite"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-brand-light animate-pulse" /> Actualizando
+                        </span>
+                        <span className="hidden md:inline text-xs text-stone-500 tabular-nums">
+                            <span className="font-semibold text-brand-dark">{filteredData.length.toLocaleString('es-CO')}</span> de {data.length.toLocaleString('es-CO')} registros
+                        </span>
+                        <div className="hidden sm:flex items-center p-0.5 rounded-xl bg-cream-light border border-border" role="group" aria-label="Tamaño de la vista">
+                            {DENSIDADES.map(d => (
+                                <button
+                                    key={d.id}
+                                    onClick={() => cambiarDensidad(d.id)}
+                                    title={`Vista ${d.label.toLowerCase()}`}
+                                    className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                                        densidad === d.id ? 'bg-white text-brand shadow-[0_1px_3px_rgba(37,65,83,0.15)]' : 'text-stone-500 hover:text-brand-dark'
+                                    }`}
+                                >
+                                    <span className={`font-semibold leading-none ${d.size}`}>A</span>
+                                    <span className="hidden xl:inline">{d.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setShowExportModal(true)}
+                            className="flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold text-white bg-brand hover:bg-brand-hover rounded-xl transition-colors whitespace-nowrap cursor-pointer"
+                        >
+                            <DownloadIcon className="w-3.5 h-3.5" />
+                            Exportar Excel
+                        </button>
                     </div>
                 </div>
+
+                {/* Pestañas */}
+                <nav className="px-4 flex gap-1 overflow-x-auto [scrollbar-width:none]">
+                    {tabs.map((tab, idx) => {
+                        const Icon = tab.icon;
+                        const active = activeTab === idx;
+                        return (
+                            <button
+                                key={tab.label}
+                                onClick={() => startTransition(() => setActiveTab(idx))}
+                                className={`inline-flex items-center gap-2 px-3.5 py-3 text-xs font-medium whitespace-nowrap border-b-2 -mb-px transition-colors cursor-pointer ${
+                                    active ? 'border-brand text-brand' : 'border-transparent text-stone-500 hover:text-brand-dark'
+                                }`}
+                            >
+                                <Icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </nav>
             </header>
 
-            {/* Breadcrumb de Filtros Activos y Limpiar */}
-            {(filters.defectos.length > 0 || filters.productos.length > 0 || filters.ciudades.length > 0 || filters.responsables.length > 0 || filters.zonas.length > 0 || filters.clientes.length > 0 || filters.mesPresupuesto.length > 0 || filters.canalVenta.length > 0 || filters.mercado.length > 0) && (
-                <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
+            {/* Filtros cruzados activos */}
+            {crossFilterDefs.some(f => (filters[f.key as keyof FilterState] as string[]).length > 0) && (
+                <div className="bg-white/90 backdrop-blur border-b border-border px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-[7.1rem] z-10">
                     <div className="flex flex-wrap items-center gap-2 flex-1">
-                        <span className="text-xs font-bold text-gray-500 mr-2 flex items-center gap-1"><ListFilterIcon className="w-3.5 h-3.5" />Filtros cruzados:</span>
-                        {[
-                            { key: 'mercado', label: 'Mercado' },
-                            { key: 'defectos', label: 'Defecto' },
-                            { key: 'productos', label: 'Producto' },
-                            { key: 'ciudades', label: 'Ciudad' },
-                            { key: 'responsables', label: 'Responsable' },
-                            { key: 'zonas', label: 'Zona' },
-                            { key: 'clientes', label: 'Cliente' },
-                            { key: 'mesPresupuesto', label: 'Mes SLA' },
-                            { key: 'mesCreacion', label: 'Mes Ingreso' },
-                        ].map(f => (filters[f.key as keyof FilterState] as string[]).map((val: string, idx: number) => {
+                        <span className="text-[11px] font-medium tracking-[0.12em] uppercase text-brand-light mr-1 flex items-center gap-1.5"><ListFilterIcon className="w-3.5 h-3.5" />Filtros cruzados</span>
+                        {crossFilterDefs.map(f => (filters[f.key as keyof FilterState] as string[]).map((val: string, idx: number) => {
                             let displayLabel = f.label;
                             let displayVal = val;
                             if (f.key === 'productos' && val.startsWith('PL:')) {
@@ -755,19 +747,19 @@ export default function IndicadoresMacPage() {
                                 displayVal = val.substring(3);
                             }
                             return (
-                                <span key={`${f.key}-${idx}`} className="bg-brand text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5 shadow-sm animate-fade-in">
-                                    {displayLabel}: {displayVal}
-                                    <button onClick={() => setFilters(prev => ({ ...prev, [f.key]: (prev[f.key as keyof FilterState] as string[]).filter(v => v !== val) }))} className="hover:text-red-300 transition-colors">
-                                        <XIcon className="w-3.5 h-3.5" />
+                                <span key={`${f.key}-${idx}`} className="bg-brand-soft text-brand text-xs pl-2.5 pr-1 py-1 rounded-full flex items-center gap-1.5 animate-fade-in">
+                                    <span className="text-brand-light">{displayLabel}:</span> <span className="font-semibold">{displayVal}</span>
+                                    <button onClick={() => setFilters(prev => ({ ...prev, [f.key]: (prev[f.key as keyof FilterState] as string[]).filter(v => v !== val) }))} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-brand hover:text-white transition-colors cursor-pointer" title="Quitar filtro">
+                                        <XIcon className="w-3 h-3" />
                                     </button>
                                 </span>
                             );
                         }))}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="text-xs font-bold bg-brandLight text-white px-3 py-1.5 rounded-lg hover:bg-brand transition-colors flex items-center gap-1.5 shadow-sm"
+                            className="text-xs font-semibold bg-brand text-white h-8 px-3 rounded-lg hover:bg-brand-hover transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                             Ver {filteredData.length} registros
                         </button>
@@ -775,15 +767,16 @@ export default function IndicadoresMacPage() {
                             onClick={() => setFilters(prev => ({
                                 ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: [], mercado: []
                             }))}
-                            className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap"
+                            className="text-xs font-medium text-stone-500 hover:text-red-600 h-8 px-2 transition-colors whitespace-nowrap cursor-pointer"
                         >
-                            Restablecer filtros cruzados
+                            Limpiar
                         </button>
                     </div>
                 </div>
             )}
 
-            <main className="flex-1 p-6 overflow-auto">
+            <LiveFiltersContext.Provider value={liveFiltersCtx}>
+            <main className={`flex-1 p-6 overflow-auto transition-opacity duration-150 ${isUpdating ? "opacity-70" : "opacity-100"}`}>
                 {activeTab === 3 ? (
                     <div className="transition-opacity duration-300">
                         <Suspense fallback={<TabFallback />}>
@@ -794,12 +787,10 @@ export default function IndicadoresMacPage() {
                                 dataForProductos={dataForProductos}
                                 dataForPlantas={dataForPlantas}
                                 dataForMercado={dataForMercado}
-                                filters={filters}
+                                filters={deferredFilters}
                                 setFilters={setFilters} 
                                 onFilterToggle={handleFilterToggle} 
-                                filtersComponent={
-                                    <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={true} />
-                                }
+                                filtersComponent={verticalFiltersEl}
                             />
                         </Suspense>
                     </div>
@@ -826,24 +817,25 @@ export default function IndicadoresMacPage() {
                                         dataForCanalVenta={dataForCanalVenta}
                                         dataForMercado={dataForMercado}
                                         prevData={data}
-                                        filters={filters}
+                                        filters={deferredFilters}
                                         setFilters={setFilters}
                                         onFilterToggle={handleFilterToggle}
                                         razones={razones}
                                         defectosRef={defectosRef}
                                         responsablesRef={responsablesRef}
-                                        filtersComponent={<Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={true} />}
+                                        filtersComponent={verticalFiltersEl}
                                     />
                                 )}
-                                {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                                {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                                {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={filters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
-                                {activeTab === 5 && <QrrMac data={filteredData} prevData={data} filters={filters} qrrRecords={qrrRecords} setQrrRecords={setQrrRecords} />}
+                                {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
+                                {activeTab === 5 && <QrrMac data={filteredData} prevData={data} filters={deferredFilters} qrrRecords={qrrRecords} setQrrRecords={setQrrRecords} />}
                             </Suspense>
                         </div>
                     </div>
                 )}
             </main>
+            </LiveFiltersContext.Provider>
 
             {isModalOpen && (
                 <DetalleRadicadosModal
@@ -855,52 +847,52 @@ export default function IndicadoresMacPage() {
 
             {/* Modal de Exportación a Excel */}
             {showExportModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
-                        <div className="bg-emerald-600 px-6 py-4 flex items-center justify-between">
-                            <h3 className="text-white font-black flex items-center gap-2">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/40 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl border border-border shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="px-6 py-4 flex items-center justify-between border-b border-border">
+                            <h3 className="text-brand-dark font-semibold flex items-center gap-2">
                                 <DownloadIcon className="w-5 h-5" /> Exportar Base de Datos
                             </h3>
-                            <button onClick={() => setShowExportModal(false)} className="text-white/80 hover:text-white transition-colors">
+                            <button onClick={() => setShowExportModal(false)} className="text-stone-400 hover:text-brand transition-colors cursor-pointer">
                                 <XIcon className="w-5 h-5" />
                             </button>
                         </div>
                         <div className="p-6">
-                            <p className="text-sm text-gray-600 mb-6">
+                            <p className="text-sm text-stone-500 mb-6">
                                 Selecciona el rango de fechas de creación de las solicitudes que deseas descargar. Si dejas los campos vacíos, se descargará toda la base de datos.
                             </p>
 
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Desde</label>
+                                    <label className="block text-xs font-bold text-stone-600 mb-1">Fecha Desde</label>
                                     <input
                                         type="date"
                                         value={exportStartDate}
                                         onChange={e => setExportStartDate(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand/20 focus:outline-none text-sm"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Hasta</label>
+                                    <label className="block text-xs font-bold text-stone-600 mb-1">Fecha Hasta</label>
                                     <input
                                         type="date"
                                         value={exportEndDate}
                                         onChange={e => setExportEndDate(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand/20 focus:outline-none text-sm"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border">
                                 <button
                                     onClick={() => setShowExportModal(false)}
-                                    className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                    className="px-4 py-2 text-sm font-bold text-stone-500 hover:bg-cream-light rounded-lg transition-colors"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={confirmExport}
-                                    className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
+                                    className="px-4 py-2 text-sm font-bold text-white bg-brand hover:bg-brand-hover rounded-xl transition-colors flex items-center gap-2"
                                 >
                                     <DownloadIcon className="w-4 h-4" /> Descargar Excel
                                 </button>

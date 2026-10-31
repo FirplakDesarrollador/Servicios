@@ -126,9 +126,9 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
     };
 
     const KpiCard = ({ title, value, suffix = '', prefix = '' }: any) => (
-        <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center min-h-[60px]">
-            <h3 className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5" title={title}>{title}</h3>
-            <div className="text-lg font-black text-gray-800 leading-tight">
+        <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[60px]">
+            <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5" title={title}>{title}</h3>
+            <div className="text-lg font-bold text-brand-dark leading-tight">
                 {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
             </div>
         </div>
@@ -147,11 +147,11 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
     return (
         <div className="space-y-6 animate-fade-in">
             {!isAgenteSelected && (
-                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg flex items-start gap-2">
+                <div className="bg-brand-soft border border-brand-light/30 text-brand p-3 rounded-lg flex items-start gap-2">
                     <AlertCircleIcon className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
                         <h4 className="text-xs font-bold">Vista General de Agentes</h4>
-                        <p className="text-[10px] mt-0.5 text-blue-700">Estás viendo los indicadores de todos los agentes. Selecciona un agente en el filtro superior para ver su panel de trabajo personal.</p>
+                        <p className="text-[10px] mt-0.5 text-brand">Estás viendo los indicadores de todos los agentes. Selecciona un agente en el filtro superior para ver su panel de trabajo personal.</p>
                     </div>
                 </div>
             )}
@@ -160,23 +160,23 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
             {prioridades.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-red-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-red-50 to-white px-4 py-2 border-b border-red-100 flex items-center justify-between">
-                        <h3 className="text-xs font-black text-red-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <h3 className="text-xs font-bold text-red-700 uppercase tracking-wider flex items-center gap-1.5">
                             🔥 Mis Prioridades de Hoy
                         </h3>
                         <span className="text-[10px] font-bold text-red-500">Top {prioridades.length} más críticas</span>
                     </div>
                     <div className="p-2 flex overflow-x-auto gap-2 snap-x custom-scrollbar pb-3">
                         {prioridades.map(p => (
-                            <div key={p.id} className="snap-start shrink-0 w-52 bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative overflow-hidden">
+                            <div key={p.id} className="snap-start shrink-0 w-52 bg-white border border-border rounded-lg p-3 shadow-sm relative overflow-hidden">
                                 <div className={`absolute top-0 left-0 w-1 h-full ${p._estadoRiesgo === 'Demandante' ? 'bg-red-500' : p._estadoRiesgo === 'Riesgo de demanda' ? 'bg-orange-500' : 'bg-amber-500'}`} />
                                 <div className="flex justify-between items-start mb-1.5 pl-1">
-                                    <a href={`/ver-registro/${p.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-brand hover:underline flex items-center gap-1">
+                                    <a href={`/ver-registro/${p.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-brand hover:underline flex items-center gap-1">
                                         {p.consecutivo} <ExternalLinkIcon className="w-2.5 h-2.5" />
                                     </a>
                                     <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">{p._diasHabilesAbierta} días</span>
                                 </div>
-                                <p className="text-[10px] text-gray-600 font-medium truncate mb-0.5 pl-1">{p.cliente_final_nombre || p.cliente_nombre}</p>
-                                <p className="text-[9px] text-gray-400 truncate pl-1">{p.tipo_solicitud}</p>
+                                <p className="text-[10px] text-stone-600 font-medium truncate mb-0.5 pl-1">{p.cliente_final_nombre || p.cliente_nombre}</p>
+                                <p className="text-[9px] text-stone-400 truncate pl-1">{p.tipo_solicitud}</p>
                             </div>
                         ))}
                     </div>
@@ -196,16 +196,16 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
             </div>
 
             {/* Tabla de Seguimiento */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px]">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col h-[600px]">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Tabla de Seguimiento Diario</h3>
+                    <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Tabla de Seguimiento Diario</h3>
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <SearchIcon className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input 
                                 type="text"
                                 placeholder="Buscar radicado..."
-                                className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-xs w-64 focus:outline-none focus:ring-2 focus:ring-brand"
+                                className="pl-9 pr-4 py-2 border border-border rounded-lg text-xs w-64 focus:outline-none focus:ring-2 focus:ring-brand"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -223,27 +223,27 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                     <table className="w-full text-left border-collapse min-w-[900px]">
                         <thead className="sticky top-0 bg-white shadow-sm z-10">
                             <tr>
-                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Radicado</th>
-                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Fecha</th>
-                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Cliente</th>
-                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Tipo Solicitud</th>
-                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200">Días</th>
-                                <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-200 w-1/3">Observaciones (Internas)</th>
+                                <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Radicado</th>
+                                <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Fecha</th>
+                                <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Cliente</th>
+                                <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Tipo Solicitud</th>
+                                <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Días</th>
+                                <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border w-1/3">Observaciones (Internas)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {exportData.map((d) => (
-                                <tr key={d.id} className={`hover:bg-gray-50 transition-colors border-b border-gray-100 ${d.estado === 'Abierto' ? getRowColor(d._estadoRiesgo) : ''}`}>
+                                <tr key={d.id} className={`hover:bg-cream-light transition-colors border-b border-border ${d.estado === 'Abierto' ? getRowColor(d._estadoRiesgo) : ''}`}>
                                     <td className="p-3 text-xs font-bold">
                                         <a href={`/ver-registro/${d.id}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline flex items-center gap-1">
-                                            {d.consecutivo} <ExternalLinkIcon className="w-3 h-3 text-gray-400" />
+                                            {d.consecutivo} <ExternalLinkIcon className="w-3 h-3 text-stone-400" />
                                         </a>
                                     </td>
-                                    <td className="p-3 text-xs text-gray-600">{new Date(d.created_at).toLocaleDateString()}</td>
-                                    <td className="p-3 text-xs font-medium text-gray-800 max-w-[200px] truncate" title={d.cliente_final_nombre || d.cliente_nombre || ''}>
+                                    <td className="p-3 text-xs text-stone-600">{new Date(d.created_at).toLocaleDateString()}</td>
+                                    <td className="p-3 text-xs font-medium text-brand-dark max-w-[200px] truncate" title={d.cliente_final_nombre || d.cliente_nombre || ''}>
                                         {d.cliente_final_nombre || d.cliente_nombre || 'N/A'}
                                     </td>
-                                    <td className="p-3 text-xs text-gray-600 max-w-[150px] truncate" title={d.tipo_solicitud}>{d.tipo_solicitud}</td>
+                                    <td className="p-3 text-xs text-stone-600 max-w-[150px] truncate" title={d.tipo_solicitud}>{d.tipo_solicitud}</td>
                                     <td className="p-3 text-xs font-bold text-center">
                                         {d.estado === 'Abierto' ? (
                                             <span className={`px-2 py-0.5 rounded text-white ${
@@ -254,18 +254,18 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                                                 {d._diasHabilesAbierta}
                                             </span>
                                         ) : (
-                                            <span className="text-gray-400 font-normal">{d._tiempoCierre}</span>
+                                            <span className="text-stone-400 font-normal">{d._tiempoCierre}</span>
                                         )}
                                     </td>
                                     <td className="p-3">
                                         <div className="relative group">
                                             <textarea 
-                                                className="w-full text-xs p-2 border border-transparent hover:border-gray-300 focus:border-brand focus:ring-1 focus:ring-brand rounded resize-none transition-colors min-h-[40px] bg-transparent focus:bg-white"
+                                                className="w-full text-xs p-2 border border-transparent hover:border-border focus:border-brand focus:ring-1 focus:ring-brand rounded resize-none transition-colors min-h-[40px] bg-transparent focus:bg-white"
                                                 placeholder="Añadir nota de seguimiento..."
                                                 value={observaciones[d.id] || ''}
                                                 onChange={(e) => saveObservacion(d.id, e.target.value)}
                                             />
-                                            <SaveIcon className="w-3 h-3 text-gray-400 absolute right-2 bottom-2 opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                                            <SaveIcon className="w-3 h-3 text-stone-400 absolute right-2 bottom-2 opacity-0 group-focus-within:opacity-100 transition-opacity" />
                                         </div>
                                     </td>
                                 </tr>
@@ -280,7 +280,7 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                     <div className="bg-rose-50 px-4 py-3 border-b border-rose-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <AlertTriangleIcon className="w-5 h-5 text-rose-500" />
-                            <h3 className="text-xs font-black text-rose-700 uppercase tracking-wider">Casos con Datos Faltantes (Problema, Responsable, Familia o Planta)</h3>
+                            <h3 className="text-xs font-bold text-rose-700 uppercase tracking-wider">Casos con Datos Faltantes (Problema, Responsable, Familia o Planta)</h3>
                         </div>
                         <span className="text-[10px] font-bold text-rose-500 bg-rose-100 px-2 py-1 rounded-full">{incompleteData.length} registros</span>
                     </div>
@@ -288,10 +288,10 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr>
-                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Radicado</th>
-                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Estado</th>
-                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Faltante</th>
-                                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">Agente MAC</th>
+                                    <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Radicado</th>
+                                    <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Estado</th>
+                                    <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Faltante</th>
+                                    <th className="p-3 text-[10px] font-bold uppercase text-stone-500 border-b border-border">Agente MAC</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -299,22 +299,22 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                                     const { mProblema, mResponsable, mFamilia, mPlanta } = checkMissingData(d);
 
                                     return (
-                                        <tr key={d.id} className="hover:bg-rose-50/30 transition-colors border-b border-gray-50">
+                                        <tr key={d.id} className="hover:bg-rose-50/30 transition-colors border-b border-border">
                                             <td className="p-3 text-xs font-bold">
                                                 <a href={`/ver-registro/${d.id}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline flex items-center gap-1">
-                                                    {d.consecutivo} <ExternalLinkIcon className="w-3 h-3 text-gray-400" />
+                                                    {d.consecutivo} <ExternalLinkIcon className="w-3 h-3 text-stone-400" />
                                                 </a>
                                             </td>
-                                            <td className="p-3 text-xs font-semibold text-gray-600">{d.estado}</td>
+                                            <td className="p-3 text-xs font-semibold text-stone-600">{d.estado}</td>
                                             <td className="p-3 text-[10px]">
                                                 <div className="flex flex-col gap-1">
                                                     {mProblema && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-rose-50 text-rose-600 border border-rose-100">Tipo de Problema</span>}
                                                     {mResponsable && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-orange-50 text-orange-600 border border-orange-100">Responsable</span>}
-                                                    {mFamilia && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">Familia</span>}
-                                                    {mPlanta && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-purple-50 text-purple-600 border border-purple-100">Planta</span>}
+                                                    {mFamilia && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-brand-soft text-brand border border-brand-light/30">Familia</span>}
+                                                    {mPlanta && <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded font-bold bg-brand-soft text-brand border border-brand-light/30">Planta</span>}
                                                 </div>
                                             </td>
-                                            <td className="p-3 text-xs text-gray-600 font-semibold">{d._agenteNombre || '-'}</td>
+                                            <td className="p-3 text-xs text-stone-600 font-semibold">{d._agenteNombre || '-'}</td>
                                         </tr>
                                     );
                                 })}
