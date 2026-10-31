@@ -28,4 +28,6 @@ Antes de dar un cambio por terminado: `npx tsc --noEmit` sin errores. Vercel com
 
 @.agents/AGENTS.md
 
-Nota: `RegistroMAC` en `src/app/indicadores-mac/types.ts` todavía declara `fecha_cierre` opcional y `DetalleMac.tsx` hace `d.fecha_cierre || d.fecha_verificacion`. Eso contradice la regla de cierre; en código nuevo usar solo `fecha_verificacion`, y no "corregir" lo existente sin confirmarlo antes.
+Nota: `fecha_verificacion` es la solución real al cliente (estado, SLA, tiempos); `fecha_cierre` es el día en que el agente registró el cierre y se usa solo para productividad del agente. El `d.fecha_cierre || d.fecha_verificacion` de `DetalleMac.tsx` (cerrados del día por agente) es correcto; no cambiarlo.
+
+Indicadores MAC: los QRR viven en la tabla `mac_qrr` (+ `mac_qrr_historial`), creada con `supabase/create_mac_qrr.sql`; el periodo por defecto es el año en curso (2026 arranca el 03/07, inicio de la Mesa).

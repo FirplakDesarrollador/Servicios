@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback, Suspense, lazy, useTransition, useDeferredValue } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, Suspense, lazy, useTransition, useDeferredValue } from 'react';
 
 import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState, QRRRecord } from './types';
 import Filters, { LiveFilters, LiveFiltersContext } from './components/Filters';
-import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, SparklesIcon, ShieldCheckIcon } from 'lucide-react';
+import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, SparklesIcon, ShieldCheckIcon, HeartHandshakeIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
 import * as XLSX from 'xlsx';
 import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
 import { computeFilterViews, normalizeGrupo, normalizePlantaName } from './utils/filterEngine';
+import { loadQrr, persistQrrChanges, readLocalQrr, writeLocalQrr, type QrrSource } from './utils/qrrStore';
 
 // ── Lazy loading de tabs → no bloquea el render inicial ──────────────────────
 const GeneralMac = lazy(() => import('./tabs/GeneralMac').then(m => ({ default: React.memo(m.default) })));
@@ -18,6 +19,7 @@ const DetalleMac = lazy(() => import('./tabs/DetalleMac').then(m => ({ default: 
 const AgentesMac = lazy(() => import('./tabs/AgentesMac').then(m => ({ default: React.memo(m.default) })));
 const InformeMac = lazy(() => import('./tabs/InformeMac').then(m => ({ default: React.memo(m.default) })));
 const AnalisisMac = lazy(() => import('./tabs/AnalisisMac').then(m => ({ default: React.memo(m.default) })));
+const ExperienciaMac = lazy(() => import('./tabs/ExperienciaMac').then(m => ({ default: React.memo(m.default) })));
 const QrrMac = lazy(() => import('./tabs/QrrMac').then(m => ({ default: React.memo(m.default) })));
 
 // ── Helpers para normalización de grupo / familia (normalizeGrupo / normalizePlantaName en utils/filterEngine) ──
@@ -48,6 +50,28 @@ const CANAL_VENTA_MAP: Record<string, string> = {
     'canal_propio_firplakhome': 'Canal Propio Firplakhome',
     'canal_propio_ecommerce': 'Canal Propio eCommerce',
 };
+
+// ── Periodo por defecto: "carro corriendo" del año en curso ──────────────────
+// La Mesa empezó a registrar el 03/07/2026; desde 2027 cada año arranca el 1 de enero.
+const INICIO_OPERACION_MAC = '2026-07-03';
+const inicioPeriodoActual = () => {
+    const inicioAnio = `${new Date().getFullYear()}-01-01`;
+    return inicioAnio > INICIO_OPERACION_MAC ? inicioAnio : INICIO_OPERACION_MAC;
+};
+
+// ── Lectura completa paginada (Supabase devuelve máximo 1.000 filas por consulta) ──
+const PAGE_SIZE = 1000;
+async function fetchAllRows<T = any>(
+    page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+): Promise<{ data: T[]; error: any }> {
+    const all: T[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await page(from, from + PAGE_SIZE - 1);
+        if (error) return { data: all, error };
+        all.push(...(data || []));
+        if (!data || data.length < PAGE_SIZE) return { data: all, error: null };
+    }
+}
 
 // ── Densidad de la vista: escala toda la página por igual (mismo orden y estética) ──
 type Densidad = 'compacta' | 'normal' | 'agrandada';
@@ -90,15 +114,48 @@ export default function IndicadoresMacPage() {
         setDensidad(d);
         try { localStorage.setItem('mac_densidad', d); } catch { /* sin almacenamiento local */ }
     };
-    const zoom = DENSIDADES.find(d => d.id === densidad)?.zoom ?? 0.8;
-
-    // ── QRR State (localStorage persistence) ────────────────────────────────
-    const [qrrRecords, setQrrRecords] = useState<QRRRecord[]>([]);
+    // En celular (< 640 px) la vista va al 100%: reducirla haría ilegible el texto. El selector se oculta allí.
+    const [esPantallaPequena, setEsPantallaPequena] = useState(false);
     useEffect(() => {
-        try {
-            const stored = localStorage.getItem('mac_qrr_records');
-            if (stored) setQrrRecords(JSON.parse(stored));
-        } catch (e) { /* ignore */ }
+        const mq = window.matchMedia('(max-width: 639px)');
+        const actualizar = () => setEsPantallaPequena(mq.matches);
+        actualizar();
+        mq.addEventListener('change', actualizar);
+        return () => mq.removeEventListener('change', actualizar);
+    }, []);
+    const zoom = esPantallaPequena ? 1 : DENSIDADES.find(d => d.id === densidad)?.zoom ?? 0.8;
+
+    // ── QRR compartidos (tabla mac_qrr en Supabase; localStorage como respaldo) ──
+    const [qrrRecords, setQrrRecordsState] = useState<QRRRecord[]>([]);
+    const [qrrSource, setQrrSource] = useState<QrrSource>('local');
+    const [qrrSyncError, setQrrSyncError] = useState<string | null>(null);
+    const qrrRef = useRef<QRRRecord[]>([]);
+    const qrrSourceRef = useRef<QrrSource>('local');
+
+    useEffect(() => {
+        const local = readLocalQrr();
+        qrrRef.current = local;
+        setQrrRecordsState(local);
+        loadQrr().then(({ records, source }) => {
+            qrrRef.current = records;
+            qrrSourceRef.current = source;
+            setQrrRecordsState(records);
+            setQrrSource(source);
+        });
+    }, []);
+
+    // Misma firma que un setState: QrrMac y Análisis no cambian. Guarda en Supabase solo lo modificado.
+    const setQrrRecords = useCallback<React.Dispatch<React.SetStateAction<QRRRecord[]>>>((action) => {
+        const prev = qrrRef.current;
+        const next = typeof action === 'function' ? action(prev) : action;
+        qrrRef.current = next;
+        setQrrRecordsState(next);
+        writeLocalQrr(next);
+        if (qrrSourceRef.current === 'db') {
+            persistQrrChanges(prev, next)
+                .then(() => setQrrSyncError(null))
+                .catch((err: Error) => setQrrSyncError(err.message));
+        }
     }, []);
 
     const handleAddQRR = useCallback((partial: Partial<QRRRecord>) => {
@@ -124,19 +181,15 @@ export default function IndicadoresMacPage() {
             prioridad: 'seguimiento',
             ...partial,
         };
-        setQrrRecords(prev => {
-            const next = [...prev, newRec];
-            localStorage.setItem('mac_qrr_records', JSON.stringify(next));
-            return next;
-        });
+        setQrrRecords(prev => [...prev, newRec]);
         // Switch to QRR tab
         startTransition(() => {
             setActiveTab(5);
         });
-    }, []);
+    }, [setQrrRecords]);
 
     const [filters, setFilters] = useState<FilterState>({
-        fechaInicial: '2026-07-03',
+        fechaInicial: inicioPeriodoActual(),
         fechaFinal: new Date().toISOString().split('T')[0],
         estado: [],
         canalVenta: [],
@@ -170,7 +223,9 @@ export default function IndicadoresMacPage() {
                 zonasResult,
                 clientesResult,
             ] = await Promise.all([
-                supabase
+                // Paginado: Supabase entrega máximo 1.000 filas por consulta; sin paginar, los radicados y
+                // clientes por encima de ese número se perdían sin aviso.
+                fetchAllRows((from, to) => supabase
                     .from('registro_solicitudes')
                     .select(`
                         *,
@@ -178,12 +233,14 @@ export default function IndicadoresMacPage() {
                         AsesorMAC:Usuarios!registro_solicitudes_asesor_mac_id_fkey(nombres, apellidos),
                         Ubicaciones:cliente_id(id, cliente_id, nit, nombre, ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona))),
                         Consumidores:cliente_final_id(ciudad_id, ciudades:ciudad_id(ciudad, zona_id, zonas:zona_id(zona)))
-                    `),
+                    `)
+                    .order('id', { ascending: true })
+                    .range(from, to)),
                 supabase.from('razones_queja').select('id, razon'),
                 supabase.from('defectos').select('id, defecto'),
                 supabase.from('responsable_queja').select('id, responsable'),
                 supabase.from('zonas').select('id, zona'),
-                supabase.from('Clientes').select('id, nombre, nit, Mercado').limit(5000),
+                fetchAllRows((from, to) => supabase.from('Clientes').select('id, nombre, nit, Mercado').order('id', { ascending: true }).range(from, to)),
             ]);
 
             if (registrosResult.error) throw registrosResult.error;
@@ -632,7 +689,10 @@ export default function IndicadoresMacPage() {
         { label: 'Informe', icon: FileTextIcon },
         { label: 'Análisis', icon: SparklesIcon },
         { label: 'QRR', icon: ShieldCheckIcon },
+        { label: 'Experiencia', icon: HeartHandshakeIcon },
     ];
+    // Orden visual de las pestañas (los índices se conservan: otras partes usan activeTab 3 = Informe, 5 = QRR)
+    const tabsOrden = [0, 6, 1, 2, 3, 4, 5];
 
     if (loading) {
         return (
@@ -712,7 +772,8 @@ export default function IndicadoresMacPage() {
 
                 {/* Pestañas */}
                 <nav className="px-4 flex gap-1 overflow-x-auto [scrollbar-width:none]">
-                    {tabs.map((tab, idx) => {
+                    {tabsOrden.map((idx) => {
+                        const tab = tabs[idx];
                         const Icon = tab.icon;
                         const active = activeTab === idx;
                         return (
@@ -829,6 +890,17 @@ export default function IndicadoresMacPage() {
                                 {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                                 {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                                 {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
+                                {activeTab === 6 && <ExperienciaMac data={filteredData} prevData={data} filters={deferredFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 5 && (qrrSource === 'local' || qrrSyncError) && (
+                                    <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-xs text-amber-900">
+                                        <span className="mt-0.5 w-2 h-2 shrink-0 rounded-full bg-amber-500" />
+                                        <span>
+                                            {qrrSyncError
+                                                ? <>No se pudo guardar el último cambio en la base de datos ({qrrSyncError}). Quedó guardado en este navegador; recarga la página para reintentar.</>
+                                                : <>Los QRR se están guardando <strong>solo en este navegador</strong>. Para compartirlos con el equipo y guardar su histórico, falta crear la tabla en Supabase (archivo <code>supabase/create_mac_qrr.sql</code>).</>}
+                                        </span>
+                                    </div>
+                                )}
                                 {activeTab === 5 && <QrrMac data={filteredData} prevData={data} filters={deferredFilters} qrrRecords={qrrRecords} setQrrRecords={setQrrRecords} />}
                             </Suspense>
                         </div>

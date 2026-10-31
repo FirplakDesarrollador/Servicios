@@ -9,6 +9,12 @@
   2. `Fecha Objetivo de Cierre`: Para mes presupuestado.
   3. `Fecha de Verificación`: Única fecha válida para cierres y SLA.
 
+## Fecha de Cierre (`fecha_cierre`) = el día del agente
+- `fecha_verificacion` es la fecha **real** en que se le dio solución al cliente (ej.: el día que le llegó la reposición del lavamanos). Define estado, SLA, tiempos de solución y experiencia del cliente.
+- `fecha_cierre` es el día en que el **agente registró** el cierre del consecutivo (puede ser días después de la solución real). Se usa **solo** para medir la productividad del agente: cuántos casos cerró en su día, metas diarias, tendencia diaria del agente.
+- Por eso `DetalleMac` cuenta "cerrados hoy" por agente con `d.fecha_cierre || d.fecha_verificacion`: es correcto y no se debe cambiar.
+- Nunca usar `fecha_cierre` para estado, SLA ni tiempos de solución.
+
 ## Prevención de Errores Comunes de TypeScript
-- **Fechas en el RegistroMAC:** NUNCA utilizar la propiedad `fecha_cierre` al interactuar con el tipo `RegistroMAC`, ya que no existe en la interfaz y romperá el tipado. Para referirse al cierre usar siempre `fecha_verificacion` o el campo calculado respectivo.
+- **Fechas en el RegistroMAC:** `fecha_cierre` existe como opcional en `RegistroMAC`; úsala solo para productividad del agente (ver arriba). Para cierres, SLA y estado usar siempre `fecha_verificacion` o el campo calculado respectivo (`_fechaCierre`, `_tiempoCierre`, que también salen de la verificación).
 - **Tipado de Arrays en Hooks/Variables:** Siempre tipar explícitamente los arrays vacíos (por ejemplo, `const res: any[] = [];` o usando su tipo/interfaz específica) para evitar el error estricto de compilación en Vercel `Variable 'res' implicitly has type 'any[]'`.
