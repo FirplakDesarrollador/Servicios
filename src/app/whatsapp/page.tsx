@@ -83,6 +83,16 @@ export default function WhatsAppPage() {
   const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob, url: string } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
+  // Segundos transcurridos de la grabación en curso (se muestra como m:ss)
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isRecording) return;
+    setRecordingSeconds(0);
+    const startedAt = Date.now();
+    const timer = setInterval(() => setRecordingSeconds(Math.floor((Date.now() - startedAt) / 1000)), 250);
+    return () => clearInterval(timer);
+  }, [isRecording]);
   const [sending, setSending] = useState(false);
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -1191,11 +1201,14 @@ export default function WhatsAppPage() {
                     />
 
                     {isRecording ? (
-                      <div className="flex-1 flex items-center justify-between gap-3 px-3 text-red-500 animate-pulse bg-red-50 rounded-xl py-1">
+                      <div className="flex-1 flex items-center justify-between gap-3 px-3 text-red-500 bg-red-50 rounded-xl py-1">
                         <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
                           <span className="text-sm font-medium">Grabando...</span>
                         </div>
+                        <span className="text-sm font-semibold tabular-nums">
+                          {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
+                        </span>
                       </div>
                     ) : (
                       <textarea
