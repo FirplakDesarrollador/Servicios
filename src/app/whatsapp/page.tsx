@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, AudioLines } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, AudioLines, Zap, Settings2, BookmarkPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
 import AsesoresModal from '@/components/whatsapp/AsesoresModal';
+import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whatsapp/RespuestasRapidasModal';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 
 // Deja la grabación en un formato que acepte WhatsApp: OGG/Opus se envía tal cual; cualquier otro
@@ -154,6 +155,97 @@ export default function WhatsAppPage() {
     setIsDictating(true);
     messageInputRef.current?.focus();
   };
+
+  // Respuestas rápidas (tabla respuestas_rapidas, compartidas por todo el equipo).
+  // Se abren con el botón ⚡ o escribiendo "/" al inicio del mensaje.
+  const [respuestasRapidas, setRespuestasRapidas] = useState<RespuestaRapida[]>([]);
+  const [isQuickPickerOpen, setIsQuickPickerOpen] = useState(false);
+  const [quickSearch, setQuickSearch] = useState('');
+  const [quickIndex, setQuickIndex] = useState(0);
+  const [slashDismissed, setSlashDismissed] = useState(false);
+  const [respuestasModal, setRespuestasModal] = useState<{ texto: string } | null>(null);
+  const quickPickerAreaRef = useRef<HTMLDivElement>(null);
+  const quickListRef = useRef<HTMLDivElement>(null);
+
+  const fetchRespuestasRapidas = async () => {
+    const { data, error } = await supabase
+      .from('respuestas_rapidas')
+      .select('id, nombre_respuesta, respuesta_rapida')
+      .order('nombre_respuesta', { ascending: true });
+    if (error) console.error('Error cargando respuestas rápidas:', error);
+    if (data) setRespuestasRapidas(data);
+  };
+
+  useEffect(() => { fetchRespuestasRapidas(); }, []);
+
+  // Modo "/": el mensaje empieza con "/" y es de una sola línea; lo que sigue filtra la lista
+  const slashQuery = !slashDismissed && messageText.startsWith('/') && !messageText.includes('\n') ? messageText.slice(1) : null;
+  const showQuickPicker = isQuickPickerOpen || slashQuery !== null;
+  const quickQuery = (slashQuery ?? quickSearch).trim().toLowerCase();
+  const quickMatches = respuestasRapidas.filter(r =>
+    !quickQuery || r.nombre_respuesta.toLowerCase().includes(quickQuery) || r.respuesta_rapida.toLowerCase().includes(quickQuery)
+  );
+
+  useEffect(() => {
+    if (!messageText.startsWith('/')) setSlashDismissed(false);
+  }, [messageText]);
+
+  useEffect(() => { setQuickIndex(0); }, [quickQuery, showQuickPicker]);
+
+  useEffect(() => {
+    quickListRef.current?.querySelector(`[data-quick-index="${quickIndex}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [quickIndex]);
+
+  // Cerrar el selector al hacer clic fuera de la zona del campo de mensaje
+  useEffect(() => {
+    if (!isQuickPickerOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (!quickPickerAreaRef.current?.contains(e.target as Node)) setIsQuickPickerOpen(false);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [isQuickPickerOpen]);
+
+  const closeQuickPicker = () => {
+    setIsQuickPickerOpen(false);
+    setQuickSearch('');
+    if (messageText.startsWith('/')) setSlashDismissed(true);
+  };
+
+  // Pone la respuesta en el campo (no la envía) reemplazando {nombre} y {asesor}
+  const applyQuickReply = (r: RespuestaRapida) => {
+    const texto = r.respuesta_rapida
+      .replace(/\{nombre\}/gi, getContactName(activeChat))
+      .replace(/\{asesor\}/gi, currentUserName || '')
+      // Si una variable quedó vacía, no dejar "Hola , ..." ni espacios dobles
+      .replace(/[ \t]+([,.!?;:])/g, '$1')
+      .replace(/[ \t]{2,}/g, ' ');
+
+    stopDictation();
+    setMessageText(slashQuery !== null || !messageText.trim() ? texto : messageText.trimEnd() + ' ' + texto);
+    setIsQuickPickerOpen(false);
+    setQuickSearch('');
+    setTimeout(() => {
+      const el = messageInputRef.current;
+      if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    }, 0);
+  };
+
+  // Flechas, Enter/Tab y Esc dentro del selector; devuelve true si consumió la tecla
+  const handleQuickPickerKey = (e: React.KeyboardEvent): boolean => {
+    if (!showQuickPicker) return false;
+    if (e.key === 'Escape') { e.preventDefault(); closeQuickPicker(); return true; }
+    if (quickMatches.length === 0) return false;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setQuickIndex(i => (i + 1) % quickMatches.length); return true; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setQuickIndex(i => (i - 1 + quickMatches.length) % quickMatches.length); return true; }
+    if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
+      e.preventDefault();
+      applyQuickReply(quickMatches[Math.min(quickIndex, quickMatches.length - 1)]);
+      return true;
+    }
+    return false;
+  };
+
   const [sending, setSending] = useState(false);
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -1223,7 +1315,73 @@ export default function WhatsAppPage() {
             </div>
 
             {/* Input — shrink-0 keeps it at the bottom always */}
-            <div className="shrink-0 px-4 py-3 bg-white/60 border-t border-gray-100 z-10">
+            <div ref={quickPickerAreaRef} className="relative shrink-0 px-4 py-3 bg-white/60 border-t border-gray-100 z-10">
+              {showQuickPicker && !recordedAudio && !isRecording && (
+                <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden flex flex-col max-h-[340px]">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-indigo-50/40 shrink-0">
+                    <Zap className="w-4 h-4 text-indigo-500 shrink-0" />
+                    {slashQuery !== null ? (
+                      <span className="flex-1 text-xs font-semibold text-slate-500">
+                        Respuestas rápidas <span className="font-normal text-slate-400">· ↑↓ para elegir, Enter para usar, Esc para cerrar</span>
+                      </span>
+                    ) : (
+                      <input
+                        autoFocus
+                        type="text"
+                        value={quickSearch}
+                        onChange={(e) => setQuickSearch(e.target.value)}
+                        onKeyDown={(e) => { handleQuickPickerKey(e); }}
+                        placeholder="Buscar respuesta rápida..."
+                        className="flex-1 min-w-0 bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                      />
+                    )}
+                    <button type="button" onClick={closeQuickPicker} className="p-1 text-slate-400 hover:text-slate-600 rounded-full" title="Cerrar">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div ref={quickListRef} className="overflow-y-auto">
+                    {quickMatches.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-6 text-center">
+                        {respuestasRapidas.length === 0 ? 'Aún no hay respuestas rápidas guardadas.' : 'Ninguna respuesta coincide.'}
+                      </p>
+                    ) : (
+                      quickMatches.map((r, i) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          data-quick-index={i}
+                          onMouseEnter={() => setQuickIndex(i)}
+                          onClick={() => applyQuickReply(r)}
+                          className={`w-full text-left px-4 py-2.5 border-b border-gray-50 last:border-b-0 transition-colors ${i === quickIndex ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
+                        >
+                          <span className="block text-xs font-bold text-indigo-600">/{r.nombre_respuesta}</span>
+                          <span className="block text-[13px] text-slate-600 line-clamp-2 whitespace-pre-wrap">{r.respuesta_rapida}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-100 bg-slate-50/60 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => { closeQuickPicker(); setRespuestasModal({ texto: '' }); }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    >
+                      <Settings2 className="w-3.5 h-3.5" />
+                      Gestionar respuestas
+                    </button>
+                    {slashQuery === null && messageText.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => { closeQuickPicker(); setRespuestasModal({ texto: messageText.trim() }); }}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      >
+                        <BookmarkPlus className="w-3.5 h-3.5" />
+                        Guardar mensaje actual
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
               {replyTo && !recordedAudio && (
                 <div className="flex items-center gap-2 mb-2 bg-white rounded-xl border border-gray-200 px-3 py-2 shadow-sm">
                   <Reply className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -1272,6 +1430,16 @@ export default function WhatsAppPage() {
                         <AudioLines className="w-5 h-5" />
                       </button>
                     )}
+                    {!isRecording && (
+                      <button
+                        type="button"
+                        onClick={() => (isQuickPickerOpen ? closeQuickPicker() : setIsQuickPickerOpen(true))}
+                        className={`p-1.5 rounded-full transition-colors ${isQuickPickerOpen ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-indigo-500'}`}
+                        title="Respuestas rápidas (o escribe / en el mensaje)"
+                      >
+                        <Zap className="w-5 h-5" />
+                      </button>
+                    )}
 
                     {isRecording ? (
                       <div className="flex-1 flex items-center justify-between gap-3 px-3 text-red-500 bg-red-50 rounded-xl py-1">
@@ -1289,6 +1457,7 @@ export default function WhatsAppPage() {
                         rows={1}
                         value={messageText}
                         onKeyDown={(e) => {
+                          if (handleQuickPickerKey(e)) return;
                           if (e.key === 'Escape') setReplyTo(null);
                           // Enter envía; Shift+Enter agrega un salto de línea
                           if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -1539,6 +1708,13 @@ export default function WhatsAppPage() {
         isOpen={isNewMessageModalOpen}
         onClose={() => setIsNewMessageModalOpen(false)}
         onSubmit={handleSendTemplate}
+      />
+
+      <RespuestasRapidasModal
+        isOpen={respuestasModal !== null}
+        initialTexto={respuestasModal?.texto}
+        onClose={() => setRespuestasModal(null)}
+        onChanged={fetchRespuestasRapidas}
       />
 
       <AsesoresModal
