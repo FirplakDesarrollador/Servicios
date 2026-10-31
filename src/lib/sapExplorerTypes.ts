@@ -129,6 +129,8 @@ export interface SapDocDetail {
   address: string | null;
   shipTo: string | null;
   vatSum: number | null;
+  /** AttachmentEntry del documento (anexos en SAP), si tiene. */
+  attachmentEntry: number | null;
   /** Campos de usuario relevantes con etiqueta legible. */
   extra: Array<{ label: string; value: string }>;
   lines: SapDocLine[];

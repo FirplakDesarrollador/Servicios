@@ -11,6 +11,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { SAP_DOC_TYPES, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
 import MapaRelaciones from './explorer/MapaRelaciones';
+import AnexosSap from './explorer/AnexosSap';
 
 // Sample SAP Articulos for realistic demonstration
 const SAMPLE_SAP_ITEMS = [
@@ -173,7 +174,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   const [isMapaRelacionesModalOpen, setIsMapaRelacionesModalOpen] = useState(false);
   const [relationshipMap, setRelationshipMap] = useState<SapRelationshipMap | null>(null);
   const [isLoadingMap, setIsLoadingMap] = useState(false);
-  const [isDocumentViewerOpen, setIsDocumentViewerOpen] = useState(false);
+  const [attachmentEntry, setAttachmentEntry] = useState<number | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
 
   useEffect(() => {
@@ -319,6 +320,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       setCardName(sapDoc.CardName || '');
       setContactPerson(sapDoc._ContactPersonName || sapDoc.ContactPerson || '');
       setRefNumber(sapDoc.NumAtCard || '');
+      setAttachmentEntry(typeof sapDoc.AttachmentEntry === 'number' ? sapDoc.AttachmentEntry : null);
       setCurrency(sapDoc.DocCurrency === '$' ? 'COP' : sapDoc.DocCurrency || 'COP');
       setDocNum(String(sapDoc.DocNum || searchTarget));
       const rawStatus = sapDoc.DocumentStatus || sapDoc.DocStatus || '';
@@ -2217,64 +2219,14 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               </div>
             )}
 
-            {/* Tab 3: Anexos */}
+            {/* Tab 3: Anexos (archivos reales del documento en SAP) */}
             {activeTab === 'anexos' && (
-              <div className="flex-1 flex bg-cream-light border-t border-border relative overflow-hidden">
-                {/* Table Section */}
-                <div className="flex-1 overflow-auto bg-white m-2 border border-border shadow-sm">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-cream-light sticky top-0 shadow-sm z-10">
-                      <tr>
-                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 w-8 text-center whitespace-nowrap">#</th>
-                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[120px]">Vía de acceso d...</th>
-                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[120px]">Nombre de ...</th>
-                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[100px]">Fecha del anexo</th>
-                        <th className="p-1 px-2 border-b border-r border-border font-normal text-stone-600 whitespace-nowrap min-w-[150px]">Texto libre</th>
-                        <th className="p-1 px-2 border-b border-border font-normal text-stone-600 whitespace-nowrap min-w-[100px] text-center">Copiar a docu...</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white">
-                      <tr 
-                        className="hover:bg-sage-soft cursor-pointer"
-                        onDoubleClick={() => setIsDocumentViewerOpen(true)}
-                      >
-                        <td className="p-1 px-2 border-b border-r border-border/70 text-center font-medium text-stone-600">1</td>
-                        <td className="p-1 px-2 border-b border-r border-border/70 font-medium text-brand-dark">\\PES\Adjuntossap</td>
-                        <td className="p-1 px-2 border-b border-r border-border/70 font-medium text-brand-dark">Rem. 91253</td>
-                        <td className="p-1 px-2 border-b border-r border-border/70 font-medium text-brand-dark">01/09/2026</td>
-                        <td className="p-1 px-2 border-b border-r border-border/70 bg-white"></td>
-                        <td className="p-1 px-2 border-b border-border/70 bg-white text-center">
-                          <input type="checkbox" className="rounded-sm border-border" />
-                        </td>
-                      </tr>
-                      {/* Empty rows to fill space */}
-                      {Array.from({ length: 15 }).map((_, i) => (
-                        <tr key={i}>
-                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
-                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
-                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
-                          <td className="p-2 border-b border-r border-border/70 bg-cream-light/50"></td>
-                          <td className="p-2 border-b border-r border-border/70 bg-white"></td>
-                          <td className="p-2 border-b border-border/70 bg-cream-light/50"></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                {/* Right Buttons Panel */}
-                <div className="w-28 bg-cream-light p-2 flex flex-col gap-8 pt-8">
-                  <button className="w-full border border-brand rounded-lg text-white font-semibold text-xs py-1 flex items-center justify-between px-2 bg-brand hover:bg-brand-hover">
-                    <span>Explorar</span>
-                    <span className="text-[9px] text-brand ml-1">▼</span>
-                  </button>
-                  <button className="w-full border border-brand rounded-lg text-white font-semibold text-xs py-1 bg-brand hover:bg-brand-hover">
-                    Visualizar
-                  </button>
-                  <button className="w-full border border-brand rounded-lg text-white font-semibold text-xs py-1 mt-auto mb-20 bg-brand hover:bg-brand-hover">
-                    Borrar
-                  </button>
-                </div>
+              <div className="flex-1 p-5 text-xs">
+                {docNum ? (
+                  <AnexosSap absEntry={attachmentEntry} />
+                ) : (
+                  <p className="text-sm text-stone-400 text-center py-12">Consulte un documento para ver sus anexos.</p>
+                )}
               </div>
             )}
 
@@ -2897,39 +2849,6 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               >
                 Listo
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Document Viewer Modal ────────────────────────────────────────────── */}
-      {isDocumentViewerOpen && (
-        <div className="fixed inset-0 bg-brand-dark/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-stone-100 rounded-md shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col border border-border overflow-hidden">
-            
-            {/* Toolbar */}
-            <div className="bg-brand text-white p-2 px-4 flex items-center justify-between text-sm shadow-md z-10">
-              <div className="flex items-center gap-3">
-                <span className="font-semibold text-stone-200">Rem. 91253.pdf</span>
-                <span className="text-stone-400 text-xs bg-white/15 px-2 py-0.5 rounded">Visualizador PDF</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setIsDocumentViewerOpen(false)}
-                  className="hover:bg-red-500 hover:text-white text-stone-400 p-1 px-2 rounded font-bold transition-colors"
-                >
-                  ✕ Cerrar
-                </button>
-              </div>
-            </div>
-
-            {/* Document Content Area */}
-            <div className="flex-1 bg-cream relative">
-              <iframe 
-                src={`/api/sap/attachments?path=${encodeURIComponent('\\\\PES\\Adjuntossap\\Rem. 91253.pdf')}`}
-                className="w-full h-full border-0"
-                title="Visor de Anexo"
-              />
             </div>
           </div>
         </div>

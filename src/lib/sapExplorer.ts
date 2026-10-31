@@ -513,6 +513,7 @@ export async function getDocumentDetail(type: SapDocType, docEntry: number): Pro
       address: null,
       shipTo: null,
       vatSum: null,
+      attachmentEntry: toNum(raw.AttachmentEntry),
       extra: [
         { label: 'Almacén', value: raw.Warehouse || '' },
         ...(summary.originEntry ? [{ label: 'Pedido origen', value: String(raw.ProductionOrderOriginNumber ?? '') }] : []),
@@ -545,6 +546,7 @@ export async function getDocumentDetail(type: SapDocType, docEntry: number): Pro
     address: toStr(raw.Address),
     shipTo: toStr(raw.Address2),
     vatSum: toNum(raw.VatSum),
+    attachmentEntry: toNum(raw.AttachmentEntry),
     extra,
     lines,
   };

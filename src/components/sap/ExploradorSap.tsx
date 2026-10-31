@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, Search, Loader2, User, Building2, Phone, Mail, MapPin, FileText, ExternalLink,
-  ChevronRight, AlertCircle, GitBranch, Users, X, ListOrdered,
+  ChevronRight, AlertCircle, GitBranch, Users, X, ListOrdered, Paperclip,
 } from 'lucide-react';
 import {
   SAP_DOC_TYPES,
@@ -18,6 +18,7 @@ import {
   type SapSearchResult,
 } from '@/lib/sapExplorerTypes';
 import MapaRelaciones from './explorer/MapaRelaciones';
+import AnexosSap from './explorer/AnexosSap';
 import { DOC_TYPE_STYLE, formatDate, formatMoney, formatQty, statusStyle } from './explorer/sapFormat';
 
 export type ClassicSapMode = 'Quotation' | 'Order' | 'Delivery' | 'Invoice' | 'ProductionOrder';
@@ -571,6 +572,12 @@ function DocumentView({ type, docEntry, go, onOpenClassic }: {
         {mapRes.error && <ErrorBox message={mapRes.error} />}
         {mapRes.data && <div className="py-2"><MapaRelaciones map={mapRes.data} onOpen={openNode} /></div>}
       </Section>
+
+      {d.attachmentEntry && (
+        <Section title="Anexos" icon={Paperclip} flush>
+          <AnexosSap absEntry={d.attachmentEntry} compact />
+        </Section>
+      )}
 
       <Section title={isPO ? 'Componentes' : 'Contenido'} icon={FileText} flush right={<span className="text-[11px] text-stone-400">{d.lines.length} línea(s)</span>}>
         <div className="overflow-x-auto">

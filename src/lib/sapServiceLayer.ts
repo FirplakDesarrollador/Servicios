@@ -107,6 +107,18 @@ export function sapQueuedFetch(url: string, init: RequestInit = {}, timeoutMs = 
   return withSapSlot(() => fetch(url, { cache: 'no-store', ...init, signal: AbortSignal.timeout(timeoutMs) }));
 }
 
+/**
+ * GET de solo lectura que devuelve la respuesta cruda (para archivos, p. ej. anexos en PDF).
+ * Reintenta una vez con sesión nueva si SAP la invalidó (401).
+ */
+export async function sapGetRaw(path: string, timeoutMs = 60000): Promise<Response> {
+  let res = await sapQueuedFetch(`${SAP_BASE_URL}/${path}`, { headers: { Cookie: await getSapSessionCookie() } }, timeoutMs);
+  if (res.status === 401) {
+    res = await sapQueuedFetch(`${SAP_BASE_URL}/${path}`, { headers: { Cookie: await getSapSessionCookie(true) } }, timeoutMs);
+  }
+  return res;
+}
+
 export class SapRequestError extends Error {
   status: number;
   constructor(message: string, status: number) {
