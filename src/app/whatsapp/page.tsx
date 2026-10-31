@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, Send, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, AudioLines } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
@@ -93,6 +93,67 @@ export default function WhatsAppPage() {
     const timer = setInterval(() => setRecordingSeconds(Math.floor((Date.now() - startedAt) / 1000)), 250);
     return () => clearInterval(timer);
   }, [isRecording]);
+
+  // Dictado (voz a texto) con la Web Speech API del navegador (Chrome/Edge; Firefox no la soporta)
+  const [dictationSupported, setDictationSupported] = useState(false);
+  const [isDictating, setIsDictating] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const w = window as any;
+    setDictationSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+
+  const stopDictation = () => {
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    // abort() descarta resultados pendientes para que no reaparezca texto tras enviar
+    recognition?.abort();
+    setIsDictating(false);
+  };
+
+  // Al cambiar de chat o salir de la página se corta el dictado
+  useEffect(() => stopDictation, [activeChat?.id]);
+
+  const startDictation = () => {
+    const w = window as any;
+    const SpeechRecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'es-CO';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    // El texto dictado se agrega a lo que ya estaba escrito
+    const baseText = messageText.trim() ? messageText.trimEnd() + ' ' : '';
+
+    recognition.onresult = (event: any) => {
+      if (recognitionRef.current !== recognition) return;
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) transcript += event.results[i][0].transcript;
+      const dictated = transcript.trim();
+      setMessageText(baseText + dictated.charAt(0).toUpperCase() + dictated.slice(1));
+    };
+    recognition.onerror = (event: any) => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        alert('No se pudo usar el dictado. Permite el acceso al micrófono en tu navegador.');
+      } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        console.error('Error de dictado:', event.error);
+      }
+    };
+    recognition.onend = () => {
+      if (recognitionRef.current === recognition) {
+        recognitionRef.current = null;
+        setIsDictating(false);
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsDictating(true);
+    messageInputRef.current?.focus();
+  };
   const [sending, setSending] = useState(false);
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -478,6 +539,7 @@ export default function WhatsAppPage() {
     e?.preventDefault();
     if (!messageText.trim() || !activeChat || sending || isRecording) return;
 
+    stopDictation();
     const text = messageText.trim();
     const replyToWamId: string | null = replyTo?.wam_id || null;
     setMessageText('');
@@ -606,6 +668,7 @@ export default function WhatsAppPage() {
   // Se graba en OGG/Opus si el navegador lo soporta (Firefox); si no (Chrome/Edge graban WebM),
   // se convierte a MP3 antes de enviar.
   const startRecording = async () => {
+    stopDictation();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
@@ -1199,6 +1262,16 @@ export default function WhatsAppPage() {
                       className="hidden"
                       accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
                     />
+                    {dictationSupported && !isRecording && (
+                      <button
+                        type="button"
+                        onClick={isDictating ? stopDictation : startDictation}
+                        className={`p-1.5 rounded-full transition-colors ${isDictating ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:text-indigo-500'}`}
+                        title={isDictating ? 'Detener dictado' : 'Dictar mensaje (voz a texto)'}
+                      >
+                        <AudioLines className="w-5 h-5" />
+                      </button>
+                    )}
 
                     {isRecording ? (
                       <div className="flex-1 flex items-center justify-between gap-3 px-3 text-red-500 bg-red-50 rounded-xl py-1">
@@ -1224,7 +1297,7 @@ export default function WhatsAppPage() {
                           }
                         }}
                         onChange={(e) => setMessageText(e.target.value)}
-                        placeholder="Escribe un mensaje..."
+                        placeholder={isDictating ? 'Escuchando... habla ahora' : 'Escribe un mensaje...'}
                         className="flex-1 min-w-0 bg-transparent outline-none resize-none text-slate-700 placeholder:text-slate-400 text-[15px] leading-6 py-1 max-h-[200px] overflow-hidden"
                       />
                     )}
