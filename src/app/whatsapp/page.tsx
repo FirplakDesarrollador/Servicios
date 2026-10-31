@@ -8,12 +8,12 @@ import NewMessageModal from '@/components/whatsapp/NewMessageModal';
 import AsesoresModal from '@/components/whatsapp/AsesoresModal';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 
-// Deja la grabación en un formato que acepte WhatsApp: OGG/Opus y MP4 se envían tal cual;
-// cualquier otro (WebM de Chrome/Edge) se decodifica y se recodifica a MP3 mono.
+// Deja la grabación en un formato que acepte WhatsApp: OGG/Opus se envía tal cual; cualquier otro
+// (WebM de Chrome/Edge, MP4 de Safari) se decodifica y se recodifica a MP3 mono.
+// No se envía MP4 directo: Chrome lo graba con Opus y WhatsApp solo acepta MP4 con AAC (falla la entrega).
 async function toWhatsAppAudio(blob: Blob): Promise<File> {
   const baseType = blob.type.split(';')[0].trim();
   if (baseType === 'audio/ogg') return new File([blob], 'Nota_de_voz.ogg', { type: 'audio/ogg' });
-  if (baseType === 'audio/mp4') return new File([blob], 'Nota_de_voz.m4a', { type: 'audio/mp4' });
 
   const { Mp3Encoder } = await import('@breezystack/lamejs');
   const ctx = new AudioContext();
@@ -598,8 +598,9 @@ export default function WhatsAppPage() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const preferredType = ['audio/ogg;codecs=opus', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported(t));
-      const mediaRecorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream);
+      const mediaRecorder = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? new MediaRecorder(stream, { mimeType: 'audio/ogg;codecs=opus' })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
