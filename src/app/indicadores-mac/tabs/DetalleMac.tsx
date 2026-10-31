@@ -11,6 +11,7 @@ interface Props {
     filters: FilterState;
     dataForMesPresupuesto?: RegistroMAC[];
     dataForEstadoRiesgo?: RegistroMAC[];
+    dataForDiaCreacion?: RegistroMAC[];
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
 }
@@ -26,7 +27,7 @@ const COLORS = {
 
 // Remove redundant parseDateSafe and calcularRiesgo
 
-export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoRiesgo, prevData, filters, setFilters, onFilterToggle }: Props) {
+export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoRiesgo, dataForDiaCreacion, prevData, filters, setFilters, onFilterToggle }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchTipoProblema, setSearchTipoProblema] = useState('');
     const [searchResponsable, setSearchResponsable] = useState('');
@@ -409,7 +410,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
             daysMap[dateStr][type]++;
         };
 
-        data.forEach(d => {
+        (dataForDiaCreacion || data).forEach(d => {
             if (d.created_at) {
                 parseAndAdd(d.created_at, 'Radicados');
             }
@@ -436,7 +437,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
             }
             return { ...d, dia: d.dateStr };
         });
-    }, [data]);
+    }, [data, dataForDiaCreacion]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[70px]">
@@ -550,9 +551,13 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                                     cursor={{ fill: '#f9fafb' }}
                                 />
                                 <Legend />
-                                <Bar isAnimationActive={false} dataKey="Radicados" fill="#818cf8" radius={[4, 4, 0, 0]} name="Radicados al Día" />
-                                <Bar isAnimationActive={false} dataKey="Cerrados" fill="#2dd4bf" radius={[4, 4, 0, 0]} name="Cerrados al Día" />
-                                <Line isAnimationActive={false} type="monotone" dataKey="Meta" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta Equipo (9)" />
+                                <Bar isAnimationActive={false} dataKey="Radicados" fill="#3b778c" radius={[4, 4, 0, 0]} name="Radicados al Día" className="cursor-pointer" onClick={(barData: any, _i: number, e: any) => barData?.payload?.dateStr && onFilterToggle('diaCreacion', barData.payload.dateStr, e)}>
+                                    {tendenciaDiariaData.map(d => <Cell key={d.dateStr} fill="#3b778c" fillOpacity={(filters.diaCreacion || []).length === 0 || (filters.diaCreacion || []).includes(d.dateStr) ? 1 : 0.3} />)}
+                                </Bar>
+                                <Bar isAnimationActive={false} dataKey="Cerrados" fill="#749094" radius={[4, 4, 0, 0]} name="Cerrados al Día" className="cursor-pointer" onClick={(barData: any, _i: number, e: any) => barData?.payload?.dateStr && onFilterToggle('diaCreacion', barData.payload.dateStr, e)}>
+                                    {tendenciaDiariaData.map(d => <Cell key={d.dateStr} fill="#749094" fillOpacity={(filters.diaCreacion || []).length === 0 || (filters.diaCreacion || []).includes(d.dateStr) ? 1 : 0.3} />)}
+                                </Bar>
+                                <Line isAnimationActive={false} type="monotone" dataKey="Meta" stroke="#c96a4e" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta Equipo (9)" />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>

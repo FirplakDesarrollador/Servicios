@@ -75,6 +75,11 @@ export interface FilterState {
     mesPresupuesto: string[];
     mesCreacion: string[];
     estadoRiesgo: string[];
+    /** Fecha de compra / fabricación del producto: 'T:<tramo>', 'M:YYYY-MM', 'A:YYYY-MM' o 'SIN' (ver utils/fechaProducto) */
+    fechaCompra: string[];
+    fechaFabricacion: string[];
+    /** Día de creación del radicado, 'YYYY-MM-DD' (tendencia diaria de Detalle) */
+    diaCreacion: string[];
 }
 
 // ── Tipos para ANÁLISIS y QRR ──────────────────────────────────────────────

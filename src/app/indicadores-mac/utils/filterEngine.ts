@@ -6,6 +6,7 @@
 // máscara de bits) y de ahí salen todas las vistas. Los textos normalizados de cada registro se
 // calculan una sola vez y se guardan. La lógica de coincidencia es la misma de antes.
 import type { FilterState, RegistroMAC } from '../types';
+import { clasificarFecha, cumpleValorFecha, type ClasificacionFecha } from './fechaProducto';
 
 export const normalizeGrupo = (g: string): string => {
     if (!g || g === 'En Blanco' || g.toLowerCase() === 'en blanco') return 'En Blanco';
@@ -38,6 +39,7 @@ export const normalizePlantaName = (planta: string): string => {
 export const CROSS_KEYS = [
     'estado', 'mercado', 'canalVenta', 'tipoSolicitud', 'agenteMac', 'ciudades', 'zonas', 'clientes',
     'mesPresupuesto', 'mesCreacion', 'estadoRiesgo', 'defectos', 'responsables', 'productos', 'plantas',
+    'fechaCompra', 'fechaFabricacion', 'diaCreacion',
 ] as const;
 export type CrossKey = (typeof CROSS_KEYS)[number];
 
@@ -54,6 +56,9 @@ interface RowIndex {
     productos: Set<string>;
     plantas: Set<string>;
     grupos: Set<string>;
+    compra: ClasificacionFecha;
+    fabricacion: ClasificacionFecha;
+    dia: string;
 }
 
 // Índice por registro, calculado una sola vez (los registros no cambian después de cargarse).
@@ -70,10 +75,21 @@ function rowIndex(d: RegistroMAC): RowIndex {
             productos: new Set((d._productosNombres || []).map(upperTrim)),
             plantas: new Set((d._plantasNombres || []).map(upperTrim)),
             grupos: new Set(((r._gruposNombres as string[]) || []).map(upperTrim)),
+            compra: clasificarFecha(d, 'fecha_compra'),
+            fabricacion: clasificarFecha(d, 'fecha_fabricacion'),
+            dia: diaLocal(d.created_at),
         };
         rowIndexCache.set(d, idx);
     }
     return idx;
+}
+
+/** Día local YYYY-MM-DD de una fecha ISO (mismo criterio que la tendencia diaria). */
+function diaLocal(v: string | null | undefined): string {
+    if (!v) return '';
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 const matchesCanal = (dCanal: string, f: string) =>
@@ -107,6 +123,9 @@ export function computeFilterViews(data: RegistroMAC[], filters: FilterState): F
         return { set: 'productos' as const, value: upperTrim(s) };
     });
     const mercadoF = filters.mercado || [];
+    const compraF = filters.fechaCompra || [];
+    const fabricacionF = filters.fechaFabricacion || [];
+    const diaF = filters.diaCreacion || [];
 
     const all: RegistroMAC[] = [];
     const except = Object.fromEntries(CROSS_KEYS.map((k) => [k, [] as RegistroMAC[]])) as Record<CrossKey, RegistroMAC[]>;
@@ -127,7 +146,7 @@ export function computeFilterViews(data: RegistroMAC[], filters: FilterState): F
         if (filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) fails |= BIT.mesCreacion;
         if (filters.estadoRiesgo.length > 0 && !filters.estadoRiesgo.includes(d._estadoRiesgo || '')) fails |= BIT.estadoRiesgo;
 
-        if (canalF.length > 0 || tipoF.length > 0 || defectosF.length > 0 || responsablesF.length > 0 || productosF.length > 0 || plantasF.length > 0) {
+        if (canalF.length > 0 || tipoF.length > 0 || defectosF.length > 0 || responsablesF.length > 0 || productosF.length > 0 || plantasF.length > 0 || compraF.length > 0 || fabricacionF.length > 0 || diaF.length > 0) {
             const idx = rowIndex(d);
             if (canalF.length > 0 && !canalF.some((f) => matchesCanal(idx.canal, f))) fails |= BIT.canalVenta;
             if (tipoF.length > 0 && !tipoF.some((f) => idx.tipo === f || idx.tipo.includes(f) || f.includes(idx.tipo))) fails |= BIT.tipoSolicitud;
@@ -135,6 +154,9 @@ export function computeFilterViews(data: RegistroMAC[], filters: FilterState): F
             if (responsablesF.length > 0 && !responsablesF.some((f) => idx.responsables.has(f))) fails |= BIT.responsables;
             if (productosF.length > 0 && !productosF.some((f) => idx[f.set].has(f.value))) fails |= BIT.productos;
             if (plantasF.length > 0 && !plantasF.some((f) => idx.plantas.has(f))) fails |= BIT.plantas;
+            if (compraF.length > 0 && !compraF.some((v) => cumpleValorFecha(idx.compra, v))) fails |= BIT.fechaCompra;
+            if (fabricacionF.length > 0 && !fabricacionF.some((v) => cumpleValorFecha(idx.fabricacion, v))) fails |= BIT.fechaFabricacion;
+            if (diaF.length > 0 && !diaF.includes(idx.dia)) fails |= BIT.diaCreacion;
         }
 
         if (fails === 0) {

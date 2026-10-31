@@ -24,6 +24,8 @@ interface Props {
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
     razones?: any[];
     filtersComponent?: React.ReactNode;
+    dataForFechaCompra?: RegistroMAC[];
+    dataForFechaFabricacion?: RegistroMAC[];
 }
 
 const COLORS = [
@@ -1494,7 +1496,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function GeneralMac({ data, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, dataForMercado, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [], filtersComponent }: Props) {
+export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabricacion, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, dataForMercado, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [], filtersComponent }: Props) {
     const radicadosRows = useRowLimit([data]);
     // ── KPIs memoizados ────────────────────────────────────────────────────────
     const totalNovedades = data.length;
@@ -2454,8 +2456,8 @@ export default function GeneralMac({ data, prevData, dataForDefectos, dataForRes
 
             {/* Indicadores por Fecha de Compra y Fecha de Fabricación (Mes y Año) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <FechaProductoCard titulo="Solicitudes por fecha de compra" campo="fecha_compra" color="#254153" data={data} />
-                <FechaProductoCard titulo="Solicitudes por fecha de fabricación" campo="fecha_fabricacion" color="#749094" data={data} />
+                <FechaProductoCard titulo="Solicitudes por fecha de compra" campo="fecha_compra" color="#254153" data={dataForFechaCompra || data} filterKey="fechaCompra" activeValues={filters.fechaCompra || []} onFilterToggle={onFilterToggle} />
+                <FechaProductoCard titulo="Solicitudes por fecha de fabricación" campo="fecha_fabricacion" color="#749094" data={dataForFechaFabricacion || data} filterKey="fechaFabricacion" activeValues={filters.fechaFabricacion || []} onFilterToggle={onFilterToggle} />
             </div>
 
             {/* Tabla de Radicados y Comentarios */}

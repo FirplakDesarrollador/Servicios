@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
 import { RegistroMAC, FilterState } from '../types';
 import { useRowLimit } from '../utils/useRowLimit';
 
@@ -10,6 +10,10 @@ import { useRowLimit } from '../utils/useRowLimit';
 
 interface Props {
     data: RegistroMAC[];
+    /** Vistas cruzadas: todo menos el filtro propio, para resaltar en vez de vaciar */
+    dataForMesCreacion?: RegistroMAC[];
+    dataForDefectos?: RegistroMAC[];
+    dataForAgente?: RegistroMAC[];
     prevData: RegistroMAC[];
     filters: FilterState;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
@@ -62,7 +66,10 @@ function Kpi({ label, value, hint, tone = 'neutral' }: { label: string; value: s
     );
 }
 
-export default function ExperienciaMac({ data, onFilterToggle, filters }: Props) {
+export default function ExperienciaMac({ data, dataForMesCreacion, dataForDefectos, dataForAgente, onFilterToggle, filters }: Props) {
+    const datosMes = dataForMesCreacion || data;
+    const datosProblema = dataForDefectos || data;
+    const datosAgente = dataForAgente || data;
     // ── Indicadores generales ─────────────────────────────────────────────────
     const kpis = useMemo(() => {
         const cerrados = data.filter((d) => d.estado === 'Cerrado' && typeof d._tiempoCierre === 'number');
@@ -83,7 +90,7 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
     // ── Tendencia mensual (por mes de ingreso) ────────────────────────────────
     const tendencia = useMemo(() => {
         const meses = new Map<string, { casos: number; cerrados: number; dentro: number; tiempos: number[] }>();
-        for (const d of data) {
+        for (const d of datosMes) {
             const key = d._mesCreacionKey;
             if (!key) continue;
             const m = meses.get(key) || { casos: 0, cerrados: 0, dentro: 0, tiempos: [] };
@@ -100,18 +107,19 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
             .map(([key, m]) => {
                 const [y, mm] = key.split('-');
                 return {
+                    key,
                     mes: `${MESES[Number(mm) - 1]} ${y.slice(2)}`,
                     Casos: m.casos,
                     'Cumplimiento SLA %': m.cerrados ? Number(((m.dentro / m.cerrados) * 100).toFixed(1)) : null,
                     'Días promedio': m.tiempos.length ? Number((promedio(m.tiempos) as number).toFixed(1)) : null,
                 };
             });
-    }, [data]);
+    }, [datosMes]);
 
     // ── Pareto por experiencia: casos primero, dinero como dato secundario ────
     const pareto = useMemo(() => {
         const map = new Map<string, { casos: number; unidades: number; tiempos: number[]; valor: number }>();
-        for (const d of data) {
+        for (const d of datosProblema) {
             const problemas = d._defectosNombres && d._defectosNombres.length > 0 ? d._defectosNombres : ['Sin tipo de problema'];
             const unidades = (d.productos_novedad || []).reduce((a: number, p: any) => a + (Number(p.cantidad) || 1), 0) || 1;
             for (const p of problemas) {
@@ -139,12 +147,13 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
                     valor: e.valor,
                 };
             });
-    }, [data]);
+    }, [datosProblema]);
     const paretoVital = pareto.filter((p, i) => i === 0 || pareto[i - 1].acumulado < 0.8).length;
     const paretoChart = pareto.slice(0, 12).map((p) => ({
         nombre: p.nombre.length > 22 ? `${p.nombre.slice(0, 22)}…` : p.nombre,
         Casos: p.casos,
         '% acumulado': Number((p.acumulado * 100).toFixed(1)),
+        completo: p.nombre,
     }));
 
     // ── Problemas repetidos: mismo cliente + mismo problema en ≤90 días ───────
@@ -186,7 +195,7 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
     // ── Cierre del agente (fecha_cierre) vs solución real (fecha_verificacion) ─
     const agentes = useMemo(() => {
         const map = new Map<string, { cierres: number; brechas: number[]; mismoDia: number; sinFechaCierre: number; inconsistentes: number }>();
-        for (const d of data) {
+        for (const d of datosAgente) {
             if (d.estado !== 'Cerrado') continue;
             const agente = d._agenteNombre || 'Sin Asignar';
             const e = map.get(agente) || { cierres: 0, brechas: [], mismoDia: 0, sinFechaCierre: 0, inconsistentes: 0 };
@@ -221,7 +230,7 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
                 inconsistentes: e.inconsistentes,
             }))
             .sort((a, b) => b.cierres - a.cierres);
-    }, [data]);
+    }, [datosAgente]);
 
     const paretoRows = useRowLimit([pareto]);
     const reincRows = useRowLimit([reincidentes]);
@@ -252,7 +261,7 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
             <div className={`${card} p-6`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
                     <h3 className={titulo}>Cumplimiento de SLA y tiempo de solución por mes</h3>
-                    <span className="text-[11px] text-stone-400">Mes de ingreso del caso</span>
+                    <span className="text-[11px] text-stone-400">Mes de ingreso del caso · clic en una barra para filtrar</span>
                 </div>
                 <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
@@ -265,7 +274,9 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
                             <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e8e2d5', fontSize: 12 }} />
                             <Legend wrapperStyle={{ fontSize: 11 }} />
                             <ReferenceLine yAxisId="der" y={90} stroke="#3E6E5E" strokeDasharray="4 4" />
-                            <Bar yAxisId="izq" dataKey="Casos" fill="#b3bec4" radius={[6, 6, 0, 0]} maxBarSize={44} />
+                            <Bar yAxisId="izq" dataKey="Casos" fill="#b3bec4" radius={[6, 6, 0, 0]} maxBarSize={44} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.key && onFilterToggle('mesCreacion', b.payload.key, e)}>
+                                {tendencia.map((t) => <Cell key={t.key} fill="#b3bec4" fillOpacity={filters.mesCreacion.length === 0 || filters.mesCreacion.includes(t.key) ? 1 : 0.3} />)}
+                            </Bar>
                             <Line yAxisId="dias" type="monotone" dataKey="Días promedio" stroke="#c96a4e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
                             <Line yAxisId="der" type="monotone" dataKey="Cumplimiento SLA %" stroke="#254153" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
                         </ComposedChart>
@@ -277,7 +288,7 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                 <div className={`${card} p-6 xl:col-span-2`}>
                     <h3 className={`${titulo} mb-1`}>Pareto de problemas</h3>
-                    <p className="text-[11px] text-stone-400 mb-4">Por número de casos (experiencia), no por dinero</p>
+                    <p className="text-[11px] text-stone-400 mb-4">Por número de casos (experiencia), no por dinero · clic para filtrar</p>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={paretoChart} margin={{ top: 10, right: 0, left: -20, bottom: 50 }}>
@@ -287,7 +298,9 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
                                 <YAxis yAxisId="der" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
                                 <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e8e2d5', fontSize: 12 }} />
                                 <ReferenceLine yAxisId="der" y={80} stroke="#c96a4e" strokeDasharray="4 4" />
-                                <Bar yAxisId="izq" dataKey="Casos" fill="#254153" radius={[6, 6, 0, 0]} maxBarSize={36} />
+                                <Bar yAxisId="izq" dataKey="Casos" fill="#254153" radius={[6, 6, 0, 0]} maxBarSize={36} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.completo && b.payload.completo !== 'Sin tipo de problema' && onFilterToggle('defectos', b.payload.completo, e)}>
+                                    {paretoChart.map((p) => <Cell key={p.completo} fill="#254153" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(p.completo) ? 1 : 0.3} />)}
+                                </Bar>
                                 <Line yAxisId="der" type="monotone" dataKey="% acumulado" stroke="#c96a4e" strokeWidth={2} dot={{ r: 2.5 }} />
                             </ComposedChart>
                         </ResponsiveContainer>
@@ -400,7 +413,7 @@ export default function ExperienciaMac({ data, onFilterToggle, filters }: Props)
                             </thead>
                             <tbody>
                                 {agentes.map((a) => (
-                                    <tr key={a.agente} className="border-b border-border">
+                                    <tr key={a.agente} onClick={(e) => onFilterToggle('agenteMac', a.agente, e)} className={`border-b border-border cursor-pointer transition-colors ${filters.agenteMac.includes(a.agente) ? 'bg-sage-soft' : filters.agenteMac.length > 0 ? 'opacity-50 hover:opacity-100' : 'hover:bg-cream-light'}`}>
                                         <td className="px-3 py-2 text-xs font-medium text-stone-700">{a.agente}</td>
                                         <td className="px-3 py-2 text-xs font-bold text-brand-dark text-right tabular-nums">{a.cierres}</td>
                                         <td className={`px-3 py-2 text-xs text-right tabular-nums ${a.brechaMediana !== null && a.brechaMediana > 5 ? 'text-[#b86835] font-semibold' : ''}`}>

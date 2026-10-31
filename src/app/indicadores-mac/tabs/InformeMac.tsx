@@ -1127,7 +1127,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                         <h3 className="text-sm font-bold text-[#254153] uppercase flex items-center gap-2">
                             <TrendingUpIcon className="w-4 h-4 text-[#749094]" />
-                            Comportamiento Mes a Mes
+                            Comportamiento Mes a Mes <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-stone-400">· clic en un mes para filtrar</span>
                         </h3>
                         <div className="flex bg-stone-100 p-1 rounded-lg">
                             <button onClick={() => setMetricView('unidades')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'unidades' ? 'bg-white text-[#254153] shadow-sm' : 'text-stone-500 hover:text-[#254153]'}`}>Unidades</button>
@@ -1150,8 +1150,8 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <ReferenceLine y={META_CALIDAD} stroke="#c96a4e" strokeDasharray="3 3" label={{ position: 'top', value: 'Meta Calidad 1%', fill: '#c96a4e', fontSize: 10 }} />
                                     <ReferenceLine y={META_ECONOMICA} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'bottom', value: 'Meta Inversión 0.5%', fill: '#ef4444', fontSize: 10 }} />
-                                    <Line type="monotone" dataKey="pctNovedad" name="% Novedad" stroke="#c96a4e" strokeWidth={3} dot={{ r: 4 }} />
-                                    <Line type="monotone" dataKey="pctInversion" name="% Inversión" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} />
+                                    <Line isAnimationActive={false} type="monotone" dataKey="pctNovedad" name="% Novedad" stroke="#c96a4e" strokeWidth={3} dot={{ r: 4, cursor: 'pointer' }} activeDot={{ r: 6, cursor: 'pointer', onClick: (_e: any, p: any) => { const m = p?.payload; if (m?.name) onFilterToggle('mesCreacion', m.name); } }} />
+                                    <Line isAnimationActive={false} type="monotone" dataKey="pctInversion" name="% Inversión" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, cursor: 'pointer' }} activeDot={{ r: 6, cursor: 'pointer', onClick: (_e: any, p: any) => { const m = p?.payload; if (m?.name) onFilterToggle('mesCreacion', m.name); } }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         )}
@@ -1167,13 +1167,13 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                         formatter={(val: any, name: any) => [fmtN(Number(val) || 0), String(name || '')]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                    <Bar yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20}>
+                                    <Bar isAnimationActive={false} yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
                                         <LabelList dataKey="unidadesVendidas" position="top" fill="#b3bec4" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
                                     </Bar>
-                                    <Bar yAxisId="right" dataKey="unidadesNovedad" name="Unidades Novedad" fill="#c96a4e" radius={[4,4,0,0]} barSize={20}>
+                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="unidadesNovedad" name="Unidades Novedad" fill="#c96a4e" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
                                         <LabelList dataKey="unidadesNovedad" position="top" fill="#c96a4e" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
                                     </Bar>
-                                    <Bar yAxisId="right" dataKey="registros" name="Cantidad Casos" fill="#3b778c" radius={[4,4,0,0]} barSize={20}>
+                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="registros" name="Cantidad Casos" fill="#3b778c" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
                                         <LabelList dataKey="registros" position="top" fill="#3b778c" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
                                     </Bar>
                                 </BarChart>
@@ -1191,8 +1191,8 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                         formatter={(val: any, name: any) => [fmt$(Number(val) || 0), String(name || '')]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                    <Bar yAxisId="left" dataKey="ventasTotales" name="$ Venta" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} />
-                                    <Bar yAxisId="right" dataKey="inversion" name="$ Inversión" fill="#ef4444" radius={[4,4,0,0]} barSize={20} />
+                                    <Bar isAnimationActive={false} yAxisId="left" dataKey="ventasTotales" name="$ Venta" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)} />
+                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="inversion" name="$ Inversión" fill="#ef4444" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)} />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}

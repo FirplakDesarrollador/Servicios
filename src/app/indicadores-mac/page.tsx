@@ -10,6 +10,7 @@ import DetalleRadicadosModal from './components/DetalleRadicadosModal';
 import * as XLSX from 'xlsx';
 import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
 import { computeFilterViews, normalizeGrupo, normalizePlantaName } from './utils/filterEngine';
+import { etiquetaValorFecha } from './utils/fechaProducto';
 import { loadQrr, persistQrrChanges, readLocalQrr, writeLocalQrr, type QrrSource } from './utils/qrrStore';
 
 // ── Lazy loading de tabs → no bloquea el render inicial ──────────────────────
@@ -206,6 +207,9 @@ export default function IndicadoresMacPage() {
         mesCreacion: [],
         estadoRiesgo: [],
         mercado: [],
+        fechaCompra: [],
+        fechaFabricacion: [],
+        diaCreacion: [],
     });
 
     useEffect(() => {
@@ -528,6 +532,10 @@ export default function IndicadoresMacPage() {
     const dataForCanalVenta = views.except.canalVenta;
     const dataForMercado = views.except.mercado;
     const dataForEstadoRiesgo = views.except.estadoRiesgo;
+    const dataForFechaCompra = views.except.fechaCompra;
+    const dataForFechaFabricacion = views.except.fechaFabricacion;
+    const dataForDiaCreacion = views.except.diaCreacion;
+    const dataForAgente = views.except.agenteMac;
     const liveFiltersCtx = useMemo(() => ({ filters, setFilters }), [filters]);
     const verticalFiltersEl = useMemo(() => <LiveFilters data={data} activeTab={activeTab} isVertical={true} />, [data, activeTab]);
 
@@ -717,6 +725,10 @@ export default function IndicadoresMacPage() {
         { key: 'clientes', label: 'Cliente' },
         { key: 'mesPresupuesto', label: 'Mes SLA' },
         { key: 'mesCreacion', label: 'Mes Ingreso' },
+        { key: 'fechaCompra', label: 'Compra' },
+        { key: 'fechaFabricacion', label: 'Fabricación' },
+        { key: 'diaCreacion', label: 'Día' },
+        { key: 'agenteMac', label: 'Agente' },
     ];
 
     return (
@@ -806,6 +818,12 @@ export default function IndicadoresMacPage() {
                             } else if (f.key === 'productos' && val.startsWith('GF:')) {
                                 displayLabel = 'Grupo';
                                 displayVal = val.substring(3);
+                            } else if (f.key === 'fechaCompra' || f.key === 'fechaFabricacion') {
+                                displayVal = etiquetaValorFecha(val);
+                            } else if (f.key === 'diaCreacion') {
+                                displayVal = val.split('-').reverse().join('/');
+                            } else if ((f.key === 'mesCreacion' || f.key === 'mesPresupuesto') && /^\d{4}-\d{2}$/.test(val)) {
+                                displayVal = etiquetaValorFecha(`M:${val}`);
                             }
                             return (
                                 <span key={`${f.key}-${idx}`} className="bg-brand-soft text-brand text-xs pl-2.5 pr-1 py-1 rounded-full flex items-center gap-1.5 animate-fade-in">
@@ -826,7 +844,7 @@ export default function IndicadoresMacPage() {
                         </button>
                         <button
                             onClick={() => setFilters(prev => ({
-                                ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: [], mercado: []
+                                ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: [], mercado: [], fechaCompra: [], fechaFabricacion: [], diaCreacion: [], agenteMac: []
                             }))}
                             className="text-xs font-medium text-stone-500 hover:text-red-600 h-8 px-2 transition-colors whitespace-nowrap cursor-pointer"
                         >
@@ -877,6 +895,8 @@ export default function IndicadoresMacPage() {
                                         dataForMesCreacion={dataForMesCreacion}
                                         dataForCanalVenta={dataForCanalVenta}
                                         dataForMercado={dataForMercado}
+                                        dataForFechaCompra={dataForFechaCompra}
+                                        dataForFechaFabricacion={dataForFechaFabricacion}
                                         prevData={data}
                                         filters={deferredFilters}
                                         setFilters={setFilters}
@@ -887,10 +907,10 @@ export default function IndicadoresMacPage() {
                                         filtersComponent={verticalFiltersEl}
                                     />
                                 )}
-                                {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} dataForDiaCreacion={dataForDiaCreacion} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                                 {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                                 {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
-                                {activeTab === 6 && <ExperienciaMac data={filteredData} prevData={data} filters={deferredFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 6 && <ExperienciaMac data={filteredData} dataForMesCreacion={dataForMesCreacion} dataForDefectos={dataForDefectos} dataForAgente={dataForAgente} prevData={data} filters={deferredFilters} onFilterToggle={handleFilterToggle} />}
                                 {activeTab === 5 && (qrrSource === 'local' || qrrSyncError) && (
                                     <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-xs text-amber-900">
                                         <span className="mt-0.5 w-2 h-2 shrink-0 rounded-full bg-amber-500" />
