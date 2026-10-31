@@ -7,18 +7,18 @@ const SAP_COMPANY_DB = process.env.SAP_COMPANY_DB || 'Firplak_SA';
 const SAP_USERNAME = process.env.SAP_USERNAME || 'manager';
 const SAP_PASSWORD = process.env.SAP_PASSWORD || '2023Fir#.*';
 
+export { SAP_BASE_URL };
+
+// El Login del Service Layer tarda entre 2 y 10 s, mientras que una consulta tarda ~50 ms.
+// Por eso la sesión se reutiliza al máximo: se comparte entre peticiones de la misma instancia,
+// los logins simultáneos se unifican en uno solo y el vencimiento se extiende con cada uso
+// (el timeout de SAP es por inactividad).
 let sapSessionCookie: string | null = null;
 let sessionExpiresAt: number = 0;
+let sessionTimeoutMs = 30 * 60 * 1000;
+let loginInFlight: Promise<string> | null = null;
 
-/**
- * Login to SAP Service Layer and cache session cookie
- */
-export async function getSapSessionCookie(): Promise<string> {
-  const now = Date.now();
-  if (sapSessionCookie && now < sessionExpiresAt) {
-    return sapSessionCookie;
-  }
-
+async function loginToServiceLayer(): Promise<string> {
   const loginUrl = `${SAP_BASE_URL}/Login`;
   console.log('[SAP Service Layer] Authenticating with:', loginUrl);
 
@@ -29,7 +29,9 @@ export async function getSapSessionCookie(): Promise<string> {
       CompanyDB: SAP_COMPANY_DB,
       UserName: SAP_USERNAME,
       Password: SAP_PASSWORD
-    })
+    }),
+    signal: AbortSignal.timeout(30000),
+    cache: 'no-store'
   });
 
   if (!res.ok) {
@@ -38,80 +40,145 @@ export async function getSapSessionCookie(): Promise<string> {
     throw new Error(`Error autenticando en SAP Service Layer (${res.status}): ${errText}`);
   }
 
-  const cookieHeader = res.headers.get('set-cookie');
-  if (!cookieHeader) {
+  // Solo el par nombre=valor de cada cookie (B1SESSION y ROUTEID), sin atributos.
+  const setCookies = res.headers.getSetCookie();
+  const cookie = setCookies.length > 0
+    ? setCookies.map((c) => c.split(';')[0]).join('; ')
+    : res.headers.get('set-cookie');
+  if (!cookie) {
     throw new Error('SAP Service Layer no retornó las galletas de sesión B1SESSION');
   }
 
   const data = await res.json();
-  const timeoutMinutes = data.SessionTimeout || 30;
+  sessionTimeoutMs = (data.SessionTimeout || 30) * 60 * 1000;
 
-  sapSessionCookie = cookieHeader;
-  sessionExpiresAt = now + (timeoutMinutes - 2) * 60 * 1000;
+  sapSessionCookie = cookie;
+  sessionExpiresAt = Date.now() + sessionTimeoutMs - 2 * 60 * 1000;
 
   console.log('[SAP Service Layer] Login exitoso. SessionId:', data.SessionId);
-  return sapSessionCookie;
+  return cookie;
+}
+
+/**
+ * Login to SAP Service Layer and cache session cookie
+ */
+export async function getSapSessionCookie(forceNew = false): Promise<string> {
+  if (!forceNew && sapSessionCookie && Date.now() < sessionExpiresAt) {
+    return sapSessionCookie;
+  }
+  if (forceNew) {
+    sapSessionCookie = null;
+  }
+  if (!loginInFlight) {
+    loginInFlight = loginToServiceLayer().finally(() => {
+      loginInFlight = null;
+    });
+  }
+  return loginInFlight;
+}
+
+// El Service Layer bloquea las peticiones simultáneas sobre una misma sesión: con 2 a la vez responde en
+// ~0.2 s, pero con 7 cada una espera ~7 s a la anterior y terminan en timeout. Por eso las peticiones
+// se encolan y salen de a una (cada consulta tarda ~50 ms, así que en fila es mucho más rápido).
+const SAP_MAX_CONCURRENT = 1;
+let sapActive = 0;
+const sapWaiting: Array<() => void> = [];
+
+async function withSapSlot<T>(fn: () => Promise<T>): Promise<T> {
+  if (sapActive >= SAP_MAX_CONCURRENT) {
+    await new Promise<void>((resolve) => sapWaiting.push(resolve));
+  } else {
+    sapActive++;
+  }
+  try {
+    return await fn();
+  } finally {
+    const next = sapWaiting.shift();
+    if (next) next();
+    else sapActive--;
+  }
+}
+
+/**
+ * `fetch` al Service Layer pasando por la cola de la sesión compartida.
+ * El timeout empieza a contar cuando la petición sale, no mientras espera turno.
+ */
+export function sapQueuedFetch(url: string, init: RequestInit = {}, timeoutMs = 30000): Promise<Response> {
+  return withSapSlot(() => fetch(url, { cache: 'no-store', ...init, signal: AbortSignal.timeout(timeoutMs) }));
+}
+
+export class SapRequestError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/**
+ * GET de solo lectura al Service Layer. Reintenta una vez con sesión nueva si SAP la invalidó (401).
+ * `path` es relativo a la base (ej. "Orders?$filter=...").
+ */
+export async function sapGet<T = any>(path: string, opts: { maxPageSize?: number; timeoutMs?: number } = {}): Promise<T> {
+  const doRequest = async (cookie: string) => {
+    const headers: Record<string, string> = { Cookie: cookie, Accept: 'application/json' };
+    if (opts.maxPageSize) headers.Prefer = `odata.maxpagesize=${opts.maxPageSize}`;
+    return sapQueuedFetch(`${SAP_BASE_URL}/${path}`, { headers }, opts.timeoutMs);
+  };
+
+  let res = await doRequest(await getSapSessionCookie());
+  if (res.status === 401) {
+    res = await doRequest(await getSapSessionCookie(true));
+  }
+
+  if (!res.ok) {
+    const body = await res.text();
+    let message = body.slice(0, 300);
+    try {
+      message = JSON.parse(body)?.error?.message?.value || message;
+    } catch {
+      // respuesta no JSON
+    }
+    throw new SapRequestError(`SAP ${res.status}: ${message}`, res.status);
+  }
+
+  sessionExpiresAt = Math.max(sessionExpiresAt, Date.now() + sessionTimeoutMs - 2 * 60 * 1000);
+  return res.json() as Promise<T>;
 }
 
 /**
  * Fetch Business Partners (Clientes/Proveedores OCRD) from SAP
  */
 export async function fetchSapBusinessPartners(searchQuery?: string) {
-  const cookie = await getSapSessionCookie();
-  const url = `${SAP_BASE_URL}/BusinessPartners`;
-
-  const res = await fetch(url, {
-    headers: { 'Cookie': cookie }
+  // El filtro se hace en SAP: antes se traía la primera página sin filtrar (20 registros) y se filtraba aquí.
+  const q = (searchQuery || '').trim().replace(/'/g, "''");
+  const params = new URLSearchParams({
+    $select: 'CardCode,CardName,FederalTaxID,ContactPerson,CardType',
+    $orderby: 'CardName',
+    $top: '50'
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Error consultando BusinessPartners de SAP: ${err}`);
+  if (q) {
+    params.set('$filter', `contains(CardCode,'${q}') or contains(CardName,'${q}') or contains(FederalTaxID,'${q}')`);
   }
-
-  const data = await res.json();
-  const list = data.value || [];
-
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase().trim();
-    return list.filter((bp: any) => 
-      bp.CardCode?.toLowerCase().includes(q) || 
-      bp.CardName?.toLowerCase().includes(q) ||
-      bp.FederalTaxID?.toLowerCase().includes(q)
-    );
-  }
-
-  return list;
+  const data = await sapGet<{ value: any[] }>(`BusinessPartners?${params.toString()}`);
+  return data.value || [];
 }
 
 /**
  * Fetch Items (Artículos OITM) from SAP
  */
 export async function fetchSapItems(searchQuery?: string) {
-  const cookie = await getSapSessionCookie();
-  const url = `${SAP_BASE_URL}/Items`;
-
-  const res = await fetch(url, {
-    headers: { 'Cookie': cookie }
+  const q = (searchQuery || '').trim().replace(/'/g, "''");
+  const params = new URLSearchParams({
+    $select: 'ItemCode,ItemName,ItemPrices',
+    $orderby: 'ItemCode',
+    $top: '50'
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Error consultando Artículos de SAP: ${err}`);
+  if (q) {
+    params.set('$filter', `contains(ItemCode,'${q}') or contains(ItemName,'${q}')`);
   }
-
-  const data = await res.json();
-  const list = data.value || [];
-
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase().trim();
-    return list.filter((item: any) => 
-      item.ItemCode?.toLowerCase().includes(q) || 
-      item.ItemName?.toLowerCase().includes(q)
-    );
-  }
-
-  return list;
+  const data = await sapGet<{ value: any[] }>(`Items?${params.toString()}`);
+  return data.value || [];
 }
 
 /**
@@ -121,7 +188,7 @@ export async function fetchSapSalesPersonName(code: number | string): Promise<st
   if (!code || code === -1) return '-Ningún empleado del departamento-';
   try {
     const cookie = await getSapSessionCookie();
-    const res = await fetch(`${SAP_BASE_URL}/SalesPersons(${code})`, { headers: { 'Cookie': cookie } });
+    const res = await sapQueuedFetch(`${SAP_BASE_URL}/SalesPersons(${code})`, { headers: { 'Cookie': cookie } });
     if (res.ok) {
       const data = await res.json();
       return data.SalesEmployeeName || String(code);
@@ -139,7 +206,7 @@ export async function fetchSapContactPersonName(cardCode: string, contactCode: n
   if (!cardCode || !contactCode) return '';
   try {
     const cookie = await getSapSessionCookie();
-    const res = await fetch(`${SAP_BASE_URL}/BusinessPartners('${encodeURIComponent(cardCode)}')?$select=ContactEmployees`, { headers: { 'Cookie': cookie } });
+    const res = await sapQueuedFetch(`${SAP_BASE_URL}/BusinessPartners('${encodeURIComponent(cardCode)}')?$select=ContactEmployees`, { headers: { 'Cookie': cookie } });
     if (res.ok) {
       const data = await res.json();
       const contacts = data.ContactEmployees || [];
@@ -161,7 +228,7 @@ export async function fetchSapEmployeeName(empID: number | string): Promise<stri
   if (!empID) return '';
   try {
     const cookie = await getSapSessionCookie();
-    const res = await fetch(`${SAP_BASE_URL}/EmployeesInfo(${empID})`, { headers: { 'Cookie': cookie } });
+    const res = await sapQueuedFetch(`${SAP_BASE_URL}/EmployeesInfo(${empID})`, { headers: { 'Cookie': cookie } });
     if (res.ok) {
       const data = await res.json();
       if (data.LastName && data.FirstName) {
@@ -194,7 +261,7 @@ export async function fetchSapQuotationByDocNum(
     if (isNumeric) {
       const iUrl = `${SAP_BASE_URL}/Invoices?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying Invoices filter:', iUrl);
-      const iRes = await fetch(iUrl, { headers: { 'Cookie': cookie } });
+      const iRes = await sapQueuedFetch(iUrl, { headers: { 'Cookie': cookie } });
       if (iRes.ok) {
         const iData = await iRes.json();
         if (iData.value && iData.value.length > 0) {
@@ -207,7 +274,7 @@ export async function fetchSapQuotationByDocNum(
     if (!docData && isNumeric) {
       const dUrl = `${SAP_BASE_URL}/DeliveryNotes?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying DeliveryNotes filter:', dUrl);
-      const dRes = await fetch(dUrl, { headers: { 'Cookie': cookie } });
+      const dRes = await sapQueuedFetch(dUrl, { headers: { 'Cookie': cookie } });
       if (dRes.ok) {
         const dData = await dRes.json();
         if (dData.value && dData.value.length > 0) {
@@ -221,7 +288,7 @@ export async function fetchSapQuotationByDocNum(
     if (isNumeric) {
       const dUrl = `${SAP_BASE_URL}/DeliveryNotes?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying DeliveryNotes filter:', dUrl);
-      const dRes = await fetch(dUrl, { headers: { 'Cookie': cookie } });
+      const dRes = await sapQueuedFetch(dUrl, { headers: { 'Cookie': cookie } });
       if (dRes.ok) {
         const dData = await dRes.json();
         if (dData.value && dData.value.length > 0) {
@@ -234,7 +301,7 @@ export async function fetchSapQuotationByDocNum(
     if (!docData && isNumeric) {
       const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
-      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
+      const oRes = await sapQueuedFetch(oUrl, { headers: { 'Cookie': cookie } });
       if (oRes.ok) {
         const oData = await oRes.json();
         if (oData.value && oData.value.length > 0) {
@@ -248,7 +315,7 @@ export async function fetchSapQuotationByDocNum(
     if (isNumeric) {
       const poUrl = `${SAP_BASE_URL}/ProductionOrders?$filter=DocumentNumber eq ${target}`;
       console.log('[SAP Service Layer] Querying ProductionOrders filter:', poUrl);
-      const poRes = await fetch(poUrl, { headers: { 'Cookie': cookie } });
+      const poRes = await sapQueuedFetch(poUrl, { headers: { 'Cookie': cookie } });
       if (poRes.ok) {
         const poData = await poRes.json();
         if (poData.value && poData.value.length > 0) {
@@ -280,7 +347,7 @@ export async function fetchSapQuotationByDocNum(
     if (!docData && isNumeric) {
       const poUrl2 = `${SAP_BASE_URL}/ProductionOrders(${target})`;
       console.log('[SAP Service Layer] Querying ProductionOrders by entry:', poUrl2);
-      const poRes2 = await fetch(poUrl2, { headers: { 'Cookie': cookie } });
+      const poRes2 = await sapQueuedFetch(poUrl2, { headers: { 'Cookie': cookie } });
       if (poRes2.ok) {
         const poData2 = await poRes2.json();
         if (poData2 && (poData2.DocumentNumber || poData2.AbsoluteEntry)) {
@@ -295,7 +362,7 @@ export async function fetchSapQuotationByDocNum(
     if (isNumeric) {
       const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
-      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
+      const oRes = await sapQueuedFetch(oUrl, { headers: { 'Cookie': cookie } });
       if (oRes.ok) {
         const oData = await oRes.json();
         if (oData.value && oData.value.length > 0) {
@@ -308,7 +375,7 @@ export async function fetchSapQuotationByDocNum(
     if (!docData && isNumeric) {
       const qUrl = `${SAP_BASE_URL}/Quotations?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying Quotations filter:', qUrl);
-      const qRes = await fetch(qUrl, { headers: { 'Cookie': cookie } });
+      const qRes = await sapQueuedFetch(qUrl, { headers: { 'Cookie': cookie } });
       if (qRes.ok) {
         const qData = await qRes.json();
         if (qData.value && qData.value.length > 0) {
@@ -322,7 +389,7 @@ export async function fetchSapQuotationByDocNum(
     if (isNumeric) {
       const qUrl = `${SAP_BASE_URL}/Quotations?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying Quotations filter:', qUrl);
-      const qRes = await fetch(qUrl, { headers: { 'Cookie': cookie } });
+      const qRes = await sapQueuedFetch(qUrl, { headers: { 'Cookie': cookie } });
       if (qRes.ok) {
         const qData = await qRes.json();
         if (qData.value && qData.value.length > 0) {
@@ -336,7 +403,7 @@ export async function fetchSapQuotationByDocNum(
     if (!docData && isNumeric) {
       const oUrl = `${SAP_BASE_URL}/Orders?$filter=DocNum eq ${target}`;
       console.log('[SAP Service Layer] Querying Orders filter:', oUrl);
-      const oRes = await fetch(oUrl, { headers: { 'Cookie': cookie } });
+      const oRes = await sapQueuedFetch(oUrl, { headers: { 'Cookie': cookie } });
       if (oRes.ok) {
         const oData = await oRes.json();
         if (oData.value && oData.value.length > 0) {
@@ -349,7 +416,7 @@ export async function fetchSapQuotationByDocNum(
 
   // 3. Fallback: try fetching by internal DocEntry
   if (!docData && isNumeric) {
-    const directQRes = await fetch(`${SAP_BASE_URL}/Quotations(${target})`, { headers: { 'Cookie': cookie } });
+    const directQRes = await sapQueuedFetch(`${SAP_BASE_URL}/Quotations(${target})`, { headers: { 'Cookie': cookie } });
     if (directQRes.ok) {
       const directQData = await directQRes.json();
       if (directQData && directQData.DocNum) {
@@ -360,25 +427,18 @@ export async function fetchSapQuotationByDocNum(
   }
 
   if (docData) {
-    // Enrich with Sales Employee Name
-    let slpName = '-Ningún empleado del departamento-';
-    if (docData.SalesPersonCode) {
-      slpName = await fetchSapSalesPersonName(docData.SalesPersonCode);
-    }
+    // Enriquecer con nombres de empleado de ventas, contacto y titular (en paralelo)
+    const [slpName, contactName, ownerName] = await Promise.all([
+      docData.SalesPersonCode
+        ? fetchSapSalesPersonName(docData.SalesPersonCode)
+        : Promise.resolve('-Ningún empleado del departamento-'),
+      docData.ContactPersonCode && docData.CardCode
+        ? fetchSapContactPersonName(docData.CardCode, docData.ContactPersonCode)
+        : Promise.resolve(''),
+      docData.DocumentsOwner ? fetchSapEmployeeName(docData.DocumentsOwner) : Promise.resolve('')
+    ]);
     docData._SalesEmployeeName = slpName;
-
-    // Enrich with Contact Person Name
-    let contactName = '';
-    if (docData.ContactPersonCode && docData.CardCode) {
-      contactName = await fetchSapContactPersonName(docData.CardCode, docData.ContactPersonCode);
-    }
     docData._ContactPersonName = contactName || String(docData.ContactPersonCode || '');
-
-    // Enrich with Owner Name
-    let ownerName = '';
-    if (docData.DocumentsOwner) {
-      ownerName = await fetchSapEmployeeName(docData.DocumentsOwner);
-    }
     docData._OwnerName = ownerName || String(docData.DocumentsOwner || '');
 
     // Enrich UserSignature (Production Order user) → get name from EmployeesInfo
@@ -386,14 +446,14 @@ export async function fetchSapQuotationByDocNum(
       try {
         const cookie2 = await getSapSessionCookie();
         // Try Users endpoint first (SBO_SP_Users)
-        const userRes = await fetch(`${SAP_BASE_URL}/Users(${docData.UserSignature})`, { headers: { 'Cookie': cookie2 } });
+        const userRes = await sapQueuedFetch(`${SAP_BASE_URL}/Users(${docData.UserSignature})`, { headers: { 'Cookie': cookie2 } });
         if (userRes.ok) {
           const userData = await userRes.json();
           docData._UserSignatureName = userData.UserName || userData.FullName || String(docData.UserSignature);
           console.log('[SAP PO] User name resolved:', docData._UserSignatureName);
         } else {
           // Fallback to EmployeesInfo
-          const empRes = await fetch(`${SAP_BASE_URL}/EmployeesInfo(${docData.UserSignature})`, { headers: { 'Cookie': cookie2 } });
+          const empRes = await sapQueuedFetch(`${SAP_BASE_URL}/EmployeesInfo(${docData.UserSignature})`, { headers: { 'Cookie': cookie2 } });
           if (empRes.ok) {
             const empData = await empRes.json();
             const fullName = [empData.FirstName, empData.LastName].filter(Boolean).join(' ');
@@ -480,7 +540,7 @@ export async function searchSapDocumentsList(query: string, docType: string) {
     $top: '50'
   }).toString();
 
-  const res = await fetch(url, { headers: { 'Cookie': cookie } });
+  const res = await sapQueuedFetch(url, { headers: { Cookie: cookie } });
   
   if (!res.ok) {
     const err = await res.text();

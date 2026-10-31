@@ -2,17 +2,61 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Server, ArrowLeft, FileText, Factory, Package, Truck, Receipt, Boxes, ChevronRight, Sparkles } from 'lucide-react';
+import { Server, ArrowLeft, FileText, Factory, Package, Truck, Receipt, Boxes, ChevronRight, Sparkles, Search, GitBranch } from 'lucide-react';
 import { motion } from 'framer-motion';
 import OfertaDeVenta from '@/components/sap/OfertaDeVenta';
 import LDMCostos from '@/components/sap/LDMCostos';
+import ExploradorSap, { type ClassicSapMode } from '@/components/sap/ExploradorSap';
+
+const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
+  Quotation: 'oferta-venta',
+  Order: 'orden-venta',
+  Delivery: 'entrega-despacho',
+  Invoice: 'factura-cliente',
+  ProductionOrder: 'orden-fabricacion',
+};
 
 export default function ConsultasSapPage() {
   const router = useRouter();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [isAppMinimized, setIsAppMinimized] = useState(false);
+  // Explorador SAP: búsqueda inicial y documento abierto desde él en una pantalla clásica
+  const [heroQuery, setHeroQuery] = useState('');
+  const [explorerQuery, setExplorerQuery] = useState<string | null>(null);
+  const [classicDocNum, setClassicDocNum] = useState<string | undefined>(undefined);
+  const [openedFromExplorer, setOpenedFromExplorer] = useState(false);
+
+  const openExplorer = (query: string) => {
+    setExplorerQuery(query);
+    setSelectedModule('explorador');
+  };
+
+  const goBack = () => {
+    if (openedFromExplorer && selectedModule !== 'explorador') {
+      setOpenedFromExplorer(false);
+      setClassicDocNum(undefined);
+      setSelectedModule('explorador');
+    } else if (selectedModule) {
+      setSelectedModule(null);
+      setExplorerQuery(null);
+      setClassicDocNum(undefined);
+      setOpenedFromExplorer(false);
+    } else {
+      router.push('/');
+    }
+  };
 
   const sapModules = [
+    {
+      id: 'explorador',
+      title: 'Explorador SAP',
+      description: 'Busque por cédula/NIT, nombre, número de documento u orden de compra y navegue todo lo relacionado.',
+      icon: GitBranch,
+      color: 'bg-gradient-to-tr from-slate-700 to-slate-900 text-white',
+      badge: 'Nuevo',
+      badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
+      active: true
+    },
     {
       id: 'oferta-venta',
       title: 'Oferta de Venta',
@@ -87,28 +131,24 @@ export default function ConsultasSapPage() {
 
   return (
     <div className={`min-h-screen font-sans pb-12 transition-colors duration-200 ${
-      selectedModule ? 'bg-[#CBD5E1]' : 'bg-[#F1F5F9]'
+      selectedModule && selectedModule !== 'explorador' ? 'bg-[#CBD5E1]' : 'bg-[#F1F5F9]'
     }`}>
       {/* App Top Bar */}
       <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg justify-between">
         <div className="flex items-center">
           <button
-            onClick={() => {
-              if (selectedModule) {
-                setSelectedModule(null);
-              } else {
-                router.push('/');
-              }
-            }}
+            onClick={goBack}
             className="mr-4 p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-            title={selectedModule ? "Volver a Módulos SAP" : "Volver al Menú Principal"}
+            title={openedFromExplorer && selectedModule !== 'explorador' ? 'Volver al Explorador SAP' : selectedModule ? 'Volver a Módulos SAP' : 'Volver al Menú Principal'}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
             <Server className="w-5 h-5 opacity-70" />
             <h1 className="font-black text-xl tracking-tight uppercase">
-              {selectedModule === 'orden-fabricacion'
+              {selectedModule === 'explorador'
+                ? 'Consultas SAP — Explorador'
+                : selectedModule === 'orden-fabricacion'
                 ? 'Consultas SAP — Orden de Fabricación'
                 : selectedModule === 'orden-venta' 
                 ? 'Consultas SAP — Orden de Venta' 
@@ -128,7 +168,20 @@ export default function ConsultasSapPage() {
 
       {/* Main Container */}
       <main className="pt-20 px-4 max-w-[1700px] mx-auto">
-        {!selectedModule ? (
+        {explorerQuery !== null && (
+          <div className={selectedModule === 'explorador' ? '' : 'hidden'}>
+            <ExploradorSap
+              initialQuery={explorerQuery}
+              onOpenClassic={(mode, docNum) => {
+                setClassicDocNum(docNum);
+                setOpenedFromExplorer(true);
+                setSelectedModule(CLASSIC_MODULE_BY_MODE[mode]);
+              }}
+            />
+          </div>
+        )}
+
+        {selectedModule === 'explorador' ? null : !selectedModule ? (
           /* ── Sub-menu Dashboard Cards (Cuadritos) ────────────────────────── */
           <div className="max-w-6xl mx-auto pt-6">
             <motion.div 
@@ -148,6 +201,26 @@ export default function ConsultasSapPage() {
               </p>
             </motion.div>
 
+            {/* Buscador global → Explorador SAP */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                openExplorer(heroQuery);
+              }}
+              className="mb-8 flex items-center gap-2 bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-2 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10 transition-all"
+            >
+              <Search className="w-5 h-5 text-slate-400 shrink-0" />
+              <input
+                value={heroQuery}
+                onChange={(e) => setHeroQuery(e.target.value)}
+                placeholder="Buscar en SAP: cédula / NIT, nombre, número de documento u orden de compra…"
+                className="flex-1 min-w-0 bg-transparent outline-none text-base font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-medium py-1.5"
+              />
+              <button type="submit" className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-bold hover:opacity-90 cursor-pointer">
+                Buscar
+              </button>
+            </form>
+
             {/* Grid Cards (Cuadritos) - 3 Columns Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sapModules.map((mod, idx) => (
@@ -158,7 +231,9 @@ export default function ConsultasSapPage() {
                   transition={{ delay: idx * 0.08 }}
                   whileHover={mod.active ? { y: -4, scale: 1.01 } : {}}
                   onClick={() => {
-                    if (mod.active) setSelectedModule(mod.id);
+                    if (!mod.active) return;
+                    if (mod.id === 'explorador') openExplorer('');
+                    else setSelectedModule(mod.id);
                   }}
                   className={`bg-white rounded-3xl p-6 border shadow-sm transition-all relative overflow-hidden flex flex-col justify-between ${
                     mod.active 
@@ -209,6 +284,8 @@ export default function ConsultasSapPage() {
               <LDMCostos onMinimizeChange={setIsAppMinimized} />
             ) : (
               <OfertaDeVenta 
+                key={`${selectedModule}-${classicDocNum || ''}`}
+                initialDocNum={classicDocNum}
                 mode={
                   selectedModule === 'orden-fabricacion' ? 'ProductionOrder' :
                   selectedModule === 'orden-venta' ? 'Order' :

@@ -8,6 +8,8 @@ import {
   Building, Calendar, DollarSign, Package, AlertCircle, Eye, Info
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { SAP_DOC_TYPES, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
+import MapaRelaciones from './explorer/MapaRelaciones';
 
 // Sample SAP Articulos for realistic demonstration
 const SAMPLE_SAP_ITEMS = [
@@ -52,7 +54,7 @@ const getRowTextColor = (treeType?: string) => {
   return 'text-slate-800 font-medium';
 };
 
-export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinimizeChange }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice', onMinimizeChange?: (isMin: boolean) => void }) {
+export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinimizeChange, initialDocNum }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice', onMinimizeChange?: (isMin: boolean) => void, initialDocNum?: string }) {
   const [mode, setMode] = useState<'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice'>(initialMode);
 
   useEffect(() => {
@@ -168,10 +170,9 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isComentariosModalOpen, setIsComentariosModalOpen] = useState(false);
   const [isMapaRelacionesModalOpen, setIsMapaRelacionesModalOpen] = useState(false);
-  const [relationshipNodes, setRelationshipNodes] = useState<any[]>([]);
+  const [relationshipMap, setRelationshipMap] = useState<SapRelationshipMap | null>(null);
   const [isLoadingMap, setIsLoadingMap] = useState(false);
   const [isDocumentViewerOpen, setIsDocumentViewerOpen] = useState(false);
-  const [isPOExpanded, setIsPOExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
 
   useEffect(() => {
@@ -186,16 +187,13 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       const fetchMap = async () => {
         setIsLoadingMap(true);
         try {
-          const res = await fetch(`/api/sap/relationship-map?docNum=${docNum}&type=${mode}`);
+          setRelationshipMap(null);
+          const res = await fetch(`/api/sap/relationship-map?docNum=${encodeURIComponent(docNum)}&type=${mode}`);
           const data = await res.json();
-          if (data.nodes) {
-            setRelationshipNodes(data.nodes);
-          } else {
-            setRelationshipNodes([]);
-          }
+          setRelationshipMap(res.ok && Array.isArray(data.nodes) ? data : null);
         } catch (error) {
           console.error("Failed to fetch relationship map:", error);
-          setRelationshipNodes([]);
+          setRelationshipMap(null);
         } finally {
           setIsLoadingMap(false);
         }
@@ -272,6 +270,15 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   }, []);
 
   // ── Search Real SAP Document by Orden de Venta / DocNum ──────────────────────
+  // Abrir directamente un documento (p. ej. desde el Explorador SAP)
+  useEffect(() => {
+    if (initialDocNum) {
+      setDocNum(initialDocNum);
+      handleSearchSapDocument(initialDocNum, initialMode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDocNum, initialMode]);
+
   const navigateToDocument = (targetDocNum: string, targetMode: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice') => {
     setIsMapaRelacionesModalOpen(false);
     setMode(targetMode);
@@ -2852,282 +2859,27 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                 </div>
               )}
 
-              {/* Top Left: Socios de negocios Card */}
-              <div className="absolute top-4 left-4 w-44 border border-slate-400 rounded-sm bg-white shadow-md z-10">
-                <div className="bg-[#8FB0D8] text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
-                  <span>Socios de negocios</span>
-                </div>
-                <div className="p-2 space-y-0.5 text-[10px] text-slate-800">
-                  <p className="font-bold">{cardCode || 'CN280239-01'}</p>
-                  <p className="truncate text-slate-600">{cardName || 'MARCELINO DE FREITA...'}</p>
-                </div>
+              {/* Socio de negocios */}
+              <div className="mb-6 inline-block border border-slate-300 rounded-lg bg-white shadow-sm px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Socio de negocios</p>
+                <p className="font-bold text-slate-800">{cardCode || '—'}</p>
+                <p className="text-slate-600 max-w-[260px] truncate">{cardName}</p>
               </div>
 
-              {/* Dynamic Tree Flow Container */}
-              {(() => {
-                const formatDate = (dStr: string | Date | undefined) => {
-                  if (!dStr) return '';
-                  const s = String(dStr);
-                  if (s.length === 8 && /^\d+$/.test(s)) {
-                    return `${s.substring(6,8)}/${s.substring(4,6)}/${s.substring(0,4)}`;
-                  }
-                  return s;
-                };
-
-                const quoteNode = relationshipNodes.find(n => n.DocType === 'Quotation');
-                const orderNode = relationshipNodes.find(n => n.DocType === 'Order');
-                const deliveryNode = relationshipNodes.find(n => n.DocType === 'Delivery');
-                const invoiceNode = relationshipNodes.find(n => n.DocType === 'Invoice');
-                const poNodes = relationshipNodes.filter(n => n.DocType === 'ProductionOrder');
-
-                const hasQuote = !!quoteNode;
-                const qNum = quoteNode?.DocNum || '';
-                const qDate = formatDate(quoteNode?.DocDate);
-                const qTotal = quoteNode?.DocTotal || 0;
-
-                const hasOrder = !!orderNode;
-                const soNum = orderNode?.DocNum || docNum;
-                const soDate = orderNode ? formatDate(orderNode.DocDate) : (postingDate ? postingDate.split('-').reverse().join('/') : '');
-                const soTotal = orderNode?.DocTotal || (subtotalRows > 0 ? (subtotalRows * 1.19) : 0);
-
-                const hasDel = !!deliveryNode;
-                const delNum = deliveryNode?.DocNum || '';
-                const delDate = formatDate(deliveryNode?.DocDate);
-                const delTotal = deliveryNode?.DocTotal || 0;
-
-                const hasInv = !!invoiceNode;
-                const invNum = invoiceNode?.DocNum || '';
-                const invDate = formatDate(invoiceNode?.DocDate);
-                const invTotal = invoiceNode?.DocTotal || 0;
-
-                const multiplePOs = poNodes.length > 1;
-                const multiplePOsList = poNodes.map(po => ({
-                  num: po.DocNum,
-                  item: 'Múltiple/Desconocido', // No item details from mega query
-                  status: po.CANCELED === 'C' ? 'Cerrado' : po.CANCELED === 'L' ? 'Cerrado' : 'Planif.',
-                  date: formatDate(po.DocDate)
-                }));
-                const firstPO = poNodes[0];
-                const poNum = firstPO?.DocNum || '';
-                const poDate = formatDate(firstPO?.DocDate);
-                const poStatus = firstPO ? (firstPO.CANCELED === 'C' ? 'Cerrado' : 'Planif.') : '';
-                const poItem = 'Múltiple/Desconocido';
-
-                const totalNodes = (hasQuote ? 1 : 0) + 1 + (hasDel ? 1 : 0) + (hasInv ? 1 : 0);
-
-
-                return (
-                  <div className="pt-8 pb-12 flex items-center justify-center min-w-[750px]">
-                    <div className={`grid ${
-                      totalNodes === 2 ? 'grid-cols-2 max-w-xl gap-x-10' : totalNodes === 3 ? 'grid-cols-3 max-w-3xl gap-x-10' : 'grid-cols-4 max-w-5xl gap-x-8'
-                    } gap-y-16 items-center relative w-full px-4`}>
-                      
-                      {/* SVG Connecting Arrows overlay */}
-                      <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
-                        <defs>
-                          <marker id="sap-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
-                          </marker>
-                          <marker id="sap-yellow-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#EAB308" />
-                          </marker>
-                        </defs>
-                        
-                        {/* ── ROW 2 ARROWS (Marketing Flow) ── */}
-                        {/* We use percentage positions assuming they align with grid cols */}
-                        {/* Y position for Row 2 centers. Since Row 1 has content and Row 2 has content, the Y center of Row 2 is approximately 75% or we can just draw them in the grid cells */}
-                        
-                        {/* Arrow 1: Oferta -> Orden de Venta */}
-                        <line x1={totalNodes === 2 ? "35%" : totalNodes === 3 ? "24%" : "18%"} y1="75%" x2={totalNodes === 2 ? "65%" : totalNodes === 3 ? "42%" : "32%"} y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
-                        
-                        {/* Arrow 2: Orden de Venta -> Entrega */}
-                        {hasDel && (
-                          <line x1={totalNodes === 3 ? "58%" : "43%"} y1="75%" x2={totalNodes === 3 ? "76%" : "57%"} y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
-                        )}
-                        
-                        {/* Arrow 3: Entrega -> Factura */}
-                        {hasInv && (
-                          <line x1="68%" y1="75%" x2="82%" y2="75%" stroke="#64748B" strokeWidth="2" markerEnd="url(#sap-arrow)" />
-                        )}
-                      </svg>
-
-                      {/* ── ROW 1 ── */}
-                      {/* Column 2: Orden de Fabricación */}
-                      <div className="col-start-2 z-10 flex flex-col items-center relative">
-                        {/* Yellow Arrow pointing down to Orden de Venta */}
-                        <svg className="absolute top-full w-4 h-16 overflow-visible pointer-events-none" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-                          <line x1="2" y1="0" x2="2" y2="55" stroke="#EAB308" strokeWidth="3" markerEnd="url(#sap-yellow-arrow)" />
-                        </svg>
-
-                        {isPOExpanded && multiplePOsList.length > 0 ? (
-                          <div 
-                            className="flex flex-col gap-4 cursor-pointer"
-                            onDoubleClick={() => setIsPOExpanded(false)}
-                            title="Doble clic para contraer"
-                          >
-                            {multiplePOsList.map((po, idx) => (
-                              <div 
-                                key={idx} 
-                                className="w-40 border rounded-sm bg-white shadow-md relative border-slate-400 hover:ring-2 hover:ring-amber-300 transition-all"
-                                onDoubleClick={(e) => {
-                                  e.stopPropagation();
-                                  navigateToDocument(po.num, 'ProductionOrder');
-                                }}
-                                title="Doble clic para abrir documento"
-                              >
-                                <div className="bg-[#8FB0D8] relative z-10 text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between">
-                                  <span>Orden de fabricación</span>
-                                </div>
-                                <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right relative z-10 bg-white">
-                                  <p className="font-bold text-slate-900">{po.num}</p>
-                                  <p className="text-[9px] text-slate-600 truncate" title={po.item}>{po.item}</p>
-                                  <p className="text-[9px] text-slate-600">Estándar</p>
-                                  <p className="text-[9px] text-slate-600">{po.status}</p>
-                                  <p className="text-[9px] text-slate-500">{po.date}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div 
-                            className={`w-40 border rounded-sm bg-white shadow-md relative z-10 ${multiplePOs ? 'cursor-pointer hover:ring-2 hover:ring-amber-300' : ''} ${
-                              mode === 'ProductionOrder' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50' : 'border-slate-400'
-                            }`}
-                            onDoubleClick={() => {
-                              if (multiplePOs) {
-                                setIsPOExpanded(true);
-                              } else {
-                                navigateToDocument(poNum, 'ProductionOrder');
-                              }
-                            }}
-                            title={multiplePOs ? "Doble clic para expandir órdenes" : "Doble clic para abrir documento"}
-                          >
-                            {/* Stacked background cards for multiple POs */}
-                            {multiplePOs && (
-                              <>
-                                <div className="absolute top-1 -right-1 w-full h-full bg-white border border-slate-400 rounded-sm -z-20 shadow-sm pointer-events-none"></div>
-                                <div className="absolute top-2 -right-2 w-full h-full bg-white border border-slate-400 rounded-sm -z-30 shadow-sm pointer-events-none"></div>
-                                <div className="absolute top-3 -right-3 w-full h-full bg-white border border-slate-400 rounded-sm -z-40 shadow-sm pointer-events-none"></div>
-                              </>
-                            )}
-                            <div className={`${mode === 'ProductionOrder' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} relative z-10 text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                              <span>Orden de fabricación</span>
-                            </div>
-                            <div className="p-2 space-y-0.5 text-[10px] text-slate-800 text-right relative z-10 bg-white">
-                              <p className="font-bold text-slate-900">{poNum}</p>
-                              <p className="text-[9px] text-slate-600 truncate" title={poItem}>{poItem}</p>
-                              <p className="text-[9px] text-slate-600">Estándar</p>
-                              <p className="text-[9px] text-slate-600">{poStatus}</p>
-                              <p className="text-[9px] text-slate-500">{poDate}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Filler for other columns in Row 1 to keep grid balanced */}
-                      {totalNodes >= 3 && <div className="col-start-3"></div>}
-                      {totalNodes === 4 && <div className="col-start-4"></div>}
-
-                      {/* ── ROW 2 ── */}
-                      {/* Column 1: Oferta de ventas */}
-                      <div className="col-start-1 row-start-2 z-10 flex flex-col items-center">
-                        <div 
-                          className={`w-40 border rounded-sm bg-white shadow-md relative cursor-pointer hover:ring-2 transition-all ${
-                            mode === 'Quotation' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
-                          }`}
-                          onDoubleClick={() => navigateToDocument(mode === 'Quotation' ? (docNum || qNum) : qNum, 'Quotation')}
-                          title="Doble clic para abrir documento"
-                        >
-                          <div className={`${mode === 'Quotation' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                            <span>Oferta de ventas</span>
-                            <span className="text-[10px]" title="Cerrado">🔒</span>
-                          </div>
-                          <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
-                            <p className="font-bold text-slate-900">{mode === 'Quotation' ? (docNum || qNum) : qNum}</p>
-                            <p className="text-[10px] text-slate-600">{qDate}</p>
-                            <p className="font-bold text-slate-900">{formatMoney(Number(qTotal))}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Column 2: Orden de venta (Main flow node) */}
-                      <div className="col-start-2 row-start-2 z-10 flex flex-col items-center">
-                        <div 
-                          className={`w-40 border-2 rounded-sm bg-white shadow-xl relative cursor-pointer hover:ring-2 transition-all ${
-                            mode === 'Order' || (!hasDel && !hasInv) ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
-                          }`}
-                          onDoubleClick={() => navigateToDocument(soNum, 'Order')}
-                          title="Doble clic para abrir documento"
-                        >
-                          <div className={`${mode === 'Order' || (!hasDel && !hasInv) ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-amber-300 flex items-center justify-between`}>
-                            <span>Orden de venta</span>
-                            <span className="text-[10px]" title="Cerrado">🔒</span>
-                          </div>
-                          <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right bg-amber-50/10">
-                            <p className="font-bold text-slate-900">{soNum}</p>
-                            <p className="text-[10px] text-slate-600">{soDate}</p>
-                            <p className="font-bold text-slate-900">{formatMoney(soTotal)}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Column 3: Entrega (Optional) */}
-                      {hasDel && (
-                        <div className="col-start-3 row-start-2 z-10 flex flex-col items-center">
-                          <div 
-                            className={`w-40 border rounded-sm bg-white shadow-md relative cursor-pointer hover:ring-2 transition-all ${
-                              mode === 'Delivery' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
-                            }`}
-                            onDoubleClick={() => navigateToDocument(delNum, 'Delivery')}
-                            title="Doble clic para abrir documento"
-                          >
-                            <div className={`${mode === 'Delivery' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                              <span>Entrega</span>
-                              <div className="flex items-center gap-1 text-[9px]">
-                                <span>🖨️</span>
-                                <span>🔒</span>
-                              </div>
-                            </div>
-                            <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
-                              <p className="font-bold text-slate-900">{delNum}</p>
-                              <p className="text-[10px] text-slate-600">{delDate}</p>
-                              <p className="font-bold text-slate-900">{formatMoney(Number(delTotal))}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Column 4: Factura de deudores (Optional) */}
-                      {hasInv && (
-                        <div className="col-start-4 row-start-2 z-10 flex flex-col items-center">
-                          <div 
-                            className={`w-40 border rounded-sm bg-white shadow-md relative overflow-hidden cursor-pointer hover:ring-2 transition-all ${
-                              mode === 'Invoice' ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-amber-200/50 hover:ring-amber-400' : 'border-slate-400 hover:ring-amber-300'
-                            }`}
-                            onDoubleClick={() => navigateToDocument(invNum, 'Invoice')}
-                            title="Doble clic para abrir documento"
-                          >
-                            <div className={`${mode === 'Invoice' ? 'bg-[#F0C050]' : 'bg-[#8FB0D8]'} text-slate-900 px-2 py-0.5 font-bold text-xs border-b border-slate-300 flex items-center justify-between`}>
-                              <span>Factura de deudores</span>
-                              <div className="flex items-center gap-1 text-[9px]">
-                                <span>💰</span>
-                                <span>🔒</span>
-                              </div>
-                            </div>
-                            <div className="p-2 space-y-1 text-[10px] text-slate-800 text-right">
-                              <p className="font-bold text-slate-900">{invNum}</p>
-                              <p className="text-[10px] text-slate-600">{invDate}</p>
-                              <p className="font-bold text-slate-900">{formatMoney(Number(invTotal))}</p>
-                            </div>
-                            <div className="h-1.5 bg-[#F0C050] w-full"></div>
-                          </div>
-                        </div>
-                      )}
-
-                    </div>
-                  </div>
-                );
-              })()}
+              {/* Árbol de documentos vinculados (lectura en vivo desde SAP) */}
+              {relationshipMap ? (
+                <MapaRelaciones
+                  map={relationshipMap}
+                  onOpen={(n) => {
+                    const target = SAP_DOC_TYPES[n.type].classicMode;
+                    if (target) navigateToDocument(String(n.docNum), target);
+                  }}
+                />
+              ) : (
+                !isLoadingMap && (
+                  <p className="text-center text-sm text-slate-500 py-20">No se encontraron documentos vinculados para este documento.</p>
+                )
+              )}
 
             </div>
 
