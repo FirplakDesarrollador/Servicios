@@ -128,7 +128,7 @@ export default function PanoramaMetas({ entidades, data, ventas, lecturas }: {
                                             key={e.id}
                                             onClick={() => elegir(e.id)}
                                             aria-pressed={e.id === entidad.id}
-                                            className={`w-full text-left px-4 py-2 border-l-4 cursor-pointer transition-colors ${e.id === entidad.id ? 'bg-sage-soft border-brand' : 'border-transparent hover:bg-cream-light'}`}
+                                            className={`w-full text-left px-4 py-2 cursor-pointer transition-colors ${e.id === entidad.id ? 'bg-sage-soft' : 'hover:bg-cream-light'}`}
                                         >
                                             <div className="flex items-center gap-1.5 mb-1">
                                                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sobre ? 'bg-red-500' : 'bg-emerald-500'}`} />
