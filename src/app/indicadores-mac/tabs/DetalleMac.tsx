@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useDeferredValue } from 'react';
+import { porcentajeCumplimiento } from '../utils/metricas';
 import { RegistroMAC, FilterState } from '../types';
 import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
@@ -77,11 +78,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
         ? cerradas.reduce((acc, curr) => acc + (curr._tiempoCierre || 0), 0) / cerradas.length 
         : 0;
 
-    const fueraSla = dataConRiesgo.filter(d => {
-        const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
-        return diasHabiles > 15;
-    }).length;
-    const porcCumplimiento = total > 0 ? ((total - fueraSla) / total) * 100 : 0;
+    const porcCumplimiento = porcentajeCumplimiento(dataConRiesgo);
 
     const backlog = abiertas.length;
     const enRiesgoODemandante = abiertas.filter(d => d._estadoRiesgo === 'Riesgo de demanda' || d._estadoRiesgo === 'Demandante').length;
@@ -264,42 +261,6 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
     };
 
     // Agent Data Aggregation
-    const agentsData = useMemo(() => {
-        const totalRegistros = dataConRiesgo.length;
-        if (totalRegistros === 0) return [];
-        
-        const agentMap: Record<string, { total: number, cerradosSla: number, cerradosTotal: number }> = {};
-        
-        dataConRiesgo.forEach(d => {
-            const agent = d._agenteNombre || 'Sin Asignar';
-            if (!agentMap[agent]) {
-                agentMap[agent] = { total: 0, cerradosSla: 0, cerradosTotal: 0 };
-            }
-            agentMap[agent].total++;
-            
-            if (d.estado === 'Cerrado') {
-                agentMap[agent].cerradosTotal++;
-                const diasHabiles = d._tiempoCierre != null ? d._tiempoCierre : (d._diasHabilesAbierta ?? 0);
-                if (diasHabiles <= 15) {
-                    agentMap[agent].cerradosSla++;
-                }
-            }
-        });
-        
-        return Object.entries(agentMap)
-            .map(([nombre, metrics]) => {
-                const cumplimientoSLA = metrics.cerradosTotal > 0 ? (metrics.cerradosSla / metrics.cerradosTotal) * 100 : 0;
-                return {
-                    nombre,
-                    cantidad: metrics.total,
-                    porcentaje: (metrics.total / totalRegistros) * 100,
-                    abiertos: metrics.total - metrics.cerradosTotal,
-                    cerrados: metrics.cerradosTotal,
-                    cumplimientoSLA: cumplimientoSLA
-                };
-            })
-            .sort((a, b) => b.cantidad - a.cantidad);
-    }, [dataConRiesgo]);
 
     const exportData = useMemo(() => {
         return [...dataConRiesgo].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -625,132 +586,6 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-
-            {/* Rendimiento por Agentes MAC (Histórico) */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider flex items-center gap-2">
-                        <Target className="w-4 h-4 text-brand" />
-                        Rendimiento Diario (Día Actual)
-                    </h3>
-                    <div className="flex gap-4">
-                        <div className="text-xs bg-cream-light px-3 py-1.5 rounded-lg border border-border">
-                            <span className="text-stone-500 font-semibold mr-1">Meta Equipo:</span>
-                            <span className="font-bold text-brand">{rendimientoHoy.metaEquipo} Rad. / {rendimientoHoy.metaEquipo} Cerr.</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-brand-soft border border-brand-light/30 p-4 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] font-bold text-brand-light uppercase tracking-wider mb-1">Total Radicados Hoy</span>
-                        <div className="flex items-end gap-2">
-                            <span className="text-2xl font-bold text-brand leading-none">{rendimientoHoy.radicadosTotalHoy}</span>
-                            <span className={`text-[10px] font-bold mb-0.5 ${rendimientoHoy.radicadosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                / {rendimientoHoy.metaEquipo} meta
-                            </span>
-                        </div>
-                    </div>
-                    <div className="bg-teal-50 border border-teal-100 p-4 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-1">Total Cerrados Hoy</span>
-                        <div className="flex items-end gap-2">
-                            <span className="text-2xl font-bold text-teal-800 leading-none">{rendimientoHoy.cerradosTotalHoy}</span>
-                            <span className={`text-[10px] font-bold mb-0.5 ${rendimientoHoy.cerradosTotalHoy >= rendimientoHoy.metaEquipo ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                / {rendimientoHoy.metaEquipo} meta
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-border text-[10px] uppercase tracking-wider text-stone-400">
-                                <th className="p-3 font-semibold">Agente MAC</th>
-                                <th className="p-3 font-semibold text-center">Radicados Hoy (Meta: 3)</th>
-                                <th className="p-3 font-semibold text-center">Cerrados Hoy (Meta: 3)</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {rendimientoHoy.agentes.map((ag) => (
-                                <tr key={`hoy-${ag.nombre}`} className="hover:bg-cream-light/80 transition-colors">
-                                    <td className="p-3 text-xs font-bold text-brand-dark">{ag.nombre}</td>
-                                    <td className="p-3">
-                                        <div className="flex items-center justify-center gap-3">
-                                            <span className="text-sm font-bold text-stone-700 w-4 text-center">{ag.radicadosHoy}</span>
-                                            <div className="w-24 h-2 bg-stone-100 rounded-full overflow-hidden">
-                                                <div className={`h-full transition-all ${ag.metaCumplidaRadicados ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.radicadosHoy / 3) * 100, 100)}%` }} />
-                                            </div>
-                                            {ag.metaCumplidaRadicados && <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
-                                        </div>
-                                    </td>
-                                    <td className="p-3">
-                                        <div className="flex items-center justify-center gap-3">
-                                            <span className="text-sm font-bold text-stone-700 w-4 text-center">{ag.cerradosHoy}</span>
-                                            <div className="w-24 h-2 bg-stone-100 rounded-full overflow-hidden">
-                                                <div className={`h-full transition-all ${ag.metaCumplidaCerrados ? 'bg-teal-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((ag.cerradosHoy / 3) * 100, 100)}%` }} />
-                                            </div>
-                                            {ag.metaCumplidaCerrados && <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">¡Meta!</span>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {rendimientoHoy.agentes.length === 0 && (
-                                <tr>
-                                    <td colSpan={3} className="p-4 text-center text-xs text-stone-400">No hay datos para hoy</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Rendimiento por Agentes MAC (Histórico) */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-                <h3 className="text-sm font-bold text-brand-dark mb-6 uppercase tracking-wider">Rendimiento por Agente MAC</h3>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-border text-[10px] uppercase tracking-wider text-stone-400">
-                                <th className="p-3 font-semibold">Agente MAC</th>
-                                <th className="p-3 font-semibold text-center">Registros</th>
-                                <th className="p-3 font-semibold text-center">% sobre Total</th>
-                                <th className="p-3 font-semibold text-center">Casos Abiertos</th>
-                                <th className="p-3 font-semibold text-center">Casos Cerrados</th>
-                                <th className="p-3 font-semibold text-center">Cierre en SLA (Cumplimiento)</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {agentsData.map((ag) => (
-                                <tr 
-                                    key={ag.nombre} 
-                                    className="hover:bg-cream-light/80 transition-colors cursor-pointer"
-                                    onClick={(e) => onFilterToggle('agenteMac', ag.nombre, e)}
-                                    title={`Filtrar por agente ${ag.nombre}`}
-                                >
-                                    <td className="p-3 text-xs font-bold text-brand-dark">{ag.nombre}</td>
-                                    <td className="p-3 text-xs text-center text-stone-600">{ag.cantidad}</td>
-                                    <td className="p-3 text-xs text-center font-medium text-stone-700">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="w-10 text-right">{ag.porcentaje.toFixed(1)}%</span>
-                                            <div className="w-16 h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-brand" style={{ width: `${ag.porcentaje}%` }} />
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-3 text-xs text-center font-bold text-amber-600">{ag.abiertos}</td>
-                                    <td className="p-3 text-xs text-center font-bold text-emerald-600">{ag.cerrados}</td>
-                                    <td className="p-3 text-xs text-center font-medium">
-                                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${ag.cumplimientoSLA >= 85 ? 'bg-emerald-100 text-emerald-700' : ag.cumplimientoSLA >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                                            {ag.cumplimientoSLA.toFixed(1)}%
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
                 </div>
             </div>
 

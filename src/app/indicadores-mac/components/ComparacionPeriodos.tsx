@@ -1,27 +1,63 @@
 'use client';
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { RegistroMAC, FilterState, DateRange, QRRRecord, PriorityLevel, AllAnalyses, Recommendation } from '../types';
-import {
-    getDefaultPeriods, getAvailableMonths, buildMonthRangeFromKey,
-    runFullAnalysis, generateExecutiveSummary, formatVariation,
-    PRIORITY_CONFIG, filterByPeriod,
-} from '../utils/analysisEngine';
+import { buildMonthRangeFromKey, generateExecutiveSummary, getDefaultPeriods, PRIORITY_CONFIG } from '../utils/analysisEngine';
 import { AlertTriangleIcon, TrendingUpIcon, DollarSignIcon, MapPinIcon, UsersIcon, PackageIcon, ShieldAlertIcon, ChevronDownIcon, ChevronUpIcon, PlusCircleIcon, EyeIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 
-// ── Props ──────────────────────────────────────────────────────────────────
-interface Props {
-    data: RegistroMAC[];
-    prevData: RegistroMAC[];
-    filters: FilterState;
-    setFilters?: any;
-    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
-    qrrRecords: QRRRecord[];
-    onAddQRR: (rec: Partial<QRRRecord>) => void;
+// Comparación contra el periodo anterior, dentro de la hoja Informe. El periodo actual es siempre el
+// que está filtrado en la página. Aquí se cuentan radicados únicos; la tabla de Tipo de Problema del Informe
+// cuenta líneas de producto, por eso un problema puede diferir en unos pocos casos entre ambas.
+
+// ── Periodos ───────────────────────────────────────────────────────────────
+const DIA_MS = 86400000;
+const claveMes = (total: number) => `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
+const mesesTotales = (key: string) => {
+    const [y, m] = key.split('-').map(Number);
+    return y * 12 + (m - 1);
+};
+const fechaISO = (ts: number) => {
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const fechaCorta = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+
+/** Periodo filtrado en la página: los meses elegidos o, si no hay, el rango de fechas. */
+export function periodoDesdeFiltros(filters: Pick<FilterState, 'mesCreacion' | 'fechaInicial' | 'fechaFinal'>): DateRange {
+    const meses = [...filters.mesCreacion].sort();
+    if (meses.length > 0) {
+        const primero = buildMonthRangeFromKey(meses[0]);
+        const ultimo = buildMonthRangeFromKey(meses[meses.length - 1]);
+        return {
+            start: primero.start,
+            end: ultimo.end,
+            key: meses[0],
+            label: meses.length === 1 ? primero.label : `${primero.label} – ${ultimo.label}`,
+        };
+    }
+    if (!filters.fechaInicial) return getDefaultPeriods().current;
+    const fin = filters.fechaFinal || fechaISO(Date.now());
+    return { start: filters.fechaInicial, end: fin, key: filters.fechaInicial.slice(0, 7), label: `${fechaCorta(filters.fechaInicial)} – ${fechaCorta(fin)}` };
+}
+
+/** Periodo de igual duración inmediatamente anterior al actual. */
+export function periodoAnteriorAutomatico(actual: DateRange, meses: string[]): DateRange {
+    if (meses.length > 0) {
+        const primero = mesesTotales([...meses].sort()[0]);
+        const desde = buildMonthRangeFromKey(claveMes(primero - meses.length));
+        const hasta = buildMonthRangeFromKey(claveMes(primero - 1));
+        return { start: desde.start, end: hasta.end, key: desde.key, label: meses.length === 1 ? desde.label : `${desde.label} – ${hasta.label}` };
+    }
+    const inicio = new Date(`${actual.start}T00:00:00`).getTime();
+    const fin = new Date(`${actual.end}T00:00:00`).getTime();
+    const hastaTs = inicio - DIA_MS;
+    const start = fechaISO(hastaTs - (fin - inicio));
+    const end = fechaISO(hastaTs);
+    return { start, end, key: start.slice(0, 7), label: `${fechaCorta(start)} – ${fechaCorta(end)}` };
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const fmt$ = (v: number) => v > 0 ? `$${v.toLocaleString('es-CO')}` : '$0';
-const fmtVar = (v: number | null) => {
+export const fmt$ = (v: number) => v > 0 ? `$${v.toLocaleString('es-CO')}` : '$0';
+export const fmtVar = (v: number | null) => {
     if (v === null) return <span className="text-brand font-bold text-xs">Nuevo</span>;
     if (v === 0) return <span className="text-stone-400 font-semibold text-xs">0%</span>;
     const color = v > 0 ? 'text-red-600' : 'text-green-600';
@@ -29,7 +65,7 @@ const fmtVar = (v: number | null) => {
     return <span className={`${color} font-bold text-xs`}>{icon} {v > 0 ? '+' : ''}{v.toFixed(1)}%</span>;
 };
 
-const PriorityBadge = ({ level }: { level: PriorityLevel }) => {
+export const PriorityBadge = ({ level }: { level: PriorityLevel }) => {
     const cfg = PRIORITY_CONFIG[level];
     return (
         <span
@@ -40,16 +76,6 @@ const PriorityBadge = ({ level }: { level: PriorityLevel }) => {
         </span>
     );
 };
-
-const SectionTitle = ({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) => (
-    <div className="flex items-center gap-2 mb-4 pt-2">
-        <div className="w-8 h-8 rounded-lg bg-[#254153] text-white flex items-center justify-center flex-shrink-0">{icon}</div>
-        <div>
-            <h2 className="text-sm font-bold text-brand-dark uppercase tracking-wider">{title}</h2>
-            {subtitle && <p className="text-[10px] text-stone-400 font-medium">{subtitle}</p>}
-        </div>
-    </div>
-);
 
 // ── KPI Card ───────────────────────────────────────────────────────────────
 const KpiCard = ({ title, value, prefix = '', suffix = '', variacion, subtitle, icon }: {
@@ -102,34 +128,29 @@ const CollapsibleSection = ({ children, title, icon, subtitle, defaultOpen = tru
     );
 };
 
-// ── Component ──────────────────────────────────────────────────────────────
-export default function AnalisisMac({ data, prevData, filters, onFilterToggle, qrrRecords, onAddQRR }: Props) {
-    // ── Períodos ────────────────────────────────────────────────────────────
-    const availableMonths = useMemo(() => getAvailableMonths(prevData), [prevData]);
-    const defaults = useMemo(() => getDefaultPeriods(), []);
+const claseFila = (activa: boolean, i: number) =>
+    `transition-colors cursor-pointer ${activa ? 'bg-sage-soft' : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'}`;
 
-    const [currentPeriodKey, setCurrentPeriodKey] = useState<string>(defaults.current.key);
-    const [previousPeriodKey, setPreviousPeriodKey] = useState<string>(defaults.previous.key);
-
-    const currentPeriod = useMemo(() => buildMonthRangeFromKey(currentPeriodKey), [currentPeriodKey]);
-    const previousPeriod = useMemo(() => buildMonthRangeFromKey(previousPeriodKey), [previousPeriodKey]);
-
-    // ── Análisis completo ───────────────────────────────────────────────────
-    const analysis: AllAnalyses = useMemo(
-        () => runFullAnalysis(prevData, currentPeriod, previousPeriod),
-        [prevData, currentPeriod, previousPeriod]
-    );
-
+// ── Resumen: selector, indicadores con variación y decisiones ──────────────
+export function ComparacionResumen({ analysis, actual, anterior, opciones, comparaCon, onComparaCon, registros, onAddQRR }: {
+    analysis: AllAnalyses;
+    actual: DateRange;
+    anterior: DateRange;
+    /** Meses anteriores al periodo actual, elegibles para comparar */
+    opciones: DateRange[];
+    comparaCon: string;
+    onComparaCon: (key: string) => void;
+    registros: RegistroMAC[];
+    onAddQRR: (rec: Partial<QRRRecord>) => void;
+}) {
     const executiveSummary = useMemo(() => generateExecutiveSummary(analysis), [analysis]);
-
-    // ── Registros asociados modal ───────────────────────────────────────────
     const [showRecords, setShowRecords] = useState<number[] | null>(null);
     const associatedRecords = useMemo(() => {
         if (!showRecords) return [];
-        return prevData.filter(r => showRecords.includes(r.id));
-    }, [showRecords, prevData]);
+        const ids = new Set(showRecords);
+        return registros.filter((r) => ids.has(r.id));
+    }, [showRecords, registros]);
 
-    // ── Handler para crear QRR desde recomendación ──────────────────────────
     const handleOpenQRR = useCallback((rec: Recommendation) => {
         onAddQRR({
             fechaInicio: new Date().toISOString().split('T')[0],
@@ -147,58 +168,38 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
         });
     }, [onAddQRR]);
 
-    const { defects, responsables, references, geographic, clients, economic, recommendations } = analysis;
-    const varRecords = analysis.totalRecordsPrev > 0
-        ? ((analysis.totalRecordsCurr - analysis.totalRecordsPrev) / analysis.totalRecordsPrev) * 100
-        : null;
-    const varValue = analysis.totalValuePrev > 0
-        ? ((analysis.totalValueCurr - analysis.totalValuePrev) / analysis.totalValuePrev) * 100
-        : null;
-    const varUnits = analysis.totalUnitsPrev > 0
-        ? ((analysis.totalUnitsCurr - analysis.totalUnitsPrev) / analysis.totalUnitsPrev) * 100
-        : null;
-
+    const { defects, recommendations } = analysis;
+    const variacion = (act: number, prev: number) => (prev > 0 ? ((act - prev) / prev) * 100 : null);
     const criticalCount = defects.filter(d => d.priority === 'inmediato').length;
     const monitoringCount = defects.filter(d => d.priority === 'seguimiento').length;
     const growingCount = defects.filter(d => d.variationRecords !== null && d.variationRecords > 0).length;
 
     return (
-        <div className="space-y-5 animate-fade-in">
-            {/* ── Selector de período ────────────────────────────────────────── */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-border flex flex-wrap items-end gap-4">
-                <div className="flex-1 min-w-[200px]">
-                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Período Actual</label>
+        <div className="space-y-5">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Comparación con el periodo anterior</h2>
+                    <p className="text-[11px] text-stone-400 mt-0.5"><strong>{actual.label}</strong> vs <strong>{anterior.label}</strong> · respeta los filtros de la página</p>
+                </div>
+                <label className="flex items-center gap-2 text-[11px] font-medium text-stone-500">
+                    Comparar con
                     <select
-                        className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-brand-dark ring-1 ring-inset ring-border focus:ring-2 focus:ring-brand sm:text-xs sm:leading-6"
-                        value={currentPeriodKey}
-                        onChange={e => setCurrentPeriodKey(e.target.value)}
+                        value={comparaCon}
+                        onChange={(e) => onComparaCon(e.target.value)}
+                        className="rounded-lg border border-border bg-white py-1.5 pl-2 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand"
                     >
-                        {availableMonths.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+                        <option value="auto">Periodo anterior ({anterior.label})</option>
+                        {opciones.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                     </select>
-                </div>
-                <div className="text-sm font-bold text-stone-400 pb-2">vs</div>
-                <div className="flex-1 min-w-[200px]">
-                    <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider mb-1">Período Comparativo</label>
-                    <select
-                        className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-brand-dark ring-1 ring-inset ring-border focus:ring-2 focus:ring-brand sm:text-xs sm:leading-6"
-                        value={previousPeriodKey}
-                        onChange={e => setPreviousPeriodKey(e.target.value)}
-                    >
-                        {availableMonths.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
-                    </select>
-                </div>
-                <div className="text-[10px] text-stone-400 pb-2">
-                    Comparando <strong>{currentPeriod.label}</strong> vs <strong>{previousPeriod.label}</strong>
-                </div>
+                </label>
             </div>
 
-            {/* ── KPIs ───────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                <KpiCard title="Registros período" value={analysis.totalRecordsCurr} variacion={varRecords} icon={<TrendingUpIcon className="w-4 h-4" />} />
+                <KpiCard title="Registros período" value={analysis.totalRecordsCurr} variacion={variacion(analysis.totalRecordsCurr, analysis.totalRecordsPrev)} icon={<TrendingUpIcon className="w-4 h-4" />} />
                 <KpiCard title="Problemas creciendo" value={growingCount} subtitle={`de ${defects.length} tipos`} icon={<AlertTriangleIcon className="w-4 h-4" />} />
                 <KpiCard title="Problemas nuevos" value={defects.filter(d => d.variationRecords === null && d.recordsCurr > 0).length} icon={<ShieldAlertIcon className="w-4 h-4" />} />
-                <KpiCard title="Unidades afectadas" value={analysis.totalUnitsCurr} variacion={varUnits} icon={<PackageIcon className="w-4 h-4" />} />
-                <KpiCard title="Inversión total" value={fmt$(analysis.totalValueCurr)} variacion={varValue} icon={<DollarSignIcon className="w-4 h-4" />} />
+                <KpiCard title="Unidades afectadas" value={analysis.totalUnitsCurr} variacion={variacion(analysis.totalUnitsCurr, analysis.totalUnitsPrev)} icon={<PackageIcon className="w-4 h-4" />} />
+                <KpiCard title="Inversión total" value={fmt$(analysis.totalValueCurr)} variacion={variacion(analysis.totalValueCurr, analysis.totalValuePrev)} icon={<DollarSignIcon className="w-4 h-4" />} />
                 <KpiCard title="Problemas críticos" value={criticalCount} subtitle={`${monitoringCount} en seguimiento`} icon={<ShieldAlertIcon className="w-4 h-4" />} />
             </div>
 
@@ -206,7 +207,7 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
             <div className="bg-gradient-to-br from-[#254153] to-[#1a2f3d] p-6 rounded-2xl shadow-lg text-white">
                 <h2 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center"><TrendingUpIcon className="w-3.5 h-3.5" /></div>
-                    Resumen Ejecutivo — {currentPeriod.label}
+                    Resumen Ejecutivo — {actual.label}
                 </h2>
                 <div className="text-sm leading-relaxed text-white/90 whitespace-pre-line">
                     {executiveSummary}
@@ -288,48 +289,58 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
                 )}
             </CollapsibleSection>
 
-            {/* ── Defectos con Tendencia Creciente ────────────────────────────── */}
-            <CollapsibleSection
-                title="Defectos con Tendencia Creciente"
-                icon={<TrendingUpIcon className="w-4 h-4" />}
-                subtitle={`${defects.length} tipos de novedad analizados`}
-            >
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[900px]">
-                        <thead>
-                            <tr className="bg-cream-light">
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Tipo de novedad</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Reg. ant.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Reg. act.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Var. reg. %</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Uds. ant.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Uds. act.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Var. uds. %</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">$$$ actual</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Var. $$$ %</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tr-lg">Prioridad</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {defects.slice(0, 25).map((d, i) => (
-                                <tr key={i} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
-                                    <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border">{d.name}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-stone-600 text-right border-b border-border">{d.recordsPrev}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{d.recordsCurr}</td>
-                                    <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(d.variationRecords)}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-stone-600 text-right border-b border-border">{d.unitsPrev}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{d.unitsCurr}</td>
-                                    <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(d.variationUnits)}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(d.valueCurr)}</td>
-                                    <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(d.variationValue)}</td>
-                                    <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={d.priority} /></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            {/* ── Modal de Registros Asociados ────────────────────────────────── */}
+            {showRecords && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowRecords(null)}>
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="bg-[#254153] px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-white font-bold text-sm">Registros Asociados ({associatedRecords.length})</h3>
+                            <button onClick={() => setShowRecords(null)} className="text-white/80 hover:text-white transition-colors text-lg">✕</button>
+                        </div>
+                        <div className="p-4 overflow-auto max-h-[65vh]">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-cream-light">
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Radicado</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Fecha</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Cliente</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Estado</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Ciudad</th>
+                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500 text-right">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {associatedRecords.map((r, i) => (
+                                        <tr key={r.id} className={i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'}>
+                                            <td className="px-3 py-2 text-xs font-bold text-[#254153] border-b border-border">{r.consecutivo}</td>
+                                            <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{new Date(r.created_at).toLocaleDateString('es-CO')}</td>
+                                            <td className="px-3 py-2 text-xs text-stone-700 border-b border-border">{r._clientePrincipalFinal}</td>
+                                            <td className="px-3 py-2 text-xs border-b border-border">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.estado === 'Cerrado' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{r.estado}</span>
+                                            </td>
+                                            <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{r._ciudad}</td>
+                                            <td className="px-3 py-2 text-xs font-bold text-brand-dark text-right border-b border-border">{fmt$(r._valorInvertido || 0)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </CollapsibleSection>
+            )}
+        </div>
+    );
+}
 
+// ── Detalle: quién y dónde está creciendo ──────────────────────────────────
+export function ComparacionDetalle({ analysis, filters, onFilterToggle }: {
+    analysis: AllAnalyses;
+    filters: FilterState;
+    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
+}) {
+    const { responsables, references, geographic, clients } = analysis;
+    return (
+        <div className="space-y-5">
             {/* ── Responsables / Áreas ────────────────────────────────────────── */}
             <CollapsibleSection
                 title="Responsables / Áreas a Atacar"
@@ -353,7 +364,7 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
                         </thead>
                         <tbody>
                             {responsables.slice(0, 15).map((r, i) => (
-                                <tr key={i} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
+                                <tr key={i} onClick={(e) => onFilterToggle('responsables', r.name, e)} className={claseFila(filters.responsables.includes(r.name), i)}>
                                     <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border">{r.name}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{r.recordsCurr}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{r.unitsCurr}</td>
@@ -394,7 +405,7 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
                         </thead>
                         <tbody>
                             {references.slice(0, 25).map((r, i) => (
-                                <tr key={i} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
+                                <tr key={i} onClick={(e) => onFilterToggle('productos', r.refNovedad, e)} className={claseFila(filters.productos.includes(r.refNovedad), i)}>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={r.refCompra}>{r.refCompra}</td>
                                     <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border max-w-[120px] truncate" title={r.refNovedad}>{r.refNovedad}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{r.recordsCurr}</td>
@@ -437,7 +448,7 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
                         </thead>
                         <tbody>
                             {geographic.slice(0, 20).map((g, i) => (
-                                <tr key={i} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
+                                <tr key={i} onClick={(e) => onFilterToggle('ciudades', g.ciudad, e)} className={claseFila(filters.ciudades.includes(g.ciudad), i)}>
                                     <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border">{g.zona}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-700 border-b border-border">{g.ciudad}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-stone-600 text-right border-b border-border">{g.recordsPrev}</td>
@@ -480,7 +491,7 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
                         </thead>
                         <tbody>
                             {clients.slice(0, 20).map((c, i) => (
-                                <tr key={i} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
+                                <tr key={i} onClick={(e) => onFilterToggle('clientes', c.name, e)} className={claseFila(filters.clientes.includes(c.name), i)}>
                                     <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border max-w-[160px] truncate" title={c.name}>{c.name}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-stone-600 text-right border-b border-border">{c.recordsPrev}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{c.recordsCurr}</td>
@@ -498,104 +509,7 @@ export default function AnalisisMac({ data, prevData, filters, onFilterToggle, q
                 </div>
             </CollapsibleSection>
 
-            {/* ── Impacto Económico ───────────────────────────────────────────── */}
-            <CollapsibleSection
-                title="Novedades con Mayor Impacto Económico"
-                icon={<DollarSignIcon className="w-4 h-4" />}
-                subtitle="¿En qué problemas estamos gastando más dinero?"
-                defaultOpen={false}
-            >
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[1000px]">
-                        <thead>
-                            <tr className="bg-cream-light">
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Tipo de novedad</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Casos</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Uds.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Inversión $$$</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">% del total</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 text-right">Var. $$$ %</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Responsable</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Ref. ppal.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Cliente ppal.</th>
-                                <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tr-lg">Prioridad</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {economic.slice(0, 15).map((e, i) => (
-                                <tr key={i} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
-                                    <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border">{e.name}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{e.recordsCurr}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{e.unitsCurr}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(e.valueCurr)}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{e.percentOfTotal.toFixed(1)}%</td>
-                                    <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(e.variationValue)}</td>
-                                    <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[100px] truncate" title={e.responsable}>{e.responsable}</td>
-                                    <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={e.principalReferencia}>{e.principalReferencia}</td>
-                                    <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={e.clientePrincipal}>{e.clientePrincipal}</td>
-                                    <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={e.priority} /></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </CollapsibleSection>
-
-            {/* ── Conclusión Ejecutiva ────────────────────────────────────────── */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-                <h2 className="text-sm font-bold text-brand-dark uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-[#254153] text-white flex items-center justify-center"><TrendingUpIcon className="w-3.5 h-3.5" /></div>
-                    Conclusión Ejecutiva
-                </h2>
-                <div className="bg-cream-light p-5 rounded-xl text-sm text-stone-700 leading-relaxed whitespace-pre-line border border-border">
-                    {executiveSummary}
-                </div>
-                <div className="mt-3 flex items-center gap-4 text-[9px] text-stone-400">
-                    <span>📊 Los datos presentados provienen de los registros fuente de registro_solicitudes</span>
-                    <span>•</span>
-                    <span>💡 Las interpretaciones están basadas en correlación/concentración, no en causa raíz confirmada</span>
-                </div>
-            </div>
-
-            {/* ── Modal de Registros Asociados ────────────────────────────────── */}
-            {showRecords && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowRecords(null)}>
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="bg-[#254153] px-6 py-4 flex items-center justify-between">
-                            <h3 className="text-white font-bold text-sm">Registros Asociados ({associatedRecords.length})</h3>
-                            <button onClick={() => setShowRecords(null)} className="text-white/80 hover:text-white transition-colors text-lg">✕</button>
-                        </div>
-                        <div className="p-4 overflow-auto max-h-[65vh]">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-cream-light">
-                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Radicado</th>
-                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Fecha</th>
-                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Cliente</th>
-                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Estado</th>
-                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500">Ciudad</th>
-                                        <th className="px-3 py-2 text-[10px] font-bold uppercase text-stone-500 text-right">Valor</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {associatedRecords.map((r, i) => (
-                                        <tr key={r.id} className={i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'}>
-                                            <td className="px-3 py-2 text-xs font-bold text-[#254153] border-b border-border">{r.consecutivo}</td>
-                                            <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{new Date(r.created_at).toLocaleDateString('es-CO')}</td>
-                                            <td className="px-3 py-2 text-xs text-stone-700 border-b border-border">{r._clientePrincipalFinal}</td>
-                                            <td className="px-3 py-2 text-xs border-b border-border">
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.estado === 'Cerrado' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{r.estado}</span>
-                                            </td>
-                                            <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{r._ciudad}</td>
-                                            <td className="px-3 py-2 text-xs font-bold text-brand-dark text-right border-b border-border">{fmt$(r._valorInvertido || 0)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <p className="text-[10px] text-stone-400 px-1">Las interpretaciones se basan en correlación y concentración de los registros, no en causa raíz confirmada.</p>
         </div>
     );
 }

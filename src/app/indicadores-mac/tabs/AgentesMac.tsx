@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { RegistroMAC, FilterState } from '../types';
+import { porcentajeCumplimiento } from '../utils/metricas';
+import DesempenoAgentes from '../components/DesempenoAgentes';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { SearchIcon, DownloadIcon, SaveIcon, AlertCircleIcon, ExternalLinkIcon, AlertTriangleIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -10,6 +12,8 @@ interface Props {
     filters: FilterState;
     setFilters?: any;
     onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
+    /** Todos los filtros excepto el de agente */
+    dataForAgente?: RegistroMAC[];
 }
 
 const COLORS = {
@@ -20,7 +24,7 @@ const COLORS = {
     brand: '#254153'
 };
 
-export default function AgentesMac({ data, prevData, filters }: Props) {
+export default function AgentesMac({ data, prevData, filters, onFilterToggle, dataForAgente }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [observaciones, setObservaciones] = useState<Record<number, string>>({});
 
@@ -47,7 +51,7 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
     const porcCierre = total > 0 ? (cerradas.length / total) * 100 : 0;
     const valorInvertidoTotal = data.reduce((acc, curr) => acc + (curr._valorInvertido || 0), 0);
     const tiempoPromedioCierre = cerradas.length > 0 ? cerradas.reduce((acc, curr) => acc + (curr._tiempoCierre || 0), 0) / cerradas.length : 0;
-    const porcCumplimiento = cerradas.length > 0 ? (cerradas.filter(d => (d._tiempoCierre || 0) <= 15).length / cerradas.length) * 100 : 0;
+    const porcCumplimiento = porcentajeCumplimiento(data);
 
     // Mis prioridades de hoy (Top 10 abiertas con más días hábiles)
     const prioridades = useMemo(() => {
@@ -195,11 +199,13 @@ export default function AgentesMac({ data, prevData, filters }: Props) {
                 <KpiCard title="Val. Invertido" value={valorInvertidoTotal.toLocaleString('es-CO')} prefix="$" />
             </div>
 
+            <DesempenoAgentes data={dataForAgente || data} filters={filters} onFilterToggle={onFilterToggle} />
+
             {/* Tabla de Seguimiento */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col h-[600px]">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                     <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Tabla de Seguimiento Diario</h3>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <div className="relative">
                             <SearchIcon className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input 

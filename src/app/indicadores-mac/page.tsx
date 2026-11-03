@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef, Suspense, laz
 import { supabase } from '@/lib/supabase';
 import { RegistroMAC, FilterState, QRRRecord } from './types';
 import Filters, { LiveFilters, LiveFiltersContext } from './components/Filters';
-import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, SparklesIcon, ShieldCheckIcon, HeartHandshakeIcon } from 'lucide-react';
+import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, ShieldCheckIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
 import * as XLSX from 'xlsx';
 import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
@@ -19,8 +19,6 @@ const CanalesVentaCard = lazy(() => import('./tabs/GeneralMac').then(m => ({ def
 const DetalleMac = lazy(() => import('./tabs/DetalleMac').then(m => ({ default: React.memo(m.default) })));
 const AgentesMac = lazy(() => import('./tabs/AgentesMac').then(m => ({ default: React.memo(m.default) })));
 const InformeMac = lazy(() => import('./tabs/InformeMac').then(m => ({ default: React.memo(m.default) })));
-const AnalisisMac = lazy(() => import('./tabs/AnalisisMac').then(m => ({ default: React.memo(m.default) })));
-const ExperienciaMac = lazy(() => import('./tabs/ExperienciaMac').then(m => ({ default: React.memo(m.default) })));
 const QrrMac = lazy(() => import('./tabs/QrrMac').then(m => ({ default: React.memo(m.default) })));
 
 // ── Helpers para normalización de grupo / familia (normalizeGrupo / normalizePlantaName en utils/filterEngine) ──
@@ -145,7 +143,7 @@ export default function IndicadoresMacPage() {
         });
     }, []);
 
-    // Misma firma que un setState: QrrMac y Análisis no cambian. Guarda en Supabase solo lo modificado.
+    // Misma firma que un setState: QrrMac e Informe no cambian. Guarda en Supabase solo lo modificado.
     const setQrrRecords = useCallback<React.Dispatch<React.SetStateAction<QRRRecord[]>>>((action) => {
         const prev = qrrRef.current;
         const next = typeof action === 'function' ? action(prev) : action;
@@ -537,6 +535,11 @@ export default function IndicadoresMacPage() {
     const dataForFechaFabricacion = views.except.fechaFabricacion;
     const dataForDiaCreacion = views.except.diaCreacion;
     const dataForAgente = views.except.agenteMac;
+    // Informe compara contra otro periodo: mismos filtros, sin el de fechas. Solo se calcula en esa hoja.
+    const viewsComparables = useMemo(
+        () => (activeTab === 3 ? computeFilterViews(data, { ...deferredFilters, fechaInicial: '', fechaFinal: '', mesCreacion: [] }) : null),
+        [activeTab, data, deferredFilters],
+    );
     const liveFiltersCtx = useMemo(() => ({ filters, setFilters }), [filters]);
     const verticalFiltersEl = useMemo(() => <LiveFilters data={data} activeTab={activeTab} isVertical={true} />, [data, activeTab]);
 
@@ -691,17 +694,14 @@ export default function IndicadoresMacPage() {
         XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
-    const tabs: Array<{ label: string; icon: React.ElementType }> = [
-        { label: 'General', icon: LayoutDashboardIcon },
-        { label: 'Detalle', icon: ListChecksIcon },
-        { label: 'Agentes', icon: UsersIcon },
-        { label: 'Informe', icon: FileTextIcon },
-        { label: 'Análisis', icon: SparklesIcon },
-        { label: 'QRR', icon: ShieldCheckIcon },
-        { label: 'Experiencia', icon: HeartHandshakeIcon },
+    // El id se conserva aunque se quiten hojas: 3 = Informe, 5 = QRR
+    const tabs: Array<{ id: number; label: string; icon: React.ElementType }> = [
+        { id: 0, label: 'General', icon: LayoutDashboardIcon },
+        { id: 1, label: 'Detalle', icon: ListChecksIcon },
+        { id: 2, label: 'Agentes', icon: UsersIcon },
+        { id: 3, label: 'Informe', icon: FileTextIcon },
+        { id: 5, label: 'QRR', icon: ShieldCheckIcon },
     ];
-    // Orden visual de las pestañas (los índices se conservan: otras partes usan activeTab 3 = Informe, 5 = QRR)
-    const tabsOrden = [0, 6, 1, 2, 3, 4, 5];
 
     if (loading) {
         return (
@@ -786,14 +786,13 @@ export default function IndicadoresMacPage() {
 
                 {/* Pestañas */}
                 <nav className="px-4 flex gap-1 overflow-x-auto [scrollbar-width:none]">
-                    {tabsOrden.map((idx) => {
-                        const tab = tabs[idx];
+                    {tabs.map((tab) => {
                         const Icon = tab.icon;
-                        const active = activeTab === idx;
+                        const active = activeTab === tab.id;
                         return (
                             <button
                                 key={tab.label}
-                                onClick={() => startTransition(() => setActiveTab(idx))}
+                                onClick={() => startTransition(() => setActiveTab(tab.id))}
                                 className={`inline-flex items-center gap-2 px-3.5 py-3 text-xs font-medium whitespace-nowrap border-b-2 -mb-px transition-colors cursor-pointer ${
                                     active ? 'border-brand text-brand' : 'border-transparent text-stone-500 hover:text-brand-dark'
                                 }`}
@@ -872,12 +871,16 @@ export default function IndicadoresMacPage() {
                                 setFilters={setFilters} 
                                 onFilterToggle={handleFilterToggle} 
                                 filtersComponent={verticalFiltersEl}
+                                dataComparable={viewsComparables?.all || filteredData}
+                                dataComparableProductos={viewsComparables?.except.productos || filteredData}
+                                dataComparablePlantas={viewsComparables?.except.plantas || filteredData}
+                                onAddQRR={handleAddQRR}
                             />
                         </Suspense>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {activeTab !== 0 && activeTab !== 4 && (
+                        {activeTab !== 0 && (
                             <div className="mb-2">
                                 <Filters filters={filters} setFilters={setFilters} data={data} activeTab={activeTab} isVertical={false} />
                             </div>
@@ -910,9 +913,7 @@ export default function IndicadoresMacPage() {
                                     />
                                 )}
                                 {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} dataForDiaCreacion={dataForDiaCreacion} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                                {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
-                                {activeTab === 4 && <AnalisisMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} qrrRecords={qrrRecords} onAddQRR={handleAddQRR} />}
-                                {activeTab === 6 && <ExperienciaMac data={filteredData} dataForMesCreacion={dataForMesCreacion} dataForDefectos={dataForDefectos} dataForAgente={dataForAgente} prevData={data} filters={deferredFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} dataForAgente={dataForAgente} />}
                                 {activeTab === 5 && (qrrSource === 'local' || qrrSyncError) && (
                                     <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-xs text-amber-900">
                                         <span className="mt-0.5 w-2 h-2 shrink-0 rounded-full bg-amber-500" />

@@ -15,6 +15,11 @@
 - Por eso `DetalleMac` cuenta "cerrados hoy" por agente con `d.fecha_cierre || d.fecha_verificacion`: es correcto y no se debe cambiar.
 - Nunca usar `fecha_cierre` para estado, SLA ni tiempos de solución.
 
+## Cumplimiento de SLA (definición única)
+- **% de cumplimiento oficial** = casos cerrados y abiertos que no han superado 15 días hábiles / total de casos. Un abierto vencido también descuenta.
+- Días del caso: hasta `fecha_verificacion` si está cerrado (`_tiempoCierre`); hasta hoy si sigue abierto (`_diasHabilesAbierta`).
+- Se calcula solo con `src/app/indicadores-mac/utils/metricas.ts` (`porcentajeCumplimiento`, `estaFueraDeSla`). No repetir la fórmula en las hojas.
+
 ## Prevención de Errores Comunes de TypeScript
 - **Fechas en el RegistroMAC:** `fecha_cierre` existe como opcional en `RegistroMAC`; úsala solo para productividad del agente (ver arriba). Para cierres, SLA y estado usar siempre `fecha_verificacion` o el campo calculado respectivo (`_fechaCierre`, `_tiempoCierre`, que también salen de la verificación).
 - **Tipado de Arrays en Hooks/Variables:** Siempre tipar explícitamente los arrays vacíos (por ejemplo, `const res: any[] = [];` o usando su tipo/interfaz específica) para evitar el error estricto de compilación en Vercel `Variable 'res' implicitly has type 'any[]'`.

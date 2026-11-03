@@ -1,6 +1,8 @@
 'use client';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { RegistroMAC, FilterState } from '../types';
+import { RegistroMAC, FilterState, QRRRecord } from '../types';
+import { ComparacionDetalle, ComparacionResumen, PriorityBadge, fmtVar, periodoAnteriorAutomatico, periodoDesdeFiltros } from '../components/ComparacionPeriodos';
+import { buildMonthRangeFromKey, calculateVariation, filterByPeriod, getAvailableMonths, runFullAnalysis } from '../utils/analysisEngine';
 import { supabase } from '@/lib/supabase';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -26,6 +28,12 @@ interface Props {
     dataForProductos?: RegistroMAC[];
     dataForPlantas?: RegistroMAC[];
     dataForMercado?: RegistroMAC[];
+    /** Registros con todos los filtros salvo el periodo: base de la comparación entre periodos */
+    dataComparable: RegistroMAC[];
+    /** Igual que dataComparable, sin el filtro de esa tabla (la tabla sigue mostrando las demás filas) */
+    dataComparableProductos: RegistroMAC[];
+    dataComparablePlantas: RegistroMAC[];
+    onAddQRR: (rec: Partial<QRRRecord>) => void;
 }
 
 interface VentaRecord {
@@ -45,6 +53,8 @@ interface VentaRecord {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+const valoresConPrefijo = (filtros: string[], prefijo: 'GF:' | 'PL:') =>
+    filtros.filter((f) => String(f).toUpperCase().startsWith(prefijo)).map((f) => String(f).substring(3));
 const MONTH_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const COLORS = ['#254153', '#749094', '#c96a4e', '#d3b99f', '#3b778c', '#10b981', '#f59e0b', '#ef4444', '#a67347', '#5b8e9e', '#4b5563', '#4a6b82', '#ec4899', '#f97316'];
 const META_CALIDAD = 1.0;
@@ -153,7 +163,46 @@ function useSortable<T extends Record<string, any>>(data: T[], defaultKey: strin
 }
 
 // ── Componente Principal ───────────────────────────────────────────────────
-export default function InformeMac({ data, prevData, filters, filtersComponent, onFilterToggle, dataForCanalVenta, dataForProductos, dataForPlantas, dataForMercado }: Props) {
+export default function InformeMac({ data, prevData, filters, filtersComponent, onFilterToggle, dataForCanalVenta, dataForProductos, dataForPlantas, dataForMercado, dataComparable, dataComparableProductos, dataComparablePlantas, onAddQRR }: Props) {
+    // ── Comparación contra el periodo anterior ──────────────────────────────
+    const [comparaCon, setComparaCon] = useState('auto');
+    const periodoActual = useMemo(() => periodoDesdeFiltros(filters), [filters.mesCreacion, filters.fechaInicial, filters.fechaFinal]);
+    const anteriorAutomatico = useMemo(() => periodoAnteriorAutomatico(periodoActual, filters.mesCreacion), [periodoActual, filters.mesCreacion]);
+    const periodoAnterior = useMemo(() => (comparaCon === 'auto' ? anteriorAutomatico : buildMonthRangeFromKey(comparaCon)), [comparaCon, anteriorAutomatico]);
+    const mesesParaComparar = useMemo(() => getAvailableMonths(prevData).filter((m) => m.key < periodoActual.start.slice(0, 7)).reverse(), [prevData, periodoActual]);
+    useEffect(() => {
+        // El mes elegido debe ser anterior al periodo actual; si el periodo cambió y ya no lo es, vuelve a automático
+        if (comparaCon !== 'auto' && comparaCon >= periodoActual.start.slice(0, 7)) setComparaCon('auto');
+    }, [comparaCon, periodoActual]);
+
+    // Con meses salteados (ej.: agosto y octubre) el periodo va de agosto a octubre, pero septiembre no cuenta
+    const sinMesesExcluidos = useCallback((registros: RegistroMAC[]) => {
+        if (filters.mesCreacion.length === 0) return registros;
+        const inicio = periodoActual.start.slice(0, 7);
+        const fin = periodoActual.end.slice(0, 7);
+        return registros.filter((r) => {
+            const mes = r._mesCreacionKey;
+            return !mes || mes < inicio || mes > fin || filters.mesCreacion.includes(mes);
+        });
+    }, [filters.mesCreacion, periodoActual]);
+
+    const basePeriodos = useMemo(() => sinMesesExcluidos(dataComparable), [dataComparable, sinMesesExcluidos]);
+    const comparacion = useMemo(() => runFullAnalysis(basePeriodos, periodoActual, periodoAnterior), [basePeriodos, periodoActual, periodoAnterior]);
+    const defectoPorNombre = useMemo(() => new Map(comparacion.defects.map((d) => [d.name.toUpperCase().trim(), d])), [comparacion]);
+
+    /** Variación de registros por grupo/planta entre los dos periodos */
+    const variacionPor = useCallback((registros: RegistroMAC[], nombres: (r: RegistroMAC) => string[]) => {
+        const contar = (lista: RegistroMAC[]) => {
+            const conteo = new Map<string, number>();
+            lista.forEach((r) => new Set(nombres(r)).forEach((n) => conteo.set(n, (conteo.get(n) || 0) + 1)));
+            return conteo;
+        };
+        const base = sinMesesExcluidos(registros);
+        const actual = contar(filterByPeriod(base, periodoActual));
+        const anterior = contar(filterByPeriod(base, periodoAnterior));
+        return (nombre: string) => calculateVariation(actual.get(nombre) || 0, anterior.get(nombre) || 0);
+    }, [sinMesesExcluidos, periodoActual, periodoAnterior]);
+
     const [ventas, setVentas] = useState<VentaRecord[]>([]);
     const [loadingVentas, setLoadingVentas] = useState(false);
     const [metricView, setMetricView] = useState<'porcentajes' | 'unidades' | 'inversion'>('unidades');
@@ -193,7 +242,9 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         const activo = (k: keyof FilterState) => !exclude.includes(k) && ((filters[k] as string[]) || []).length > 0;
         const ciudades = filters.ciudades.map(c => c.toLowerCase());
         const zonas = filters.zonas.map(z => z.toLowerCase());
-        const productos = filters.productos.map(p => normalizeGrupoName(p).toUpperCase());
+        const gruposFiltro = valoresConPrefijo(filters.productos, 'GF:').map(g => normalizeGrupoName(g).toUpperCase());
+        const plantasFiltro = valoresConPrefijo(filters.productos, 'PL:').map(p => normalizePlantaName(p).toUpperCase());
+        const referencias = filters.productos.filter(f => !/^(GF|PL):/i.test(String(f))).map(f => String(f).toUpperCase().trim());
         const canales = (filters.canalVenta || []).map(f => normalizeCanalName(f));
         const plantas = (filters.plantas || []).map(p => normalizePlantaName(p).toUpperCase());
 
@@ -202,7 +253,13 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             if (activo('mercado') && !filters.mercado.includes(getMercadoVenta(v.tipo_venta))) return false;
             if (activo('ciudades') && v.ciudad && !ciudades.includes(v.ciudad.toLowerCase())) return false;
             if (activo('zonas') && v.zona && !zonas.includes(v.zona.toLowerCase())) return false;
-            if (activo('productos') && !productos.includes(normalizeGrupoName(v.familia).toUpperCase())) return false;
+            if (activo('productos')) {
+                const cumple = gruposFiltro.includes(normalizeGrupoName(v.familia).toUpperCase())
+                    || plantasFiltro.includes(normalizePlantaName(v.planta || '').toUpperCase())
+                    || referencias.includes(String(v.descripcion_articulo || '').toUpperCase().trim())
+                    || referencias.includes(String(v.codigo_articulo || '').toUpperCase().trim());
+                if (!cumple) return false;
+            }
             if (activo('canalVenta') && !canales.includes(normalizeCanalName(v.grupo_cliente || ''))) return false;
             if (activo('plantas') && !plantas.includes(normalizePlantaName(v.planta || '').toUpperCase())) return false;
             return true;
@@ -583,6 +640,15 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             }));
     }, [ventasForMercado, dataForMercado, prevData]);
 
+    const variacionGrupo = useMemo(() => variacionPor(dataComparableProductos, (r) => {
+        const grupos = ((r as any)._gruposNombres as string[] | undefined) || [];
+        return grupos.length ? grupos.map(normalizeGrupoName) : ['En Blanco'];
+    }), [variacionPor, dataComparableProductos]);
+    const variacionPlanta = useMemo(() => variacionPor(dataComparablePlantas, (r) => {
+        const plantas = r._plantasNombres || [];
+        return plantas.length ? plantas.map(normalizePlantaName) : ['En Blanco'];
+    }), [variacionPor, dataComparablePlantas]);
+
     const analyticsProductos = useMemo(() => {
         const byGroup = new Map<string, any>();
         const getOrCreate = (map: Map<string, any>, key: string) => {
@@ -648,6 +714,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
     }, [ventasForProductos, dataForProductos, prevData, filters.plantas]);
 
     const analyticsPlantas = useMemo(() => {
+        const gruposFiltrados = valoresConPrefijo(filters.productos || [], 'GF:').map(g => normalizeGrupoName(g).toUpperCase());
         const byPlant = new Map<string, any>();
         const getOrCreate = (map: Map<string, any>, key: string) => {
             if (!map.has(key)) {
@@ -668,7 +735,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             const inv = ((r as any).valor_servicio || 0) + ((r as any).valor_flete || 0) + ((r as any).valor_producto || 0);
             const novs = Array.isArray(r.productos_novedad) ? r.productos_novedad : [];
             if (novs.length === 0) {
-                if (filters.productos && filters.productos.length > 0 && !filters.productos.map(p => normalizeGrupoName(p).toUpperCase()).includes('EN BLANCO')) {
+                if (gruposFiltrados.length > 0 && !gruposFiltrados.includes('EN BLANCO')) {
                     return;
                 }
                 const obj = getOrCreate(byPlant, 'En Blanco');
@@ -680,7 +747,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 novs.forEach((p: any) => {
                     const rawG = p.familia || '';
                     const grupo = normalizeGrupoName(rawG);
-                    if (filters.productos && filters.productos.length > 0 && !filters.productos.map(x => normalizeGrupoName(x).toUpperCase()).includes(grupo.toUpperCase())) {
+                    if (gruposFiltrados.length > 0 && !gruposFiltrados.includes(grupo.toUpperCase())) {
                         return;
                     }
 
@@ -1121,6 +1188,18 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
             </div>
 
 
+            {/* COMPARACIÓN CON EL PERIODO ANTERIOR */}
+            <ComparacionResumen
+                analysis={comparacion}
+                actual={periodoActual}
+                anterior={periodoAnterior}
+                opciones={mesesParaComparar}
+                comparaCon={comparaCon}
+                onComparaCon={setComparaCon}
+                registros={basePeriodos}
+                onAddQRR={onAddQRR}
+            />
+
             {/* COMPORTAMIENTO MES A MES */}
             <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col xl:flex-row">
                 <div className="flex-1 p-6 border-b xl:border-b-0 xl:border-r border-border">
@@ -1277,15 +1356,16 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right" title={`Registros vs ${periodoAnterior.label}`}>Var. reg.</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {analyticsProductos.filter((g: any) => g.unidadesNovedad > 0 || g.registros > 0).map((g: any) => {
-                                    const isSelected = filters.productos.includes(g.name);
+                                    const isSelected = filters.productos.includes(`GF:${g.name}`);
                                     return (
                                         <tr 
                                             key={g.name} 
-                                            onClick={(e) => onFilterToggle('productos', g.name, e)}
+                                            onClick={(e) => onFilterToggle('productos', `GF:${g.name}`, e)}
                                             className={`transition-colors cursor-pointer ${isSelected ? 'bg-brand-soft/70 border-l-4 border-brand-light' : 'hover:bg-cream-light border-l-4 border-transparent'}`}
                                         >
                                             <td className="p-3 font-medium text-[#1d1d1b]">{g.name}</td>
@@ -1295,6 +1375,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                             <td className="p-3 text-right font-medium text-[#c96a4e]">{fmtN(g.unidadesNovedad)}</td>
                                             <td className="p-3 text-right font-bold">{fmtPct(g.pctNovedad)}</td>
                                             <td className="p-3 text-right font-bold">{fmtPct(g.pctInversion)}</td>
+                                            <td className="p-3 text-right">{fmtVar(variacionGrupo(g.name))}</td>
                                         </tr>
                                     );
                                 })}
@@ -1318,6 +1399,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right" title={`Registros vs ${periodoAnterior.label}`}>Var. reg.</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -1336,6 +1418,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                             <td className="p-3 text-right font-medium text-[#c96a4e]">{fmtN(pl.unidadesNovedad)}</td>
                                             <td className="p-3 text-right font-bold">{fmtPct(pl.pctNovedad)}</td>
                                             <td className="p-3 text-right font-bold">{fmtPct(pl.pctInversion)}</td>
+                                            <td className="p-3 text-right">{fmtVar(variacionPlanta(pl.name))}</td>
                                         </tr>
                                     );
                                 })}
@@ -1361,6 +1444,9 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                 <th className="p-3 font-bold text-[#749094] text-right">% del Total Nov.</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">$ Inversión</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">% de Inversión Total</th>
+                                <th className="p-3 font-bold text-[#749094] text-right" title={`Registros vs ${periodoAnterior.label}`}>Var. reg.</th>
+                                <th className="p-3 font-bold text-[#749094] text-right" title={`Inversión vs ${periodoAnterior.label}`}>Var. $</th>
+                                <th className="p-3 font-bold text-[#749094]">Prioridad</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -1380,10 +1466,13 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                         <td className="p-3 text-right font-medium text-stone-500">{kpis.unidadesNovedad > 0 ? fmtPct((p.unidadesNovedad / kpis.unidadesNovedad)*100) : '0%'}</td>
                                         <td className="p-3 text-right font-bold text-red-600">{fmt$(p.inversion)}</td>
                                         <td className="p-3 text-right font-medium text-stone-500">{kpis.inversionMac > 0 ? fmtPct((p.inversion / kpis.inversionMac)*100) : '0%'}</td>
+                                        <td className="p-3 text-right">{defectoPorNombre.get(p.name.toUpperCase().trim()) ? fmtVar(defectoPorNombre.get(p.name.toUpperCase().trim())!.variationRecords) : '—'}</td>
+                                        <td className="p-3 text-right">{defectoPorNombre.get(p.name.toUpperCase().trim()) ? fmtVar(defectoPorNombre.get(p.name.toUpperCase().trim())!.variationValue) : '—'}</td>
+                                        <td className="p-3">{defectoPorNombre.get(p.name.toUpperCase().trim()) ? <PriorityBadge level={defectoPorNombre.get(p.name.toUpperCase().trim())!.priority} /> : '—'}</td>
                                     </tr>
                                     {expandedProblem === p.name && (
                                         <tr className="bg-cream-light">
-                                            <td colSpan={8} className="p-6">
+                                            <td colSpan={11} className="p-6">
                                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                                     {/* Drill-Down Productos */}
                                                     <div className="bg-white border border-border rounded-lg overflow-hidden shadow-sm">
@@ -1456,6 +1545,8 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
             </div>
             
 
+            {/* QUIÉN Y DÓNDE ESTÁ CRECIENDO */}
+            <ComparacionDetalle analysis={comparacion} filters={filters} onFilterToggle={onFilterToggle} />
         </div>
     );
 }

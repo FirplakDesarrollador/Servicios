@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useRowLimit } from '../utils/useRowLimit';
 import FechaProductoCard from '../components/FechaProductoCard';
+import { ProblemasRepetidosCard, TendenciaSlaCard } from '../components/ServicioCards';
+import { SLA_DIAS_HABILES, VENTANA_REPETIDOS_DIAS, calcularProblemasRepetidos, estaFueraDeSla, mediana, porcentajeCumplimiento, promedio, tiemposDeSolucion } from '../utils/metricas';
 import { EN_BLANCO, SIN_PRODUCTO_COMPRA, SIN_PRODUCTO_NOVEDAD, novedadCoincideTexto, productoCoincideTexto, registroCumpleProductos } from '../utils/filterEngine';
 import { RegistroMAC, FilterState } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList, ComposedChart } from 'recharts';
@@ -247,6 +249,53 @@ const productMatchesFilters = (p: any, filtersArr: string[] | undefined, filterT
         }
         return f === prodNombre || (prodCodigo && f === prodCodigo);
     });
+};
+
+/** Pareto de casos: los problemas que concentran el 80% quedan marcados. Clic en una fila filtra. */
+const ParetoProblemas = ({ filas, activos, onFilterToggle }: {
+    filas: Array<{ nombre: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
+    activos: string[];
+    onFilterToggle: (key: keyof FilterState, value: string, e?: any) => void;
+}) => {
+    const total = filas.reduce((a, f) => a + f.Registros, 0) || 1;
+    let acumulado = 0;
+    const conAcumulado = filas.map((f) => {
+        const previo = acumulado;
+        acumulado += f.Registros;
+        return { ...f, acumulado: (acumulado / total) * 100, vital: previo / total < 0.8 };
+    });
+    const vitales = conAcumulado.filter((f) => f.vital).length;
+    const mayor = filas[0]?.Registros || 1;
+    return (
+        <div className="flex-1 min-h-0 flex flex-col">
+            <p className="text-[11px] text-stone-500 mb-2 shrink-0">
+                <span className="font-bold text-brand-dark">{vitales}</span> de {filas.length} problemas suman el 80% de los casos
+            </p>
+            <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1">
+                {conAcumulado.map((f) => (
+                    <button
+                        key={f.nombre}
+                        onClick={(e) => onFilterToggle('defectos', f.nombre, e)}
+                        className={`w-full text-left px-2 py-1.5 border-b border-border transition-colors cursor-pointer ${activos.includes(f.nombre) ? 'bg-sage-soft' : activos.length > 0 ? 'opacity-40 hover:opacity-100' : f.vital ? 'hover:bg-cream-light' : 'bg-cream-light/40 hover:bg-cream-light'}`}
+                    >
+                        <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-[11px] font-medium text-stone-700 truncate">
+                                {f.vital && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#c96a4e] mr-1.5 align-middle" />}
+                                {f.nombre}
+                            </span>
+                            <span className="text-[11px] font-bold text-brand-dark tabular-nums shrink-0">{f.Registros}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className="flex-1 h-1 rounded-full bg-stone-100 overflow-hidden">
+                                <div className="h-full bg-[#254153]" style={{ width: `${(f.Registros / mayor) * 100}%` }} />
+                            </div>
+                            <span className="text-[9px] text-stone-400 tabular-nums shrink-0">acum. {f.acumulado.toFixed(1)}%</span>
+                        </div>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 };
 
 const CustomPieTooltip = ({ active, payload }: any) => {
@@ -1521,6 +1570,19 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
 
 export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabricacion, prevData, dataForDefectos, dataForResponsables, dataForCiudades, dataForZonas, dataForClientes, dataForProductos, dataForMesCreacion, dataForCanalVenta, dataForMercado, filters, setFilters, onFilterToggle, razones, defectosRef = [], responsablesRef = [], filtersComponent }: Props) {
     const radicadosRows = useRowLimit([data]);
+    const [vistaTipoProblema, setVistaTipoProblema] = useState<'barras' | 'pareto'>('barras');
+    const servicio = useMemo(() => {
+        const tiempos = tiemposDeSolucion(data);
+        const abiertosFueraSla = data.filter((d) => d.estado === 'Abierto' && estaFueraDeSla(d)).length;
+        return {
+            cumplimiento: porcentajeCumplimiento(data),
+            fueraSla: data.filter(estaFueraDeSla).length,
+            tiempo: promedio(tiempos),
+            mediana: mediana(tiempos),
+            abiertosFueraSla,
+            repetidos: calcularProblemasRepetidos(data),
+        };
+    }, [data]);
     // ── KPIs memoizados ────────────────────────────────────────────────────────
     const totalNovedades = data.length;
     const { abiertas, cerradas, valorInvertido } = useMemo(() => ({
@@ -2192,6 +2254,10 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                         <KpiCard title="Solicitudes Cerradas" value={cerradas} />
                         <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
+                        <KpiCard title="Cumplimiento SLA" value={servicio.cumplimiento.toFixed(1)} suffix="%" subtitle={`${servicio.fueraSla} casos superaron ${SLA_DIAS_HABILES} días hábiles`} />
+                        <KpiCard title="Tiempo Real de Solución" value={servicio.tiempo === null ? '—' : servicio.tiempo.toFixed(1)} suffix={servicio.tiempo === null ? '' : ' días'} subtitle={servicio.mediana === null ? undefined : `Mediana ${servicio.mediana.toFixed(1)} · días hábiles`} />
+                        <KpiCard title="Abiertos Fuera de SLA" value={servicio.abiertosFueraSla} subtitle={`de ${abiertas} abiertos`} />
+                        <KpiCard title="Problemas Repetidos" value={(servicio.repetidos.tasa * 100).toFixed(1)} suffix="%" subtitle={`${servicio.repetidos.clientes} clientes · ≤${VENTANA_REPETIDOS_DIAS} días`} />
                     </div>
                 </div>
             ) : (
@@ -2214,6 +2280,10 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                         <KpiCard title="Solicitudes Cerradas" value={cerradas} />
                         <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
+                        <KpiCard title="Cumplimiento SLA" value={servicio.cumplimiento.toFixed(1)} suffix="%" subtitle={`${servicio.fueraSla} casos superaron ${SLA_DIAS_HABILES} días hábiles`} />
+                        <KpiCard title="Tiempo Real de Solución" value={servicio.tiempo === null ? '—' : servicio.tiempo.toFixed(1)} suffix={servicio.tiempo === null ? '' : ' días'} subtitle={servicio.mediana === null ? undefined : `Mediana ${servicio.mediana.toFixed(1)} · días hábiles`} />
+                        <KpiCard title="Abiertos Fuera de SLA" value={servicio.abiertosFueraSla} subtitle={`de ${abiertas} abiertos`} />
+                        <KpiCard title="Problemas Repetidos" value={(servicio.repetidos.tasa * 100).toFixed(1)} suffix="%" subtitle={`${servicio.repetidos.clientes} clientes · ≤${VENTANA_REPETIDOS_DIAS} días`} />
                     </div>
                 </div>
             )}
@@ -2332,7 +2402,23 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
                 {/* Chart 5: Tipo de Problemas */}
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex flex-col h-[480px]">
-                    <h3 className="text-sm font-bold text-brand-dark mb-6 uppercase tracking-wider shrink-0">Tipo de Problemas</h3>
+                    <div className="flex items-center justify-between gap-2 mb-4 shrink-0">
+                        <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Tipo de Problemas</h3>
+                        <div className="flex p-0.5 rounded-lg bg-cream-light border border-border shrink-0">
+                            {(['barras', 'pareto'] as const).map((v) => (
+                                <button
+                                    key={v}
+                                    onClick={() => setVistaTipoProblema(v)}
+                                    className={`h-6 px-2 rounded-md text-[10px] font-medium capitalize transition-colors cursor-pointer ${vistaTipoProblema === v ? 'bg-white text-brand shadow-[0_1px_3px_rgba(37,65,83,0.15)]' : 'text-stone-500 hover:text-brand-dark'}`}
+                                >
+                                    {v}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    {vistaTipoProblema === 'pareto' ? (
+                        <ParetoProblemas filas={tipoProblemaStats} activos={filters.defectos} onFilterToggle={onFilterToggle} />
+                    ) : (
                     <div className="flex-1 overflow-y-auto pr-2 min-h-0 custom-scrollbar">
                         <div style={{ height: `${Math.max(400, tipoProblemaStats.length * 40)}px` }}>
                             <ResponsiveContainer width="99%" height="100%">
@@ -2374,6 +2460,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             </ResponsiveContainer>
                         </div>
                     </div>
+                    )}
                 </div>
 
                 {/* Chart: Responsable del Problema */}
@@ -2446,6 +2533,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
                 {/* Clientes */}
                 <TopClientesCard data={clientesData} onFilterToggle={onFilterToggle} activeFilters={filters.clientes} />
+            </div>
+
+            {/* Cumplimiento por mes y problemas repetidos */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+                <TendenciaSlaCard data={dataForMesCreacion || data} filters={filters} onFilterToggle={onFilterToggle} />
+                <ProblemasRepetidosCard lista={servicio.repetidos.lista} filters={filters} onFilterToggle={onFilterToggle} />
             </div>
 
             {/* Indicadores por Fecha de Compra y Fecha de Fabricación (Mes y Año) */}
