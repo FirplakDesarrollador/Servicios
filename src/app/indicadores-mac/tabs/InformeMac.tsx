@@ -1,7 +1,11 @@
 'use client';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { RegistroMAC, FilterState, QRRRecord } from '../types';
-import { ComparacionDetalle, ComparacionResumen, PriorityBadge, fmtVar, periodoAnteriorAutomatico, periodoDesdeFiltros } from '../components/ComparacionPeriodos';
+import { ComparacionDetalle, ComparacionResumen, fmtVar, periodoAnteriorAutomatico, periodoDesdeFiltros } from '../components/ComparacionPeriodos';
+import PanoramaMetas from '../components/PanoramaMetas';
+import { META_CALIDAD, META_ECONOMICA, generarDecisiones, generarResumen, getMercadoVenta, indicadoresDe, normalizeCanalName, type Entidad } from '../utils/panorama';
+import { leerRadicados, type ComentarioHilo } from '../utils/temasComentarios';
+import { resumirPor, totalProblemas, type LineaProblema } from '../utils/conteoProblemas';
 import { buildMonthRangeFromKey, calculateVariation, filterByPeriod, getAvailableMonths, runFullAnalysis } from '../utils/analysisEngine';
 import { supabase } from '@/lib/supabase';
 import {
@@ -50,6 +54,7 @@ interface VentaRecord {
     tipo_venta: string;
     grupo_cliente?: string;
     planta?: string;
+    nombre_cliente?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -57,8 +62,6 @@ const valoresConPrefijo = (filtros: string[], prefijo: 'GF:' | 'PL:') =>
     filtros.filter((f) => String(f).toUpperCase().startsWith(prefijo)).map((f) => String(f).substring(3));
 const MONTH_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const COLORS = ['#254153', '#749094', '#c96a4e', '#d3b99f', '#3b778c', '#10b981', '#f59e0b', '#ef4444', '#a67347', '#5b8e9e', '#4b5563', '#4a6b82', '#ec4899', '#f97316'];
-const META_CALIDAD = 1.0;
-const META_ECONOMICA = 0.5;
 
 const fmt$ = (v: number) => `$${Math.round(v).toLocaleString('es-CO')}`;
 const fmtN = (v: number) => Math.round(v).toLocaleString('es-CO');
@@ -96,24 +99,6 @@ const normalizeGrupoName = (g: string): string => {
     if (['SERVICIO', 'SERVICIOS'].includes(norm)) return 'Servicios';
     if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO'].includes(norm)) return 'Cuidado&Mantenimiento';
     return 'En Blanco';
-};
-
-const normalizeCanalName = (g: string): string => {
-    if (!g) return 'No Definido';
-    const norm = String(g).trim().toLowerCase();
-    if (norm.includes('distribu') || norm.includes('exportad') || norm.includes('exportac')) return 'Distribución';
-    if (norm.includes('constructor')) return 'Constructor';
-    if (norm.includes('b2c') || norm.includes('propio') || norm.includes('ecommerce') || norm.includes('firplakhome')) return 'Canal Propio';
-    if (norm.includes('especial')) return 'Ventas Especiales';
-    return g;
-};
-
-// Mercado de una venta según tipo_venta (Nacional / Exterior / Excluido)
-const getMercadoVenta = (tipoVenta: string | null | undefined): string => {
-    const t = String(tipoVenta || '').trim().toLowerCase();
-    if (t === 'nacional') return 'Nacional';
-    if (t === 'exterior' || t === 'internacional') return 'Internacional';
-    return 'Sin clasificar';
 };
 
 // Clave YYYY-MM de una fecha de contabilización (sin pasar por Date para evitar el corrimiento de zona horaria)
@@ -163,6 +148,37 @@ function useSortable<T extends Record<string, any>>(data: T[], defaultKey: strin
 }
 
 // ── Componente Principal ───────────────────────────────────────────────────
+const TAMANO_PAGINA = 1000;
+async function cargarVentas(desde: string, hasta: string): Promise<VentaRecord[]> {
+    const filas: VentaRecord[] = [];
+    for (let inicio = 0; ; inicio += TAMANO_PAGINA) {
+        const { data, error } = await supabase
+            .from('Ventas')
+            .select('fecha_contabilizacion, cantidad, valor_total, familia, codigo_articulo, descripcion_articulo, zona, ciudad, tipo_documento, vendedor_senior, tipo_venta, grupo_cliente, planta, nombre_cliente')
+            .gte('fecha_contabilizacion', desde)
+            .lte('fecha_contabilizacion', hasta)
+            .order('id', { ascending: true })
+            .range(inicio, inicio + TAMANO_PAGINA - 1);
+        if (error) throw error;
+        filas.push(...((data || []) as VentaRecord[]));
+        if (!data || data.length < TAMANO_PAGINA) return filas;
+    }
+}
+
+async function cargarHilo(): Promise<ComentarioHilo[]> {
+    const filas: ComentarioHilo[] = [];
+    for (let inicio = 0; ; inicio += TAMANO_PAGINA) {
+        const { data, error } = await supabase
+            .from('Comentarios_RegistroMAC')
+            .select('numero_radicado, comentario, adjuntos')
+            .order('id', { ascending: true })
+            .range(inicio, inicio + TAMANO_PAGINA - 1);
+        if (error) throw error;
+        filas.push(...((data || []) as ComentarioHilo[]));
+        if (!data || data.length < TAMANO_PAGINA) return filas;
+    }
+}
+
 export default function InformeMac({ data, prevData, filters, filtersComponent, onFilterToggle, dataForCanalVenta, dataForProductos, dataForPlantas, dataForMercado, dataComparable, dataComparableProductos, dataComparablePlantas, onAddQRR }: Props) {
     // ── Comparación contra el periodo anterior ──────────────────────────────
     const [comparaCon, setComparaCon] = useState('auto');
@@ -190,17 +206,12 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
     const comparacion = useMemo(() => runFullAnalysis(basePeriodos, periodoActual, periodoAnterior), [basePeriodos, periodoActual, periodoAnterior]);
     const defectoPorNombre = useMemo(() => new Map(comparacion.defects.map((d) => [d.name.toUpperCase().trim(), d])), [comparacion]);
 
-    /** Variación de registros por grupo/planta entre los dos periodos */
-    const variacionPor = useCallback((registros: RegistroMAC[], nombres: (r: RegistroMAC) => string[]) => {
-        const contar = (lista: RegistroMAC[]) => {
-            const conteo = new Map<string, number>();
-            lista.forEach((r) => new Set(nombres(r)).forEach((n) => conteo.set(n, (conteo.get(n) || 0) + 1)));
-            return conteo;
-        };
+    /** Variación de problemas por grupo/planta entre los dos periodos */
+    const variacionPor = useCallback((registros: RegistroMAC[], claveDe: (l: LineaProblema) => string) => {
         const base = sinMesesExcluidos(registros);
-        const actual = contar(filterByPeriod(base, periodoActual));
-        const anterior = contar(filterByPeriod(base, periodoAnterior));
-        return (nombre: string) => calculateVariation(actual.get(nombre) || 0, anterior.get(nombre) || 0);
+        const actual = resumirPor(filterByPeriod(base, periodoActual), claveDe);
+        const anterior = resumirPor(filterByPeriod(base, periodoAnterior), claveDe);
+        return (nombre: string) => calculateVariation(actual.get(nombre)?.problemas || 0, anterior.get(nombre)?.problemas || 0);
     }, [sinMesesExcluidos, periodoActual, periodoAnterior]);
 
     const [ventas, setVentas] = useState<VentaRecord[]>([]);
@@ -211,34 +222,38 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
     // 1. Cargar Ventas
     useEffect(() => {
         let isMounted = true;
-        const fetchVentas = async () => {
-            if (!filters.fechaInicial || !filters.fechaFinal) return;
-            setLoadingVentas(true);
-            try {
-                const { data: vData, error } = await supabase
-                    .from('Ventas')
-                    .select('fecha_contabilizacion, cantidad, valor_total, familia, codigo_articulo, descripcion_articulo, zona, ciudad, tipo_documento, vendedor_senior, tipo_venta, grupo_cliente, planta')
-                    .gte('fecha_contabilizacion', filters.fechaInicial)
-                    .lte('fecha_contabilizacion', filters.fechaFinal);
-
-                if (error) throw error;
-                if (isMounted) {
-                    setVentas(vData || []);
-                }
-            } catch (err) {
-                console.error("Error fetching ventas:", err);
-            } finally {
-                if (isMounted) setLoadingVentas(false);
-            }
-        };
-        fetchVentas();
+        if (!filters.fechaInicial || !filters.fechaFinal) return;
+        setLoadingVentas(true);
+        cargarVentas(filters.fechaInicial, filters.fechaFinal)
+            .then((filas) => { if (isMounted) setVentas(filas); })
+            .catch((err) => console.error('Error fetching ventas:', err))
+            .finally(() => { if (isMounted) setLoadingVentas(false); });
         return () => { isMounted = false; };
     }, [filters.fechaInicial, filters.fechaFinal]);
 
+    // Ventas del periodo de comparación: no bloquean la pantalla; los cambios aparecen cuando llegan
+    const [ventasPrevias, setVentasPrevias] = useState<VentaRecord[]>([]);
+    useEffect(() => {
+        let isMounted = true;
+        cargarVentas(periodoAnterior.start, periodoAnterior.end)
+            .then((filas) => { if (isMounted) setVentasPrevias(filas); })
+            .catch((err) => console.error('Error fetching ventas previas:', err));
+        return () => { isMounted = false; };
+    }, [periodoAnterior.start, periodoAnterior.end]);
+
+    // Hilo de comentarios y fotos de los radicados
+    const [hilo, setHilo] = useState<ComentarioHilo[]>([]);
+    useEffect(() => {
+        let isMounted = true;
+        cargarHilo()
+            .then((filas) => { if (isMounted) setHilo(filas); })
+            .catch((err) => console.error('Error fetching comentarios:', err));
+        return () => { isMounted = false; };
+    }, []);
 
     // 2. Aplicar Filtros Globales a Ventas.
     // `exclude` deja por fuera un filtro para que su propia sección siga mostrando todas las opciones.
-    const filterVentas = useCallback((exclude: (keyof FilterState)[] = []) => {
+    const filterVentas = useCallback((exclude: (keyof FilterState)[] = [], fuente: VentaRecord[] = ventas) => {
         const activo = (k: keyof FilterState) => !exclude.includes(k) && ((filters[k] as string[]) || []).length > 0;
         const ciudades = filters.ciudades.map(c => c.toLowerCase());
         const zonas = filters.zonas.map(z => z.toLowerCase());
@@ -248,7 +263,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         const canales = (filters.canalVenta || []).map(f => normalizeCanalName(f));
         const plantas = (filters.plantas || []).map(p => normalizePlantaName(p).toUpperCase());
 
-        return ventas.filter(v => {
+        return fuente.filter(v => {
             if (activo('mesCreacion') && !filters.mesCreacion.includes(ventaMonthKey(v.fecha_contabilizacion))) return false;
             if (activo('mercado') && !filters.mercado.includes(getMercadoVenta(v.tipo_venta))) return false;
             if (activo('ciudades') && v.ciudad && !ciudades.includes(v.ciudad.toLowerCase())) return false;
@@ -475,13 +490,25 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             }
         });
 
+        // Problemas, grupos y plantas se cuentan con la regla única (utils/conteoProblemas)
+        const conteoDefectos = resumirPor(data, (l) => l.defecto);
+        conteoDefectos.forEach((c, nombre) => {
+            const obj = getOrCreate(byProblem, nombre === 'En Blanco' ? 'No Especificado' : nombre);
+            obj.registros = c.problemas;
+        });
+        const conteoGrupos = resumirPor(data, (l) => l.grupo);
+        byGroup.forEach((o, nombre) => { o.registros = conteoGrupos.get(nombre)?.problemas || 0; });
+        const conteoPlantas = resumirPor(data, (l) => l.planta);
+        byPlant.forEach((o, nombre) => { o.registros = conteoPlantas.get(nombre)?.problemas || 0; });
+        const problemasTotal = totalProblemas(data);
+
         // Computed totals
         const pctNovedad = unidadesVendidas > 0 ? (unidadesNovedad / unidadesVendidas) * 100 : 0;
         const pctInversion = ventasTotales > 0 ? (inversionMac / ventasTotales) * 100 : 0;
         const pctCasos = unidadesVendidas > 0 ? (registrosNovedad / unidadesVendidas) * 100 : 0;
 
         const kpis = {
-            unidadesVendidas, ventasTotales, registrosNovedad, unidadesNovedad, inversionMac, pctNovedad, pctInversion, pctCasos
+            problemasTotal, unidadesVendidas, ventasTotales, registrosNovedad, unidadesNovedad, inversionMac, pctNovedad, pctInversion, pctCasos
         };
 
         const computePct = (arr: any[]) => {
@@ -640,14 +667,8 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             }));
     }, [ventasForMercado, dataForMercado, prevData]);
 
-    const variacionGrupo = useMemo(() => variacionPor(dataComparableProductos, (r) => {
-        const grupos = ((r as any)._gruposNombres as string[] | undefined) || [];
-        return grupos.length ? grupos.map(normalizeGrupoName) : ['En Blanco'];
-    }), [variacionPor, dataComparableProductos]);
-    const variacionPlanta = useMemo(() => variacionPor(dataComparablePlantas, (r) => {
-        const plantas = r._plantasNombres || [];
-        return plantas.length ? plantas.map(normalizePlantaName) : ['En Blanco'];
-    }), [variacionPor, dataComparablePlantas]);
+    const variacionGrupo = useMemo(() => variacionPor(dataComparableProductos, (l) => l.grupo), [variacionPor, dataComparableProductos]);
+    const variacionPlanta = useMemo(() => variacionPor(dataComparablePlantas, (l) => l.planta), [variacionPor, dataComparablePlantas]);
 
     const analyticsProductos = useMemo(() => {
         const byGroup = new Map<string, any>();
@@ -709,6 +730,10 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
                 return { ...i, pctNovedad: pctNov, pctInversion: pctInv, pctCasos: pctReg };
             });
         };
+
+        const plantasFiltro = (filters.plantas || []).map(p => normalizePlantaName(p).toUpperCase());
+        const conteo = resumirPor(sourceData, (l) => l.grupo, (l) => plantasFiltro.length === 0 || plantasFiltro.includes(l.planta.toUpperCase()));
+        byGroup.forEach((o, nombre) => { o.registros = conteo.get(nombre)?.problemas || 0; });
 
         return computePct(Array.from(byGroup.values())).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad);
     }, [ventasForProductos, dataForProductos, prevData, filters.plantas]);
@@ -775,6 +800,9 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             });
         };
 
+        const conteoP = resumirPor(sourceData, (l) => l.planta, (l) => gruposFiltrados.length === 0 || gruposFiltrados.includes(l.grupo.toUpperCase()));
+        byPlant.forEach((o, nombre) => { o.registros = conteoP.get(nombre)?.problemas || 0; });
+
         return computePct(Array.from(byPlant.values())).sort((a,b) => b.unidadesNovedad - a.unidadesNovedad);
     }, [ventasForPlantas, dataForPlantas, prevData, filters.productos]);
 
@@ -832,6 +860,40 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
         return { text, topProbUnidades, topProbDinero, topProd, topProdDinero, topResp, topZone, topCity, topGroup, probSubProdName, probRespName, probUp };
     }, [kpis, analytics]);
 
+
+    // ── Panorama: metas, explicación, decisiones y resumen ──────────────────
+    const lecturas = useMemo(() => leerRadicados(prevData, hilo), [prevData, hilo]);
+    const ventasPreviasFiltradas = useMemo(() => filterVentas(['mesCreacion'], ventasPrevias), [filterVentas, ventasPrevias]);
+    const datosPrevios = useMemo(() => filterByPeriod(basePeriodos, periodoAnterior), [basePeriodos, periodoAnterior]);
+
+    const entidades = useMemo<Entidad[]>(() => {
+        const crear = (dimension: Entidad['dimension'], nombre: string, i: any, unidadesVendidas: number, unidadesNovedad: number): Entidad => {
+            const clave = { dimension, nombre };
+            return {
+                id: `${dimension}:${nombre}`, dimension, nombre,
+                pctNovedad: unidadesVendidas > 0 ? i.pctNovedad : null,
+                pctCasos: unidadesVendidas > 0 ? (i.pctCasos ?? i.pctRegistros) : null,
+                pctInversion: i.ventasTotales > 0 ? i.pctInversion : null,
+                unidadesVendidas, unidadesNovedad,
+                previo: ventasPrevias.length > 0 ? indicadoresDe(clave, datosPrevios, ventasPreviasFiltradas) : null,
+            };
+        };
+        const conMovimiento = (i: any) => i.unidadesNovedad > 0 || i.registros > 0;
+        return [
+            crear('empresa', 'Empresa', kpis, kpis.unidadesVendidas, kpis.unidadesNovedad),
+            ...analyticsPlantas.filter(conMovimiento).map((i: any) => crear('planta', i.name, i, i.unidadesVendidas, i.unidadesNovedad)),
+            ...analyticsProductos.filter(conMovimiento).map((i: any) => crear('grupo', i.name, i, i.unidadesVendidas, i.unidadesNovedad)),
+            ...analyticsCanales.filter(conMovimiento).map((i: any) => crear('canal', i.name, i, i.unidadesVendidas, i.unidadesNovedad)),
+            ...analyticsMercados.filter(conMovimiento).map((i: any) => crear('mercado', i.name, i, i.unidadesVendidas, i.unidadesNovedad)),
+        ];
+    }, [kpis, analyticsPlantas, analyticsProductos, analyticsCanales, analyticsMercados, datosPrevios, ventasPreviasFiltradas, ventasPrevias.length]);
+
+    const decisiones = useMemo(() => generarDecisiones(comparacion, entidades, data, lecturas), [comparacion, entidades, data, lecturas]);
+    const decisionPorNombre = useMemo(() => new Map(decisiones.map((d) => [d.problema.toUpperCase().trim(), d])), [decisiones]);
+    const resumenEjecutivo = useMemo(
+        () => generarResumen(entidades[0], entidades, comparacion, decisiones, data, filteredVentas, lecturas, periodoAnterior),
+        [entidades, comparacion, decisiones, data, filteredVentas, lecturas, periodoAnterior],
+    );
 
     if (loadingVentas) {
         return (
@@ -999,6 +1061,21 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                 </div>
 
             </div>
+
+            {/* RESUMEN, COMPARACIÓN, EXPLICACIÓN DE METAS Y DECISIONES */}
+            <ComparacionResumen
+                analysis={comparacion}
+                actual={periodoActual}
+                anterior={periodoAnterior}
+                opciones={mesesParaComparar}
+                comparaCon={comparaCon}
+                onComparaCon={setComparaCon}
+                registros={basePeriodos}
+                onAddQRR={onAddQRR}
+                resumen={resumenEjecutivo}
+                decisiones={decisiones}
+                panorama={<PanoramaMetas entidades={entidades} data={data} ventas={filteredVentas} lecturas={lecturas} />}
+            />
 
             {/* INDICADORES POR MERCADO */}
             <div className="bg-white p-6 rounded-2xl border border-border shadow-sm">
@@ -1188,18 +1265,6 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
             </div>
 
 
-            {/* COMPARACIÓN CON EL PERIODO ANTERIOR */}
-            <ComparacionResumen
-                analysis={comparacion}
-                actual={periodoActual}
-                anterior={periodoAnterior}
-                opciones={mesesParaComparar}
-                comparaCon={comparaCon}
-                onComparaCon={setComparaCon}
-                registros={basePeriodos}
-                onAddQRR={onAddQRR}
-            />
-
             {/* COMPORTAMIENTO MES A MES */}
             <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col xl:flex-row">
                 <div className="flex-1 p-6 border-b xl:border-b-0 xl:border-r border-border">
@@ -1350,7 +1415,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                             <thead className="bg-white sticky top-0 shadow-sm z-10">
                                 <tr>
                                     <th className="p-3 font-bold text-[#749094]">Grupo</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Registros</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right" title="Un mismo defecto cuenta una vez por producto comprado">Problemas</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Casos Reg.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
@@ -1393,7 +1458,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                             <thead className="bg-white sticky top-0 shadow-sm z-10">
                                 <tr>
                                     <th className="p-3 font-bold text-[#749094]">Planta</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Registros</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right" title="Un mismo defecto cuenta una vez por producto comprado">Problemas</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">% Casos Reg.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
                                     <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
@@ -1438,15 +1503,15 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                             <tr>
                                 <th className="p-3 font-bold text-[#749094] w-10"></th>
                                 <th className="p-3 font-bold text-[#749094]">Tipo de Problema</th>
-                                <th className="p-3 font-bold text-[#749094] text-right">Registros</th>
-                                <th className="p-3 font-bold text-[#749094] text-right">% Casos Reg.</th>
+                                <th className="p-3 font-bold text-[#749094] text-right" title="Un mismo defecto cuenta una vez por producto comprado">Problemas</th>
+                                <th className="p-3 font-bold text-[#749094] text-right">% de Problemas</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">Unidades Afectadas</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">% del Total Nov.</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">$ Inversión</th>
                                 <th className="p-3 font-bold text-[#749094] text-right">% de Inversión Total</th>
                                 <th className="p-3 font-bold text-[#749094] text-right" title={`Registros vs ${periodoAnterior.label}`}>Var. reg.</th>
                                 <th className="p-3 font-bold text-[#749094] text-right" title={`Inversión vs ${periodoAnterior.label}`}>Var. $</th>
-                                <th className="p-3 font-bold text-[#749094]">Prioridad</th>
+                                <th className="p-3 font-bold text-[#749094]">Decisión</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -1461,14 +1526,14 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                         </td>
                                         <td className="p-3 font-bold text-[#1d1d1b]">{p.name}</td>
                                         <td className="p-3 text-right">{fmtN(p.registros)}</td>
-                                        <td className="p-3 text-right font-medium text-stone-500">{kpis.registrosNovedad > 0 ? fmtPct((p.registros / kpis.registrosNovedad)*100) : '0%'}</td>
+                                        <td className="p-3 text-right font-medium text-stone-500">{kpis.problemasTotal > 0 ? fmtPct((p.registros / kpis.problemasTotal)*100) : '0%'}</td>
                                         <td className="p-3 text-right font-bold text-[#c96a4e]">{fmtN(p.unidadesNovedad)}</td>
                                         <td className="p-3 text-right font-medium text-stone-500">{kpis.unidadesNovedad > 0 ? fmtPct((p.unidadesNovedad / kpis.unidadesNovedad)*100) : '0%'}</td>
                                         <td className="p-3 text-right font-bold text-red-600">{fmt$(p.inversion)}</td>
                                         <td className="p-3 text-right font-medium text-stone-500">{kpis.inversionMac > 0 ? fmtPct((p.inversion / kpis.inversionMac)*100) : '0%'}</td>
                                         <td className="p-3 text-right">{defectoPorNombre.get(p.name.toUpperCase().trim()) ? fmtVar(defectoPorNombre.get(p.name.toUpperCase().trim())!.variationRecords) : '—'}</td>
                                         <td className="p-3 text-right">{defectoPorNombre.get(p.name.toUpperCase().trim()) ? fmtVar(defectoPorNombre.get(p.name.toUpperCase().trim())!.variationValue) : '—'}</td>
-                                        <td className="p-3">{defectoPorNombre.get(p.name.toUpperCase().trim()) ? <PriorityBadge level={defectoPorNombre.get(p.name.toUpperCase().trim())!.priority} /> : '—'}</td>
+                                        <td className="p-3 text-[10px] font-semibold whitespace-nowrap">{decisionPorNombre.get(p.name.toUpperCase().trim())?.accion || '—'}</td>
                                     </tr>
                                     {expandedProblem === p.name && (
                                         <tr className="bg-cream-light">

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { incumplimientosProductos } from '@/lib/reglasRadicado';
 import { motion } from 'framer-motion';
 import { 
     ArrowLeft, Loader2, FileText, Info, MessageSquare, Tag, 
@@ -585,6 +586,7 @@ export default function VerRegistroPage() {
                                             }
 
                                             // Validar Productos, Defectos y Responsables
+                                            missingFields.push(...incumplimientosProductos(registro.productos_compra, registro.productos_novedad));
                                             const productos = registro.productos_novedad || [];
                                             if (productos.length === 0) {
                                                 missingFields.push('Productos con Novedad (al menos uno)');
@@ -1560,6 +1562,15 @@ function ClasificacionTab({
                 const num = Number(val);
                 return isNaN(num) ? null : num;
             };
+
+            // La fecha de verificación es la que define que el radicado está cerrado: aplica la misma regla de cierre
+            if (globalClasificacion.fecha_verificacion && !registro.fecha_verificacion) {
+                const incumplidos = incumplimientosProductos(registro.productos_compra, editClasificacionProductos);
+                if (incumplidos.length > 0) {
+                    alert('No se puede registrar la Fecha de Verificación porque el radicado quedaría cerrado sin cumplir:\n\n- ' + incumplidos.join('\n- '));
+                    return;
+                }
+            }
 
             const { error } = await supabase
                 .from('registro_solicitudes')

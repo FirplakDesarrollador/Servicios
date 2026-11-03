@@ -3,6 +3,7 @@
  * Funciones puras que comparan períodos y calculan prioridades.
  * No contiene estado React — se invoca desde AnalisisMac.tsx.
  */
+import { resumirPor } from './conteoProblemas';
 import {
     RegistroMAC, DateRange, PriorityLevel,
     DefectAnalysis, ResponsableAnalysis, ReferenceAnalysis,
@@ -292,6 +293,12 @@ export function runFullAnalysis(
     const totalUnitsCurr = getTotalUnits(currData);
     const totalUnitsPrev = getTotalUnits(prevData);
 
+    // Conteo de problemas de negocio (utils/conteoProblemas): reemplaza "radicados que lo mencionan"
+    const defectosActual = resumirPor(currData, l => l.defecto);
+    const defectosPrevio = resumirPor(prevData, l => l.defecto);
+    const respActual = resumirPor(currData, l => l.responsable);
+    const respPrevio = resumirPor(prevData, l => l.responsable);
+
     // ─── 1. Defectos ────────────────────────────────────────────────────────
     const defectsCurrMap = aggregateByKey(currData, r => r._defectosNombres || []);
     const defectsPrevMap = aggregateByKey(prevData, r => r._defectosNombres || []);
@@ -304,12 +311,12 @@ export function runFullAnalysis(
     const defects: DefectAnalysis[] = Array.from(allDefectKeys).map(name => {
         const curr = defectsCurrMap.get(name);
         const prev = defectsPrevMap.get(name);
-        const rc = curr ? curr.recordsSet.size : 0;
-        const rp = prev ? prev.recordsSet.size : 0;
-        const uc = curr ? curr.units : 0;
-        const up = prev ? prev.units : 0;
-        const vc = curr ? curr.value : 0;
-        const vp = prev ? prev.value : 0;
+        const rc = defectosActual.get(name)?.problemas ?? 0;
+        const rp = defectosPrevio.get(name)?.problemas ?? 0;
+        const uc = defectosActual.get(name)?.unidades ?? 0;
+        const up = defectosPrevio.get(name)?.unidades ?? 0;
+        const vc = defectosActual.get(name)?.inversion ?? 0;
+        const vp = defectosPrevio.get(name)?.inversion ?? 0;
 
         const recurrence = countRecurrenceMonths(allData.filter(r => (r._defectosNombres || []).includes(name)));
         const concentrationVal = curr ? Math.max(
@@ -358,12 +365,12 @@ export function runFullAnalysis(
     const responsables: ResponsableAnalysis[] = Array.from(allRespKeys).map(name => {
         const curr = respCurrMap.get(name);
         const prev = respPrevMap.get(name);
-        const rc = curr ? curr.recordsSet.size : 0;
-        const rp = prev ? prev.recordsSet.size : 0;
-        const uc = curr ? curr.units : 0;
-        const up = prev ? prev.units : 0;
-        const vc = curr ? curr.value : 0;
-        const vp = prev ? prev.value : 0;
+        const rc = respActual.get(name)?.problemas ?? 0;
+        const rp = respPrevio.get(name)?.problemas ?? 0;
+        const uc = respActual.get(name)?.unidades ?? 0;
+        const up = respPrevio.get(name)?.unidades ?? 0;
+        const vc = respActual.get(name)?.inversion ?? 0;
+        const vp = respPrevio.get(name)?.inversion ?? 0;
 
         const recurrence = countRecurrenceMonths(allData.filter(r => (r._responsablesNombres || []).includes(name)));
         const trend = getTrendScore(allData, r => (r._responsablesNombres || []).includes(name));

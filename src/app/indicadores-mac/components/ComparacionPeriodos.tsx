@@ -1,7 +1,8 @@
 'use client';
 import React, { useCallback, useMemo, useState } from 'react';
-import { RegistroMAC, FilterState, DateRange, QRRRecord, PriorityLevel, AllAnalyses, Recommendation } from '../types';
-import { buildMonthRangeFromKey, generateExecutiveSummary, getDefaultPeriods, PRIORITY_CONFIG } from '../utils/analysisEngine';
+import { RegistroMAC, FilterState, DateRange, QRRRecord, PriorityLevel, AllAnalyses } from '../types';
+import type { Decision, SeccionResumen } from '../utils/panorama';
+import { buildMonthRangeFromKey, getDefaultPeriods, PRIORITY_CONFIG } from '../utils/analysisEngine';
 import { AlertTriangleIcon, TrendingUpIcon, DollarSignIcon, MapPinIcon, UsersIcon, PackageIcon, ShieldAlertIcon, ChevronDownIcon, ChevronUpIcon, PlusCircleIcon, EyeIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 
 // Comparación contra el periodo anterior, dentro de la hoja Informe. El periodo actual es siempre el
@@ -132,7 +133,7 @@ const claseFila = (activa: boolean, i: number) =>
     `transition-colors cursor-pointer ${activa ? 'bg-sage-soft' : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'}`;
 
 // ── Resumen: selector, indicadores con variación y decisiones ──────────────
-export function ComparacionResumen({ analysis, actual, anterior, opciones, comparaCon, onComparaCon, registros, onAddQRR }: {
+export function ComparacionResumen({ analysis, actual, anterior, opciones, comparaCon, onComparaCon, registros, onAddQRR, resumen, decisiones, panorama }: {
     analysis: AllAnalyses;
     actual: DateRange;
     anterior: DateRange;
@@ -142,8 +143,11 @@ export function ComparacionResumen({ analysis, actual, anterior, opciones, compa
     onComparaCon: (key: string) => void;
     registros: RegistroMAC[];
     onAddQRR: (rec: Partial<QRRRecord>) => void;
+    resumen: SeccionResumen[];
+    decisiones: Decision[];
+    /** Metas y explicación, entre el resumen y las decisiones */
+    panorama: React.ReactNode;
 }) {
-    const executiveSummary = useMemo(() => generateExecutiveSummary(analysis), [analysis]);
     const [showRecords, setShowRecords] = useState<number[] | null>(null);
     const associatedRecords = useMemo(() => {
         if (!showRecords) return [];
@@ -151,27 +155,33 @@ export function ComparacionResumen({ analysis, actual, anterior, opciones, compa
         return registros.filter((r) => ids.has(r.id));
     }, [showRecords, registros]);
 
-    const handleOpenQRR = useCallback((rec: Recommendation) => {
+    const handleOpenQRR = useCallback((d: Decision) => {
+        const temas = d.temas.slice(0, 3);
+        const fotos = d.fotos.slice(0, 5);
         onAddQRR({
             fechaInicio: new Date().toISOString().split('T')[0],
             origen: 'Análisis de indicadores',
-            referencia: rec.referencias,
-            responsable: rec.responsable,
-            problema: rec.problema,
-            numCasos: rec.numCasos,
-            numUnidades: rec.numUnidades,
-            impactoDinero: rec.impactoDinero,
-            evidencia: rec.evidencia,
-            observaciones: rec.motivo,
-            registrosAsociados: rec.registrosIds,
-            prioridad: rec.priority,
+            referencia: [d.topCompra, d.topPieza].filter(Boolean).filter((x, i, l) => l.indexOf(x) === i).join(' / '),
+            responsable: d.responsable,
+            problema: d.problema,
+            numCasos: d.problemas,
+            numUnidades: d.unidades,
+            impactoDinero: Math.round(d.inversion),
+            evidencia: [d.evidencia, ...(fotos.length ? [`Fotos: ${fotos.join(' ')}`] : [])].join('\n'),
+            observaciones: [
+                `Hablar con ${d.hablarCon}. ${d.motivo}`,
+                ...(d.empuja.length ? [`Empuja sobre la meta a: ${d.empuja.join(', ')}.`] : []),
+                ...temas.map((t) => `Comentarios de MAC — ${t.tema.nombre} (${t.radicados} radicados): ${t.cita}`),
+            ].join('\n'),
+            registrosAsociados: d.radicadosIds,
+            prioridad: d.prioridad,
         });
     }, [onAddQRR]);
 
-    const { defects, recommendations } = analysis;
+    const { defects } = analysis;
     const variacion = (act: number, prev: number) => (prev > 0 ? ((act - prev) / prev) * 100 : null);
-    const criticalCount = defects.filter(d => d.priority === 'inmediato').length;
-    const monitoringCount = defects.filter(d => d.priority === 'seguimiento').length;
+    const criticalCount = decisiones.filter(d => d.prioridad === 'inmediato').length;
+    const monitoringCount = decisiones.filter(d => d.prioridad === 'seguimiento').length;
     const growingCount = defects.filter(d => d.variationRecords !== null && d.variationRecords > 0).length;
 
     return (
@@ -195,88 +205,93 @@ export function ComparacionResumen({ analysis, actual, anterior, opciones, compa
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                <KpiCard title="Registros período" value={analysis.totalRecordsCurr} variacion={variacion(analysis.totalRecordsCurr, analysis.totalRecordsPrev)} icon={<TrendingUpIcon className="w-4 h-4" />} />
+                <KpiCard title="Radicados período" value={analysis.totalRecordsCurr} variacion={variacion(analysis.totalRecordsCurr, analysis.totalRecordsPrev)} icon={<TrendingUpIcon className="w-4 h-4" />} />
                 <KpiCard title="Problemas creciendo" value={growingCount} subtitle={`de ${defects.length} tipos`} icon={<AlertTriangleIcon className="w-4 h-4" />} />
                 <KpiCard title="Problemas nuevos" value={defects.filter(d => d.variationRecords === null && d.recordsCurr > 0).length} icon={<ShieldAlertIcon className="w-4 h-4" />} />
                 <KpiCard title="Unidades afectadas" value={analysis.totalUnitsCurr} variacion={variacion(analysis.totalUnitsCurr, analysis.totalUnitsPrev)} icon={<PackageIcon className="w-4 h-4" />} />
                 <KpiCard title="Inversión total" value={fmt$(analysis.totalValueCurr)} variacion={variacion(analysis.totalValueCurr, analysis.totalValuePrev)} icon={<DollarSignIcon className="w-4 h-4" />} />
-                <KpiCard title="Problemas críticos" value={criticalCount} subtitle={`${monitoringCount} en seguimiento`} icon={<ShieldAlertIcon className="w-4 h-4" />} />
+                <KpiCard title="Para abrir QRR" value={criticalCount} subtitle={`${monitoringCount} en seguimiento`} icon={<ShieldAlertIcon className="w-4 h-4" />} />
             </div>
 
             {/* ── Resumen Ejecutivo ───────────────────────────────────────────── */}
             <div className="bg-gradient-to-br from-[#254153] to-[#1a2f3d] p-6 rounded-2xl shadow-lg text-white">
-                <h2 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center"><TrendingUpIcon className="w-3.5 h-3.5" /></div>
                     Resumen Ejecutivo — {actual.label}
                 </h2>
-                <div className="text-sm leading-relaxed text-white/90 whitespace-pre-line">
-                    {executiveSummary}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
+                    {resumen.map((seccion) => (
+                        <section key={seccion.titulo} className="min-w-0">
+                            <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#d3b99f] mb-1.5">{seccion.titulo}</h3>
+                            <ul className="space-y-1.5">
+                                {seccion.lineas.map((linea) => <li key={linea} className="text-[13px] leading-relaxed text-white/90">{linea}</li>)}
+                            </ul>
+                        </section>
+                    ))}
                 </div>
-                <div className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2 text-[9px] text-white/50">
-                    <span>📊 Dato registrado</span>
-                    <span>•</span>
-                    <span>🔢 Dato calculado</span>
-                    <span>•</span>
-                    <span>💡 Interpretación analítica</span>
-                    <span>•</span>
-                    <span>⚡ Recomendación</span>
-                </div>
+                <p className="mt-4 pt-3 border-t border-white/10 text-[10px] text-white/50">
+                    Lectura automática de los registros y comentarios: indica concentración y correlación, no causa raíz confirmada.
+                </p>
             </div>
 
-            {/* ── Matriz de Decisión ─────────────────────────────────────────── */}
+            {panorama}
+
+            {/* ── Decisiones Recomendadas ─────────────────────────────────────── */}
             <CollapsibleSection
                 title="Decisiones Recomendadas"
                 icon={<ShieldAlertIcon className="w-4 h-4" />}
-                subtitle="Recomendaciones automáticas basadas en el análisis de datos"
+                subtitle="Abrir QRR: empuja una meta, lleva 2 meses o más y no baja · Seguimiento: sube, es nuevo o es su primer mes · Vigilar: lo demás"
             >
-                {recommendations.length === 0 ? (
-                    <p className="text-sm text-stone-400 text-center py-8">Sin recomendaciones para el período seleccionado</p>
+                {decisiones.length === 0 ? (
+                    <p className="text-sm text-stone-400 text-center py-8">Sin problemas para el período seleccionado</p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse min-w-[980px]">
                             <thead>
                                 <tr className="bg-cream-light">
-                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Prioridad</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Decisión</th>
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Problema</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Por qué</th>
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Evidencia</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Impacto</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Responsable</th>
+                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Hablar con</th>
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tr-lg">Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {recommendations.filter(r => r.priority !== 'estable').slice(0, 15).map((rec, i) => (
-                                    <tr key={i} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light`}>
-                                        <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={rec.priority} /></td>
-                                        <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border max-w-[200px]">{rec.problema}</td>
-                                        <td className="px-3 py-2.5 text-[11px] text-stone-600 border-b border-border max-w-[250px]">{rec.evidencia}</td>
-                                        <td className="px-3 py-2.5 border-b border-border">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${rec.impacto === 'Alto' ? 'bg-red-100 text-red-700' : rec.impacto === 'Medio' ? 'bg-orange-100 text-orange-700' : 'bg-stone-100 text-stone-600'}`}>
-                                                {rec.impacto}
-                                            </span>
+                                {decisiones.filter(d => d.prioridad !== 'estable').slice(0, 20).map((d, i) => (
+                                    <tr key={d.problema} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light align-top`}>
+                                        <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={d.prioridad} /></td>
+                                        <td className="px-3 py-2.5 text-xs font-bold text-brand-dark border-b border-border max-w-[170px]">
+                                            {d.problema}
+                                            <div className="text-[10px] font-medium text-stone-500 mt-0.5">Responsable: {d.responsable}</div>
                                         </td>
-                                        <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border">{rec.responsable}</td>
+                                        <td className="px-3 py-2.5 text-[11px] text-stone-700 border-b border-border max-w-[240px]">{d.motivo}</td>
+                                        <td className="px-3 py-2.5 text-[11px] text-stone-600 border-b border-border max-w-[320px]">
+                                            {d.evidencia}
+                                            {d.temas[0] && <div className="mt-1 italic text-stone-500 line-clamp-2" title={d.temas[0].cita}>{d.temas[0].tema.nombre}: {d.temas[0].cita}</div>}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-xs font-semibold text-stone-700 border-b border-border max-w-[140px]">{d.hablarCon}</td>
                                         <td className="px-3 py-2.5 border-b border-border">
                                             <div className="flex items-center gap-1.5">
-                                                <span className="text-xs font-semibold text-stone-700">{rec.accionRecomendada}</span>
-                                                {rec.priority === 'inmediato' && (
+                                                <span className="text-xs font-semibold text-stone-700 whitespace-nowrap">{d.accion}</span>
+                                                {d.prioridad === 'inmediato' && (
                                                     <button
-                                                        onClick={() => handleOpenQRR(rec)}
-                                                        className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
-                                                        title="Abrir QRR con los datos de esta recomendación"
+                                                        onClick={() => handleOpenQRR(d)}
+                                                        className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm cursor-pointer"
+                                                        title="Abrir QRR con los datos, comentarios y fotos de este problema"
                                                     >
                                                         <PlusCircleIcon className="w-3 h-3" />
                                                         QRR
                                                     </button>
                                                 )}
-                                                {rec.registrosIds.length > 0 && (
+                                                {d.radicadosIds.length > 0 && (
                                                     <button
-                                                        onClick={() => setShowRecords(rec.registrosIds)}
-                                                        className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-[#254153] bg-stone-100 hover:bg-stone-100 rounded-lg transition-colors"
-                                                        title="Ver registros asociados"
+                                                        onClick={() => setShowRecords(d.radicadosIds)}
+                                                        className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-[#254153] bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
+                                                        title="Ver radicados asociados"
                                                     >
                                                         <EyeIcon className="w-3 h-3" />
-                                                        {rec.registrosIds.length}
+                                                        {d.radicadosIds.length}
                                                     </button>
                                                 )}
                                             </div>

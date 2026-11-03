@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useRowLimit } from '../utils/useRowLimit';
 import FechaProductoCard from '../components/FechaProductoCard';
 import { ProblemasRepetidosCard, TendenciaSlaCard } from '../components/ServicioCards';
+import { nuevoConteo, problemasDeProducto, sumarProblema, totalConteo, type ConteoIncremental } from '../utils/conteoProblemas';
 import { SLA_DIAS_HABILES, VENTANA_REPETIDOS_DIAS, calcularProblemasRepetidos, estaFueraDeSla, mediana, porcentajeCumplimiento, promedio, tiemposDeSolucion } from '../utils/metricas';
 import { EN_BLANCO, SIN_PRODUCTO_COMPRA, SIN_PRODUCTO_NOVEDAD, novedadCoincideTexto, productoCoincideTexto, registroCumpleProductos } from '../utils/filterEngine';
 import { RegistroMAC, FilterState } from '../types';
@@ -1832,8 +1833,11 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
     const pasaTipo = (p: any) => !filters.defectos?.length || entradasProblema(p).some((x) =>
         filters.defectos.includes(x.tipo_problema_id ? getNombreProblema(x.tipo_problema_id) : EN_BLANCO));
 
+    const pasaProblema = (x: { defecto: string; responsable: string }) =>
+        (!filters.defectos?.length || filters.defectos.includes(x.defecto)) && (!filters.responsables?.length || filters.responsables.includes(x.responsable));
+
     const tipoProblemaStats = useMemo(() => {
-        const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
+        const stats: Record<string, ConteoIncremental> = {};
 
         const sourceData = dataForDefectos || data;
         sourceData.forEach(d => {
@@ -1855,8 +1859,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             if (matchResp && prob.tipo_problema_id) {
                                 hasProblema = true;
                                 const nombre = getNombreProblema(prob.tipo_problema_id);
-                                if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
-                                stats[nombre].registrosSet.add(d.id);
+                                if (!stats[nombre]) stats[nombre] = nuevoConteo();
+                                sumarProblema(stats[nombre], d, nombre);
                                 stats[nombre].productosAfectados += (p.cantidad || 1);
                             }
                         });
@@ -1870,16 +1874,16 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         }
                         if (matchResp) {
                             const nombre = getNombreProblema(p.tipo_problema_id);
-                            if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
-                            stats[nombre].registrosSet.add(d.id);
+                            if (!stats[nombre]) stats[nombre] = nuevoConteo();
+                            sumarProblema(stats[nombre], d, nombre);
                             stats[nombre].productosAfectados += (p.cantidad || 1);
                         }
                     }
 
                     // Producto sin tipo de problema diligenciado
                     if (!tieneDato(p, 'tipo_problema_id') && pasaResponsable(p)) {
-                        if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
-                        stats[EN_BLANCO].registrosSet.add(d.id);
+                        if (!stats[EN_BLANCO]) stats[EN_BLANCO] = nuevoConteo();
+                        sumarProblema(stats[EN_BLANCO], d, EN_BLANCO);
                         stats[EN_BLANCO].productosAfectados += (p.cantidad || 1);
                     }
                 });
@@ -1887,22 +1891,22 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
             // Radicado sin productos con novedad
             if (sinNovedad(d) && (!filters.responsables?.length || filters.responsables.includes(EN_BLANCO))) {
-                if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
-                stats[EN_BLANCO].registrosSet.add(d.id);
+                if (!stats[EN_BLANCO]) stats[EN_BLANCO] = nuevoConteo();
+                stats[EN_BLANCO].sinProductos.add(d.id);
             }
         });
 
         return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
-                Registros: stat.registrosSet.size,
+                Registros: totalConteo(stat),
                 'Productos Afectados': stat.productosAfectados,
             }))
             .sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForDefectos, defectosMap, razonesMap, responsablesMap, filters.productos, filters.responsables]);
 
     const responsableProblemaStats = useMemo(() => {
-        const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
+        const stats: Record<string, ConteoIncremental> = {};
 
         const sourceData = dataForResponsables || data;
         sourceData.forEach(d => {
@@ -1924,8 +1928,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                 hasResponsable = true;
                                 // O(1) Map lookup
                                 const nombre = getResponsableNombre(prob.responsable_problema_id);
-                                if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
-                                stats[nombre].registrosSet.add(d.id);
+                                if (!stats[nombre]) stats[nombre] = nuevoConteo();
+                                sumarProblema(stats[nombre], d, prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : EN_BLANCO);
                                 stats[nombre].productosAfectados += (p.cantidad || 1);
                             }
                         });
@@ -1939,16 +1943,16 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         }
                         if (matchDef) {
                             const nombre = getResponsableNombre(p.responsable_problema_id);
-                            if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
-                            stats[nombre].registrosSet.add(d.id);
+                            if (!stats[nombre]) stats[nombre] = nuevoConteo();
+                            sumarProblema(stats[nombre], d, p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : EN_BLANCO);
                             stats[nombre].productosAfectados += (p.cantidad || 1);
                         }
                     }
 
                     // Producto sin responsable diligenciado
                     if (!tieneDato(p, 'responsable_problema_id') && pasaTipo(p)) {
-                        if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
-                        stats[EN_BLANCO].registrosSet.add(d.id);
+                        if (!stats[EN_BLANCO]) stats[EN_BLANCO] = nuevoConteo();
+                        sumarProblema(stats[EN_BLANCO], d, EN_BLANCO);
                         stats[EN_BLANCO].productosAfectados += (p.cantidad || 1);
                     }
                 });
@@ -1956,15 +1960,15 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
             // Radicado sin productos con novedad
             if (sinNovedad(d) && (!filters.defectos?.length || filters.defectos.includes(EN_BLANCO))) {
-                if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
-                stats[EN_BLANCO].registrosSet.add(d.id);
+                if (!stats[EN_BLANCO]) stats[EN_BLANCO] = nuevoConteo();
+                stats[EN_BLANCO].sinProductos.add(d.id);
             }
         });
 
         return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
-                Registros: stat.registrosSet.size,
+                Registros: totalConteo(stat),
                 'Productos Afectados': stat.productosAfectados,
             }))
             .sort((a, b) => b.Registros - a.Registros));
@@ -1989,7 +1993,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
     );
 
     const productosGruposStats = useMemo(() => {
-        const stats: Record<string, { registrosSet: Set<number>; productosAfectados: number }> = {};
+        const stats: Record<string, ConteoIncremental> = {};
         const sourceData = dataForProductos || data;
 
         sourceData.forEach(d => {
@@ -2039,8 +2043,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         hasMatchedItem = true;
                         const rawG = p.familia || '';
                         const grupo = normalizeGrupoName(rawG);
-                        if (!stats[grupo]) stats[grupo] = { registrosSet: new Set(), productosAfectados: 0 };
-                        stats[grupo].registrosSet.add(d.id);
+                        if (!stats[grupo]) stats[grupo] = nuevoConteo();
+                        problemasDeProducto(p).filter(pasaProblema).forEach((x) => sumarProblema(stats[grupo], d, x.defecto));
                         stats[grupo].productosAfectados += (p.cantidad || 1);
                     }
                 });
@@ -2051,8 +2055,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                 const passDefResp = (!filters.defectos?.length || filters.defectos.includes(EN_BLANCO)) && (!filters.responsables?.length || filters.responsables.includes(EN_BLANCO));
                 const passPL = (!filters.productos || !filters.productos.some(f => String(f).toUpperCase().startsWith('PL:')));
                 if (passDefResp && passPL) {
-                    if (!stats['En Blanco']) stats['En Blanco'] = { registrosSet: new Set(), productosAfectados: 0 };
-                    stats['En Blanco'].registrosSet.add(d.id);
+                    if (!stats['En Blanco']) stats['En Blanco'] = nuevoConteo();
+                    stats['En Blanco'].sinProductos.add(d.id);
                 }
             }
         });
@@ -2060,14 +2064,14 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
         return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
-                Registros: stat.registrosSet.size,
+                Registros: totalConteo(stat),
                 'Productos Afectados': stat.productosAfectados,
             }))
             .sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForProductos, defectosMap, razonesMap, responsablesMap, filters.defectos, filters.responsables, filters.productos]);
 
     const productosPlantasStats = useMemo(() => {
-        const stats: Record<string, { registrosSet: Set<number>; productosAfectados: number }> = {};
+        const stats: Record<string, ConteoIncremental> = {};
         const sourceData = dataForProductos || data;
 
         sourceData.forEach(d => {
@@ -2117,8 +2121,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         hasMatchedItem = true;
                         const rawP = p.planta || '';
                         const planta = normalizePlantaName(rawP);
-                        if (!stats[planta]) stats[planta] = { registrosSet: new Set(), productosAfectados: 0 };
-                        stats[planta].registrosSet.add(d.id);
+                        if (!stats[planta]) stats[planta] = nuevoConteo();
+                        problemasDeProducto(p).filter(pasaProblema).forEach((x) => sumarProblema(stats[planta], d, x.defecto));
                         stats[planta].productosAfectados += (p.cantidad || 1);
                     }
                 });
@@ -2129,8 +2133,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                 const passDefResp = (!filters.defectos?.length || filters.defectos.includes(EN_BLANCO)) && (!filters.responsables?.length || filters.responsables.includes(EN_BLANCO));
                 const passGF = (!filters.productos || !filters.productos.some(f => String(f).toUpperCase().startsWith('GF:')));
                 if (passDefResp && passGF) {
-                    if (!stats['En Blanco']) stats['En Blanco'] = { registrosSet: new Set(), productosAfectados: 0 };
-                    stats['En Blanco'].registrosSet.add(d.id);
+                    if (!stats['En Blanco']) stats['En Blanco'] = nuevoConteo();
+                    stats['En Blanco'].sinProductos.add(d.id);
                 }
             }
         });
@@ -2138,7 +2142,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
         return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
-                Registros: stat.registrosSet.size,
+                Registros: totalConteo(stat),
                 'Productos Afectados': stat.productosAfectados,
             }))
             .sort((a, b) => b.Registros - a.Registros));

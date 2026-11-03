@@ -30,4 +30,4 @@ Antes de dar un cambio por terminado: `npx tsc --noEmit` sin errores. Vercel com
 
 Nota: `fecha_verificacion` es la solución real al cliente (estado, SLA, tiempos); `fecha_cierre` es el día en que el agente registró el cierre y se usa solo para productividad del agente. El `d.fecha_cierre || d.fecha_verificacion` de `DetalleMac.tsx` (cerrados del día por agente) es correcto; no cambiarlo.
 
-Indicadores MAC tiene 5 hojas: General, Detalle, Agentes, Informe (incluye la comparación contra el periodo anterior) y QRR. Los QRR viven en la tabla `mac_qrr` (+ `mac_qrr_historial`), creada con `supabase/create_mac_qrr.sql`; el periodo por defecto es el año en curso (2026 arranca el 03/07, inicio de la Mesa).
+Indicadores MAC tiene 5 hojas: General, Detalle, Agentes, Informe (incluye la comparación contra el periodo anterior) y QRR. Conteo de problemas en `utils/conteoProblemas.ts`. Los QRR viven en la tabla `mac_qrr` (+ `mac_qrr_historial`), creada con `supabase/create_mac_qrr.sql`; el periodo por defecto es el año en curso (2026 arranca el 03/07, inicio de la Mesa).

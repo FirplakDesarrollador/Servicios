@@ -395,6 +395,11 @@ export default function IndicadoresMacPage() {
                         if (code && String(code).trim()) _productosNombres.add(String(code).trim());
                         let hasProblema = false;
                         let hasResp = false;
+                        // Pares defecto/responsable con su nombre: base del conteo de problemas (utils/conteoProblemas)
+                        p._problemas = (Array.isArray(p.problemas) ? p.problemas : []).map((prob: any) => ({
+                            defecto: prob.tipo_problema_id ? getNombreProblemaDirect(prob.tipo_problema_id) : 'En Blanco',
+                            responsable: prob.responsable_problema_id ? (responsablesMap.get(String(prob.responsable_problema_id)) || `ID ${prob.responsable_problema_id}`) : 'En Blanco',
+                        }));
                         if (Array.isArray(p.problemas)) {
                             p.problemas.forEach((prob: any, idx: number) => {
                                 if (prob.tipo_problema_id) {
