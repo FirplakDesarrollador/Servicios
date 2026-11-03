@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Bar, CartesianGrid, Cell, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
 import { RegistroMAC, FilterState } from '../types';
 import { useRowLimit } from '../utils/useRowLimit';
+import { EN_BLANCO } from '../utils/filterEngine';
 
 // Indicadores de experiencia del cliente (adicionales; no reemplazan los de las otras pestañas).
 // Regla de fechas:
@@ -120,7 +121,7 @@ export default function ExperienciaMac({ data, dataForMesCreacion, dataForDefect
     const pareto = useMemo(() => {
         const map = new Map<string, { casos: number; unidades: number; tiempos: number[]; valor: number }>();
         for (const d of datosProblema) {
-            const problemas = d._defectosNombres && d._defectosNombres.length > 0 ? d._defectosNombres : ['Sin tipo de problema'];
+            const problemas = d._defectosNombres && d._defectosNombres.length > 0 ? d._defectosNombres : [EN_BLANCO];
             const unidades = (d.productos_novedad || []).reduce((a: number, p: any) => a + (Number(p.cantidad) || 1), 0) || 1;
             for (const p of problemas) {
                 const e = map.get(p) || { casos: 0, unidades: 0, tiempos: [], valor: 0 };
@@ -298,7 +299,7 @@ export default function ExperienciaMac({ data, dataForMesCreacion, dataForDefect
                                 <YAxis yAxisId="der" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
                                 <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e8e2d5', fontSize: 12 }} />
                                 <ReferenceLine yAxisId="der" y={80} stroke="#c96a4e" strokeDasharray="4 4" />
-                                <Bar yAxisId="izq" dataKey="Casos" fill="#254153" radius={[6, 6, 0, 0]} maxBarSize={36} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.completo && b.payload.completo !== 'Sin tipo de problema' && onFilterToggle('defectos', b.payload.completo, e)}>
+                                <Bar yAxisId="izq" dataKey="Casos" fill="#254153" radius={[6, 6, 0, 0]} maxBarSize={36} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.completo && onFilterToggle('defectos', b.payload.completo, e)}>
                                     {paretoChart.map((p) => <Cell key={p.completo} fill="#254153" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(p.completo) ? 1 : 0.3} />)}
                                 </Bar>
                                 <Line yAxisId="der" type="monotone" dataKey="% acumulado" stroke="#c96a4e" strokeWidth={2} dot={{ r: 2.5 }} />
@@ -329,7 +330,7 @@ export default function ExperienciaMac({ data, dataForMesCreacion, dataForDefect
                                     return (
                                         <tr
                                             key={p.nombre}
-                                            onClick={(e) => p.nombre !== 'Sin tipo de problema' && onFilterToggle('defectos', p.nombre, e)}
+                                            onClick={(e) => onFilterToggle('defectos', p.nombre, e)}
                                             className={`cursor-pointer transition-colors border-b border-border ${activo ? 'bg-sage-soft' : i < paretoVital ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/40 hover:bg-cream-light text-stone-500'}`}
                                         >
                                             <td className="px-3 py-2 text-xs font-medium text-stone-700">

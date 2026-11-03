@@ -39,7 +39,7 @@ export const normalizePlantaName = (planta: string): string => {
 export const CROSS_KEYS = [
     'estado', 'mercado', 'canalVenta', 'tipoSolicitud', 'agenteMac', 'ciudades', 'zonas', 'clientes',
     'mesPresupuesto', 'mesCreacion', 'estadoRiesgo', 'defectos', 'responsables', 'productos', 'plantas',
-    'fechaCompra', 'fechaFabricacion', 'diaCreacion',
+    'fechaCompra', 'fechaFabricacion', 'diaCreacion', 'textoProducto',
 ] as const;
 export type CrossKey = (typeof CROSS_KEYS)[number];
 
@@ -47,6 +47,30 @@ const BIT = Object.fromEntries(CROSS_KEYS.map((k, i) => [k, 1 << i])) as Record<
 
 const stripAccents = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 const upperTrim = (v: unknown) => String(v).toUpperCase().trim();
+
+/** Valor de los indicadores cuando el dato no está diligenciado. También es el valor del filtro. */
+export const EN_BLANCO = 'En Blanco';
+export const SIN_PRODUCTO_COMPRA = 'Sin producto de compra';
+export const SIN_PRODUCTO_NOVEDAD = 'Sin producto con novedad';
+
+const tieneValor = (p: any, campo: string) =>
+    !!p?.[campo] || (Array.isArray(p?.problemas) && p.problemas.some((x: any) => x?.[campo]));
+
+const textoNormal = (v: unknown) => stripAccents(String(v ?? '')).toLowerCase();
+const textoDeProducto = (p: any) =>
+    textoNormal([p?.descripcion, p?.nombre, p?.sku, p?.referencia, p?.codigo, p?.codigo_producto, p?.cod_producto, p?.cod].filter(Boolean).join(' '));
+const palabras = (texto: string) => textoNormal(texto).split(/\s+/).filter(Boolean);
+
+/** El producto contiene todas las palabras buscadas (sin importar tildes ni mayúsculas), en nombre o código. */
+export function productoCoincideTexto(p: any, texto: string): boolean {
+    const t = textoDeProducto(p);
+    return palabras(texto).every((w) => t.includes(w));
+}
+
+/** ¿Alguno de los productos con novedad del radicado coincide con el texto? */
+export function novedadCoincideTexto(d: RegistroMAC, texto: string): boolean {
+    return Array.isArray(d.productos_novedad) && d.productos_novedad.some((p: any) => productoCoincideTexto(p, texto));
+}
 
 interface RowIndex {
     canal: string;
@@ -59,6 +83,7 @@ interface RowIndex {
     compra: ClasificacionFecha;
     fabricacion: ClasificacionFecha;
     dia: string;
+    textosProducto: string[];
 }
 
 // Índice por registro, calculado una sola vez (los registros no cambian después de cargarse).
@@ -67,17 +92,27 @@ function rowIndex(d: RegistroMAC): RowIndex {
     let idx = rowIndexCache.get(d);
     if (!idx) {
         const r = d as any;
+        const novedad: any[] = Array.isArray(d.productos_novedad) ? d.productos_novedad : [];
+        const compra: any[] = Array.isArray(d.productos_compra) ? d.productos_compra : [];
+        const productos = new Set((d._productosNombres || []).map(upperTrim));
+        if (compra.length === 0) productos.add(upperTrim(SIN_PRODUCTO_COMPRA));
+        if (novedad.length === 0) productos.add(upperTrim(SIN_PRODUCTO_NOVEDAD));
+        const defectos = new Set((d._defectosNombres || []).map(upperTrim));
+        if (novedad.length === 0 || novedad.some((p) => !tieneValor(p, 'tipo_problema_id'))) defectos.add(upperTrim(EN_BLANCO));
+        const responsables = new Set((d._responsablesNombres || []).map(upperTrim));
+        if (novedad.length === 0 || novedad.some((p) => !tieneValor(p, 'responsable_problema_id'))) responsables.add(upperTrim(EN_BLANCO));
         idx = {
             canal: stripAccents((d.canal_venta || '').toLowerCase()),
             tipo: d.tipo_solicitud ? stripAccents(d.tipo_solicitud).toLowerCase().trim() : '',
-            defectos: new Set((d._defectosNombres || []).map(upperTrim)),
-            responsables: new Set((d._responsablesNombres || []).map(upperTrim)),
-            productos: new Set((d._productosNombres || []).map(upperTrim)),
+            defectos,
+            responsables,
+            productos,
             plantas: new Set((d._plantasNombres || []).map(upperTrim)),
             grupos: new Set(((r._gruposNombres as string[]) || []).map(upperTrim)),
             compra: clasificarFecha(d, 'fecha_compra'),
             fabricacion: clasificarFecha(d, 'fecha_fabricacion'),
             dia: diaLocal(d.created_at),
+            textosProducto: [...compra, ...novedad].map(textoDeProducto),
         };
         rowIndexCache.set(d, idx);
     }
@@ -98,6 +133,18 @@ const matchesCanal = (dCanal: string, f: string) =>
     (f.includes('constructor') && dCanal.includes('construct')) ||
     ((f.includes('propio') || f.includes('b2c')) && (dCanal.includes('propio') || dCanal.includes('firplakhome') || dCanal.includes('ecommerce') || dCanal.includes('b2c'))) ||
     (f.includes('especial') && dCanal.includes('especial'));
+
+/** Mismo criterio del motor para el filtro de productos, para quien usa la vista "excepto productos". */
+export function registroCumpleProductos(d: RegistroMAC, filtros: string[] | undefined): boolean {
+    if (!filtros || filtros.length === 0) return true;
+    const idx = rowIndex(d);
+    return filtros.some((f) => {
+        const s = String(f);
+        if (s.toUpperCase().startsWith('PL:')) return idx.plantas.has(normalizePlantaName(s.substring(3)).toUpperCase().trim());
+        if (s.toUpperCase().startsWith('GF:')) return idx.grupos.has(normalizeGrupo(s.substring(3)).toUpperCase().trim());
+        return idx.productos.has(upperTrim(s));
+    });
+}
 
 export interface FilterViews {
     /** Registros que cumplen todos los filtros. */
@@ -126,6 +173,7 @@ export function computeFilterViews(data: RegistroMAC[], filters: FilterState): F
     const compraF = filters.fechaCompra || [];
     const fabricacionF = filters.fechaFabricacion || [];
     const diaF = filters.diaCreacion || [];
+    const textoF = palabras((filters.textoProducto || [])[0] || '');
 
     const all: RegistroMAC[] = [];
     const except = Object.fromEntries(CROSS_KEYS.map((k) => [k, [] as RegistroMAC[]])) as Record<CrossKey, RegistroMAC[]>;
@@ -146,7 +194,7 @@ export function computeFilterViews(data: RegistroMAC[], filters: FilterState): F
         if (filters.mesCreacion.length > 0 && !filters.mesCreacion.includes(d._mesCreacionKey || '')) fails |= BIT.mesCreacion;
         if (filters.estadoRiesgo.length > 0 && !filters.estadoRiesgo.includes(d._estadoRiesgo || '')) fails |= BIT.estadoRiesgo;
 
-        if (canalF.length > 0 || tipoF.length > 0 || defectosF.length > 0 || responsablesF.length > 0 || productosF.length > 0 || plantasF.length > 0 || compraF.length > 0 || fabricacionF.length > 0 || diaF.length > 0) {
+        if (canalF.length > 0 || tipoF.length > 0 || defectosF.length > 0 || responsablesF.length > 0 || productosF.length > 0 || plantasF.length > 0 || compraF.length > 0 || fabricacionF.length > 0 || diaF.length > 0 || textoF.length > 0) {
             const idx = rowIndex(d);
             if (canalF.length > 0 && !canalF.some((f) => matchesCanal(idx.canal, f))) fails |= BIT.canalVenta;
             if (tipoF.length > 0 && !tipoF.some((f) => idx.tipo === f || idx.tipo.includes(f) || f.includes(idx.tipo))) fails |= BIT.tipoSolicitud;
@@ -157,6 +205,7 @@ export function computeFilterViews(data: RegistroMAC[], filters: FilterState): F
             if (compraF.length > 0 && !compraF.some((v) => cumpleValorFecha(idx.compra, v))) fails |= BIT.fechaCompra;
             if (fabricacionF.length > 0 && !fabricacionF.some((v) => cumpleValorFecha(idx.fabricacion, v))) fails |= BIT.fechaFabricacion;
             if (diaF.length > 0 && !diaF.includes(idx.dia)) fails |= BIT.diaCreacion;
+            if (textoF.length > 0 && !idx.textosProducto.some((t) => textoF.every((w) => t.includes(w)))) fails |= BIT.textoProducto;
         }
 
         if (fails === 0) {

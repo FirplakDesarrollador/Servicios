@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useRowLimit } from '../utils/useRowLimit';
 import FechaProductoCard from '../components/FechaProductoCard';
+import { EN_BLANCO, SIN_PRODUCTO_COMPRA, SIN_PRODUCTO_NOVEDAD, novedadCoincideTexto, productoCoincideTexto, registroCumpleProductos } from '../utils/filterEngine';
 import { RegistroMAC, FilterState } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line, LabelList, ComposedChart } from 'recharts';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Globe, Package, Check, X, Filter } from 'lucide-react';
@@ -204,6 +205,25 @@ const normalizeGrupoName = (g: string): string => {
     return 'En Blanco';
 };
 
+/**
+ * Participación sobre el total del propio indicador (incluye "En Blanco"). Se reparte en décimas con el
+ * método del mayor residuo: redondear cada fila por separado hacía que cientos de filas pequeñas
+ * sumaran 85% o 112%; así el total visible siempre es exactamente 100,0%.
+ */
+function conParticipacion<T extends { Registros: number }>(filas: T[]): Array<T & { Participacion: string }> {
+    const total = filas.reduce((acc, x) => acc + x.Registros, 0);
+    if (total === 0) return filas.map((x) => ({ ...x, Participacion: '0.0%' }));
+    const decimas = filas.map((x) => (x.Registros / total) * 1000);
+    const enteras = decimas.map(Math.floor);
+    const faltan = 1000 - enteras.reduce((a, b) => a + b, 0);
+    decimas
+        .map((d, i) => ({ i, residuo: d - enteras[i] }))
+        .sort((a, b) => b.residuo - a.residuo)
+        .slice(0, faltan)
+        .forEach(({ i }) => { enteras[i] += 1; });
+    return filas.map((x, i) => ({ ...x, Participacion: (enteras[i] / 10).toFixed(1) + '%' }));
+}
+
 const productMatchesFilters = (p: any, filtersArr: string[] | undefined, filterTypeToIgnore?: 'PL' | 'GF') => {
     if (!filtersArr || filtersArr.length === 0) return true;
     const prodNombre = p.descripcion || p.nombre || p.sku || p.referencia || 'Desconocido';
@@ -348,34 +368,37 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
 };
 
 // ─── Product Table ───────────────────────────────────────────────────────────
-const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle, activeFilters = [] }: {
+const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle, activeFilters = [], texto, onTextoChange }: {
     title: string;
     data: Array<{ nombre: string; codigo?: string; Registros: number; 'Productos Afectados': number; Participacion: string }>;
     maxHeight?: number;
     filterKey: string;
     onFilterToggle: any;
     activeFilters?: string[];
+    /** Texto buscado: compartido entre las dos tablas de productos y aplicado a toda la página */
+    texto: string;
+    onTextoChange: (valor: string) => void;
 }) => {
-    const [query, setQuery] = React.useState('');
-    const rows = useRowLimit([data, query]);
-
-    if (!data || data.length === 0) {
-        return (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-                <h3 className="text-sm font-bold text-brand-dark mb-4 uppercase tracking-wider">{title}</h3>
-                <p className="text-sm text-stone-400 text-center py-12">Sin datos</p>
-            </div>
-        );
-    }
-
-    const filtered = query.trim()
-        ? data.filter(item => {
-            const q = query.toLowerCase().trim();
-            const matchNombre = item.nombre.toLowerCase().includes(q);
-            const matchCodigo = item.codigo ? item.codigo.toLowerCase().includes(q) : false;
-            return matchNombre || matchCodigo;
-        })
-        : data;
+    const rows = useRowLimit([data]);
+    // Escribir responde al instante; el filtro de la página se aplica al dejar de escribir
+    const [valor, setValor] = React.useState(texto);
+    const enviado = React.useRef(texto);
+    // Solo se sincroniza si el texto cambió desde afuera (la otra tabla o "Limpiar"), no con lo que aquí se escribe
+    React.useEffect(() => {
+        if (texto !== enviado.current) {
+            enviado.current = texto;
+            setValor(texto);
+        }
+    }, [texto]);
+    const enviar = React.useCallback((v: string) => {
+        enviado.current = v;
+        onTextoChange(v);
+    }, [onTextoChange]);
+    React.useEffect(() => {
+        if (valor.trim() === enviado.current) return;
+        const t = setTimeout(() => enviar(valor.trim()), 300);
+        return () => clearTimeout(t);
+    }, [valor, enviar]);
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
@@ -383,24 +406,24 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
             <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">{title}</h3>
                 <span className="text-[10px] font-semibold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5">
-                    {filtered.length}/{data.length} productos
+                    {data.length} productos
                 </span>
             </div>
 
-            {/* Search input */}
+            {/* Buscador: filtra toda la página */}
             <div className="relative mb-3">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                 </svg>
                 <input
                     type="text"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="Buscar por código o producto..."
+                    value={valor}
+                    onChange={e => setValor(e.target.value)}
+                    placeholder="Buscar producto o código: filtra toda la página"
                     className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
                 />
-                {query && (
-                    <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
+                {valor && (
+                    <button onClick={() => { setValor(''); enviar(''); }} title="Limpiar búsqueda" className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors cursor-pointer">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -410,8 +433,8 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
 
             {/* Table */}
             <div className="overflow-y-auto" style={{ maxHeight: `${maxHeight}px` }} onScroll={rows.onScroll}>
-                {filtered.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-8">Sin resultados para &quot;{query}&quot;</p>
+                {data.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-8">{texto ? <>Sin productos para &quot;{texto}&quot;</> : 'Sin datos'}</p>
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10">
@@ -423,14 +446,14 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.slice(0, rows.limit).map((item, i) => (
-                                <tr 
-                                    key={i} 
+                            {data.slice(0, rows.limit).map((item, i) => (
+                                <tr
+                                    key={i}
                                     onClick={(e) => onFilterToggle(filterKey as keyof FilterState, item.nombre, e)}
                                     className={`group transition-colors cursor-pointer ${
                                         activeFilters.length > 0 && activeFilters.includes(item.nombre)
                                             ? 'bg-sage-soft border-l-4 border-brand-light'
-                                            : activeFilters.length > 0 
+                                            : activeFilters.length > 0
                                                 ? 'bg-white opacity-40 hover:opacity-100 hover:bg-cream-light'
                                                 : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'
                                     }`}
@@ -1681,135 +1704,81 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
     }, [totalNovedades, registrosPorMes]);
 
     // ── getProductosStats memoizada (evita recalcular en cada render) ──────────
-    const buildProductosStats = (field: 'productos_compra' | 'productos_novedad', sourceData: RegistroMAC[]) => {
-        const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number, codigosSet: Set<string> }> = {};
+    const textoProducto = (filters.textoProducto || [])[0] || '';
+    // Radicado encontrado solo por su producto de compra: se cuentan todas sus novedades, para que
+    // los indicadores sumen lo mismo que el total de radicados filtrados.
+    const pasaTextoNovedad = (d: RegistroMAC, p: any) =>
+        !textoProducto || !novedadCoincideTexto(d, textoProducto) || productoCoincideTexto(p, textoProducto);
 
-        const activeGroupFilters = (filters.productos || []).filter(f => String(f).toUpperCase().startsWith('GF:'));
-        const activePlantFilters = (filters.productos || []).filter(f => String(f).toUpperCase().startsWith('PL:'));
-        const activeSpecificFilters = (filters.productos || []).filter(f => !String(f).toUpperCase().startsWith('GF:') && !String(f).toUpperCase().startsWith('PL:'));
+    const buildProductosStats = (field: 'productos_compra' | 'productos_novedad', sourceData: RegistroMAC[]) => {
+        const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
+        const sinProducto = field === 'productos_compra' ? SIN_PRODUCTO_COMPRA : SIN_PRODUCTO_NOVEDAD;
+        // Planta y grupo solo existen en los productos con novedad; los de compra se filtran por su radicado.
+        const filtrosClasificacion = (filters.productos || []).filter(f => /^(PL|GF):/i.test(String(f)));
+        const hayFiltroProblema = (filters.defectos?.length || 0) > 0 || (filters.responsables?.length || 0) > 0;
+
+        const coincideProblema = (prob: any, tipoId: any, respId: any) => {
+            if (filters.defectos?.length && !filters.defectos.includes(tipoId ? getNombreProblema(tipoId) : EN_BLANCO)) return false;
+            if (filters.responsables?.length && !filters.responsables.includes(respId ? getResponsableNombre(respId) : EN_BLANCO)) return false;
+            return true;
+        };
 
         sourceData.forEach(d => {
-            if (activeSpecificFilters.length > 0) {
-                const hasSpecificMatch = activeSpecificFilters.some(f => (d as any)._productosNombres?.some((pn: any) => String(pn).toUpperCase().trim() === String(f).toUpperCase().trim()));
-                if (!hasSpecificMatch) return;
+            if (!registroCumpleProductos(d, filters.productos)) return;
+            const productos: any[] = Array.isArray(d[field]) ? d[field] : [];
+
+            if (productos.length === 0) {
+                if (!textoProducto) {
+                    if (!stats[sinProducto]) stats[sinProducto] = { registrosSet: new Set(), productosAfectados: 0 };
+                    stats[sinProducto].registrosSet.add(d.id);
+                }
+                return;
             }
-            if (activePlantFilters.length > 0) {
-                const hasPlantMatch = activePlantFilters.some(f => {
-                    const pName = String(f).substring(3).toUpperCase().trim();
-                    return (d as any)._plantasNombres?.some((pn: any) => String(pn).toUpperCase().trim() === pName);
-                });
-                if (!hasPlantMatch) return;
-            }
 
-            if (Array.isArray(d[field])) {
-                d[field].forEach((p: any) => {
-                    const nombre = p.descripcion || p.nombre || p.sku || p.referencia || p.codigo || 'Desconocido';
-                    const codigo = p.codigo || p.referencia || p.sku || p.codigo_producto || p.cod_producto || p.cod || '';
-
-                    let include = true;
-                    if (field === 'productos_novedad' && ((filters.defectos && filters.defectos.length > 0) || (filters.responsables && filters.responsables.length > 0))) {
-                        let hasMatchingProblem = false;
-                        if (Array.isArray(p.problemas) && p.problemas.length > 0) {
-                            p.problemas.forEach((prob: any) => {
-                                let matchDef = true;
-                                if (filters.defectos && filters.defectos.length > 0) {
-                                    const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : '';
-                                    if (!filters.defectos.includes(probNombre)) matchDef = false;
-                                }
-                                let matchResp = true;
-                                if (filters.responsables && filters.responsables.length > 0) {
-                                    // O(1) lookup con Map
-                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
-                                    if (!filters.responsables.includes(respNombre)) matchResp = false;
-                                }
-                                if (matchDef && matchResp) hasMatchingProblem = true;
-                            });
-                        } else {
-                            let matchDef = true;
-                            if (filters.defectos && filters.defectos.length > 0) {
-                                const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : '';
-                                if (!filters.defectos.includes(probNombre)) matchDef = false;
-                            }
-                            let matchResp = true;
-                            if (filters.responsables && filters.responsables.length > 0) {
-                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
-                                if (!filters.responsables.includes(respNombre)) matchResp = false;
-                            }
-                            if (matchDef && matchResp) hasMatchingProblem = true;
-                        }
-                        if (!hasMatchingProblem) include = false;
+            productos.forEach((p: any) => {
+                if (textoProducto && !productoCoincideTexto(p, textoProducto)) return;
+                if (field === 'productos_novedad') {
+                    if (filtrosClasificacion.length > 0 && !productMatchesFilters(p, filtrosClasificacion)) return;
+                    if (hayFiltroProblema) {
+                        const entradas: any[] = Array.isArray(p.problemas) && p.problemas.length > 0 ? p.problemas : [p];
+                        if (!entradas.some((x) => coincideProblema(x, x.tipo_problema_id, x.responsable_problema_id))) return;
                     }
-
-                    if (activeGroupFilters.length > 0) {
-                        const prodGrupo = p._grupo || p.grupo || p.grupo_producto || '';
-                        const normalizeGroupNameGlobal = (g: string): string => {
-                            if (!g) return 'Otros';
-                            let norm = String(g).trim().toUpperCase();
-                            if (['COCINA', 'COCINAS', 'MESON', 'MESONES', 'LAVAPLATOS'].includes(norm)) return 'Cocinas';
-                            if (['BAÑO', 'BAÑOS', 'BANO', 'BANOS', 'LAVAMANOS', 'MUEBLE', 'MUEBLES', 'BAÑO'].includes(norm)) return 'Baño';
-                            if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROEMP', 'HIDROPOR', 'BAÑERA'].includes(norm)) return 'Hidroterapia';
-                            if (['LABORES', 'LABOR', 'ROPAS', 'ROPA', 'LAVARROPAS'].includes(norm)) return 'Labores';
-                            if (['GRIFERIA', 'GRIFERÍA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
-                            if (['COMERCIALIZADOS', 'COMERCIALIZADO', 'MPDIRECT', 'REPUESTO', 'REPUESTOS', 'REPOSICION'].includes(norm)) return 'Comercializados';
-                            if (['INFRAESTRUCTURA', 'PATA', 'PISO'].includes(norm)) return 'Infraestructura';
-                            if (['PLOMERIA', 'PLOMERÍA'].includes(norm)) return 'Plomeria';
-                            if (['SERVICIOS', 'SERVICIO'].includes(norm)) return 'Servicios';
-                            if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO', 'CUIDYMNTTOHIDROS'].includes(norm)) return 'Cuidado&Mantenimiento';
-                            return norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
-                        };
-                        const matchesGroup = activeGroupFilters.some(gf => {
-                            const groupName = normalizeGroupNameGlobal(gf.substring(3));
-                            return normalizeGroupNameGlobal(prodGrupo) === groupName;
-                        });
-                        if (!matchesGroup) include = false;
-                    }
-
-                    if (include) {
-                        if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0, codigosSet: new Set() };
-                        stats[nombre].registrosSet.add(d.id);
-                        stats[nombre].productosAfectados += (p.cantidad || 1);
-                        if (codigo && String(codigo).trim() && String(codigo).trim() !== nombre) {
-                            stats[nombre].codigosSet.add(String(codigo).trim());
-                        }
-                    }
-                });
-            }
+                }
+                const nombre = p.descripcion || p.nombre || p.sku || p.referencia || p.codigo || 'Desconocido';
+                if (!stats[nombre]) stats[nombre] = { registrosSet: new Set(), productosAfectados: 0 };
+                stats[nombre].registrosSet.add(d.id);
+                stats[nombre].productosAfectados += (p.cantidad || 1);
+            });
         });
 
-        const totalRegistros = data.length || 1;
-        return Object.entries(stats)
-            .map(([nombre, stat]) => {
-                const regs = stat.registrosSet.size;
-                const codigosArr = Array.from(stat.codigosSet);
-                return {
-                    nombre,
-                    codigo: codigosArr.length > 0 ? codigosArr.join(', ') : '',
-                    Registros: regs,
-                    'Productos Afectados': stat.productosAfectados,
-                    Participacion: ((regs / totalRegistros) * 100).toFixed(1) + '%'
-                };
-            })
-            .sort((a, b) => b.Registros - a.Registros);
+        return conParticipacion(Object.entries(stats)
+            .map(([nombre, stat]) => ({
+                nombre,
+                codigo: '',
+                Registros: stat.registrosSet.size,
+                'Productos Afectados': stat.productosAfectados,
+            }))
+            .sort((a, b) => b.Registros - a.Registros));
     };
+
+    const tieneDato = (p: any, campo: string) =>
+        !!p?.[campo] || (Array.isArray(p?.problemas) && p.problemas.some((x: any) => x?.[campo]));
+    const sinNovedad = (d: RegistroMAC) => !Array.isArray(d.productos_novedad) || d.productos_novedad.length === 0;
+    const entradasProblema = (p: any): any[] => (Array.isArray(p?.problemas) && p.problemas.length > 0 ? p.problemas : [p]);
+    const pasaResponsable = (p: any) => !filters.responsables?.length || entradasProblema(p).some((x) =>
+        filters.responsables.includes(x.responsable_problema_id ? getResponsableNombre(x.responsable_problema_id) : EN_BLANCO));
+    const pasaTipo = (p: any) => !filters.defectos?.length || entradasProblema(p).some((x) =>
+        filters.defectos.includes(x.tipo_problema_id ? getNombreProblema(x.tipo_problema_id) : EN_BLANCO));
 
     const tipoProblemaStats = useMemo(() => {
         const stats: Record<string, { registrosSet: Set<number>, productosAfectados: number }> = {};
 
         const sourceData = dataForDefectos || data;
-        let checkedProducts = 0;
-        let passedProducts = 0;
-        let productsWithProblems = 0;
-        
         sourceData.forEach(d => {
             if (Array.isArray(d.productos_novedad)) {
                 d.productos_novedad.forEach((p: any) => {
-                    checkedProducts++;
                     let passesProductos = productMatchesFilters(p, filters.productos);
-                    if (filters.productos && filters.productos.length > 0) {
-                        console.log('DEBUG CHECK:', p._grupo, p.grupo, p.grupo_producto, 'Filter:', filters.productos, 'Passes?', passesProductos);
-                    }
-                    if (!passesProductos) return;
-                    passedProducts++;
+                    if (!passesProductos || !pasaTextoNovedad(d, p)) return;
 
                     let hasProblema = false;
 
@@ -1818,7 +1787,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             let matchResp = true;
                             if (filters.responsables && filters.responsables.length > 0) {
                                 // O(1) Map lookup
-                                const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
+                                const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : EN_BLANCO;
                                 if (!filters.responsables.includes(respNombre)) matchResp = false;
                             }
                             if (matchResp && prob.tipo_problema_id) {
@@ -1834,7 +1803,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                     if (!hasProblema && p.tipo_problema_id) {
                         let matchResp = true;
                         if (filters.responsables && filters.responsables.length > 0) {
-                            const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
+                            const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : EN_BLANCO;
                             if (!filters.responsables.includes(respNombre)) matchResp = false;
                         }
                         if (matchResp) {
@@ -1844,19 +1813,30 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             stats[nombre].productosAfectados += (p.cantidad || 1);
                         }
                     }
+
+                    // Producto sin tipo de problema diligenciado
+                    if (!tieneDato(p, 'tipo_problema_id') && pasaResponsable(p)) {
+                        if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
+                        stats[EN_BLANCO].registrosSet.add(d.id);
+                        stats[EN_BLANCO].productosAfectados += (p.cantidad || 1);
+                    }
                 });
+            }
+
+            // Radicado sin productos con novedad
+            if (sinNovedad(d) && (!filters.responsables?.length || filters.responsables.includes(EN_BLANCO))) {
+                if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
+                stats[EN_BLANCO].registrosSet.add(d.id);
             }
         });
 
-        const totalRegistros = data.length || 1;
-        return Object.entries(stats)
+        return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
                 Registros: stat.registrosSet.size,
                 'Productos Afectados': stat.productosAfectados,
-                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
             }))
-            .sort((a, b) => b.Registros - a.Registros);
+            .sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForDefectos, defectosMap, razonesMap, responsablesMap, filters.productos, filters.responsables]);
 
     const responsableProblemaStats = useMemo(() => {
@@ -1867,7 +1847,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
             if (Array.isArray(d.productos_novedad)) {
                 d.productos_novedad.forEach((p: any) => {
                     let passesProductos = productMatchesFilters(p, filters.productos);
-                    if (!passesProductos) return;
+                    if (!passesProductos || !pasaTextoNovedad(d, p)) return;
 
                     let hasResponsable = false;
 
@@ -1875,7 +1855,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         p.problemas.forEach((prob: any) => {
                             let matchDef = true;
                             if (filters.defectos && filters.defectos.length > 0) {
-                                const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : '';
+                                const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : EN_BLANCO;
                                 if (!filters.defectos.includes(probNombre)) matchDef = false;
                             }
                             if (matchDef && prob.responsable_problema_id) {
@@ -1892,7 +1872,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                     if (!hasResponsable && p.responsable_problema_id) {
                         let matchDef = true;
                         if (filters.defectos && filters.defectos.length > 0) {
-                            const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : '';
+                            const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : EN_BLANCO;
                             if (!filters.defectos.includes(probNombre)) matchDef = false;
                         }
                         if (matchDef) {
@@ -1902,22 +1882,41 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             stats[nombre].productosAfectados += (p.cantidad || 1);
                         }
                     }
+
+                    // Producto sin responsable diligenciado
+                    if (!tieneDato(p, 'responsable_problema_id') && pasaTipo(p)) {
+                        if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
+                        stats[EN_BLANCO].registrosSet.add(d.id);
+                        stats[EN_BLANCO].productosAfectados += (p.cantidad || 1);
+                    }
                 });
+            }
+
+            // Radicado sin productos con novedad
+            if (sinNovedad(d) && (!filters.defectos?.length || filters.defectos.includes(EN_BLANCO))) {
+                if (!stats[EN_BLANCO]) stats[EN_BLANCO] = { registrosSet: new Set(), productosAfectados: 0 };
+                stats[EN_BLANCO].registrosSet.add(d.id);
             }
         });
 
-        const totalRegistros = data.length || 1;
-        return Object.entries(stats)
+        return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
                 Registros: stat.registrosSet.size,
                 'Productos Afectados': stat.productosAfectados,
-                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
             }))
-            .sort((a, b) => b.Registros - a.Registros);
+            .sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForResponsables, responsablesMap, defectosMap, razonesMap, filters.productos, filters.defectos]);
 
     // Memoizados correctamente con sus dependencias reales
+    const filtrosProductoEspecificos = useMemo(
+        () => (filters.productos || []).filter(f => !/^(PL|GF):/i.test(String(f))),
+        [filters.productos]
+    );
+    const cambiarTextoProducto = React.useCallback((valor: string) => {
+        setFilters((prev: FilterState) => ({ ...prev, textoProducto: valor ? [valor] : [] }));
+    }, [setFilters]);
+
     const productosNovedadStats = useMemo(() =>
         buildProductosStats('productos_novedad', dataForProductos || data),
         [data, dataForProductos, filters.productos, filters.defectos, filters.responsables, defectosMap, razonesMap, responsablesMap]
@@ -1942,12 +1941,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             p.problemas.forEach((prob: any) => {
                                 let matchDef = true;
                                 if (filters.defectos && filters.defectos.length > 0) {
-                                    const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : '';
+                                    const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : EN_BLANCO;
                                     if (!filters.defectos.includes(probNombre)) matchDef = false;
                                 }
                                 let matchResp = true;
                                 if (filters.responsables && filters.responsables.length > 0) {
-                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
+                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : EN_BLANCO;
                                     if (!filters.responsables.includes(respNombre)) matchResp = false;
                                 }
                                 if (matchDef && matchResp) hasMatchingProblem = true;
@@ -1955,18 +1954,20 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         } else {
                             let matchDef = true;
                             if (filters.defectos && filters.defectos.length > 0) {
-                                const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : '';
+                                const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : EN_BLANCO;
                                 if (!filters.defectos.includes(probNombre)) matchDef = false;
                             }
                             let matchResp = true;
                             if (filters.responsables && filters.responsables.length > 0) {
-                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
+                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : EN_BLANCO;
                                 if (!filters.responsables.includes(respNombre)) matchResp = false;
                             }
                             if (matchDef && matchResp) hasMatchingProblem = true;
                         }
                         if (!hasMatchingProblem) include = false;
                     }
+
+                    if (include && !pasaTextoNovedad(d, p)) include = false;
 
                     if (include && !productMatchesFilters(p, filters.productos, 'GF')) {
                         include = false;
@@ -1985,7 +1986,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
             // Radicados sin novedades o donde ninguna novedad tuvo clasificación
             if (!hasMatchedItem) {
-                const passDefResp = (!filters.defectos || filters.defectos.length === 0) && (!filters.responsables || filters.responsables.length === 0);
+                const passDefResp = (!filters.defectos?.length || filters.defectos.includes(EN_BLANCO)) && (!filters.responsables?.length || filters.responsables.includes(EN_BLANCO));
                 const passPL = (!filters.productos || !filters.productos.some(f => String(f).toUpperCase().startsWith('PL:')));
                 if (passDefResp && passPL) {
                     if (!stats['En Blanco']) stats['En Blanco'] = { registrosSet: new Set(), productosAfectados: 0 };
@@ -1994,15 +1995,13 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
             }
         });
 
-        const totalRegistros = sourceData.length || 1;
-        return Object.entries(stats)
+        return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
                 Registros: stat.registrosSet.size,
                 'Productos Afectados': stat.productosAfectados,
-                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
             }))
-            .sort((a, b) => b.Registros - a.Registros);
+            .sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForProductos, defectosMap, razonesMap, responsablesMap, filters.defectos, filters.responsables, filters.productos]);
 
     const productosPlantasStats = useMemo(() => {
@@ -2020,12 +2019,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             p.problemas.forEach((prob: any) => {
                                 let matchDef = true;
                                 if (filters.defectos && filters.defectos.length > 0) {
-                                    const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : '';
+                                    const probNombre = prob.tipo_problema_id ? getNombreProblema(prob.tipo_problema_id) : EN_BLANCO;
                                     if (!filters.defectos.includes(probNombre)) matchDef = false;
                                 }
                                 let matchResp = true;
                                 if (filters.responsables && filters.responsables.length > 0) {
-                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : '';
+                                    const respNombre = prob.responsable_problema_id ? getResponsableNombre(prob.responsable_problema_id) : EN_BLANCO;
                                     if (!filters.responsables.includes(respNombre)) matchResp = false;
                                 }
                                 if (matchDef && matchResp) hasMatchingProblem = true;
@@ -2033,18 +2032,20 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         } else {
                             let matchDef = true;
                             if (filters.defectos && filters.defectos.length > 0) {
-                                const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : '';
+                                const probNombre = p.tipo_problema_id ? getNombreProblema(p.tipo_problema_id) : EN_BLANCO;
                                 if (!filters.defectos.includes(probNombre)) matchDef = false;
                             }
                             let matchResp = true;
                             if (filters.responsables && filters.responsables.length > 0) {
-                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : '';
+                                const respNombre = p.responsable_problema_id ? getResponsableNombre(p.responsable_problema_id) : EN_BLANCO;
                                 if (!filters.responsables.includes(respNombre)) matchResp = false;
                             }
                             if (matchDef && matchResp) hasMatchingProblem = true;
                         }
                         if (!hasMatchingProblem) include = false;
                     }
+
+                    if (include && !pasaTextoNovedad(d, p)) include = false;
 
                     if (include && !productMatchesFilters(p, filters.productos, 'PL')) {
                         include = false;
@@ -2063,7 +2064,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
             // Radicados sin novedades o donde ninguna novedad tuvo clasificación
             if (!hasMatchedItem) {
-                const passDefResp = (!filters.defectos || filters.defectos.length === 0) && (!filters.responsables || filters.responsables.length === 0);
+                const passDefResp = (!filters.defectos?.length || filters.defectos.includes(EN_BLANCO)) && (!filters.responsables?.length || filters.responsables.includes(EN_BLANCO));
                 const passGF = (!filters.productos || !filters.productos.some(f => String(f).toUpperCase().startsWith('GF:')));
                 if (passDefResp && passGF) {
                     if (!stats['En Blanco']) stats['En Blanco'] = { registrosSet: new Set(), productosAfectados: 0 };
@@ -2072,22 +2073,19 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
             }
         });
 
-        const totalRegistros = sourceData.length || 1;
-        return Object.entries(stats)
+        return conParticipacion(Object.entries(stats)
             .map(([nombre, stat]) => ({
                 nombre,
                 Registros: stat.registrosSet.size,
                 'Productos Afectados': stat.productosAfectados,
-                Participacion: ((stat.registrosSet.size / totalRegistros) * 100).toFixed(1) + '%'
             }))
-            .sort((a, b) => b.Registros - a.Registros);
+            .sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForProductos, defectosMap, razonesMap, responsablesMap, filters.defectos, filters.responsables, filters.productos]);
 
     // Chart 7 & 8: Ciudades y Zonas — dependencias correctas sobre sourceData
     const ciudadesData = useMemo(() => {
         const stats: Record<string, { regs: number, prods: number }> = {};
         const sourceData = dataForCiudades || data;
-        const total = sourceData.length || 1;
         sourceData.forEach(d => {
             const ciudad = d._ciudad || 'Desconocida';
             if (!stats[ciudad]) stats[ciudad] = { regs: 0, prods: 0 };
@@ -2096,18 +2094,16 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                 stats[ciudad].prods += d.productos_novedad.reduce((acc: number, p: any) => acc + (p.cantidad || 1), 0);
             }
         });
-        return Object.entries(stats).map(([nombre, stat]) => ({
+        return conParticipacion(Object.entries(stats).map(([nombre, stat]) => ({
             nombre,
             Registros: stat.regs,
             'Productos Afectados': stat.prods,
-            Participacion: ((stat.regs / total) * 100).toFixed(1) + '%'
-        })).sort((a, b) => b.Registros - a.Registros);
+        })).sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForCiudades]);
 
     const zonasData = useMemo(() => {
         const stats: Record<string, { regs: number, prods: number }> = {};
         const sourceData = dataForZonas || data;
-        const total = sourceData.length || 1;
         sourceData.forEach(d => {
             const zona = d._zona || 'Desconocida';
             if (!stats[zona]) stats[zona] = { regs: 0, prods: 0 };
@@ -2116,12 +2112,11 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                 stats[zona].prods += d.productos_novedad.reduce((acc: number, p: any) => acc + (p.cantidad || 1), 0);
             }
         });
-        return Object.entries(stats).map(([nombre, stat]) => ({
+        return conParticipacion(Object.entries(stats).map(([nombre, stat]) => ({
             nombre,
             Registros: stat.regs,
             'Productos Afectados': stat.prods,
-            Participacion: ((stat.regs / total) * 100).toFixed(1) + '%'
-        })).sort((a, b) => b.Registros - a.Registros);
+        })).sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForZonas]);
 
     // Clientes
@@ -2137,13 +2132,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                 stats[cliente].prods += d.productos_novedad.reduce((acc, p) => acc + (p.cantidad || 1), 0);
             }
         });
-        return Object.entries(stats).map(([cliente, stat]) => ({
+        return conParticipacion(Object.entries(stats).map(([cliente, stat]) => ({
             Cliente: cliente,
             Registros: stat.regs,
             Productos: stat.prods,
             Valor: stat.valor,
-            Participacion: ((stat.regs / (data.length || 1)) * 100).toFixed(1) + '%'
-        })).sort((a, b) => b.Registros - a.Registros);
+        })).sort((a, b) => b.Registros - a.Registros));
     }, [data, dataForClientes]);
 
     // Helper para formatear fecha a "Mes Año" (Ej: "Ene 2026", "Feb 2026")
@@ -2431,10 +2425,10 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
                 {/* Chart 6: Productos de Compra */}
-                <ProductTable title="Productos de Compra" data={productosCompraStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
+                <ProductTable title="Productos de Compra" data={productosCompraStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filtrosProductoEspecificos} texto={textoProducto} onTextoChange={cambiarTextoProducto} />
 
                 {/* Chart 7: Productos con Novedad */}
-                <ProductTable title="Productos con Novedad" data={productosNovedadStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filters.productos} />
+                <ProductTable title="Productos con Novedad" data={productosNovedadStats} maxHeight={440} filterKey="productos" onFilterToggle={onFilterToggle} activeFilters={filtrosProductoEspecificos} texto={textoProducto} onTextoChange={cambiarTextoProducto} />
 
                 {/* Chart 9: Plantas */}
                 <PlantasProductoTableCard title="Plantas de Producto" data={productosPlantasStats} maxHeight={440} onFilterToggle={onFilterToggle} activeFilters={filters.productos} />

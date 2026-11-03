@@ -210,6 +210,7 @@ export default function IndicadoresMacPage() {
         fechaCompra: [],
         fechaFabricacion: [],
         diaCreacion: [],
+        textoProducto: [],
     });
 
     useEffect(() => {
@@ -729,6 +730,7 @@ export default function IndicadoresMacPage() {
         { key: 'fechaFabricacion', label: 'Fabricación' },
         { key: 'diaCreacion', label: 'Día' },
         { key: 'agenteMac', label: 'Agente' },
+        { key: 'textoProducto', label: 'Producto contiene' },
     ];
 
     return (
@@ -844,7 +846,7 @@ export default function IndicadoresMacPage() {
                         </button>
                         <button
                             onClick={() => setFilters(prev => ({
-                                ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: [], mercado: [], fechaCompra: [], fechaFabricacion: [], diaCreacion: [], agenteMac: []
+                                ...prev, defectos: [], productos: [], plantas: [], ciudades: [], responsables: [], zonas: [], clientes: [], mesPresupuesto: [], mesCreacion: [], canalVenta: [], mercado: [], fechaCompra: [], fechaFabricacion: [], diaCreacion: [], agenteMac: [], textoProducto: []
                             }))}
                             className="text-xs font-medium text-stone-500 hover:text-red-600 h-8 px-2 transition-colors whitespace-nowrap cursor-pointer"
                         >

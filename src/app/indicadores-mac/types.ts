@@ -80,6 +80,8 @@ export interface FilterState {
     fechaFabricacion: string[];
     /** Día de creación del radicado, 'YYYY-MM-DD' (tendencia diaria de Detalle) */
     diaCreacion: string[];
+    /** Texto buscado en productos de compra y con novedad (0 o 1 valor): filtra toda la página */
+    textoProducto: string[];
 }
 
 // ── Tipos para ANÁLISIS y QRR ──────────────────────────────────────────────
