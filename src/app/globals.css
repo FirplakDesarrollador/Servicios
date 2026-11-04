@@ -315,6 +315,18 @@ header.fixed.bg-brand {
 [data-tema="oscuro"] .bg-slate-900, [data-tema="oscuro"] .bg-stone-900, [data-tema="oscuro"] .bg-gray-900 { background-color: #1b2c42; }
 [data-tema="oscuro"] .hover\:bg-slate-800:hover, [data-tema="oscuro"] .hover\:bg-slate-900:hover { background-color: #2f4560; }
 
+/* Blanco translúcido y resaltados: en oscuro toman el color del vidrio */
+[data-tema="oscuro"] .bg-white\/40 { background-color: rgb(var(--sup) / 0.4); }
+[data-tema="oscuro"] .bg-white\/50 { background-color: rgb(var(--sup) / 0.5); }
+[data-tema="oscuro"] .bg-white\/70 { background-color: rgb(var(--sup) / 0.7); }
+[data-tema="oscuro"] .bg-white\/80 { background-color: rgb(var(--sup) / 0.8); }
+[data-tema="oscuro"] .bg-white\/90 { background-color: rgb(var(--sup) / 0.9); }
+[data-tema="oscuro"] .bg-white\/95 { background-color: rgb(var(--sup) / 0.95); }
+[data-tema="oscuro"] .hover\:bg-white:hover,
+[data-tema="oscuro"] .group:hover .group-hover\:bg-white {
+  background-color: #2a3c54;
+}
+
 /* Textos de estado: en oscuro necesitan la versión clara del color */
 [data-tema="oscuro"] :is(.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-green-600, .text-green-700, .text-green-800, .text-teal-600, .text-teal-700) { color: #b8c682; }
 [data-tema="oscuro"] :is(.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-blue-600, .text-blue-700, .text-blue-800, .text-sky-600, .text-sky-700) { color: #a9c3dc; }
