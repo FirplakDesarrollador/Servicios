@@ -9,14 +9,14 @@ import type { FilterState, RegistroMAC } from '../types';
 import { clasificarFecha, cumpleValorFecha, type ClasificacionFecha } from './fechaProducto';
 
 /** Familias de Ventas que siguen sumando como vendidas, pero se reportan como comercializados. */
-const FAMILIAS_COMERCIALIZADAS = ['REPUESTO', 'REPUESTOS', 'MPDIRECT', 'FINANZAS'];
+const FAMILIAS_COMERCIALIZADAS = ['REPUESTO', 'REPUESTOS', 'MPDIRECT', 'FINANZAS', 'OTRASMP', 'PRODUCCN', 'INDIPROD', 'ESPEJOS'];
 const familiaNormal = (f: unknown) => String(f || '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 export const normalizeGrupo = (g: string): string => {
     if (!g || g === 'En Blanco' || g.toLowerCase() === 'en blanco') return 'En Blanco';
     const norm = String(g).trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     if (['COCINA', 'COCINAS'].includes(norm)) return 'Cocinas';
-    if (['BANO', 'BANOS'].includes(norm)) return 'Baño';
+    if (['BANO', 'BANOS', 'ESPEJOS'].includes(norm)) return 'Baño';
     if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA', 'HIDROPOR', 'HIDROEMP', 'BANERA'].includes(norm)) return 'Hidroterapia';
     if (['LABOR', 'LABORES', 'ROPAS'].includes(norm)) return 'Labores';
     if (['GRIFERIA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
