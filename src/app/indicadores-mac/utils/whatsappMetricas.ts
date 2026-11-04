@@ -37,6 +37,7 @@ export interface ChatSinResponder {
   cliente: string;
   agente: string;
   esperaMin: number;
+  vencido: boolean;
 }
 
 export interface ResumenWhatsapp {
@@ -52,9 +53,43 @@ export interface ResumenWhatsapp {
 }
 
 export const SIN_ASIGNAR = 'Sin asignar';
-/** Horario laboral en que corre el tiempo de respuesta: lunes a viernes, sin festivos. */
-export const HORA_INICIO = 7;
-export const HORA_FIN = 17;
+/** Meta: responder máximo en 2 horas laborales. */
+export const META_MINUTOS = 120;
+const HORA_ENTRADA = 8;
+const HORA_MAXIMA_SIN_RESPONDER = 10;
+
+/** Hora de salida: lunes a jueves 5 p. m., viernes 4 p. m. Fin de semana y festivos no se trabaja. */
+function horaSalida(dia: Date): number | null {
+  if (isWeekend(dia) || isHoliday(dia)) return null;
+  return dia.getDay() === 5 ? 16 : 17;
+}
+
+const enHora = (dia: Date, hora: number) => new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), hora);
+
+function siguienteDiaLaboral(fecha: Date): Date {
+  const dia = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1);
+  while (horaSalida(dia) === null) dia.setDate(dia.getDate() + 1);
+  return dia;
+}
+
+/**
+ * Desde cuándo corre el tiempo de un mensaje y hasta cuándo se debe responder.
+ * Lo que entra hasta una hora antes de la salida se responde ese día, aunque queden menos de 2 horas.
+ * Lo que entra antes de las 8 a. m. corre desde las 8; lo que entra después del corte, o en día no
+ * laboral, corre desde las 8 del siguiente día laboral. En ambos casos el máximo es a las 10 a. m.
+ */
+export function plazoDeRespuesta(entrada: Date): { inicio: Date; limite: Date } {
+  const salida = horaSalida(entrada);
+  if (salida === null || entrada.getTime() >= enHora(entrada, salida - 1).getTime()) {
+    const dia = siguienteDiaLaboral(entrada);
+    return { inicio: enHora(dia, HORA_ENTRADA), limite: enHora(dia, HORA_MAXIMA_SIN_RESPONDER) };
+  }
+  if (entrada.getTime() < enHora(entrada, HORA_ENTRADA).getTime()) {
+    return { inicio: enHora(entrada, HORA_ENTRADA), limite: enHora(entrada, HORA_MAXIMA_SIN_RESPONDER) };
+  }
+  const limite = Math.min(entrada.getTime() + META_MINUTOS * 60000, enHora(entrada, salida).getTime());
+  return { inicio: entrada, limite: new Date(limite) };
+}
 
 /** Minutos laborales entre dos momentos. */
 export function minutosLaborales(desde: Date, hasta: Date): number {
@@ -62,10 +97,9 @@ export function minutosLaborales(desde: Date, hasta: Date): number {
   let total = 0;
   const dia = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
   while (dia <= hasta) {
-    if (!isWeekend(dia) && !isHoliday(dia)) {
-      const inicio = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), HORA_INICIO).getTime();
-      const fin = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), HORA_FIN).getTime();
-      const tramo = Math.min(fin, hasta.getTime()) - Math.max(inicio, desde.getTime());
+    const salida = horaSalida(dia);
+    if (salida !== null) {
+      const tramo = Math.min(enHora(dia, salida).getTime(), hasta.getTime()) - Math.max(enHora(dia, HORA_ENTRADA).getTime(), desde.getTime());
       if (tramo > 0) total += tramo / 60000;
     }
     dia.setDate(dia.getDate() + 1);
@@ -73,9 +107,7 @@ export function minutosLaborales(desde: Date, hasta: Date): number {
   return Math.round(total);
 }
 
-const porcentaje = (tiempos: number[], metaMin: number): number | null =>
-  tiempos.length === 0 ? null : (tiempos.filter((t) => t <= metaMin).length / tiempos.length) * 100;
-
+const porcentaje = (cumplidas: number, total: number): number | null => (total === 0 ? null : (cumplidas / total) * 100);
 
 const claveSemana = (fecha: Date) => {
   const lunes = startOfWeek(fecha, { weekStartsOn: 1 });
@@ -89,17 +121,16 @@ export function calcularResumen(
   chats: ChatWhatsapp[],
   mensajes: MensajeWhatsapp[],
   desde: Date | null,
-  metaMin: number,
   ahora: Date = new Date(),
 ): ResumenWhatsapp {
   const chatPorId = new Map(chats.map((c) => [c.id, c]));
   const agenteDe = (chatId: string) => chatPorId.get(chatId)?.responsable?.trim() || SIN_ASIGNAR;
 
-  const acumulado = new Map<string, { chats: Set<string>; enviados: number; recibidos: number; fallidos: number; tiempos: number[]; sinResponder: number }>();
+  const acumulado = new Map<string, { chats: Set<string>; enviados: number; recibidos: number; fallidos: number; tiempos: number[]; aTiempo: number; sinResponder: number }>();
   const del = (agente: string) => {
     let a = acumulado.get(agente);
     if (!a) {
-      a = { chats: new Set<string>(), enviados: 0, recibidos: 0, fallidos: 0, tiempos: [], sinResponder: 0 };
+      a = { chats: new Set<string>(), enviados: 0, recibidos: 0, fallidos: 0, tiempos: [], aTiempo: 0, sinResponder: 0 };
       acumulado.set(agente, a);
     }
     return a;
@@ -130,8 +161,11 @@ export function calcularResumen(
       if (inicio) {
         esperaDesde.delete(m.chat_id);
         if (enPeriodo) {
-          const minutos = minutosLaborales(inicio, fecha);
-          del(agente).tiempos.push(minutos);
+          const plazo = plazoDeRespuesta(inicio);
+          const minutos = minutosLaborales(plazo.inicio, fecha);
+          const fila = del(agente);
+          fila.tiempos.push(minutos);
+          if (fecha <= plazo.limite) fila.aTiempo++;
           const clave = claveSemana(fecha);
           let semana = porSemana.get(clave);
           if (!semana) {
@@ -154,7 +188,8 @@ export function calcularResumen(
       chatId,
       cliente: chat.nombre_guardado?.trim() || chat.contact_name?.trim() || chat.phone_number || 'Sin nombre',
       agente,
-      esperaMin: minutosLaborales(inicio, ahora),
+      esperaMin: minutosLaborales(plazoDeRespuesta(inicio).inicio, ahora),
+      vencido: ahora > plazoDeRespuesta(inicio).limite,
     });
   });
   pendientes.sort((a, b) => b.esperaMin - a.esperaMin);
@@ -168,7 +203,7 @@ export function calcularResumen(
       fallidos: a.fallidos,
       respuestas: a.tiempos.length,
       medianaMin: mediana(a.tiempos),
-      dentroDeMeta: porcentaje(a.tiempos, metaMin),
+      dentroDeMeta: porcentaje(a.aTiempo, a.tiempos.length),
       sinResponder: a.sinResponder,
     }))
     .sort((a, b) => a.agente.localeCompare(b.agente, 'es'));
@@ -190,7 +225,7 @@ export function calcularResumen(
     fallidos: agentes.reduce((t, a) => t + a.fallidos, 0),
     respuestas: todosLosTiempos.length,
     medianaMin: mediana(todosLosTiempos),
-    dentroDeMeta: porcentaje(todosLosTiempos, metaMin),
+    dentroDeMeta: porcentaje([...acumulado.values()].reduce((t, a) => t + a.aTiempo, 0), todosLosTiempos.length),
     agentes,
     pendientes,
     semanas,

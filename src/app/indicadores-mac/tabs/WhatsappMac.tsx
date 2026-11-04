@@ -4,7 +4,7 @@ import { AlertCircleIcon, Loader2Icon } from 'lucide-react';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { supabase } from '@/lib/supabase';
 import {
-  calcularResumen, HORA_FIN, HORA_INICIO, SIN_ASIGNAR,
+  calcularResumen, SIN_ASIGNAR,
   type ChatWhatsapp, type MensajeWhatsapp,
 } from '../utils/whatsappMetricas';
 
@@ -14,8 +14,6 @@ const PERIODOS = [
   { id: '90', nombre: '90 días', dias: 90 },
   { id: 'todo', nombre: 'Todo', dias: null },
 ];
-const META_POR_DEFECTO = 60;
-const CLAVE_META = 'mac_whatsapp_meta_min';
 const POCOS_DATOS = 5;
 const SERIES = ['var(--serie-navy)', 'var(--serie-oliva)', 'var(--serie-arena)', 'var(--serie-petroleo)'];
 const tarjeta = 'bg-white rounded-xl border border-border';
@@ -58,14 +56,8 @@ export default function WhatsappMac() {
   const [mensajes, setMensajes] = useState<MensajeWhatsapp[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState('30');
-  const [metaMin, setMetaMin] = useState(META_POR_DEFECTO);
 
   useEffect(() => {
-    try {
-      const guardada = Number(localStorage.getItem(CLAVE_META));
-      if (guardada > 0) setMetaMin(guardada);
-    } catch { /* sin almacenamiento local */ }
-
     let vigente = true;
     Promise.all([
       leerTodo<ChatWhatsapp>('whatsapp_chats', 'id,responsable,contact_name,nombre_guardado,phone_number', 'created_at'),
@@ -80,18 +72,12 @@ export default function WhatsappMac() {
     return () => { vigente = false; };
   }, []);
 
-  const cambiarMeta = (valor: string) => {
-    const minutos = Math.max(1, Math.round(Number(valor)) || 1);
-    setMetaMin(minutos);
-    try { localStorage.setItem(CLAVE_META, String(minutos)); } catch { /* sin almacenamiento local */ }
-  };
-
   const resumen = useMemo(() => {
     if (!chats) return null;
     const dias = PERIODOS.find((p) => p.id === periodo)?.dias ?? null;
     const desde = dias === null ? null : new Date(Date.now() - dias * 86400000);
-    return calcularResumen(chats, mensajes, desde, metaMin);
-  }, [chats, mensajes, periodo, metaMin]);
+    return calcularResumen(chats, mensajes, desde);
+  }, [chats, mensajes, periodo]);
 
   // El color sigue a la persona: no cambia al filtrar el periodo
   const colorDe = useMemo(() => {
@@ -133,24 +119,14 @@ export default function WhatsappMac() {
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs text-stone-600">
-          Meta de respuesta
-          <input
-            type="number"
-            min={1}
-            value={metaMin}
-            onChange={(e) => cambiarMeta(e.target.value)}
-            className="w-20 h-9 px-2 rounded-lg border border-border bg-transparent text-right text-sm tabular-nums text-brand-dark"
-          />
-          minutos laborales
-        </label>
+        <p className="text-xs text-stone-600">Meta: responder máximo en 2 horas laborales</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         <Indicador titulo="Chats con mensajes" valor={String(resumen.chats)} />
         <Indicador titulo="Respuestas" valor={String(resumen.respuestas)} />
         <Indicador titulo="Tiempo de respuesta" valor={formatoTiempo(resumen.medianaMin)} nota="La mitad responde en menos" />
-        <Indicador titulo="Dentro de la meta" valor={formatoPorcentaje(resumen.dentroDeMeta)} nota={`Hasta ${formatoTiempo(metaMin)}`} />
+        <Indicador titulo="Dentro de la meta" valor={formatoPorcentaje(resumen.dentroDeMeta)} nota="Respondidos dentro del plazo" />
         <Indicador titulo="Chats sin responder" valor={String(resumen.pendientes.length)} nota="Hoy" tono={resumen.pendientes.length ? 'alerta' : undefined} />
         <Indicador titulo="Mensajes fallidos" valor={`${resumen.fallidos} de ${totalMensajes}`} tono={resumen.fallidos ? 'peligro' : undefined} />
       </div>
@@ -198,7 +174,7 @@ export default function WhatsappMac() {
           </table>
         </div>
         <p className="mt-3 text-[11px] text-stone-500">
-          Todo se cuenta al responsable actual del chat, porque los mensajes no guardan quién los envió. El tiempo es la mediana y corre de lunes a viernes de {HORA_INICIO}:00 a {HORA_FIN}:00, sin festivos.
+          Todo se cuenta al responsable actual del chat, porque los mensajes no guardan quién los envió. El tiempo es la mediana y corre de 8 a. m. a 5 p. m. de lunes a jueves y hasta las 4 p. m. los viernes, sin festivos. Lo que entra hasta una hora antes de la salida se responde ese día; lo que entra después, máximo a las 10 a. m. del siguiente día laboral.
         </p>
       </section>
 
@@ -214,7 +190,7 @@ export default function WhatsappMac() {
                   <CartesianGrid vertical={false} stroke="var(--c-linea)" />
                   <XAxis dataKey="semana" tick={{ fontSize: 11, fill: 'currentColor' }} tickLine={false} axisLine={false} />
                   <YAxis width={80} tick={{ fontSize: 11, fill: 'currentColor' }} tickLine={false} axisLine={false} tickFormatter={(v) => formatoTiempo(Number(v))} />
-                  <Tooltip formatter={(v) => formatoTiempo(Number(v))} labelFormatter={(l) => `Semana del ${l}`} wrapperClassName="!bg-white !border-border !rounded-lg" contentStyle={{ background: "transparent", border: "none", color: "var(--c-tinta)" }} labelStyle={{ color: "var(--c-tinta)" }} itemStyle={{ color: "var(--c-tinta)" }} />
+                  <Tooltip formatter={(v) => formatoTiempo(Number(v))} labelFormatter={(l) => `Semana del ${l}`} contentStyle={{ background: "var(--c-navy-hondo)", border: "none", borderRadius: 8, fontSize: 12 }} labelStyle={{ color: "var(--c-crema)" }} itemStyle={{ color: "var(--c-crema)" }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   {agentesEnGrafico.map((agente) => (
                     <Line key={agente} type="monotone" dataKey={agente} stroke={colorDe.get(agente)} fill={colorDe.get(agente)} strokeWidth={2} dot={{ r: 4 }} connectNulls />
@@ -244,7 +220,7 @@ export default function WhatsappMac() {
                     <tr key={p.chatId} className="border-b border-border last:border-0">
                       <td className="py-2 pr-3 text-brand-dark">{p.cliente}</td>
                       <td className="py-2 px-3 text-stone-600">{p.agente}</td>
-                      <td className="py-2 pl-3 text-right tabular-nums whitespace-nowrap">{formatoTiempo(p.esperaMin)}</td>
+                      <td className={`py-2 pl-3 text-right tabular-nums whitespace-nowrap ${p.vencido ? 'font-semibold text-red-700' : ''}`}>{formatoTiempo(p.esperaMin)}{p.vencido ? ' · vencido' : ''}</td>
                     </tr>
                   ))}
                 </tbody>
