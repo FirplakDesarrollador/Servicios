@@ -6,6 +6,7 @@ import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, Boxes, Che
 import { motion } from 'framer-motion';
 import OfertaDeVenta from '@/components/sap/OfertaDeVenta';
 import LDMCostos from '@/components/sap/LDMCostos';
+import InventarioSap from '@/components/sap/InventarioSap';
 import ExploradorSap, { type ClassicSapMode } from '@/components/sap/ExploradorSap';
 
 const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
@@ -23,7 +24,7 @@ const SAP_MODULES = [
   { id: 'entrega-despacho', title: 'Entrega', description: 'Documentos de entrega y guías de despacho.', icon: Truck, active: true },
   { id: 'factura-cliente', title: 'Factura de clientes', description: 'Histórico de facturación de clientes.', icon: Receipt, active: true },
   { id: 'ldm-costos', title: 'LDM Costos', description: 'Costo de producto terminado por lista de materiales.', icon: Boxes, active: true },
-  { id: 'inventario-sap', title: 'Stock e inventario', description: 'Stock por almacenes y artículos.', icon: Warehouse, active: false },
+  { id: 'inventario-sap', title: 'Stock e inventario', description: 'Stock por almacenes y datos maestros de artículos.', icon: Warehouse, active: true },
 ];
 
 const MODULE_TITLES: Record<string, string> = {
@@ -195,6 +196,8 @@ export default function ConsultasSapPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="pt-6">
             {selectedModule === 'ldm-costos' ? (
               <LDMCostos onMinimizeChange={setIsAppMinimized} />
+            ) : selectedModule === 'inventario-sap' ? (
+              <InventarioSap />
             ) : (
               <OfertaDeVenta
                 key={`${selectedModule}-${classicDocNum || ''}`}
