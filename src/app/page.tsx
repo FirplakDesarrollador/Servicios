@@ -8,26 +8,26 @@ import {
   Bell,
   BellPlus,
   Loader2,
-  Briefcase,
-  ClipboardList,
-  Search,
-  ClipboardCheck,
-  Calendar,
+  Wrench,
+  FolderOpen,
+  SearchCheck,
+  BadgeCheck,
+  CalendarCheck,
   History,
-  HelpCircle,
-  ChefHat,
+  LifeBuoy,
+  Store,
   Database,
   Warehouse,
-  BookOpen,
-  BarChart3,
+  UserCog,
+  ChartLine,
   CheckCircle2,
-  Settings,
+  SlidersHorizontal,
   Link,
   AlertTriangle,
-  Users,
-  FileText,
-  PieChart,
-  Server
+  Inbox,
+  FilePen,
+  Gauge,
+  ScanSearch
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -187,23 +187,23 @@ export default function Home() {
   };
 
   const allMenuItems = [
-    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
-    { title: 'Servicios Abiertos', icon: ClipboardList, color: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
-    { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-indigo-50 text-indigo-700 border border-indigo-100' },
-    { title: 'Aprobaciones', icon: ClipboardCheck, color: 'bg-amber-50 text-amber-700 border border-amber-100' },
-    { title: 'Mi agenda', icon: Calendar, color: 'bg-rose-50 text-rose-700 border border-rose-100' },
-    { title: 'Historial de servicios', icon: History, color: 'bg-indigo-50 text-indigo-700 border border-indigo-100' },
-    { title: 'Ayuda', icon: HelpCircle, color: 'bg-teal-50 text-teal-700 border border-teal-100' },
-    { title: 'Exhibiciones', icon: ChefHat, color: 'bg-amber-50 text-amber-700 border border-amber-100' },
-    { title: 'Base de datos', icon: Database, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
-    { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-50 text-lime-700 border border-lime-100' },
-    { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-50 text-purple-700 border border-purple-100' },
-    { title: 'Solicitudes Clientes', icon: Users, color: 'bg-blue-50 text-blue-700 border border-blue-100' },
-    { title: 'BI', icon: BarChart3, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
-    { title: 'Indicadores MAC', icon: PieChart, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
-    { title: 'Registro Solicitudes', icon: FileText, color: 'bg-sky-50 text-sky-700 border border-sky-100' },
-    { title: 'Consultas SAP', icon: Server, color: 'bg-orange-50 text-orange-700 border border-orange-100' },
-    { title: 'Configuración', icon: Settings, color: 'bg-slate-100 text-slate-700 border border-slate-200' },
+    { title: 'Solicitar servicio', icon: Wrench },
+    { title: 'Servicios Abiertos', icon: FolderOpen },
+    { title: 'Buscar servicio cerrado', icon: SearchCheck },
+    { title: 'Aprobaciones', icon: BadgeCheck },
+    { title: 'Mi agenda', icon: CalendarCheck },
+    { title: 'Historial de servicios', icon: History },
+    { title: 'Ayuda', icon: LifeBuoy },
+    { title: 'Exhibiciones', icon: Store },
+    { title: 'Base de datos', icon: Database },
+    { title: 'Inventario Almacenes', icon: Warehouse },
+    { title: 'Agenda Tecnicos', icon: UserCog },
+    { title: 'Solicitudes Clientes', icon: Inbox },
+    { title: 'BI', icon: ChartLine },
+    { title: 'Indicadores MAC', icon: Gauge },
+    { title: 'Registro Solicitudes', icon: FilePen },
+    { title: 'Consultas SAP', icon: ScanSearch },
+    { title: 'Configuración', icon: SlidersHorizontal },
   ];
 
   const CLIENT_ITEMS = ['Solicitar servicio', 'Servicios Abiertos', 'Buscar servicio cerrado'];
@@ -313,13 +313,13 @@ export default function Home() {
                 const route = routeMap[item.title];
                 if (route) router.push(route);
               }}
-              className="group flex flex-col items-center justify-center p-3 bg-white border border-gray-200/80 rounded-xl shadow-sm hover:shadow-md hover:border-brand/45 transition-all aspect-square w-full max-w-[130px] mx-auto relative overflow-hidden"
+              className="gota-boton group flex flex-col items-center justify-start gap-2.5 px-1 py-2 rounded-2xl w-full max-w-[130px] mx-auto"
             >
-              <div className={`mb-2.5 p-2.5 rounded-lg ${item.color} shadow-none transition-transform group-hover:scale-105 flex items-center justify-center`}>
-                <item.icon className="w-4 h-4" strokeWidth={2.2} />
-              </div>
+              <span className="gota" aria-hidden="true">
+                <item.icon className="w-6 h-6" strokeWidth={1.9} />
+              </span>
               <div className="flex flex-col items-center justify-center w-full">
-                <span className="text-[10px] font-semibold text-slate-600 tracking-wide text-center leading-snug group-hover:text-brand transition-colors">
+                <span className="text-[11px] font-semibold text-slate-800 tracking-wide text-center leading-snug group-hover:text-[var(--c-oliva-texto)] group-focus-visible:text-[var(--c-oliva-texto)] transition-colors">
                   {isCliente && item.title === 'Buscar servicio cerrado' ? 'Servicios Cerrados' : item.title}
                 </span>
               </div>

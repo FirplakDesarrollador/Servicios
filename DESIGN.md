@@ -31,6 +31,9 @@ La casita de FIRPLAK (`public/logo-firplak-casita.svg`) va grande y centrada, fi
 - Tarjetas: cambian de forma despacio al pasar el cursor.
 - Se detiene con `prefers-reduced-motion`. Sin movimiento dentro de los datos.
 
+## Menú principal
+Sin tarjetas: cada módulo es una gota navy con su icono en crema y su nombre debajo. Las gotas cambian de forma despacio y sin parar, cada una a su ritmo. Al pasar el cursor o con el foco del teclado, la gota pasa a oliva, crece y se agita. Con movimiento reducido solo cambia el color.
+
 ## Apariencia
 `src/components/Apariencia.tsx`: tema Claro, Oscuro o Sistema y transparencia de 5 a 70 %, guardados por usuario en su navegador. Disponible en el botón flotante y en Configuración. El tema se aplica antes de pintar con `SCRIPT_APARIENCIA`.
 

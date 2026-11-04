@@ -378,6 +378,59 @@ rect.recharts-tooltip-cursor,
 .recharts-cartesian-axis-tick-value { fill: var(--c-apagado); }
 .recharts-legend-item-text { color: var(--c-apagado) !important; }
 
+/* ── Gotas del menú principal ────────────────────────────────────────────
+   Siempre cambian de forma, despacio. Cada una lleva su propio ritmo para que
+   no se muevan todas a la vez. */
+.gota {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.75rem;
+  height: 3.75rem;
+  color: #f3ecdc;
+  background-color: var(--c-navy);
+  border-radius: 58% 42% 45% 55% / 52% 58% 42% 48%;
+  box-shadow: inset 0 1px 0 rgb(243 236 220 / 0.22), 0 12px 22px -14px rgb(18 35 56 / 0.75);
+  animation: gota-respira 7s ease-in-out infinite alternate;
+  transition: background-color 0.2s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gota-boton:nth-child(3n + 2) .gota { animation-duration: 8.5s; animation-delay: -2.5s; }
+.gota-boton:nth-child(3n) .gota { animation-duration: 6s; animation-delay: -4s; }
+.gota-boton:nth-child(4n) .gota { animation-delay: -5.5s; }
+
+@keyframes gota-respira {
+  0% { border-radius: 58% 42% 45% 55% / 52% 58% 42% 48%; }
+  33% { border-radius: 42% 58% 55% 45% / 58% 44% 56% 42%; }
+  66% { border-radius: 50% 50% 38% 62% / 46% 60% 40% 54%; }
+  100% { border-radius: 62% 38% 52% 48% / 40% 52% 48% 60%; }
+}
+
+/* "¡Ey, estás aquí!": cambia de color, crece y se agita */
+.gota-boton:hover .gota,
+.gota-boton:focus-visible .gota {
+  background-color: var(--c-oliva);
+  transform: scale(1.14);
+  animation: gota-agita 1.1s ease-in-out infinite;
+}
+
+@keyframes gota-agita {
+  0%, 100% { border-radius: 58% 42% 45% 55% / 52% 58% 42% 48%; rotate: 0deg; }
+  25% { border-radius: 38% 62% 60% 40% / 62% 40% 60% 38%; rotate: -5deg; }
+  50% { border-radius: 62% 38% 40% 60% / 40% 62% 38% 60%; rotate: 3deg; }
+  75% { border-radius: 45% 55% 62% 38% / 56% 38% 62% 44%; rotate: -2deg; }
+}
+
+.gota-boton:active .gota {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gota,
+  .gota-boton:hover .gota,
+  .gota-boton:focus-visible .gota { animation: none; transform: none; transition: background-color 0.2s ease; }
+}
+
 /* ── Panel de Apariencia ───────────────────────────────────────────────── */
 .apariencia-rango {
   width: 100%;
