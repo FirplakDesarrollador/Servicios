@@ -304,6 +304,41 @@ export async function getCustomer360(cardCode: string, includeRelated = true): P
   return { partner, relatedAccounts, cardCodes, documents };
 }
 
+// ── Órdenes de fabricación por pedido y producto ───────────────────────
+
+/**
+ * Órdenes de fabricación de un pedido de cliente (su número visible) y/o de un producto (código o descripción).
+ * Si llegan ambos, deben cumplirse.
+ */
+export async function buscarOrdenesFabricacion(pedido: string, producto: string): Promise<SapDocSummary[]> {
+  const numeroPedido = pedido.trim();
+  const textoProducto = producto.trim();
+  const condiciones: string[] = [];
+
+  if (/^\d+$/.test(numeroPedido)) {
+    // Un mismo número puede repetirse entre series (nacional y exportación)
+    const pedidos = await safeList(`Orders?${new URLSearchParams({ $select: 'DocEntry', $filter: `DocNum eq ${numeroPedido}`, $top: '5' })}`);
+    if (pedidos.length === 0) return [];
+    condiciones.push(`(${pedidos.map((p) => `ProductionOrderOriginEntry eq ${p.DocEntry}`).join(' or ')})`);
+  }
+  if (textoProducto.length >= 2) {
+    const q = odataString(textoProducto);
+    condiciones.push(`(contains(ItemNo,${q}) or contains(ProductDescription,${q}))`);
+  }
+  if (condiciones.length === 0) return [];
+
+  // Un pedido se quiere ver completo; por producto basta con las más recientes
+  const limite = /^\d+$/.test(numeroPedido) ? 200 : 50;
+  const parametros = new URLSearchParams({
+    $select: PRODUCTION_ORDER_SELECT,
+    $filter: condiciones.join(' and '),
+    $orderby: 'DocumentNumber desc',
+    $top: String(limite),
+  });
+  const datos = await sapGet<{ value: any[] }>(`ProductionOrders?${parametros}`.replace(/\+/g, '%20'), { maxPageSize: limite });
+  return datos.value.map((f) => toSummary('ProductionOrder', f));
+}
+
 // ── Resolución de documentos ───────────────────────────────────────────────────
 
 /** Convierte un número de documento (DocNum) en su DocEntry. */

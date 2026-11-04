@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { SAP_DOC_TYPES, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
 import MapaRelaciones from './explorer/MapaRelaciones';
 import AnexosSap from './explorer/AnexosSap';
+import BuscadorOrdenesFabricacion from './BuscadorOrdenesFabricacion';
 
 // Sample SAP Articulos for realistic demonstration
 const SAMPLE_SAP_ITEMS = [
@@ -1331,6 +1332,10 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               </button>
             </div>
           </div>
+
+          {mode === 'ProductionOrder' && (
+            <BuscadorOrdenesFabricacion onAbrir={(numero) => { setDocNum(numero); handleSearchSapDocument(numero); }} />
+          )}
 
           {/* Form Header Section */}
           {mode === 'ProductionOrder' ? (
