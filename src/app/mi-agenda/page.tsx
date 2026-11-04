@@ -75,7 +75,6 @@ export default function MiAgendaPage() {
                 .from('Visitas')
                 .select('id, nombre, fecha_hora_inicio, fecha_hora_fin, recurrente, dia_recurrente, personal, reagendado, ocurriendo, entrega_parcial, tecnico_id, servicio_id, estado')
                 .eq('tecnico_id', userId)
-                .eq('estado', true)
                 .neq('nombre', 'Preagendado')
                 .or(`fecha_hora_inicio.gte.${startDate.toISOString()},recurrente.eq.true`)
                 .lte('fecha_hora_inicio', endDate.toISOString())
@@ -118,7 +117,7 @@ export default function MiAgendaPage() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153] mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--c-navy-texto)] mx-auto mb-4"></div>
                     <p className="text-slate-600">Cargando agenda...</p>
                 </div>
             </div>
@@ -128,7 +127,7 @@ export default function MiAgendaPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-[var(--c-navy)] to-[var(--c-navy-hondo)] text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <button
@@ -159,8 +158,8 @@ export default function MiAgendaPage() {
                     className="bg-white rounded-xl shadow-md p-6 mb-6"
                 >
                     <div className="flex items-center gap-2 mb-4">
-                        <CalendarIcon className="w-5 h-5 text-[#254153]" />
-                        <h2 className="text-lg font-bold text-[#254153]">Calendario</h2>
+                        <CalendarIcon className="w-5 h-5 text-[var(--c-navy-texto)]" />
+                        <h2 className="text-lg font-bold text-[var(--c-navy-texto)]">Calendario</h2>
                     </div>
 
                     {/* Simple Week Selector */}
@@ -173,7 +172,7 @@ export default function MiAgendaPage() {
                         </button>
                         <button
                             onClick={goToToday}
-                            className="px-4 py-2 bg-[#254153] text-white hover:bg-[#1a2f3d] rounded-lg transition-colors text-sm sm:text-base"
+                            className="px-4 py-2 bg-[var(--c-navy)] text-white hover:bg-[var(--c-navy-hondo)] rounded-lg transition-colors text-sm sm:text-base"
                         >
                             Hoy
                         </button>
@@ -197,7 +196,7 @@ export default function MiAgendaPage() {
                                     key={index}
                                     onClick={() => setSelectedDate(day)}
                                     className={`p-2 sm:p-3 rounded-lg border-2 transition-all ${isSelected
-                                        ? 'border-[#254153] bg-[#254153] text-white'
+                                        ? 'border-[var(--c-navy-texto)] bg-[var(--c-navy)] text-white'
                                         : isToday
                                             ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-bold'
                                             : 'border-slate-300 bg-white hover:border-slate-400 text-slate-800 font-semibold'
@@ -210,7 +209,7 @@ export default function MiAgendaPage() {
                                         {format(day, 'd')}
                                     </div>
                                     {eventCount > 0 && (
-                                        <div className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-[#254153]'}`}>
+                                        <div className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-[var(--c-navy-texto)]'}`}>
                                             {eventCount}
                                         </div>
                                     )}
@@ -226,7 +225,7 @@ export default function MiAgendaPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-white rounded-xl shadow-md p-6"
                 >
-                    <h2 className="text-lg font-bold text-[#254153] mb-4">
+                    <h2 className="text-lg font-bold text-[var(--c-navy-texto)] mb-4">
                         {formatDateES(selectedDate, 'EEEE, d MMMM yyyy')}
                     </h2>
 

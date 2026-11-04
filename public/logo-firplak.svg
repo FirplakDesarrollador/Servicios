@@ -1,0 +1,11 @@
+<svg width="500" height="150" viewBox="0 0 500 150" xmlns="http://www.w3.org/2000/svg">
+  <!-- FIRPLAK text -->
+  <text x="250" y="65" font-family="Arial, sans-serif" font-size="52" font-weight="bold" fill="#2C3E50" text-anchor="middle" letter-spacing="8">
+    FIRPLAK
+  </text>
+  
+  <!-- inspirando hogares text -->
+  <text x="250" y="105" font-family="Arial, sans-serif" font-size="20" fill="#7F8C8D" text-anchor="middle" letter-spacing="2">
+    inspirando hogares
+  </text>
+</svg>
