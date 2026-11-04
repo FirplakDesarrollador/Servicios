@@ -37,10 +37,11 @@
   --vidrio-sombra: rgb(18 35 56 / 0.2);
   --lienzo: #efe7d5;
   --mancha-a: rgb(27 50 80 / 0.34);
-  --mancha-b: rgb(102 117 58 / 0.42);
+  --mancha-b: rgb(47 80 117 / 0.26);
   --mancha-c: rgb(205 187 147 / 0.75);
   --mancha-d: rgb(47 80 117 / 0.22);
   --logo-fondo: rgb(27 50 80 / 0.3);
+  --cursor-grafica: rgb(27 50 80 / 0.08);
 
   /* Neutros */
   --n-50: #f8f4ea;
@@ -109,10 +110,11 @@
   --vidrio-sombra: rgb(0 0 0 / 0.55);
   --lienzo: #0c1119;
   --mancha-a: rgb(47 80 117 / 0.62);
-  --mancha-b: rgb(102 117 58 / 0.42);
+  --mancha-b: rgb(47 80 117 / 0.42);
   --mancha-c: rgb(18 35 56 / 0.95);
   --mancha-d: rgb(205 187 147 / 0.1);
   --logo-fondo: rgb(143 176 210 / 0.24);
+  --cursor-grafica: rgb(243 236 220 / 0.08);
 
   --n-50: #18222f;
   --n-100: #1f2b3a;
@@ -363,7 +365,16 @@ header.fixed.bg-brand {
   border-color: var(--c-linea) !important;
   border-radius: 12px;
 }
-.recharts-default-tooltip .recharts-tooltip-label { color: var(--c-tinta); }
+/* El texto del detalle usa el color de texto, no el de la serie: así se lee en ambos temas */
+.recharts-default-tooltip,
+.recharts-default-tooltip .recharts-tooltip-label,
+.recharts-default-tooltip .recharts-tooltip-item,
+.recharts-default-tooltip .recharts-tooltip-item * { color: var(--c-tinta) !important; }
+/* Franja que resalta la fila o columna bajo el cursor */
+path.recharts-tooltip-cursor,
+rect.recharts-tooltip-cursor,
+.recharts-rectangle.recharts-tooltip-cursor { fill: var(--cursor-grafica) !important; }
+.recharts-cartesian-grid line { stroke: var(--c-linea) !important; }
 .recharts-cartesian-axis-tick-value { fill: var(--c-apagado); }
 .recharts-legend-item-text { color: var(--c-apagado) !important; }
 
