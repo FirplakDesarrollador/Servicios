@@ -9,7 +9,9 @@ import type { FilterState, RegistroMAC } from '../types';
 import { clasificarFecha, cumpleValorFecha, type ClasificacionFecha } from './fechaProducto';
 
 /** Familias de Ventas que siguen sumando como vendidas, pero se reportan como comercializados. */
-const FAMILIAS_COMERCIALIZADAS = ['REPUESTO', 'REPUESTOS', 'MPDIRECT', 'FINANZAS', 'OTRASMP', 'PRODUCCN', 'INDIPROD', 'ESPEJOS'];
+const FAMILIAS_COMERCIALIZADAS = ['REPUESTO', 'REPUESTOS', 'MPDIRECT', 'FINANZAS', 'ESPEJOS'];
+/** Familias de Ventas sin grupo identificable: su planta es Muebles. */
+const FAMILIAS_PLANTA_MUEBLES = ['OTRASMP', 'PRODUCCN', 'INDIPROD'];
 const familiaNormal = (f: unknown) => String(f || '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 export const normalizeGrupo = (g: string): string => {
@@ -40,9 +42,21 @@ export const normalizePlantaName = (planta: string): string => {
     return 'En Blanco';
 };
 
+/** El cuarzo se reparte por su medida: 73, 79 o 94 son de Baño; desde 100 en adelante, de Cocinas. Sin medida reconocible, null. */
+const grupoDeCuarzo = (descripcion?: string | null): string | null => {
+    const ancho = Number(/(\d{2,3})\s*X\s*\d{2,3}/i.exec(String(descripcion || ''))?.[1] || 0);
+    if ([73, 79, 94].includes(ancho)) return 'Baño';
+    return ancho >= 100 ? 'Cocinas' : null;
+};
+
 /** Planta de una venta: las familias comercializadas van a Comercializado sin importar la planta registrada. */
-export const plantaDeVenta = (v: { familia?: string | null; planta?: string | null }): string =>
-    FAMILIAS_COMERCIALIZADAS.includes(familiaNormal(v.familia)) ? 'Comercializado' : normalizePlantaName(v.planta || '');
+export const plantaDeVenta = (v: { familia?: string | null; planta?: string | null; descripcion_articulo?: string | null }): string => {
+    const familia = familiaNormal(v.familia);
+    if (FAMILIAS_COMERCIALIZADAS.includes(familia)) return 'Comercializado';
+    if (FAMILIAS_PLANTA_MUEBLES.includes(familia)) return 'Muebles';
+    if (familia === 'QUARTZSTONE' && grupoDeCuarzo(v.descripcion_articulo) === null) return 'Muebles';
+    return normalizePlantaName(v.planta || '');
+};
 
 /**
  * Grupo de una venta. Los accesorios y repuestos de hidromasaje se categorizan igual que sus novedades:
@@ -51,10 +65,8 @@ export const plantaDeVenta = (v: { familia?: string | null; planta?: string | nu
 export const grupoDeVenta = (v: { familia?: string | null; grupo_articulo?: string | null; descripcion_articulo?: string | null }): string => {
     if (/^(MPD04|REP01)\b/i.test(String(v.grupo_articulo || '').trim())) return 'Hidroterapia';
     if (familiaNormal(v.familia) === 'QUARTZSTONE') {
-        // El cuarzo se reparte por su medida: 73, 79 o 94 son de Baño; desde 100 en adelante, de Cocinas
-        const ancho = Number(/(\d{2,3})\s*X\s*\d{2,3}/i.exec(String(v.descripcion_articulo || ''))?.[1] || 0);
-        if ([73, 79, 94].includes(ancho)) return 'Baño';
-        if (ancho >= 100) return 'Cocinas';
+        const grupoCuarzo = grupoDeCuarzo(v.descripcion_articulo);
+        if (grupoCuarzo) return grupoCuarzo;
     }
     const grupo = normalizeGrupo(String(v.familia || ''));
     // "En Blanco" es solo para novedades sin categorizar: una venta nunca queda ahí
