@@ -13,6 +13,7 @@ import { SAP_DOC_TYPES, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
 import MapaRelaciones from './explorer/MapaRelaciones';
 import AnexosSap from './explorer/AnexosSap';
 import BuscadorOrdenesFabricacion from './BuscadorOrdenesFabricacion';
+import { FlechaEnlace, VentanaEnlace, type VistaEnlace } from './EnlacesSap';
 
 // Sample SAP Articulos for realistic demonstration
 const SAMPLE_SAP_ITEMS = [
@@ -206,6 +207,8 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   }, [isMapaRelacionesModalOpen, docNum, mode]);
 
   // Modals & Search State
+  const [enlace, setEnlace] = useState<VistaEnlace | null>(null);
+  const cerrarEnlace = React.useCallback(() => setEnlace(null), []);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   
@@ -1507,6 +1510,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               <div className="flex items-center gap-2">
                 <label className="w-28 text-stone-500 text-right">Cliente</label>
                 <div className="flex-1 flex items-center gap-1">
+                  {cardCode && <FlechaEnlace titulo={`Ver detalle del cliente ${cardCode}`} onClick={() => setEnlace({ kind: 'customer', cardCode })} />}
                   <div className="relative flex-1">
                     <input 
                       type="text"
@@ -2008,7 +2012,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                     <thead>
                       <tr className="bg-cream-light text-stone-400 text-[10px] uppercase tracking-wider font-medium border-b border-border sticky top-0 z-10">
                         <th className="p-1.5 w-8 text-center border-r border-border">#</th>
-                        <th className="p-1.5 w-48 border-r border-border">Número de artículo</th>
+                        <th className="p-1.5 w-56 border-r border-border">Número de artículo</th>
                         <th className="p-1.5 min-w-[320px] border-r border-border">Descripción del artículo</th>
                         <th className="p-1.5 w-36 border-r border-border">Código de barra</th>
                         <th className="p-1.5 w-20 text-right border-r border-border">Cantidad</th>
@@ -2035,6 +2039,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                           {/* Item Code Input */}
                           <td className="p-0 border-r border-border/70 relative">
                             <div className="flex items-center">
+                              {row.itemCode && <FlechaEnlace titulo={`Ver lista de materiales e inventario de ${row.itemCode}`} onClick={() => setEnlace({ kind: 'articulo', codigo: row.itemCode })} />}
                               <input 
                                 type="text"
                                 value={row.itemCode}
@@ -2797,6 +2802,8 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       )}
 
       {/* ── Modal: Mapa de relaciones (lectura en vivo desde SAP) ─────────────── */}
+      {enlace && <VentanaEnlace key={JSON.stringify(enlace)} inicial={enlace} cerrar={cerrarEnlace} />}
+
       {isMapaRelacionesModalOpen && (
         <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={() => setIsMapaRelacionesModalOpen(false)}>
           <div

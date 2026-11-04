@@ -185,6 +185,42 @@ async function camposDeUsuario(raw: any): Promise<CampoArticulo[]> {
 const campos = (lista: Array<[string, string | null | undefined]>): CampoArticulo[] =>
   lista.filter((c): c is [string, string] => !!c[1]).map(([etiqueta, valor]) => ({ etiqueta, valor }));
 
+export interface LineaMateriales {
+  codigo: string;
+  nombre: string | null;
+  cantidad: number;
+  almacen: string | null;
+  esArticulo: boolean;
+}
+
+export interface ListaMateriales {
+  codigo: string;
+  descripcion: string;
+  cantidad: number;
+  lineas: LineaMateriales[];
+}
+
+/** Lista de materiales de un artículo, un solo nivel como la ventana de SAP. Null si no tiene. */
+export async function obtenerListaMateriales(codigo: string): Promise<ListaMateriales | null> {
+  const parametros = new URLSearchParams({
+    $select: 'TreeCode,ProductDescription,Quantity,ProductTreeLines',
+    $filter: `TreeCode eq ${odata(codigo)}`,
+  });
+  const datos = await sapGet<{ value: any[] }>(`ProductTrees?${parametros}`.replace(/\+/g, '%20'), { maxPageSize: 1 });
+  const arbol = datos.value[0];
+  if (!arbol) return null;
+  const lineas = [...(arbol.ProductTreeLines || [])]
+    .sort((a: any, b: any) => numero(a.VisualOrder) - numero(b.VisualOrder))
+    .map((l: any): LineaMateriales => ({
+      codigo: l.ItemCode,
+      nombre: l.ItemName ?? null,
+      cantidad: numero(l.Quantity),
+      almacen: l.Warehouse ?? null,
+      esArticulo: !l.ItemType || l.ItemType === 'pit_Item',
+    }));
+  return { codigo: arbol.TreeCode, descripcion: arbol.ProductDescription || '', cantidad: numero(arbol.Quantity), lineas };
+}
+
 export async function obtenerArticulo(codigo: string): Promise<ArticuloDetalle | null> {
   let raw: any;
   try {

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { buscarArticulos, obtenerArticulo } from '@/lib/sapInventario';
+import { buscarArticulos, obtenerArticulo, obtenerListaMateriales } from '@/lib/sapInventario';
 
-// Stock e inventario (solo lectura): ?descripcion= y ?codigo= buscan artículos; ?articulo=ItemCode trae el detalle.
+// Stock e inventario (solo lectura): ?descripcion= y ?codigo= buscan artículos; ?articulo=ItemCode trae el detalle; ?ldm=ItemCode, su lista de materiales.
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const ldm = searchParams.get('ldm');
+    if (ldm) return NextResponse.json({ success: true, lista: await obtenerListaMateriales(ldm) });
     const itemCode = searchParams.get('articulo');
     if (itemCode) {
       const articulo = await obtenerArticulo(itemCode);

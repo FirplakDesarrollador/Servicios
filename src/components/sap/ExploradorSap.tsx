@@ -24,7 +24,7 @@ import { DOC_TYPE_STYLE, formatDate, formatMoney, formatQty, statusStyle } from 
 
 export type ClassicSapMode = 'Quotation' | 'Order' | 'Delivery' | 'Invoice' | 'ProductionOrder';
 
-type View =
+export type View =
   | { kind: 'search'; query: string }
   | { kind: 'customer'; cardCode: string; label?: string }
   | { kind: 'document'; type: SapDocType; docEntry: number; label?: string };
@@ -381,7 +381,7 @@ function SearchHelp() {
   );
 }
 
-function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View) => void }) {
+export function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View) => void }) {
   const [includeRelated, setIncludeRelated] = useState(true);
   const { data, error, loading } = useSapData<{ customer: SapCustomer360 }>(
     `/api/sap/customer?cardCode=${encodeURIComponent(cardCode)}${includeRelated ? '' : '&related=0'}`
@@ -519,7 +519,7 @@ function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View) => voi
   );
 }
 
-function DocumentView({ type, docEntry, go, onOpenClassic }: {
+export function DocumentView({ type, docEntry, go, onOpenClassic }: {
   type: SapDocType;
   docEntry: number;
   go: (v: View) => void;

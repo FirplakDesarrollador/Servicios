@@ -120,7 +120,7 @@ const PESTANAS: Array<{ id: Pestana; nombre: string }> = [
   { id: 'planificacion', nombre: 'Planificación' },
 ];
 
-function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => void }) {
+export function DetalleArticulo({ codigo, volver }: { codigo: string; volver?: () => void }) {
   const [articulo, setArticulo] = useState<ArticuloDetalle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pestana, setPestana] = useState<Pestana>('stock');
@@ -138,9 +138,11 @@ function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => voi
 
   return (
     <div className="space-y-4">
-      <button onClick={volver} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-stone-600 hover:text-brand cursor-pointer">
-        <ArrowLeft className="w-4 h-4" aria-hidden /> Volver a los resultados
-      </button>
+      {volver && (
+        <button onClick={volver} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-stone-600 hover:text-brand cursor-pointer">
+          <ArrowLeft className="w-4 h-4" aria-hidden /> Volver a los resultados
+        </button>
+      )}
       {error && <div className={tarjeta}><Mensaje texto={error} /></div>}
       {!error && !articulo && <div className={tarjeta}><Mensaje icono={Loader2} girando texto={`Cargando ${codigo} desde SAP…`} /></div>}
       {articulo && (
