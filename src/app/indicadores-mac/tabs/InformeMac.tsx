@@ -1060,16 +1060,6 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
 
             </div>
 
-            {/* RESUMEN EJECUTIVO */}
-            <ComparacionResumen
-                actual={periodoActual}
-                anterior={periodoAnterior}
-                opciones={mesesParaComparar}
-                comparaCon={comparaCon}
-                onComparaCon={setComparaCon}
-                resumen={resumenEjecutivo}
-            />
-
             {/* INDICADORES POR MERCADO */}
             <div className="bg-white p-6 rounded-2xl border border-border shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
@@ -1488,6 +1478,16 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                     </div>
                 </div>
             </div>
+
+            {/* RESUMEN EJECUTIVO */}
+            <ComparacionResumen
+                actual={periodoActual}
+                anterior={periodoAnterior}
+                opciones={mesesParaComparar}
+                comparaCon={comparaCon}
+                onComparaCon={setComparaCon}
+                resumen={resumenEjecutivo}
+            />
 
             {/* DÓNDE ESTAMOS MAL */}
             <PanoramaMetas entidades={entidades} data={data} filters={filters} onFilterToggle={onFilterToggle} />
