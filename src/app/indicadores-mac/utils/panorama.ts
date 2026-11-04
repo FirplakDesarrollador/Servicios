@@ -134,101 +134,18 @@ export function indicadoresDe(e: Pick<Entidad, 'dimension' | 'nombre'>, data: Re
 
 /** Productos con novedad que sobran para que la entidad entre en la meta de calidad. */
 const productosSobreMeta = (e: Entidad) => Math.max(0, (((e.pctNovedad ?? 0) - META_CALIDAD) / 100) * e.unidadesVendidas);
-/** Casos que hay de más frente a la meta, un indicador distinto al de productos. */
-const casosSobreMeta = (e: Entidad) => Math.max(0, (((e.pctCasos ?? 0) - META_CALIDAD) / 100) * e.unidadesVendidas);
 const decide = (e: Entidad) => e.unidadesVendidas >= VENTAS_MINIMAS_PARA_DECIDIR && (e.pctNovedad ?? 0) > META_CALIDAD;
 const fueraDeMeta = (e: Entidad) => e.unidadesVendidas >= VENTAS_MINIMAS_PARA_DECIDIR && ((e.pctNovedad ?? 0) > META_CALIDAD || (e.pctCasos ?? 0) > META_CALIDAD);
 
-export const excesoDeMeta = (e: Indicadores) => Math.max(
-    (e.pctNovedad ?? 0) - META_CALIDAD,
-    (e.pctCasos ?? 0) - META_CALIDAD,
-    (e.pctInversion ?? 0) - META_ECONOMICA,
-);
 
-// ── ¿Qué explica el número? ───────────────────────────────────────────────
-export interface FilaAporte {
-    nombre: string;
-    problemas: number;
-    unidades: number;
-    radicados: number;
-    /** Puntos porcentuales que aporta al % de producto con novedad de la entidad */
-    aporte: number | null;
-    /** Cómo quedaría la entidad sin este aporte */
-    quedaria: number | null;
-    entraEnMeta: boolean;
-    /** Solo clientes: lo que compró y su propio % */
-    vendidas?: number;
-    pctPropio?: number | null;
-}
-
-export type TipoFoco = 'defecto' | 'cliente' | 'responsable' | 'compra';
-export interface Foco { tipo: TipoFoco; valor: string }
-
-export interface Explicacion {
-    problemas: number;
-    unidades: number;
-    radicados: number;
-    /** Unidades con novedad que sobran para entrar en la meta de 1 % */
-    unidadesSobreMeta: number;
-    defectos: FilaAporte[];
-    clientes: FilaAporte[];
-    responsables: FilaAporte[];
-    compras: FilaAporte[];
-    piezas: FilaAporte[];
-    temas: TemaResumido[];
-}
-
-const claveFoco: Record<TipoFoco, (l: LineaProblema) => string> = {
-    defecto: (l) => l.defecto,
-    cliente: (l) => clienteDe(l.r),
-    responsable: (l) => l.responsable,
-    compra: (l) => l.compra,
-};
-
-export function explicar(e: Entidad, foco: Foco[], data: RegistroMAC[], ventas: VentaPanorama[], lecturas: Map<number, LecturaRadicado>): Explicacion {
-    const filtro = (l: LineaProblema) => lineaEnEntidad(e, l) && foco.every((f) => claveFoco[f.tipo](l) === f.valor);
-    const vendidasPorCliente = new Map<string, number>();
-    ventas.forEach((v) => {
-        if (!ventaEnEntidad(e, v)) return;
-        const clave = normalNombre(v.nombre_cliente);
-        vendidasPorCliente.set(clave, (vendidasPorCliente.get(clave) || 0) + (v.cantidad || 0));
-    });
-
-    const filas = (claveDe: (l: LineaProblema) => string, conCliente = false): FilaAporte[] =>
-        [...resumirPor(data, claveDe, filtro).entries()]
-            .map(([nombre, s]) => {
-                const aporte = e.unidadesVendidas > 0 ? (s.unidades / e.unidadesVendidas) * 100 : null;
-                const quedaria = aporte !== null && e.pctNovedad !== null ? e.pctNovedad - aporte : null;
-                const vendidas = conCliente ? vendidasPorCliente.get(normalNombre(nombre)) : undefined;
-                return {
-                    nombre,
-                    problemas: s.problemas,
-                    unidades: s.unidades,
-                    radicados: s.radicados.size,
-                    aporte,
-                    quedaria,
-                    entraEnMeta: (e.pctNovedad ?? 0) > META_CALIDAD && quedaria !== null && quedaria <= META_CALIDAD,
-                    vendidas,
-                    pctPropio: vendidas ? (s.unidades / vendidas) * 100 : null,
-                };
-            })
-            .sort((a, b) => b.unidades - a.unidades || b.problemas - a.problemas);
-
-    const total = resumirPor(data, () => 'total', filtro).get('total');
-    const sobra = e.pctNovedad !== null && e.pctNovedad > META_CALIDAD ? ((e.pctNovedad - META_CALIDAD) / 100) * e.unidadesVendidas : 0;
-
-    return {
-        problemas: total?.problemas || 0,
-        unidades: total?.unidades || 0,
-        radicados: total?.radicados.size || 0,
-        unidadesSobreMeta: Math.ceil(sobra),
-        defectos: filas((l) => l.defecto),
-        clientes: filas((l) => clienteDe(l.r), true),
-        responsables: filas((l) => l.responsable),
-        compras: filas((l) => l.compra),
-        piezas: filas((l) => l.producto),
-        temas: total ? resumirTemas(total.radicados, lecturas) : [],
-    };
+/** Lo que más pesa: "Despacho Incompleto · Calidad". */
+export function causaPrincipal(e: Entidad, data: RegistroMAC[]): string | null {
+    const mayor = (claveDe: (l: LineaProblema) => string) =>
+        [...resumirPor(data, claveDe, (l) => lineaEnEntidad(e, l)).entries()]
+            .filter(([nombre]) => nombre !== EN_BLANCO)
+            .sort((x, y) => y[1].unidades - x[1].unidades)[0]?.[0];
+    const partes = [mayor((l) => l.defecto), mayor((l) => l.responsable)].filter(Boolean);
+    return partes.length ? partes.join(' · ') : null;
 }
 
 // ── Decisiones recomendadas ───────────────────────────────────────────────
@@ -260,7 +177,7 @@ export const fmtPorcentaje = (v: number | null | undefined) => (v === null || v 
 const util = (nombre: string): boolean => !!nombre && nombre !== 'Varios productos de compra' && nombre !== 'Sin producto de compra';
 
 export function generarDecisiones(analysis: AllAnalyses, entidades: Entidad[], data: RegistroMAC[], lecturas: Map<number, LecturaRadicado>): Decision[] {
-    // Dónde empuja cada defecto: los 3 que más aportan en cada planta, grupo, canal o mercado sobre la meta
+    // Dónde pesa cada defecto: solo el que más pesa en cada planta, grupo, canal o mercado sobre la meta
     const empuja = new Map<string, Array<{ texto: string; aporte: number }>>();
     entidades
         .filter(decide)
@@ -268,11 +185,11 @@ export function generarDecisiones(analysis: AllAnalyses, entidades: Entidad[], d
             [...resumirPor(data, (l) => l.defecto, (l) => lineaEnEntidad(e, l)).entries()]
                 .filter(([nombre]) => nombre !== EN_BLANCO)
                 .sort((a, b) => b[1].unidades - a[1].unidades)
-                .slice(0, 3)
+                .slice(0, 1)
                 .forEach(([nombre, s]) => {
                     const aporte = e.unidadesVendidas > 0 ? (s.unidades / e.unidadesVendidas) * 100 : 0;
                     const lista = empuja.get(nombre) || [];
-                    lista.push({ texto: `${etiquetaEntidad(e)} (${pp(aporte)})`, aporte });
+                    lista.push({ texto: etiquetaEntidad(e), aporte });
                     empuja.set(nombre, lista);
                 });
         });
@@ -306,13 +223,13 @@ export function generarDecisiones(analysis: AllAnalyses, entidades: Entidad[], d
             } else if (empujaLista.length > 0 && d.recurrence >= 2 && noBaja) {
                 prioridad = 'inmediato';
                 accion = 'Abrir QRR';
-                motivo = `Empuja sobre la meta a ${empujaLista[0].texto}, lleva ${d.recurrence} meses y no baja.`;
+                motivo = `Es lo que más pesa en ${empujaLista.map((x) => x.texto).slice(0, 2).join(' y ')}, lleva ${d.recurrence} meses y no baja.`;
             } else if (empujaLista.length > 0) {
                 prioridad = 'seguimiento';
                 accion = 'Hacer seguimiento';
                 motivo = d.recurrence < 2
-                    ? `Empuja sobre la meta a ${empujaLista[0].texto}, pero es su primer mes.`
-                    : `Empuja sobre la meta a ${empujaLista[0].texto}, aunque viene bajando.`;
+                    ? `Es lo que más pesa en ${empujaLista[0].texto}, pero es su primer mes.`
+                    : `Es lo que más pesa en ${empujaLista[0].texto}, aunque viene bajando.`;
             } else if (d.variationRecords === null || d.variationRecords > 0) {
                 prioridad = 'seguimiento';
                 accion = 'Hacer seguimiento';
@@ -354,84 +271,59 @@ export function generarDecisiones(analysis: AllAnalyses, entidades: Entidad[], d
 const ordenPrioridad: Record<PriorityLevel, number> = { inmediato: 0, seguimiento: 1, vigilar: 2, estable: 3 };
 
 // ── Resumen ejecutivo ─────────────────────────────────────────────────────
+// Lectura general: pocas frases. El detalle vive en "Ver detalle" de la hoja.
 export interface SeccionResumen { titulo: string; lineas: string[] }
 
-const tendencia = (actual: number | null, previo: number | null | undefined) => {
-    if (actual === null || previo === null || previo === undefined) return 'sin periodo para comparar';
-    const d = actual - previo;
-    if (Math.abs(d) < 0.005) return 'igual que el periodo anterior';
-    return `${d > 0 ? 'sube' : 'baja'} ${pp(Math.abs(d))} (venía en ${fmtPorcentaje(previo)})`;
-};
-const frenteAMeta = (v: number | null, meta: number) => (v === null ? 'sin ventas para calcular' : v > meta ? `${pp(v - meta)} sobre la meta` : 'dentro de la meta');
+const unirLista = (l: string[]) => (l.length <= 1 ? l.join('') : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
 
 export function generarResumen(
     empresa: Entidad, entidades: Entidad[], analysis: AllAnalyses, decisiones: Decision[], data: RegistroMAC[],
-    ventas: VentaPanorama[], lecturas: Map<number, LecturaRadicado>, anterior: DateRange,
+    lecturas: Map<number, LecturaRadicado>, anterior: DateRange,
 ): SeccionResumen[] {
     const secciones: SeccionResumen[] = [];
-    const prev = empresa.previo;
-    secciones.push({
-        titulo: 'Cómo estamos',
-        lineas: [
-            `Producto con novedad: ${fmtPorcentaje(empresa.pctNovedad)}, ${frenteAMeta(empresa.pctNovedad, META_CALIDAD)}; ${tendencia(empresa.pctNovedad, prev?.pctNovedad)}.`,
-            `Casos: ${fmtPorcentaje(empresa.pctCasos)}, ${frenteAMeta(empresa.pctCasos, META_CALIDAD)}; ${tendencia(empresa.pctCasos, prev?.pctCasos)}.`,
-            `Inversión sobre venta: ${fmtPorcentaje(empresa.pctInversion)}, ${frenteAMeta(empresa.pctInversion, META_ECONOMICA)}; ${tendencia(empresa.pctInversion, prev?.pctInversion)}.`,
-        ],
-    });
-
-    // Mejoras y retrocesos, en problemas frente al periodo anterior
-    const conCambio = analysis.defects.filter((d) => d.recordsPrev > 0 && d.recordsCurr !== d.recordsPrev && d.name !== EN_BLANCO);
-    const texto = (d: AllAnalyses['defects'][number]) => `${d.name} (${d.recordsPrev} → ${d.recordsCurr})`;
-    const suben = [...conCambio].filter((d) => d.recordsCurr > d.recordsPrev).sort((a, b) => (b.recordsCurr - b.recordsPrev) - (a.recordsCurr - a.recordsPrev)).slice(0, 4);
-    const bajan = [...conCambio].filter((d) => d.recordsCurr < d.recordsPrev).sort((a, b) => (a.recordsCurr - a.recordsPrev) - (b.recordsCurr - b.recordsPrev)).slice(0, 4);
-    const nuevos = analysis.defects.filter((d) => d.recordsPrev === 0 && d.recordsCurr > 0).sort((a, b) => b.recordsCurr - a.recordsCurr).slice(0, 3);
-    const movimiento = [
-        ...(bajan.length ? [`Mejorando frente a ${anterior.label}: ${bajan.map(texto).join(', ')}.`] : []),
-        ...(suben.length ? [`Empeorando: ${suben.map(texto).join(', ')}.`] : []),
-        ...(nuevos.length ? [`Nuevos este periodo: ${nuevos.map((d) => `${d.name} (${d.recordsCurr})`).join(', ')}.`] : []),
+    const indicadores = [
+        { nombre: 'productos con novedad', valor: empresa.pctNovedad, meta: META_CALIDAD, previo: empresa.previo?.pctNovedad },
+        { nombre: 'casos', valor: empresa.pctCasos, meta: META_CALIDAD, previo: empresa.previo?.pctCasos },
+        { nombre: 'inversión', valor: empresa.pctInversion, meta: META_ECONOMICA, previo: empresa.previo?.pctInversion },
     ];
-    if (movimiento.length) secciones.push({ titulo: 'Qué mejora y qué empeora', lineas: movimiento });
-
-    // Lo que saca de meta a cada planta, grupo o canal
-    const sobreMeta = entidades
-        .filter((e) => e.dimension !== 'empresa' && e.dimension !== 'mercado' && fueraDeMeta(e))
-        .sort((a, b) => (productosSobreMeta(b) + casosSobreMeta(b)) - (productosSobreMeta(a) + casosSobreMeta(a)))
-        .slice(0, 5);
-    const lineasMeta = sobreMeta.map((e) => {
-        const x = explicar(e, [], data, ventas, lecturas);
-        const defecto = x.defectos.find((f) => f.nombre !== EN_BLANCO);
-        const cliente = x.clientes[0];
-        const responsable = x.responsables.find((f) => f.nombre !== EN_BLANCO);
-        const partes = [
-            defecto && `el defecto que más pesa es ${defecto.nombre} (${pp(defecto.aporte ?? 0)})`,
-            responsable && `responsable principal ${responsable.nombre}`,
-            cliente && `el cliente que más aporta es ${cliente.nombre} (${pp(cliente.aporte ?? 0)})`,
-        ].filter(Boolean);
-        const frente = (valor: number | null, exceso: number, unidad: string) =>
-            `${fmtPorcentaje(valor)} (${exceso > 0 ? `${Math.ceil(exceso)} ${unidad} por encima de la meta` : 'dentro de la meta'})`;
-        return `${etiquetaEntidad(e)}. Productos con novedad: ${frente(e.pctNovedad, productosSobreMeta(e), 'productos')}. Casos: ${frente(e.pctCasos, casosSobreMeta(e), 'casos')}. ${partes.join('; ')}.`.replace(/\. el /, '. El ');
-    });
-    if (lineasMeta.length) secciones.push({ titulo: 'Qué nos saca de la meta', lineas: lineasMeta });
-
-    const temas = resumirTemas(data.map((r) => r.id), lecturas).slice(0, 4);
-    if (temas.length) {
-        secciones.push({
-            titulo: 'Lo que cuentan los comentarios de MAC',
-            lineas: temas.map((t) => `${t.tema.nombre}: ${t.radicados} radicados${t.fotos ? `, ${t.fotos} fotos` : ''}. Tema para hablar con ${t.tema.area}.`),
-        });
+    const fuera = indicadores.filter((i) => (i.valor ?? 0) > i.meta);
+    const fueraEntidades = entidades.filter((e) => e.dimension !== 'empresa' && e.dimension !== 'mercado' && e.nombre !== EN_BLANCO && fueraDeMeta(e));
+    const comoEstamos = [
+        `${indicadores.map((i) => `${i.nombre} ${fmtPorcentaje(i.valor)}`).join(', ').replace(/^p/, 'P')}.`,
+        fuera.length === 0
+            ? 'La empresa está dentro de las metas.'
+            : `Sobre la meta: ${unirLista(fuera.map((i) => i.nombre))}.`,
+    ];
+    const bajan = indicadores.filter((i) => i.valor !== null && i.previo != null && i.valor < i.previo - 0.005).map((i) => i.nombre);
+    const suben = indicadores.filter((i) => i.valor !== null && i.previo != null && i.valor > i.previo + 0.005).map((i) => i.nombre);
+    if (bajan.length || suben.length) {
+        comoEstamos.push(`Frente a ${anterior.label}: ${[bajan.length ? `bajan ${unirLista(bajan)}` : '', suben.length ? `suben ${unirLista(suben)}` : ''].filter(Boolean).join('; ')}.`);
     }
+    if (fueraEntidades.length > 0) {
+        const ordenadas = [...fueraEntidades].sort((a, b) => productosSobreMeta(b) - productosSobreMeta(a)).slice(0, 3).map(etiquetaEntidad);
+        comoEstamos.push(`Lo que más se pasa de la meta: ${unirLista(ordenadas)}.`);
+    }
+    secciones.push({ titulo: 'Cómo estamos', lineas: comoEstamos });
 
-    const qrr = decisiones.filter((d) => d.prioridad === 'inmediato').slice(0, 4);
-    const seguimiento = decisiones.filter((d) => d.prioridad === 'seguimiento').slice(0, 3);
+    const conCambio = analysis.defects.filter((d) => d.recordsPrev > 0 && d.name !== EN_BLANCO);
+    const empeoran = conCambio.filter((d) => d.recordsCurr > d.recordsPrev).sort((a, b) => (b.recordsCurr - b.recordsPrev) - (a.recordsCurr - a.recordsPrev)).slice(0, 2);
+    const mejoran = conCambio.filter((d) => d.recordsCurr < d.recordsPrev).sort((a, b) => (a.recordsCurr - a.recordsPrev) - (b.recordsCurr - b.recordsPrev)).slice(0, 2);
+    const texto = (d: AllAnalyses['defects'][number]) => `${d.name} (${d.recordsPrev} → ${d.recordsCurr})`;
+    const movimiento = [
+        ...(empeoran.length ? [`Empeoran: ${empeoran.map(texto).join(', ')}.`] : []),
+        ...(mejoran.length ? [`Mejoran: ${mejoran.map(texto).join(', ')}.`] : []),
+    ];
+    if (movimiento.length) secciones.push({ titulo: 'Qué se está moviendo', lineas: movimiento });
+
+    const qrr = decisiones.filter((d) => d.prioridad === 'inmediato').slice(0, 3);
     secciones.push({
         titulo: 'Qué atacar primero',
-        lineas: [
-            ...(qrr.length
-                ? qrr.map((d) => `${d.problema}: abrir QRR con ${d.hablarCon}. ${d.motivo}`)
-                : ['Ningún problema cumple hoy las condiciones para abrir QRR.']),
-            ...(seguimiento.length ? [`En seguimiento: ${seguimiento.map((d) => d.problema).join(', ')}.`] : []),
-        ],
+        lineas: qrr.length ? qrr.map((d) => `${d.problema}: hablar con ${d.hablarCon}.`) : ['Ningún problema cumple hoy las condiciones para abrir QRR.'],
     });
 
+    const temas = resumirTemas(data.map((r) => r.id), lecturas).slice(0, 2);
+    if (temas.length) {
+        secciones.push({ titulo: 'Lo que más se reporta', lineas: temas.map((t) => `${t.tema.nombre}: ${t.radicados} radicados.`) });
+    }
     return secciones;
 }

@@ -78,32 +78,6 @@ export const PriorityBadge = ({ level }: { level: PriorityLevel }) => {
     );
 };
 
-// ── KPI Card ───────────────────────────────────────────────────────────────
-const KpiCard = ({ title, value, prefix = '', suffix = '', variacion, subtitle, icon }: {
-    title: string; value: number | string; prefix?: string; suffix?: string;
-    variacion?: number | null; subtitle?: string; icon?: React.ReactNode;
-}) => (
-    <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[80px]">
-        <div className="flex items-center justify-between">
-            <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5">{title}</h3>
-            {icon && <div className="text-stone-300">{icon}</div>}
-        </div>
-        <div className="text-lg font-bold text-brand-dark leading-tight">
-            {prefix}{typeof value === 'number' ? value.toLocaleString('es-CO') : value}{suffix}
-        </div>
-        {subtitle && <div className="text-[9px] text-stone-400 font-semibold mt-0.5">{subtitle}</div>}
-        {variacion !== undefined && variacion !== null && (
-            <div className={`flex items-center gap-1 mt-0.5 text-[9px] font-bold ${variacion > 0 ? 'text-red-600' : variacion < 0 ? 'text-green-600' : 'text-stone-500'}`}>
-                {variacion > 0 ? <ArrowUpIcon className="w-2.5 h-2.5" /> : variacion < 0 ? <ArrowDownIcon className="w-2.5 h-2.5" /> : <MinusIcon className="w-2.5 h-2.5" />}
-                {Math.abs(variacion).toFixed(1)}% vs período anterior
-            </div>
-        )}
-        {variacion === null && (
-            <div className="text-[9px] font-bold text-brand mt-0.5">Nuevo — sin datos del período anterior</div>
-        )}
-    </div>
-);
-
 // ── Collapsible Section ────────────────────────────────────────────────────
 const CollapsibleSection = ({ children, title, icon, subtitle, defaultOpen = true }: {
     children: React.ReactNode; title: string; icon: React.ReactNode; subtitle?: string; defaultOpen?: boolean;
@@ -133,8 +107,7 @@ const claseFila = (activa: boolean, i: number) =>
     `transition-colors cursor-pointer ${activa ? 'bg-sage-soft' : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'}`;
 
 // ── Resumen: selector, indicadores con variación y decisiones ──────────────
-export function ComparacionResumen({ analysis, actual, anterior, opciones, comparaCon, onComparaCon, registros, onAddQRR, resumen, decisiones, panorama }: {
-    analysis: AllAnalyses;
+export function ComparacionResumen({ actual, anterior, opciones, comparaCon, onComparaCon, registros, onAddQRR, resumen, decisiones, panorama }: {
     actual: DateRange;
     anterior: DateRange;
     /** Meses anteriores al periodo actual, elegibles para comparar */
@@ -178,11 +151,8 @@ export function ComparacionResumen({ analysis, actual, anterior, opciones, compa
         });
     }, [onAddQRR]);
 
-    const { defects } = analysis;
-    const variacion = (act: number, prev: number) => (prev > 0 ? ((act - prev) / prev) * 100 : null);
-    const criticalCount = decisiones.filter(d => d.prioridad === 'inmediato').length;
-    const monitoringCount = decisiones.filter(d => d.prioridad === 'seguimiento').length;
-    const growingCount = defects.filter(d => d.variationRecords !== null && d.variationRecords > 0).length;
+
+    const destacadas = decisiones.filter((d) => d.prioridad === 'inmediato' || d.prioridad === 'seguimiento').slice(0, 8);
 
     return (
         <div className="space-y-5">
@@ -202,15 +172,6 @@ export function ComparacionResumen({ analysis, actual, anterior, opciones, compa
                         {opciones.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                     </select>
                 </label>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                <KpiCard title="Radicados período" value={analysis.totalRecordsCurr} variacion={variacion(analysis.totalRecordsCurr, analysis.totalRecordsPrev)} icon={<TrendingUpIcon className="w-4 h-4" />} />
-                <KpiCard title="Problemas creciendo" value={growingCount} subtitle={`de ${defects.length} tipos`} icon={<AlertTriangleIcon className="w-4 h-4" />} />
-                <KpiCard title="Problemas nuevos" value={defects.filter(d => d.variationRecords === null && d.recordsCurr > 0).length} icon={<ShieldAlertIcon className="w-4 h-4" />} />
-                <KpiCard title="Unidades afectadas" value={analysis.totalUnitsCurr} variacion={variacion(analysis.totalUnitsCurr, analysis.totalUnitsPrev)} icon={<PackageIcon className="w-4 h-4" />} />
-                <KpiCard title="Inversión total" value={fmt$(analysis.totalValueCurr)} variacion={variacion(analysis.totalValueCurr, analysis.totalValuePrev)} icon={<DollarSignIcon className="w-4 h-4" />} />
-                <KpiCard title="Para abrir QRR" value={criticalCount} subtitle={`${monitoringCount} en seguimiento`} icon={<ShieldAlertIcon className="w-4 h-4" />} />
             </div>
 
             {/* ── Resumen Ejecutivo ───────────────────────────────────────────── */}
@@ -240,25 +201,24 @@ export function ComparacionResumen({ analysis, actual, anterior, opciones, compa
             <CollapsibleSection
                 title="Decisiones Recomendadas"
                 icon={<ShieldAlertIcon className="w-4 h-4" />}
-                subtitle="Abrir QRR: empuja una meta, lleva 2 meses o más y no baja · Seguimiento: sube, es nuevo o es su primer mes · Vigilar: lo demás"
+                subtitle="Lo que hay que abrir en QRR o seguir de cerca"
             >
-                {decisiones.length === 0 ? (
-                    <p className="text-sm text-stone-400 text-center py-8">Sin problemas para el período seleccionado</p>
+                {destacadas.length === 0 ? (
+                    <p className="text-sm text-stone-400 text-center py-8">Nada por abrir ni por seguir en este periodo</p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[980px]">
+                        <table className="w-full text-left border-collapse min-w-[720px]">
                             <thead>
                                 <tr className="bg-cream-light">
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tl-lg">Decisión</th>
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Problema</th>
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Por qué</th>
-                                    <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Evidencia</th>
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500">Hablar con</th>
                                     <th className="px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 rounded-tr-lg">Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {decisiones.filter(d => d.prioridad !== 'estable').slice(0, 20).map((d, i) => (
+                                {destacadas.map((d, i) => (
                                     <tr key={d.problema} className={`transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'} hover:bg-cream-light align-top`}>
                                         <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={d.prioridad} /></td>
                                         <td className="px-3 py-2.5 text-xs font-bold text-brand-dark border-b border-border max-w-[170px]">
@@ -266,10 +226,6 @@ export function ComparacionResumen({ analysis, actual, anterior, opciones, compa
                                             <div className="text-[10px] font-medium text-stone-500 mt-0.5">Responsable: {d.responsable}</div>
                                         </td>
                                         <td className="px-3 py-2.5 text-[11px] text-stone-700 border-b border-border max-w-[240px]">{d.motivo}</td>
-                                        <td className="px-3 py-2.5 text-[11px] text-stone-600 border-b border-border max-w-[320px]">
-                                            {d.evidencia}
-                                            {d.temas[0] && <div className="mt-1 italic text-stone-500 line-clamp-2" title={d.temas[0].cita}>{d.temas[0].tema.nombre}: {d.temas[0].cita}</div>}
-                                        </td>
                                         <td className="px-3 py-2.5 text-xs font-semibold text-stone-700 border-b border-border max-w-[140px]">{d.hablarCon}</td>
                                         <td className="px-3 py-2.5 border-b border-border">
                                             <div className="flex items-center gap-1.5">
