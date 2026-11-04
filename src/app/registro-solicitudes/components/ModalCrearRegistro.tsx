@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Search, Plus, Trash2, Package, Sparkles, Receipt, Tags, Store, Users, MessageSquare, Paperclip, File as FileIcon, MapPin, Phone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { sinCategorizar } from '@/lib/reglasRadicado';
 import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
 import BuscadorProductos from '@/components/solicitar-servicio/BuscadorProductos';
@@ -199,7 +200,7 @@ export default function ModalCrearRegistro({
                 cliente_final_id: clienteFinal ? clienteFinal.id : null,
                 cliente_final_nombre: clienteFinal ? (clienteFinal.contacto || clienteFinal.nombre_contacto || clienteFinal.cedula) : null,
                 productos_compra: formatProducts(productosCompra),
-                productos_novedad: formatProducts(productosNovedad),
+                productos_novedad: formatProducts(productosNovedad).map(sinCategorizar),
                 comentarios: comentarios,
                 tratado_por_id: tratadoPorId,
                 asesor_mac_id: asesorMacId,
@@ -788,7 +789,7 @@ export default function ModalCrearRegistro({
                 <BuscadorProductos
                     onClose={() => setShowBuscadorProductoNovedad(false)}
                     productosSeleccionados={productosNovedad}
-                    onAdd={(p) => setProductosNovedad([...productosNovedad, { ...p, cantidad: 1 }])}
+                    onAdd={(p) => setProductosNovedad([...productosNovedad, { ...sinCategorizar(p), cantidad: 1 }])}
                     onRemove={(idx) => {
                         const arr = [...productosNovedad];
                         arr.splice(idx, 1);

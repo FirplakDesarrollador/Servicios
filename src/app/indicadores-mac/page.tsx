@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef, Suspense, lazy, useTransition, useDeferredValue } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import { sinPlantaDeCatalogo } from '@/lib/reglasRadicado';
 import { RegistroMAC, FilterState, QRRRecord } from './types';
 import Filters, { LiveFilters, LiveFiltersContext } from './components/Filters';
 import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, ShieldCheckIcon } from 'lucide-react';
@@ -373,6 +374,8 @@ export default function IndicadoresMacPage() {
 
                 if (Array.isArray(r.productos_novedad) && r.productos_novedad.length > 0) {
                     r.productos_novedad.forEach((p: any) => {
+                        // Solo cuenta lo que categorizó el agente: la planta del catálogo no es una categorización
+                        p.planta = sinPlantaDeCatalogo(p).planta;
                         p._grupo = getGrupoForProduct(p);
                         p._planta = getPlantaForProduct(p);
 

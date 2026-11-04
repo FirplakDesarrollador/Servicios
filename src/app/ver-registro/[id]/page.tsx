@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { incumplimientosProductos } from '@/lib/reglasRadicado';
+import { incumplimientosProductos, sinCategorizar, sinPlantaDeCatalogo } from '@/lib/reglasRadicado';
 import { motion } from 'framer-motion';
 import { 
     ArrowLeft, Loader2, FileText, Info, MessageSquare, Tag, 
@@ -860,7 +860,7 @@ export default function VerRegistroPage() {
                 <BuscadorProductos
                     onClose={() => setShowBuscadorProductoNovedad(false)}
                     productosSeleccionados={editProductosNovedad}
-                    onAdd={(p) => setEditProductosNovedad([...editProductosNovedad, { ...p, cantidad: 1 }])}
+                    onAdd={(p) => setEditProductosNovedad([...editProductosNovedad, { ...sinCategorizar(p), cantidad: 1 }])}
                     onRemove={(idx) => {
                         const arr = [...editProductosNovedad];
                         arr.splice(idx, 1);
@@ -1436,7 +1436,7 @@ function ClasificacionTab({
     responsableQueja: any[], 
     onRefresh: () => void 
 }) {
-    const [editClasificacionProductos, setEditClasificacionProductos] = useState<any[]>(registro.productos_novedad || []);
+    const [editClasificacionProductos, setEditClasificacionProductos] = useState<any[]>((registro.productos_novedad || []).map(sinPlantaDeCatalogo));
     const [globalClasificacion, setGlobalClasificacion] = useState({
         vendedor_id: registro.vendedor_id || '',
         valor_servicio: registro.valor_servicio ?? '',

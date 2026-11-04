@@ -18,3 +18,25 @@ export function incumplimientosProductos(productosCompra: unknown, productosNove
     }
     return [];
 }
+
+// ── Categorización: la Planta y la Familia las define cada agente ──────────────────────────────────
+// El catálogo de productos trae planta (en mayúsculas: MARMOL, FIBRA, MUEBLES). Ese dato no es una
+// categorización: un producto con novedad nace vacío hasta que el agente lo clasifique y guarde.
+const PLANTAS_DEL_CLASIFICADOR = ['Marmol', 'Muebles', 'Fibra', 'Comercializado', 'Servicios', 'RTM', 'Quarztone'];
+
+/** Producto con novedad recién agregado: sin planta ni familia, a la espera del agente. */
+export function sinCategorizar<T extends Record<string, any>>(producto: T): Omit<T, 'planta' | 'familia'> {
+    const { planta: _planta, familia: _familia, ...resto } = producto;
+    return resto;
+}
+
+/**
+ * Radicados ya creados: si nunca se clasificó (no tiene familia) y su planta no es una opción del
+ * clasificador, esa planta vino del catálogo y se trata como vacía.
+ */
+export function sinPlantaDeCatalogo<T extends Record<string, any>>(producto: T): T {
+    if (!producto?.familia && producto?.planta && !PLANTAS_DEL_CLASIFICADOR.includes(producto.planta)) {
+        return { ...producto, planta: '' };
+    }
+    return producto;
+}

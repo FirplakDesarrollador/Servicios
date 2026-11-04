@@ -28,6 +28,10 @@
 ## Familias de Ventas
 - Los grupos se muestran como en los radicados: `ROPAS` = Labores; `HIDROPOR`, `HIDROEMP`, `BAÑERA` = Hidroterapia. `REPUESTO`, `MPDIRECT` y `FINANZAS` siguen sumando como vendidos y su planta es Comercializado. Los accesorios y repuestos de hidromasaje (`grupo_articulo` `MPD04` y `REP01`) son grupo Hidroterapia, planta Comercializado, igual que sus novedades; los demás quedan en el grupo Comercializados (`filterEngine.ts`).
 
+## Categorización de Planta y Familia
+- Las categoriza cada agente en la pestaña Clasificación del radicado; los indicadores solo leen esos datos (`familia` y `planta` de `productos_novedad`).
+- Un producto con novedad nace sin planta ni familia. Nunca se llena solo desde el catálogo (`sinCategorizar` y `sinPlantaDeCatalogo` en `src/lib/reglasRadicado.ts`).
+
 ## Regla de cierre: productos
 - Un radicado no se cierra (ni recibe Fecha de Verificación) sin producto de compra, ni con menos productos con novedad que productos de compra: `src/lib/reglasRadicado.ts`.
 
