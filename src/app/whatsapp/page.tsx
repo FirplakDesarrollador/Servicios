@@ -75,6 +75,7 @@ export default function WhatsAppPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResponsableFilter, setSelectedResponsableFilter] = useState('todos');
   const [asesoresList, setAsesoresList] = useState<string[]>(['Xime', 'Tati', 'Andrey']);
+  const [asesoresVinculados, setAsesoresVinculados] = useState<{ nombre: string; usuario_id: string | null }[]>([]);
   const [isAsesoresModalOpen, setIsAsesoresModalOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [asesorFilterSearch, setAsesorFilterSearch] = useState('');
@@ -392,14 +393,18 @@ export default function WhatsAppPage() {
     }
   };
 
+  // Una persona, un nombre: al asignar se usa su nombre de asesor. Los mensajes al cliente siguen con currentUserName.
+  const miNombreAsesor = asesoresVinculados.find((a) => a.usuario_id && a.usuario_id === currentUser?.user_id)?.nombre?.trim() || currentUserName;
+
   // ── Fetch Asesores dynamically ────────────────────────────────────────────────
   const fetchAsesores = async () => {
     const { data } = await supabase
       .from('whatsapp_asesores')
-      .select('nombre')
+      .select('nombre, usuario_id')
       .eq('activo', true)
       .order('nombre', { ascending: true });
     if (data && data.length > 0) {
+      setAsesoresVinculados(data);
       setAsesoresList(data.map(a => a.nombre?.trim()).filter(Boolean));
     }
   };
@@ -415,7 +420,7 @@ export default function WhatsAppPage() {
 
     let matchesResponsable = true;
     if (selectedResponsableFilter === 'mis_chats') {
-      matchesResponsable = !!(currentUserName && chat.responsable?.toLowerCase().includes(currentUserName.toLowerCase()));
+      matchesResponsable = !!(miNombreAsesor && chat.responsable?.toLowerCase().includes(miNombreAsesor.toLowerCase()));
     } else if (selectedResponsableFilter === 'sin_asignar') {
       matchesResponsable = !chat.responsable;
     } else if (selectedResponsableFilter !== 'todos') {
@@ -696,7 +701,7 @@ export default function WhatsAppPage() {
           parameters: data.parameters,
           template_text: templateText,
           // Rol MAC: la conversación que abre queda asignada a esa persona
-          responsable: currentUser?.rol === 'mac' ? currentUserName : null,
+          responsable: currentUser?.rol === 'mac' ? miNombreAsesor : null,
         }),
       });
       if (!res.ok) {
@@ -1001,7 +1006,7 @@ export default function WhatsAppPage() {
                     >
                       <span className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-light"></span>
-                        Mis chats ({currentUserName})
+                        Mis chats ({miNombreAsesor})
                       </span>
                       {selectedResponsableFilter === 'mis_chats' && <Check className="w-3.5 h-3.5" />}
                     </button>
@@ -1179,11 +1184,11 @@ export default function WhatsAppPage() {
 
               <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {/* Asignarme Button */}
-                {currentUserName && activeChat.responsable !== currentUserName && (
+                {miNombreAsesor && activeChat.responsable !== miNombreAsesor && (
                   <button
-                    onClick={() => handleUpdateResponsable(activeChat.id, currentUserName)}
+                    onClick={() => handleUpdateResponsable(activeChat.id, miNombreAsesor)}
                     className="h-9 px-3.5 rounded-lg border border-brand text-brand hover:bg-brand hover:text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-                    title={`Asignar este chat a ${currentUserName}`}
+                    title={`Asignar este chat a ${miNombreAsesor}`}
                   >
                     <UserCheck className="w-4 h-4" strokeWidth={1.75} />
                     Asignarme
