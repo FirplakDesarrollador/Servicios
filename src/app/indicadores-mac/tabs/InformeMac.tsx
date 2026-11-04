@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { RegistroMAC, FilterState, QRRRecord } from '../types';
 import { ComparacionDetalle, ComparacionResumen, fmtVar, periodoAnteriorAutomatico, periodoDesdeFiltros } from '../components/ComparacionPeriodos';
 import PanoramaMetas from '../components/PanoramaMetas';
+import { normalizeGrupo, plantaDeVenta } from '../utils/filterEngine';
 import { META_CALIDAD, META_ECONOMICA, generarDecisiones, generarResumen, getMercadoVenta, indicadoresDe, normalizeCanalName, type Entidad } from '../utils/panorama';
 import { leerRadicados, type ComentarioHilo } from '../utils/temasComentarios';
 import { resumirPor, totalProblemas, type LineaProblema } from '../utils/conteoProblemas';
@@ -87,19 +88,7 @@ const normalizePlantaName = (planta: string) => {
     return 'En Blanco';
 };
 
-const normalizeGrupoName = (g: string): string => {
-    if (!g || g === 'En Blanco' || g.toLowerCase() === 'en blanco') return 'En Blanco';
-    const norm = String(g).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (['COCINA', 'COCINAS'].includes(norm)) return 'Cocinas';
-    if (['BANO', 'BANOS'].includes(norm)) return 'Baño';
-    if (['HIDROTERAPIA', 'HIDROMASAJE', 'HIDROMASAJES', 'SPA', 'TINA'].includes(norm)) return 'Hidroterapia';
-    if (['LABOR', 'LABORES'].includes(norm)) return 'Labores';
-    if (['GRIFERIA', 'GRIFERIAS'].includes(norm)) return 'Griferia';
-    if (['PLOMERIA', 'PLOMERIAS'].includes(norm)) return 'Plomeria';
-    if (['SERVICIO', 'SERVICIOS'].includes(norm)) return 'Servicios';
-    if (['CUIDADO&MANTENIMIENTO', 'CUIDADO & MANTENIMIENTO'].includes(norm)) return 'Cuidado&Mantenimiento';
-    return 'En Blanco';
-};
+const normalizeGrupoName = normalizeGrupo;
 
 // Clave YYYY-MM de una fecha de contabilización (sin pasar por Date para evitar el corrimiento de zona horaria)
 const ventaMonthKey = (fecha: string): string => {
@@ -270,13 +259,13 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             if (activo('zonas') && v.zona && !zonas.includes(v.zona.toLowerCase())) return false;
             if (activo('productos')) {
                 const cumple = gruposFiltro.includes(normalizeGrupoName(v.familia).toUpperCase())
-                    || plantasFiltro.includes(normalizePlantaName(v.planta || '').toUpperCase())
+                    || plantasFiltro.includes(plantaDeVenta(v).toUpperCase())
                     || referencias.includes(String(v.descripcion_articulo || '').toUpperCase().trim())
                     || referencias.includes(String(v.codigo_articulo || '').toUpperCase().trim());
                 if (!cumple) return false;
             }
             if (activo('canalVenta') && !canales.includes(normalizeCanalName(v.grupo_cliente || ''))) return false;
-            if (activo('plantas') && !plantas.includes(normalizePlantaName(v.planta || '').toUpperCase())) return false;
+            if (activo('plantas') && !plantas.includes(plantaDeVenta(v).toUpperCase())) return false;
             return true;
         });
     }, [ventas, filters]);
@@ -336,7 +325,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             const zKey = normalizeZoneName(v.zona);
             const cKey = (v.ciudad || 'SIN CIUDAD').toUpperCase();
             const canalKey = normalizeCanalName(v.grupo_cliente || '');
-            const plKey = normalizePlantaName(v.planta || '');
+            const plKey = plantaDeVenta(v);
 
             [
                 getOrCreate(monthly, mKey),
@@ -749,7 +738,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         };
 
         ventasForPlantas.forEach(v => {
-            const plKey = normalizePlantaName(v.planta || '');
+            const plKey = plantaDeVenta(v);
             const obj = getOrCreate(byPlant, plKey);
             obj.unidadesVendidas += (v.cantidad || 0);
             obj.ventasTotales += (v.valor_total || 0);

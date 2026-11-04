@@ -1,6 +1,6 @@
 // Panorama del Informe: qué está sobre la meta, qué lo explica, qué decisión tomar y con quién.
 import type { AllAnalyses, DateRange, PriorityLevel, RegistroMAC } from '../types';
-import { EN_BLANCO, normalizeGrupo, normalizePlantaName } from './filterEngine';
+import { EN_BLANCO, normalizeGrupo, plantaDeVenta } from './filterEngine';
 import { lineasDeProblema, resumirPor, totalProblemas, type LineaProblema } from './conteoProblemas';
 import { resumirTemas, type LecturaRadicado, type TemaResumido } from './temasComentarios';
 
@@ -55,6 +55,10 @@ export const clienteDe = (r: RegistroMAC) => r.cliente_nombre || r.cliente_final
 export type Dimension = 'empresa' | 'planta' | 'grupo' | 'canal' | 'mercado';
 export const ETIQUETA_DIMENSION: Record<Dimension, string> = { empresa: 'Empresa', planta: 'Planta', grupo: 'Grupo', canal: 'Canal', mercado: 'Mercado' };
 
+/** "Planta Muebles", "Canal Distribución"; sin repetir cuando el nombre ya la trae: "Canal Propio". */
+export const etiquetaEntidad = (e: { dimension: Dimension; nombre: string }) =>
+    e.nombre.toLowerCase().startsWith(ETIQUETA_DIMENSION[e.dimension].toLowerCase()) ? e.nombre : `${ETIQUETA_DIMENSION[e.dimension]} ${e.nombre}`;
+
 export interface Indicadores {
     pctNovedad: number | null;
     pctCasos: number | null;
@@ -83,7 +87,7 @@ export interface VentaPanorama {
 const grupoDeVenta = (v: VentaPanorama) => normalizeGrupo(v.familia);
 export const ventaEnEntidad = (e: Pick<Entidad, 'dimension' | 'nombre'>, v: VentaPanorama): boolean => {
     switch (e.dimension) {
-        case 'planta': return normalizePlantaName(v.planta || '') === e.nombre;
+        case 'planta': return plantaDeVenta(v) === e.nombre;
         case 'grupo': return grupoDeVenta(v) === e.nombre;
         case 'canal': return normalizeCanalName(v.grupo_cliente || '') === e.nombre;
         case 'mercado': return getMercadoVenta(v.tipo_venta) === e.nombre;
@@ -130,7 +134,10 @@ export function indicadoresDe(e: Pick<Entidad, 'dimension' | 'nombre'>, data: Re
 
 /** Productos con novedad que sobran para que la entidad entre en la meta de calidad. */
 const productosSobreMeta = (e: Entidad) => Math.max(0, (((e.pctNovedad ?? 0) - META_CALIDAD) / 100) * e.unidadesVendidas);
+/** Casos que hay de más frente a la meta, un indicador distinto al de productos. */
+const casosSobreMeta = (e: Entidad) => Math.max(0, (((e.pctCasos ?? 0) - META_CALIDAD) / 100) * e.unidadesVendidas);
 const decide = (e: Entidad) => e.unidadesVendidas >= VENTAS_MINIMAS_PARA_DECIDIR && (e.pctNovedad ?? 0) > META_CALIDAD;
+const fueraDeMeta = (e: Entidad) => e.unidadesVendidas >= VENTAS_MINIMAS_PARA_DECIDIR && ((e.pctNovedad ?? 0) > META_CALIDAD || (e.pctCasos ?? 0) > META_CALIDAD);
 
 export const excesoDeMeta = (e: Indicadores) => Math.max(
     (e.pctNovedad ?? 0) - META_CALIDAD,
@@ -265,7 +272,7 @@ export function generarDecisiones(analysis: AllAnalyses, entidades: Entidad[], d
                 .forEach(([nombre, s]) => {
                     const aporte = e.unidadesVendidas > 0 ? (s.unidades / e.unidadesVendidas) * 100 : 0;
                     const lista = empuja.get(nombre) || [];
-                    lista.push({ texto: `${ETIQUETA_DIMENSION[e.dimension]} ${e.nombre} (${pp(aporte)})`, aporte });
+                    lista.push({ texto: `${etiquetaEntidad(e)} (${pp(aporte)})`, aporte });
                     empuja.set(nombre, lista);
                 });
         });
@@ -387,8 +394,8 @@ export function generarResumen(
 
     // Lo que saca de meta a cada planta, grupo o canal
     const sobreMeta = entidades
-        .filter((e) => e.dimension !== 'empresa' && e.dimension !== 'mercado' && decide(e))
-        .sort((a, b) => productosSobreMeta(b) - productosSobreMeta(a))
+        .filter((e) => e.dimension !== 'empresa' && e.dimension !== 'mercado' && fueraDeMeta(e))
+        .sort((a, b) => (productosSobreMeta(b) + casosSobreMeta(b)) - (productosSobreMeta(a) + casosSobreMeta(a)))
         .slice(0, 5);
     const lineasMeta = sobreMeta.map((e) => {
         const x = explicar(e, [], data, ventas, lecturas);
@@ -400,7 +407,9 @@ export function generarResumen(
             responsable && `responsable principal ${responsable.nombre}`,
             cliente && `el cliente que más aporta es ${cliente.nombre} (${pp(cliente.aporte ?? 0)})`,
         ].filter(Boolean);
-        return `${ETIQUETA_DIMENSION[e.dimension]} ${e.nombre} en ${fmtPorcentaje(e.pctNovedad)} (sobran ${x.unidadesSobreMeta} productos): ${partes.join('; ')}.`;
+        const frente = (valor: number | null, exceso: number, unidad: string) =>
+            `${fmtPorcentaje(valor)} (${exceso > 0 ? `${Math.ceil(exceso)} ${unidad} por encima de la meta` : 'dentro de la meta'})`;
+        return `${etiquetaEntidad(e)}. Productos con novedad: ${frente(e.pctNovedad, productosSobreMeta(e), 'productos')}. Casos: ${frente(e.pctCasos, casosSobreMeta(e), 'casos')}. ${partes.join('; ')}.`.replace(/\. el /, '. El ');
     });
     if (lineasMeta.length) secciones.push({ titulo: 'Qué nos saca de la meta', lineas: lineasMeta });
 

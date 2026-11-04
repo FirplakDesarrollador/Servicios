@@ -4,7 +4,7 @@ import { ChevronRightIcon, ImageIcon, MessageSquareIcon, TargetIcon } from 'luci
 import type { RegistroMAC } from '../types';
 import type { LecturaRadicado } from '../utils/temasComentarios';
 import {
-    ETIQUETA_DIMENSION, META_CALIDAD, META_ECONOMICA, excesoDeMeta, explicar, fmtPorcentaje,
+    ETIQUETA_DIMENSION, META_CALIDAD, META_ECONOMICA, etiquetaEntidad, excesoDeMeta, explicar, fmtPorcentaje,
     type Entidad, type FilaAporte, type Foco, type TipoFoco, type VentaPanorama,
 } from '../utils/panorama';
 
@@ -152,7 +152,7 @@ export default function PanoramaMetas({ entidades, data, ventas, lecturas }: {
                 <div className="p-4 space-y-4 min-w-0">
                     <div className="flex flex-wrap items-center gap-1 text-xs">
                         <button onClick={() => setFoco([])} className="font-bold text-brand-dark hover:underline cursor-pointer">
-                            {entidad.dimension === 'empresa' ? 'Toda la empresa' : `${ETIQUETA_DIMENSION[entidad.dimension]} ${entidad.nombre}`}
+                            {entidad.dimension === 'empresa' ? 'Toda la empresa' : etiquetaEntidad(entidad)}
                         </button>
                         {foco.map((f, i) => (
                             <React.Fragment key={f.tipo}>
@@ -168,7 +168,7 @@ export default function PanoramaMetas({ entidades, data, ventas, lecturas }: {
                     <p className="text-sm text-stone-700 leading-relaxed">
                         <strong className="tabular-nums">{fmtN(explicacion.problemas)}</strong> problemas en <strong className="tabular-nums">{fmtN(explicacion.radicados)}</strong> radicados, <strong className="tabular-nums">{fmtN(explicacion.unidades)}</strong> productos con novedad
                         {entidad.unidadesVendidas > 0 && <> de <strong className="tabular-nums">{fmtN(entidad.unidadesVendidas)}</strong> vendidos</>}.
-                        {foco.length === 0 && explicacion.unidadesSobreMeta > 0 && <> Para entrar en la meta de {META_CALIDAD.toFixed(0)} % sobran <strong className="tabular-nums text-red-700">{fmtN(explicacion.unidadesSobreMeta)}</strong> productos con novedad.</>}
+                        {foco.length === 0 && explicacion.unidadesSobreMeta > 0 && <> Hay <strong className="tabular-nums text-red-700">{fmtN(explicacion.unidadesSobreMeta)}</strong> productos con novedad por encima de la meta de {META_CALIDAD.toFixed(0)} %.</>}
                         {foco.length === 0 && entidad.unidadesVendidas === 0 && <> Este {ETIQUETA_DIMENSION[entidad.dimension].toLowerCase()} no tiene ventas asociadas en el periodo, así que no se puede calcular su porcentaje.</>}
                     </p>
 

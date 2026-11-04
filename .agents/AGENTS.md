@@ -25,6 +25,9 @@
 - Responsables, plantas y grupos suman esos mismos problemas. Total de radicados, canales, mercados y agentes siguen contando radicados.
 - Se calcula solo con `src/app/indicadores-mac/utils/conteoProblemas.ts`. No repetir la fórmula en las hojas.
 
+## Familias de Ventas
+- Los grupos se muestran como en los radicados: `ROPAS` = Labores; `HIDROPOR`, `HIDROEMP`, `BAÑERA` = Hidroterapia. `REPUESTO`, `MPDIRECT` y `FINANZAS` siguen sumando como vendidos y se reportan como comercializados (`filterEngine.ts`).
+
 ## Regla de cierre: productos
 - Un radicado no se cierra (ni recibe Fecha de Verificación) sin producto de compra, ni con menos productos con novedad que productos de compra: `src/lib/reglasRadicado.ts`.
 
