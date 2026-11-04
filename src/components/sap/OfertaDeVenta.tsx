@@ -13,26 +13,11 @@ import { SAP_DOC_TYPES, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
 import MapaRelaciones from './explorer/MapaRelaciones';
 import AnexosSap from './explorer/AnexosSap';
 import BuscadorOrdenesFabricacion from './BuscadorOrdenesFabricacion';
-import { FlechaEnlace, VentanaEnlace, type VistaEnlace } from './EnlacesSap';
+import dynamic from 'next/dynamic';
+import { FlechaEnlace } from './explorer/FlechaEnlace';
+import type { VistaEnlace } from './EnlacesSap';
 
-// Sample SAP Articulos for realistic demonstration
-const SAMPLE_SAP_ITEMS = [
-  { itemCode: 'BAÑ-FIR-001', description: 'Bañera Hidromasaje Firplak 160x80cm - Blanco', price: 2450000 },
-  { itemCode: 'LAV-MOD-002', description: 'Lavamanos Módula Firplak 60cm Sobreponer', price: 420000 },
-  { itemCode: 'CAB-SPA-003', description: 'Cabina Ducha Spa Hidro Firplak 90x90cm', price: 3890000 },
-  { itemCode: 'REP-VAL-004', description: 'Válvula de Desagüe Automática Cromada Firplak', price: 85000 },
-  { itemCode: 'GRI-MON-005', description: 'Grifería Monocontrol Alta para Lavamanos - Cromo', price: 310000 },
-  { itemCode: 'MOT-HID-006', description: 'Motobomba 1.5 HP Silenciosa para Hidromasaje', price: 890000 },
-  { itemCode: 'ZZCC01-0045', description: 'HONORARIOS SERVICIO TECNICO ESPECIALIZADO', price: 150000 },
-];
-
-const SAMPLE_CUSTOMERS = [
-  { cardCode: 'C890900123', cardName: 'CONSTRUCTORA BOLIVAR S.A.', nit: '890.900.123-4', contact: 'Carlos Mendoza' },
-  { cardCode: 'C900123456', cardName: 'ARQUITECTURA & DISEÑO URBAN S.A.S.', nit: '900.123.456-1', contact: 'Mayerly Marín' },
-  { cardCode: 'C800987654', cardName: 'HOME CENTER / SODIMAC COLOMBIA', nit: '800.987.654-9', contact: 'Andrés Uribe' },
-  { cardCode: 'C901444333', cardName: 'DISTRIBUIDORA DE GRIFERIAS Y BAÑOS LTDA', nit: '901.444.333-2', contact: 'Tatiana Duque' },
-  { cardCode: 'C700555666', cardName: 'HOTEL DANN CARLTON MEDELLIN', nit: '700.555.666-8', contact: 'Ximena Ballestas' },
-];
+const VentanaEnlace = dynamic(() => import('./EnlacesSap').then((m) => m.VentanaEnlace), { ssr: false });
 
 export interface GridRow {
   id: string;
@@ -220,8 +205,10 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState('');
 
-  const [dbItems, setDbItems] = useState<any[]>(SAMPLE_SAP_ITEMS);
-  const [dbCustomers, setDbCustomers] = useState<any[]>(SAMPLE_CUSTOMERS);
+  const [dbItems, setDbItems] = useState<any[]>([]);
+  const [buscandoArticulos, setBuscandoArticulos] = useState(false);
+  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
+  const [buscandoClientes, setBuscandoClientes] = useState(false);
 
   // Status message
   const [statusMessage, setStatusMessage] = useState('● Ingrese un número de Orden de Venta u Oferta en el campo lateral y presione Consultar.');
@@ -239,27 +226,6 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   useEffect(() => {
     const loadSapData = async () => {
       try {
-        const custRes = await fetch('/api/sap/customers');
-        const custData = await custRes.json();
-        if (custData.success && custData.customers?.length > 0) {
-          setDbCustomers(custData.customers.map((bp: any) => ({
-            cardCode: bp.CardCode,
-            cardName: bp.CardName,
-            nit: bp.FederalTaxID || 'N/A',
-            contact: bp.ContactPerson || 'Sin contacto'
-          })));
-        }
-
-        const itemRes = await fetch('/api/sap/items');
-        const itemData = await itemRes.json();
-        if (itemData.success && itemData.items?.length > 0) {
-          setDbItems(itemData.items.map((it: any) => ({
-            itemCode: it.ItemCode,
-            description: it.ItemName || 'Artículo SAP',
-            price: it.ItemPrices?.[0]?.Price || 0
-          })));
-        }
-
         const ccRes = await fetch('/api/sap/cost-centers');
         const ccData = await ccRes.json();
         if (ccData.success && ccData.costCenters?.length > 0) {
@@ -274,6 +240,51 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
     };
     loadSapData();
   }, []);
+
+  // Clientes y artículos: solo cuando se abre su buscador. Antes salían al abrir la pantalla y hacían
+  // esperar en la fila de SAP a la consulta del documento.
+  useEffect(() => {
+    if (!isCustomerModalOpen) return;
+    const control = new AbortController();
+    const q = customerSearchQuery.trim();
+    setBuscandoClientes(true);
+    const espera = setTimeout(() => {
+      fetch(`/api/sap/customers?q=${encodeURIComponent(q)}`, { signal: control.signal })
+        .then((r) => r.json())
+        .then((j) => {
+          setDbCustomers((j.customers || []).map((bp: any) => ({
+            cardCode: bp.CardCode,
+            cardName: bp.CardName,
+            nit: bp.FederalTaxID || 'N/A',
+            contact: bp.ContactPerson || 'Sin contacto'
+          })));
+          setBuscandoClientes(false);
+        })
+        .catch((e) => { if (e.name !== 'AbortError') setBuscandoClientes(false); });
+    }, q ? 300 : 0);
+    return () => { clearTimeout(espera); control.abort(); };
+  }, [isCustomerModalOpen, customerSearchQuery]);
+
+  useEffect(() => {
+    if (!isItemModalOpen) return;
+    const control = new AbortController();
+    const q = itemSearchQuery.trim();
+    setBuscandoArticulos(true);
+    const espera = setTimeout(() => {
+      fetch(`/api/sap/items?q=${encodeURIComponent(q)}`, { signal: control.signal })
+        .then((r) => r.json())
+        .then((j) => {
+          setDbItems((j.items || []).map((it: any) => ({
+            itemCode: it.ItemCode,
+            description: it.ItemName || 'Artículo SAP',
+            price: it.ItemPrices?.[0]?.Price || 0
+          })));
+          setBuscandoArticulos(false);
+        })
+        .catch((e) => { if (e.name !== 'AbortError') setBuscandoArticulos(false); });
+    }, q ? 300 : 0);
+    return () => { clearTimeout(espera); control.abort(); };
+  }, [isItemModalOpen, itemSearchQuery]);
 
   // ── Search Real SAP Document by Orden de Venta / DocNum ──────────────────────
   // Abrir directamente un documento (p. ej. desde el Explorador SAP)
@@ -2577,8 +2588,10 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                     </tr>
                   </thead>
                   <tbody className="divide-y">
+                    {dbCustomers.length === 0 && (
+                      <tr><td colSpan={4} className="p-4 text-center text-stone-500">{buscandoClientes ? 'Buscando en SAP…' : 'No hay clientes para esa búsqueda.'}</td></tr>
+                    )}
                     {dbCustomers
-                      .filter(c => c.cardName.toLowerCase().includes(customerSearchQuery.toLowerCase()) || c.cardCode.toLowerCase().includes(customerSearchQuery.toLowerCase()))
                       .map(c => (
                         <tr 
                           key={c.cardCode}
@@ -2630,11 +2643,10 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                     </tr>
                   </thead>
                   <tbody className="divide-y">
+                    {dbItems.length === 0 && (
+                      <tr><td colSpan={3} className="p-4 text-center text-stone-500">{buscandoArticulos ? 'Buscando en SAP…' : 'No hay artículos para esa búsqueda.'}</td></tr>
+                    )}
                     {dbItems
-                      .filter(item => 
-                        item.description.toLowerCase().includes(itemSearchQuery.toLowerCase()) || 
-                        item.itemCode.toLowerCase().includes(itemSearchQuery.toLowerCase())
-                      )
                       .map(item => (
                         <tr 
                           key={item.itemCode}

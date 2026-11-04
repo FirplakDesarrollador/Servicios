@@ -8,7 +8,6 @@ import { RegistroMAC, FilterState, QRRRecord } from './types';
 import Filters, { LiveFilters, LiveFiltersContext } from './components/Filters';
 import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, ShieldCheckIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
-import * as XLSX from 'xlsx';
 import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
 import { computeFilterViews, normalizeGrupo, normalizePlantaName } from './utils/filterEngine';
 import { etiquetaValorFecha } from './utils/fechaProducto';
@@ -586,7 +585,7 @@ export default function IndicadoresMacPage() {
         setShowExportModal(false);
     };
 
-    const exportToExcel = (dataToExport: RegistroMAC[] = filteredData) => {
+    const exportToExcel = async (dataToExport: RegistroMAC[] = filteredData) => {
         const allRows: Record<string, any>[] = [];
 
         const razonesMapExport = new Map(razones.map(r => [String(r.id), r.razon]));
@@ -696,6 +695,7 @@ export default function IndicadoresMacPage() {
             }
         });
 
+        const XLSX = await import('xlsx');
         const worksheet = XLSX.utils.json_to_sheet(allRows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Base de Datos MAC");

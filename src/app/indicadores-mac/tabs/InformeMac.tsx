@@ -20,7 +20,6 @@ import {
     TrendingUpIcon, AlertCircleIcon, ChevronDownIcon, ChevronUpIcon,
     DollarSign, FileText, Package, Briefcase, AlertOctagon
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Props {

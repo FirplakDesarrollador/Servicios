@@ -4,7 +4,6 @@ import { porcentajeCumplimiento } from '../utils/metricas';
 import DesempenoAgentes from '../components/DesempenoAgentes';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { SearchIcon, DownloadIcon, SaveIcon, AlertCircleIcon, ExternalLinkIcon, AlertTriangleIcon } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 interface Props {
     data: RegistroMAC[];
@@ -112,7 +111,7 @@ export default function AgentesMac({ data, prevData, filters, onFilterToggle, da
         });
     }, [data, searchTerm]);
 
-    const exportToExcel = () => {
+    const exportToExcel = async () => {
         const rows = exportData.map(d => ({
             'Número Radicado': d.consecutivo,
             'Fecha Registro': new Date(d.created_at).toLocaleDateString(),
@@ -123,6 +122,7 @@ export default function AgentesMac({ data, prevData, filters, onFilterToggle, da
             'Estado Riesgo': d._estadoRiesgo,
             'Observaciones': observaciones[d.id] || ''
         }));
+        const XLSX = await import('xlsx');
         const worksheet = XLSX.utils.json_to_sheet(rows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Seguimiento");

@@ -10,7 +10,6 @@ import {
     CheckCircleIcon, EditIcon, EyeIcon, DownloadIcon, Trash2Icon,
     AlertCircleIcon,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 // ── Props ──────────────────────────────────────────────────────────────────
 interface Props {
@@ -215,7 +214,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
         setEditingQRR(null);
     }, [setQrrRecords]);
 
-    const handleExport = useCallback(() => {
+    const handleExport = useCallback(async () => {
         const rows = qrrRecords.map(r => ({
             'ID': r.id.slice(0, 8),
             'Fecha Inicio': r.fechaInicio,
@@ -234,6 +233,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
             'Última Actualización': r.ultimaActualizacion,
             'Observaciones': r.observaciones,
         }));
+        const XLSX = await import('xlsx');
         const ws = XLSX.utils.json_to_sheet(rows);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'QRR');

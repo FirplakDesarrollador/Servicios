@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase';
 import { parseLocalTimestamp } from '@/lib/dateUtils';
-import html2pdf from 'html2pdf.js';
 
 const escapeHtml = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '---';
@@ -373,6 +372,7 @@ export const generateConsecutivoPDF = async (consecutivo: string, currentUser: a
 
         const container = document.createElement('div');
         container.innerHTML = htmlContent;
+        const { default: html2pdf } = await import('html2pdf.js');
         await html2pdf().set(opt).from(container).save();
 
         return true;

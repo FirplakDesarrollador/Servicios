@@ -2,12 +2,20 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, Boxes, ChevronRight, Search, Warehouse } from 'lucide-react';
+import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, Boxes, ChevronRight, Loader2, Search, Warehouse } from 'lucide-react';
 import { motion } from 'framer-motion';
-import OfertaDeVenta from '@/components/sap/OfertaDeVenta';
-import LDMCostos from '@/components/sap/LDMCostos';
-import InventarioSap from '@/components/sap/InventarioSap';
-import ExploradorSap, { type ClassicSapMode } from '@/components/sap/ExploradorSap';
+import dynamic from 'next/dynamic';
+import type { ClassicSapMode } from '@/components/sap/ExploradorSap';
+
+const cargandoModulo = () => (
+  <div className="flex items-center justify-center gap-2 py-16 text-sm text-stone-500">
+    <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Abriendo módulo…
+  </div>
+);
+const OfertaDeVenta = dynamic(() => import('@/components/sap/OfertaDeVenta'), { ssr: false, loading: cargandoModulo });
+const LDMCostos = dynamic(() => import('@/components/sap/LDMCostos'), { ssr: false, loading: cargandoModulo });
+const InventarioSap = dynamic(() => import('@/components/sap/InventarioSap'), { ssr: false, loading: cargandoModulo });
+const ExploradorSap = dynamic(() => import('@/components/sap/ExploradorSap'), { ssr: false, loading: cargandoModulo });
 
 const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   Quotation: 'oferta-venta',

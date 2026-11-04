@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import {
@@ -40,6 +40,7 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [portalType, setPortalType] = useState<string | null>(null);
+  const perfilPedido = useRef(false);
 
   useEffect(() => {
     setPortalType(localStorage.getItem('portalType'));
@@ -69,6 +70,7 @@ export default function Home() {
 
         setUser(session.user);
 
+        perfilPedido.current = true;
         const { data: userData, error: profileError } = await supabase
           .from('Usuarios')
           .select('*')
@@ -103,7 +105,8 @@ export default function Home() {
       } else {
         setUser(session.user);
         // Only fetch profile if we don't have it yet to avoid redundant loads
-        if (!profile) {
+        if (!perfilPedido.current) {
+          perfilPedido.current = true;
           supabase.from('Usuarios')
             .select('*')
             .eq('user_id', session.user.id)
@@ -121,7 +124,7 @@ export default function Home() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, profile]);
+  }, [router]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Download, Copy, Boxes, Minus, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as XLSX from 'xlsx';
 
 interface LDMCostosProps {
   onMinimizeChange?: (isMinimized: boolean) => void;
@@ -73,7 +72,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     if (!data.length) return;
     
     const worksheetData = data.map(r => ({
@@ -89,6 +88,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
       'Costo_Total': r.Costo_Total
     }));
 
+    const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Costos LDM");

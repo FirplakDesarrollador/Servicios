@@ -3,7 +3,6 @@ import { porcentajeCumplimiento } from '../utils/metricas';
 import { TendenciaSlaCard } from '../components/ServicioCards';
 import { RegistroMAC, FilterState } from '../types';
 import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
-import * as XLSX from 'xlsx';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, DownloadIcon, SearchIcon, Target, TrendingUp } from 'lucide-react';
 import { addBusinessDays, getBusinessDaysDifference } from '../utils/businessDays';
 
@@ -239,7 +238,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
     };
 
     // Export Excel
-    const exportToExcel = () => {
+    const exportToExcel = async () => {
         const rows = exportData.map(d => ({
             'Número Radicado': d.consecutivo,
             'Fecha Registro': new Date(d.created_at).toLocaleDateString(),
@@ -256,6 +255,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
             'Valor Invertido': d._valorInvertido
         }));
 
+        const XLSX = await import('xlsx');
         const worksheet = XLSX.utils.json_to_sheet(rows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Detalle MAC");
