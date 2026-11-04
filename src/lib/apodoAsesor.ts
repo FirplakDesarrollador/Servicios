@@ -1,8 +1,9 @@
 // Una persona, un nombre: en WhatsApp cada asesor se identifica por su apodo.
+// El nombre se busca en cualquier parte: el de Tati en Usuarios es "Kellis Tatiana Duque Velasquez".
 const APODOS: [RegExp, string][] = [
-  [/^xime/i, 'Xime'],
-  [/^tati/i, 'Tati'],
-  [/^(andrey|andrew|adrew)\b/i, 'Andrey'],
+  [/\bxime(na)?\b/i, 'Xime'],
+  [/\btati(ana)?\b/i, 'Tati'],
+  [/\b(andrey|andrew|adrew)\b/i, 'Andrey'],
 ];
 
 /** Convierte cualquier variante del nombre de un asesor en su apodo; los demás nombres quedan igual. */
