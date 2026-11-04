@@ -113,7 +113,8 @@ export async function buscarArticulos(descripcion: string, codigo: string): Prom
     ...(c.length >= 2 ? [`(contains(ItemCode,${odata(c)}) or BarCode eq ${odata(c)})`] : []),
   ];
   const filtro = condiciones.join(' and ');
-  const parametros = new URLSearchParams({ $select: LISTA_SELECT, $filter: filtro, $orderby: 'ItemCode', $top: '50' });
+  // Primero lo que hay en bodega: así el tope de 50 tampoco deja por fuera lo que tiene stock
+  const parametros = new URLSearchParams({ $select: LISTA_SELECT, $filter: filtro, $orderby: 'QuantityOnStock desc,ItemCode', $top: '50' });
   const [datos, gruposMapa] = await Promise.all([
     sapGet<{ value: any[] }>(`Items?${parametros}`.replace(/\+/g, '%20'), { maxPageSize: 50 }),
     grupos(),
