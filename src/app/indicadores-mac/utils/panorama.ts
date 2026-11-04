@@ -83,6 +83,7 @@ export interface VentaPanorama {
     tipo_venta: string;
     nombre_cliente?: string;
     grupo_articulo?: string;
+    descripcion_articulo?: string;
 }
 
 export const ventaEnEntidad = (e: Pick<Entidad, 'dimension' | 'nombre'>, v: VentaPanorama): boolean => {

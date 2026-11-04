@@ -48,8 +48,14 @@ export const plantaDeVenta = (v: { familia?: string | null; planta?: string | nu
  * Grupo de una venta. Los accesorios y repuestos de hidromasaje se categorizan igual que sus novedades:
  * grupo Hidroterapia, planta Comercializado, aunque en Ventas su familia sea MPDIRECT o REPUESTO.
  */
-export const grupoDeVenta = (v: { familia?: string | null; grupo_articulo?: string | null }): string => {
+export const grupoDeVenta = (v: { familia?: string | null; grupo_articulo?: string | null; descripcion_articulo?: string | null }): string => {
     if (/^(MPD04|REP01)\b/i.test(String(v.grupo_articulo || '').trim())) return 'Hidroterapia';
+    if (familiaNormal(v.familia) === 'QUARTZSTONE') {
+        // El cuarzo se reparte por su medida: 73, 79 o 94 son de Baño; desde 100 en adelante, de Cocinas
+        const ancho = Number(/(\d{2,3})\s*X\s*\d{2,3}/i.exec(String(v.descripcion_articulo || ''))?.[1] || 0);
+        if ([73, 79, 94].includes(ancho)) return 'Baño';
+        if (ancho >= 100) return 'Cocinas';
+    }
     const grupo = normalizeGrupo(String(v.familia || ''));
     // "En Blanco" es solo para novedades sin categorizar: una venta nunca queda ahí
     return grupo === 'En Blanco' ? 'Comercializados' : grupo;
