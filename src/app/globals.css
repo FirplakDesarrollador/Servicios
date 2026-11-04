@@ -30,17 +30,17 @@
   --serie-petroleo: #3f6c7d;
 
   /* Vidrio */
-  --sup: 255 252 245;
+  --sup: 255 254 251;
   --vidrio: 0.6;
   --vidrio-borde: rgb(255 255 255 / 0.65);
   --vidrio-brillo: rgb(255 255 255 / 0.7);
   --vidrio-sombra: rgb(18 35 56 / 0.2);
-  --lienzo: #efe7d5;
-  --mancha-a: rgb(27 50 80 / 0.34);
-  --mancha-b: rgb(47 80 117 / 0.26);
-  --mancha-c: rgb(205 187 147 / 0.75);
-  --mancha-d: rgb(47 80 117 / 0.22);
-  --logo-fondo: rgb(27 50 80 / 0.3);
+  --lienzo: #f3f1ec;
+  --mancha-a: rgb(27 50 80 / 0.2);
+  --mancha-b: rgb(47 80 117 / 0.16);
+  --mancha-c: rgb(255 255 255 / 0.75);
+  --mancha-d: rgb(47 80 117 / 0.12);
+  --logo-fondo: rgb(27 50 80 / 0.22);
   --cursor-grafica: rgb(27 50 80 / 0.08);
 
   /* Neutros */

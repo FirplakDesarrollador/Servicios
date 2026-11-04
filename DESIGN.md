@@ -7,7 +7,7 @@ Navy, verde oliva, crema y negro. Los tokens viven en `src/app/globals.css` y ca
 
 | Papel | Claro | Oscuro |
 |---|---|---|
-| Lienzo | `#efe7d5` | `#0c1119` |
+| Lienzo | `#f3f1ec` | `#0c1119` |
 | Navy (rellenos) | `#1b3250` | `#274468` |
 | Oliva (acento) | `#66753a` | `#76863f` |
 | Texto | `#14181f` | `#f4efe2` |
