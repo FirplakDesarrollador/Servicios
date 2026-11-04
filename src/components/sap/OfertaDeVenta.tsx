@@ -323,7 +323,10 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       const data = await res.json();
 
       if (!res.ok || !data.success || !data.document) {
-        setStatusMessage(`✖ No se encontró la Oferta u Orden de Venta Nº ${searchTarget} en SAP Business One.`);
+        // Solo un 404 significa que el documento no existe; lo demás es una falla al consultar
+        setStatusMessage(res.status === 404
+          ? `✖ No se encontró la Oferta u Orden de Venta Nº ${searchTarget} en SAP Business One.`
+          : `✖ No se pudo consultar SAP: ${data.error || data.message || `error ${res.status}`}`);
         setStatusType('error');
         return;
       }
