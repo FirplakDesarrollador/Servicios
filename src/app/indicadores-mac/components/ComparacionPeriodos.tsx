@@ -90,7 +90,7 @@ const CollapsibleSection = ({ children, title, icon, subtitle, defaultOpen = tru
                 className="w-full flex items-center justify-between p-5 hover:bg-cream-light/50 transition-colors"
             >
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#254153] text-white flex items-center justify-center flex-shrink-0">{icon}</div>
+                    <div className="w-8 h-8 rounded-lg bg-[var(--c-navy)] text-white flex items-center justify-center flex-shrink-0">{icon}</div>
                     <div className="text-left">
                         <h2 className="text-sm font-bold text-brand-dark uppercase tracking-wider">{title}</h2>
                         {subtitle && <p className="text-[10px] text-stone-400 font-medium">{subtitle}</p>}
@@ -137,7 +137,7 @@ export function ComparacionResumen({ actual, anterior, opciones, comparaCon, onC
             </div>
 
             {/* ── Resumen Ejecutivo ───────────────────────────────────────────── */}
-            <div className="bg-gradient-to-br from-[#254153] to-[#1a2f3d] p-6 rounded-2xl shadow-lg text-white">
+            <div className="bg-gradient-to-br from-[var(--c-navy)] to-[var(--c-navy-hondo)] p-6 rounded-2xl shadow-lg text-white">
                 <h2 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center"><TrendingUpIcon className="w-3.5 h-3.5" /></div>
                     Resumen Ejecutivo — {actual.label}
@@ -247,7 +247,7 @@ export function DecisionesRecomendadas({ decisiones, registros, onAddQRR }: {
                                                 {d.radicadosIds.length > 0 && (
                                                     <button
                                                         onClick={() => setShowRecords(d.radicadosIds)}
-                                                        className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-[#254153] bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
+                                                        className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-[var(--c-navy-texto)] bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
                                                         title="Ver radicados asociados"
                                                     >
                                                         <EyeIcon className="w-3 h-3" />
@@ -268,7 +268,7 @@ export function DecisionesRecomendadas({ decisiones, registros, onAddQRR }: {
             {showRecords && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowRecords(null)}>
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="bg-[#254153] px-6 py-4 flex items-center justify-between">
+                        <div className="bg-[var(--c-navy)] px-6 py-4 flex items-center justify-between">
                             <h3 className="text-white font-bold text-sm">Registros Asociados ({associatedRecords.length})</h3>
                             <button onClick={() => setShowRecords(null)} className="text-white/80 hover:text-white transition-colors text-lg">✕</button>
                         </div>
@@ -287,7 +287,7 @@ export function DecisionesRecomendadas({ decisiones, registros, onAddQRR }: {
                                 <tbody>
                                     {associatedRecords.map((r, i) => (
                                         <tr key={r.id} className={i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'}>
-                                            <td className="px-3 py-2 text-xs font-bold text-[#254153] border-b border-border">{r.consecutivo}</td>
+                                            <td className="px-3 py-2 text-xs font-bold text-[var(--c-navy-texto)] border-b border-border">{r.consecutivo}</td>
                                             <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{new Date(r.created_at).toLocaleDateString('es-CO')}</td>
                                             <td className="px-3 py-2 text-xs text-stone-700 border-b border-border">{r._clientePrincipalFinal}</td>
                                             <td className="px-3 py-2 text-xs border-b border-border">
@@ -342,9 +342,9 @@ export function ComparacionDetalle({ analysis, filters, onFilterToggle }: {
                                 <tr key={i} onClick={(e) => onFilterToggle('responsables', r.name, e)} className={claseFila(filters.responsables.includes(r.name), i)}>
                                     <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border">{r.name}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{r.recordsCurr}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{r.unitsCurr}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{r.unitsCurr}</td>
                                     <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(r.variationRecords)}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(r.valueCurr)}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-navy-texto)] text-right border-b border-border">{fmt$(r.valueCurr)}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[150px] truncate" title={r.principalProblema}>{r.principalProblema}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[150px] truncate" title={r.principalReferencia}>{r.principalReferencia}</td>
                                     <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={r.priority} /></td>
@@ -384,10 +384,10 @@ export function ComparacionDetalle({ analysis, filters, onFilterToggle }: {
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={r.refCompra}>{r.refCompra}</td>
                                     <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border max-w-[120px] truncate" title={r.refNovedad}>{r.refNovedad}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{r.recordsCurr}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{r.unitsCurr}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{r.unitsCurr}</td>
                                     <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(r.variationRecords)}</td>
                                     <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(r.variationUnits)}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(r.valueCurr)}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-navy-texto)] text-right border-b border-border">{fmt$(r.valueCurr)}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={r.principalNovedad}>{r.principalNovedad}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[100px] truncate" title={r.responsable}>{r.responsable}</td>
                                     <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={r.priority} /></td>
@@ -429,8 +429,8 @@ export function ComparacionDetalle({ analysis, filters, onFilterToggle }: {
                                     <td className="px-3 py-2.5 text-xs font-bold text-stone-600 text-right border-b border-border">{g.recordsPrev}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{g.recordsCurr}</td>
                                     <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(g.variationRecords)}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{g.unitsCurr}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(g.valueCurr)}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{g.unitsCurr}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-navy-texto)] text-right border-b border-border">{fmt$(g.valueCurr)}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[130px] truncate" title={g.principalNovedad}>{g.principalNovedad}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[130px] truncate" title={g.clientePrincipal}>{g.clientePrincipal}</td>
                                     <td className="px-3 py-2.5 border-b border-border"><PriorityBadge level={g.priority} /></td>
@@ -471,8 +471,8 @@ export function ComparacionDetalle({ analysis, filters, onFilterToggle }: {
                                     <td className="px-3 py-2.5 text-xs font-bold text-stone-600 text-right border-b border-border">{c.recordsPrev}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{c.recordsCurr}</td>
                                     <td className="px-3 py-2.5 text-right border-b border-border">{fmtVar(c.variationRecords)}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{c.unitsCurr}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(c.valueCurr)}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{c.unitsCurr}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-navy-texto)] text-right border-b border-border">{fmt$(c.valueCurr)}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={c.principalNovedad}>{c.principalNovedad}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={c.principalReferencia}>{c.principalReferencia}</td>
                                     <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border">{c.zona}</td>

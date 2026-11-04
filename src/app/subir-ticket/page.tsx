@@ -119,7 +119,7 @@ export default function SubirTicketPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-[var(--c-suave)] flex flex-col items-center justify-center p-4">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -144,7 +144,7 @@ export default function SubirTicketPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans p-4 md:p-8 pb-20">
+    <div className="min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans p-4 md:p-8 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 max-w-4xl mx-auto">
         <div className="flex items-center gap-4">
           <button

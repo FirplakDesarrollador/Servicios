@@ -2623,13 +2623,13 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                                                 nombre: visit.nombre_persona_recibe || 'N/A',
                                                                 cedula: visit.cedula_persona_recibe || 'N/A'
                                                             })}
-                                                            className="group rounded-xl focus:outline-none focus:ring-4 focus:ring-[#254153]/15"
+                                                            className="group rounded-xl focus:outline-none focus:ring-4 focus:ring-[var(--c-navy-texto)]/15"
                                                             title="Ver firma ampliada"
                                                         >
                                                             <img 
                                                                 src={getSignatureSrc(visit.firma_base64)}
                                                                 alt="Firma" 
-                                                                className="h-12 object-contain bg-slate-50 border border-slate-200 rounded-xl p-1 transition-all group-hover:border-[#254153]/40 group-hover:shadow-md"
+                                                                className="h-12 object-contain bg-slate-50 border border-slate-200 rounded-xl p-1 transition-all group-hover:border-[var(--c-navy-texto)]/40 group-hover:shadow-md"
                                                             />
                                                         </button>
                                                     </div>
@@ -2663,16 +2663,16 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                         >
                             <div className="flex items-start justify-between gap-4 mb-5">
                                 <div>
-                                    <h3 className="text-lg font-black text-[#254153] uppercase tracking-wider">Firma del cliente</h3>
+                                    <h3 className="text-lg font-black text-[var(--c-navy-texto)] uppercase tracking-wider">Firma del cliente</h3>
                                     <p className="text-xs font-bold text-slate-400 mt-1">Vista ampliada</p>
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente</p>
-                                            <p className="text-sm font-black text-[#254153] mt-1">{selectedSignature.nombre}</p>
+                                            <p className="text-sm font-black text-[var(--c-navy-texto)] mt-1">{selectedSignature.nombre}</p>
                                         </div>
                                         <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cédula</p>
-                                            <p className="text-sm font-black text-[#254153] mt-1">{selectedSignature.cedula}</p>
+                                            <p className="text-sm font-black text-[var(--c-navy-texto)] mt-1">{selectedSignature.cedula}</p>
                                         </div>
                                     </div>
                                 </div>

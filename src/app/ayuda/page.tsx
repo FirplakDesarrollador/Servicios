@@ -51,7 +51,7 @@ export default function AyudaPage() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153] mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--c-navy-texto)] mx-auto mb-4"></div>
                     <p className="text-slate-600">Cargando ayuda...</p>
                 </div>
             </div>
@@ -61,7 +61,7 @@ export default function AyudaPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-[var(--c-navy)] to-[var(--c-navy-hondo)] text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -95,8 +95,8 @@ export default function AyudaPage() {
                         className="mb-12"
                     >
                         <div className="flex items-center gap-2 mb-6">
-                            <PlayCircle className="w-6 h-6 text-[#254153]" />
-                            <h2 className="text-2xl font-bold text-[#254153]">Videotutoriales</h2>
+                            <PlayCircle className="w-6 h-6 text-[var(--c-navy-texto)]" />
+                            <h2 className="text-2xl font-bold text-[var(--c-navy-texto)]">Videotutoriales</h2>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -109,7 +109,7 @@ export default function AyudaPage() {
                                     className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
                                 >
                                     <div className="p-4">
-                                        <h3 className="text-sm font-semibold text-[#254153] mb-3 text-center">
+                                        <h3 className="text-sm font-semibold text-[var(--c-navy-texto)] mb-3 text-center">
                                             {video.titulo_ayuda}
                                         </h3>
 
@@ -142,8 +142,8 @@ export default function AyudaPage() {
                         transition={{ delay: 0.2 }}
                     >
                         <div className="flex items-center gap-2 mb-6">
-                            <ImageIcon className="w-6 h-6 text-[#254153]" />
-                            <h2 className="text-2xl font-bold text-[#254153]">Guías visuales</h2>
+                            <ImageIcon className="w-6 h-6 text-[var(--c-navy-texto)]" />
+                            <h2 className="text-2xl font-bold text-[var(--c-navy-texto)]">Guías visuales</h2>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -156,7 +156,7 @@ export default function AyudaPage() {
                                     className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
                                 >
                                     <div className="p-4">
-                                        <h3 className="text-sm font-semibold text-[#254153] mb-3 text-center">
+                                        <h3 className="text-sm font-semibold text-[var(--c-navy-texto)] mb-3 text-center">
                                             {imagen.titulo_ayuda}
                                         </h3>
 

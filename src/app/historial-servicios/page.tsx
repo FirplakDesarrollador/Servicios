@@ -278,7 +278,7 @@ export default function HistorialServiciosPage() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153] mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--c-navy-texto)] mx-auto mb-4"></div>
                     <p className="text-slate-600">Cargando historial...</p>
                 </div>
             </div>
@@ -288,7 +288,7 @@ export default function HistorialServiciosPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-[var(--c-navy)] to-[var(--c-navy-hondo)] text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <button
@@ -313,13 +313,13 @@ export default function HistorialServiciosPage() {
                     <div className="flex flex-wrap gap-4">
                         {/* Selector de Técnico */}
                         <div className="flex-1 min-w-[250px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Técnico:
                             </label>
                             <select
                                 value={selectedTechnician || ''}
                                 onChange={(e) => setSelectedTechnician(Number(e.target.value))}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             >
                                 <option value="">Seleccione el técnico...</option>
                                 {technicians.map((tech) => (
@@ -332,13 +332,13 @@ export default function HistorialServiciosPage() {
 
                         {/* Estado del servicio */}
                         <div className="w-[200px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Estado del servicio
                             </label>
                             <select
                                 value={serviceStatus ? 'true' : 'false'}
                                 onChange={(e) => setServiceStatus(e.target.value === 'true')}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             >
                                 <option value="true">Pendientes</option>
                                 <option value="false">Terminados</option>
@@ -347,33 +347,33 @@ export default function HistorialServiciosPage() {
 
                         {/* Fecha Desde */}
                         <div className="w-[160px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Desde (Fecha)
                             </label>
                             <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             />
                         </div>
 
                         {/* Fecha Hasta */}
                         <div className="w-[160px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Hasta (Fecha)
                             </label>
                             <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             />
                         </div>
 
                         {/* Búsqueda avanzada */}
                         <div className="flex-1 min-w-[300px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Búsqueda avanzada
                             </label>
                             <div className="flex gap-2">
@@ -383,18 +383,18 @@ export default function HistorialServiciosPage() {
                                     onChange={(e) => setSearchText(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                     placeholder="Ingrese texto a buscar..."
-                                    className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                    className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                                 />
                                 <button
                                     onClick={handleSearch}
-                                    className="p-2.5 bg-[#254153] text-white rounded-lg hover:bg-[#1a2f3d] transition-colors"
+                                    className="p-2.5 bg-[var(--c-navy)] text-white rounded-lg hover:bg-[var(--c-navy-hondo)] transition-colors"
                                     aria-label="Buscar"
                                 >
                                     <SearchIcon className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={handleClearFilters}
-                                    className="p-2.5 bg-slate-100 text-[#254153] rounded-lg hover:bg-slate-200 transition-colors"
+                                    className="p-2.5 bg-slate-100 text-[var(--c-navy-texto)] rounded-lg hover:bg-slate-200 transition-colors"
                                     aria-label="Limpiar filtros"
                                 >
                                     <RefreshCw className="w-5 h-5" />
@@ -413,7 +413,7 @@ export default function HistorialServiciosPage() {
                     >
                         <div className="mb-4">
                             <p className="text-sm text-slate-600">
-                                <span className="font-semibold text-[#254153]">Servicios: </span>
+                                <span className="font-semibold text-[var(--c-navy-texto)]">Servicios: </span>
                                 <span className="font-bold">{filteredServices.length}</span>
                             </p>
                         </div>

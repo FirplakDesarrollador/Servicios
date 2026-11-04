@@ -50,7 +50,7 @@ function Celdas({ r, vendidas, ventasTotales }: { r: Resumen; vendidas: number; 
             <td className="px-3 py-2 text-right tabular-nums">{fmtN(r.problemas)}</td>
             <td className="px-3 py-2 text-right tabular-nums text-stone-500">{fmtPct(vendidas > 0 ? (r.problemas / vendidas) * 100 : null)}</td>
             <td className="px-3 py-2" />
-            <td className="px-3 py-2 text-right tabular-nums text-[#c96a4e]">{fmtN(r.unidades)}</td>
+            <td className="px-3 py-2 text-right tabular-nums text-[var(--c-alerta)]">{fmtN(r.unidades)}</td>
             <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmtPct(vendidas > 0 ? (r.unidades / vendidas) * 100 : null)}</td>
             <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmtPct(ventasTotales > 0 ? (r.inversion / ventasTotales) * 100 : null)}</td>
             <td className="px-3 py-2" />

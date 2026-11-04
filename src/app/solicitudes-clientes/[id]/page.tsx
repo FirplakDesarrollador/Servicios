@@ -310,7 +310,7 @@ export default function DetalleSolicitudClientePage() {
                                         <Package className="w-4 h-4" />
                                         Generar Nuevo Servicio
                                     </h2>
-                                    <div className="bg-[#F1F5F9] rounded-[1.5rem] overflow-hidden">
+                                    <div className="bg-[var(--c-suave)] rounded-[1.5rem] overflow-hidden">
                                         <SolicitarServicioPage 
                                             isInline={true} 
                                             defaultSolicitudId={solicitud.id} 

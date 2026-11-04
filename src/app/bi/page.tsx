@@ -7,9 +7,9 @@ export default function BIPage() {
     const router = useRouter()
 
     return (
-        <div className="flex flex-col h-screen bg-[#F8FAFC]">
+        <div className="flex flex-col h-screen bg-[var(--c-suave)]">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg flex-none">
+            <div className="bg-gradient-to-r from-[var(--c-navy)] to-[var(--c-navy-hondo)] text-white shadow-lg flex-none">
                 <div className="w-full px-4 py-4 flex items-center gap-4">
                     <button
                         onClick={() => router.push('/')}

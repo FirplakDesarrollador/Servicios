@@ -176,7 +176,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
         { key: 'pendiente', label: 'Pendiente', emoji: '🔴', color: '#ef4444' },
         { key: 'en_analisis', label: 'En Análisis', emoji: '🟠', color: '#f97316' },
         { key: 'en_ejecucion', label: 'En Ejecución', emoji: '🟡', color: '#eab308' },
-        { key: 'en_validacion', label: 'En Validación', emoji: '🔵', color: '#3b778c' },
+        { key: 'en_validacion', label: 'En Validación', emoji: '🔵', color: 'var(--serie-petroleo)' },
         { key: 'cerrado', label: 'Cerrado', emoji: '🟢', color: '#10b981' },
     ];
 
@@ -250,14 +250,14 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
         <div className="space-y-5 animate-fade-in">
             {/* ── KPIs ───────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-                <KpiCard title="QRR Abiertos" value={stats.abiertos} emoji="📋" color="#254153" />
-                <KpiCard title="QRR Vencidos" value={stats.vencidos} emoji="⚫" color={stats.vencidos > 0 ? '#ef4444' : '#8a8780'} />
+                <KpiCard title="QRR Abiertos" value={stats.abiertos} emoji="📋" color="var(--serie-navy)" />
+                <KpiCard title="QRR Vencidos" value={stats.vencidos} emoji="⚫" color={stats.vencidos > 0 ? '#ef4444' : 'var(--c-apagado)'} />
                 <KpiCard title="En Ejecución" value={stats.enEjecucion} emoji="🟡" color="#eab308" />
-                <KpiCard title="En Validación" value={stats.enValidacion} emoji="🔵" color="#3b778c" />
+                <KpiCard title="En Validación" value={stats.enValidacion} emoji="🔵" color="var(--serie-petroleo)" />
                 <KpiCard title="QRR Cerrados" value={stats.cerrados} emoji="🟢" color="#10b981" />
-                <KpiCard title="Impacto $$$ abierto" value={fmt$(stats.impactoAbierto)} emoji="💰" color="#254153" />
-                <KpiCard title="Casos afectados" value={stats.casosAfectados} emoji="📊" color="#c96a4e" />
-                <KpiCard title="Uds. afectadas" value={stats.udsAfectadas} emoji="📦" color="#749094" />
+                <KpiCard title="Impacto $$$ abierto" value={fmt$(stats.impactoAbierto)} emoji="💰" color="var(--serie-navy)" />
+                <KpiCard title="Casos afectados" value={stats.casosAfectados} emoji="📊" color="var(--c-alerta)" />
+                <KpiCard title="Uds. afectadas" value={stats.udsAfectadas} emoji="📦" color="var(--serie-oliva)" />
             </div>
 
             {/* ── Alertas ────────────────────────────────────────────────────── */}
@@ -286,13 +286,13 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setViewMode('kanban')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-[#254153] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-100'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-[var(--c-navy)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-100'}`}
                     >
                         Kanban
                     </button>
                     <button
                         onClick={() => setViewMode('table')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'table' ? 'bg-[#254153] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-100'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${viewMode === 'table' ? 'bg-[var(--c-navy)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-100'}`}
                     >
                         Tabla
                     </button>
@@ -300,7 +300,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setEditingQRR(newQRR())}
-                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[#254153] hover:bg-[#1a2f3d] rounded-lg shadow-sm transition-all"
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[var(--c-navy)] hover:bg-[var(--c-navy-hondo)] rounded-lg shadow-sm transition-all"
                     >
                         <PlusIcon className="w-3.5 h-3.5" /> Nuevo QRR
                     </button>
@@ -377,8 +377,8 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                                             <td className="px-3 py-2.5 text-xs text-stone-700 border-b border-border">{r.responsable || '—'}</td>
                                             <td className="px-3 py-2.5 text-xs font-medium text-brand-dark border-b border-border max-w-[150px] truncate" title={r.problema}>{r.problema}</td>
                                             <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{r.numCasos}</td>
-                                            <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{r.numUnidades}</td>
-                                            <td className="px-3 py-2.5 text-xs font-bold text-[#254153] text-right border-b border-border">{fmt$(r.impactoDinero)}</td>
+                                            <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{r.numUnidades}</td>
+                                            <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-navy-texto)] text-right border-b border-border">{fmt$(r.impactoDinero)}</td>
                                             <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border max-w-[120px] truncate" title={r.accion}>{r.accion || '—'}</td>
                                             <td className="px-3 py-2.5 text-xs text-stone-600 border-b border-border whitespace-nowrap">{r.fechaCompromiso || '—'}</td>
                                             <td className="px-3 py-2.5 border-b border-border">
@@ -412,7 +412,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
             {editingQRR && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setEditingQRR(null)}>
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="bg-[#254153] px-6 py-4 flex items-center justify-between">
+                        <div className="bg-[var(--c-navy)] px-6 py-4 flex items-center justify-between">
                             <h3 className="text-white font-bold text-sm">
                                 {qrrRecords.find(r => r.id === editingQRR.id) ? `Editar QRR — ${editingQRR.id.slice(0, 8)}` : 'Nuevo QRR'}
                             </h3>
@@ -423,7 +423,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                             <div className="flex items-center gap-1 text-[9px] text-stone-400 font-bold overflow-x-auto pb-2">
                                 {['Problema', 'Causa', 'Acción', 'Responsable', 'Compromiso', 'Ejecución', 'Validación', 'Cierre'].map((step, i) => (
                                     <React.Fragment key={i}>
-                                        <span className={`px-2 py-1 rounded ${i <= (['pendiente', 'en_analisis', 'en_ejecucion', 'en_validacion', 'cerrado'].indexOf(editingQRR.estado) + 1) ? 'bg-[#254153] text-white' : 'bg-stone-100 text-stone-400'}`}>{step}</span>
+                                        <span className={`px-2 py-1 rounded ${i <= (['pendiente', 'en_analisis', 'en_ejecucion', 'en_validacion', 'cerrado'].indexOf(editingQRR.estado) + 1) ? 'bg-[var(--c-navy)] text-white' : 'bg-stone-100 text-stone-400'}`}>{step}</span>
                                         {i < 7 && <span className="text-stone-300">→</span>}
                                     </React.Fragment>
                                 ))}
@@ -551,7 +551,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                             {editingQRR.registrosAsociados.length > 0 && (
                                 <button
                                     onClick={() => setShowRecords(editingQRR.registrosAsociados)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#254153] bg-stone-100 hover:bg-stone-100 rounded-lg transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[var(--c-navy-texto)] bg-stone-100 hover:bg-stone-100 rounded-lg transition-colors"
                                 >
                                     <EyeIcon className="w-3.5 h-3.5" />
                                     Ver {editingQRR.registrosAsociados.length} registros asociados
@@ -580,7 +580,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                                         }
                                         handleSave(editingQRR);
                                     }}
-                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#254153] hover:bg-[#1a2f3d] rounded-lg shadow-sm transition-all"
+                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[var(--c-navy)] hover:bg-[var(--c-navy-hondo)] rounded-lg shadow-sm transition-all"
                                 >
                                     <SaveIcon className="w-3.5 h-3.5" /> Guardar
                                 </button>
@@ -594,7 +594,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
             {showRecords && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowRecords(null)}>
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="bg-[#254153] px-6 py-4 flex items-center justify-between">
+                        <div className="bg-[var(--c-navy)] px-6 py-4 flex items-center justify-between">
                             <h3 className="text-white font-bold text-sm">Registros Asociados ({associatedRecords.length})</h3>
                             <button onClick={() => setShowRecords(null)} className="text-white/80 hover:text-white transition-colors"><XIcon className="w-5 h-5" /></button>
                         </div>
@@ -613,7 +613,7 @@ export default function QrrMac({ data, prevData, filters, qrrRecords, setQrrReco
                                 <tbody>
                                     {associatedRecords.map((r, i) => (
                                         <tr key={r.id} className={i % 2 === 0 ? 'bg-white' : 'bg-cream-light/60'}>
-                                            <td className="px-3 py-2 text-xs font-bold text-[#254153] border-b border-border">{r.consecutivo}</td>
+                                            <td className="px-3 py-2 text-xs font-bold text-[var(--c-navy-texto)] border-b border-border">{r.consecutivo}</td>
                                             <td className="px-3 py-2 text-xs text-stone-600 border-b border-border">{new Date(r.created_at).toLocaleDateString('es-CO')}</td>
                                             <td className="px-3 py-2 text-xs text-stone-700 border-b border-border">{r._clientePrincipalFinal}</td>
                                             <td className="px-3 py-2 text-xs border-b border-border">

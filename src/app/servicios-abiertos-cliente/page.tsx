@@ -117,7 +117,7 @@ export default function ServiciosAbiertosClientePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4">
+            <div className="min-h-screen bg-[var(--c-suave)] flex flex-col items-center justify-center p-4">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -134,7 +134,7 @@ export default function ServiciosAbiertosClientePage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC]">
+        <div className="min-h-screen bg-[var(--c-suave)]">
             {/* Header */}
             <header className="bg-brand text-white sticky top-0 z-40 shadow-lg px-4 py-4 md:px-8">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">

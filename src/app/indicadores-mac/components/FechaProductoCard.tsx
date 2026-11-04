@@ -95,7 +95,7 @@ export default function FechaProductoCard({ titulo, campo, color, data, filterKe
     const sinFechaActivo = activeValues.includes(VALOR_SIN_FECHA);
 
     const colorBarra = (d: { valor: string; gris: boolean }) => {
-        const base = d.gris ? '#b3bec4' : color;
+        const base = d.gris ? 'var(--serie-arena)' : color;
         return base;
     };
     const opacidad = (d: { valor: string }) => (!hayFiltro || activeValues.includes(d.valor) ? 1 : 0.3);
@@ -158,13 +158,13 @@ export default function FechaProductoCard({ titulo, campo, color, data, filterKe
                 <div className="h-[260px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={datos} layout="vertical" margin={{ top: 4, right: 48, left: 8, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8e2d5" />
-                            <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780' }} />
-                            <YAxis type="category" dataKey="nombre" width={112} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#1d1d1b', fontWeight: 600 }} />
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--c-linea)" />
+                            <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--c-apagado)' }} />
+                            <YAxis type="category" dataKey="nombre" width={112} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--c-tinta)', fontWeight: 600 }} />
                             <Tooltip cursor={{ fill: '#faf8f4' }} contentStyle={{ borderRadius: 12, border: '1px solid #e8e2d5', fontSize: 12 }} formatter={(v: any) => [v, etiquetaMedida]} />
                             <Bar isAnimationActive={false} dataKey={medida} radius={[0, 6, 6, 0]} maxBarSize={30} onClick={alClic} className="cursor-pointer">
                                 {datos.map((d) => <Cell key={d.valor} fill={colorBarra(d)} fillOpacity={opacidad(d)} />)}
-                                <LabelList dataKey={medida} position="right" style={{ fill: '#1d1d1b', fontSize: 12, fontWeight: 700 }} />
+                                <LabelList dataKey={medida} position="right" style={{ fill: 'var(--c-tinta)', fontSize: 12, fontWeight: 700 }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -173,13 +173,13 @@ export default function FechaProductoCard({ titulo, campo, color, data, filterKe
                 <div className="h-[260px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={datos} margin={{ top: 22, right: 8, left: -18, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
-                            <XAxis dataKey="nombre" interval={0} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8a8780' }} />
-                            <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780' }} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--c-linea)" />
+                            <XAxis dataKey="nombre" interval={0} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-apagado)' }} />
+                            <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--c-apagado)' }} />
                             <Tooltip cursor={{ fill: '#faf8f4' }} contentStyle={{ borderRadius: 12, border: '1px solid #e8e2d5', fontSize: 12 }} formatter={(v: any) => [v, etiquetaMedida]} />
                             <Bar isAnimationActive={false} dataKey={medida} radius={[6, 6, 0, 0]} maxBarSize={34} onClick={alClic} className="cursor-pointer">
                                 {datos.map((d) => <Cell key={d.valor} fill={colorBarra(d)} fillOpacity={opacidad(d)} />)}
-                                <LabelList dataKey={medida} position="top" style={{ fill: '#1d1d1b', fontSize: 11, fontWeight: 700 }} formatter={(v: any) => (v ? v : '')} />
+                                <LabelList dataKey={medida} position="top" style={{ fill: 'var(--c-tinta)', fontSize: 11, fontWeight: 700 }} formatter={(v: any) => (v ? v : '')} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -191,7 +191,7 @@ export default function FechaProductoCard({ titulo, campo, color, data, filterKe
                     ? `${calc.conFecha} de ${calc.total} casos tienen fecha de ${campo === 'fecha_compra' ? 'compra' : 'fabricación'}.`
                     : `Mes con más casos: ${calc.pico?.casos ? `${calc.pico.nombre} (${calc.pico.casos})` : '—'}. "Anteriores" agrupa los meses más antiguos.`}
                 {calc.futuras > 0 && (
-                    <span className="text-[#b86835]"> {calc.futuras} {calc.futuras === 1 ? 'caso tiene' : 'casos tienen'} una fecha posterior a hoy (revisar digitación).</span>
+                    <span className="text-[var(--c-alerta)]"> {calc.futuras} {calc.futuras === 1 ? 'caso tiene' : 'casos tienen'} una fecha posterior a hoy (revisar digitación).</span>
                 )}
             </p>
         </div>

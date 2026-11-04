@@ -650,14 +650,14 @@ export default function SolicitarServicioPage(props: any) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--c-suave)] flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-brand animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className={isInline ? "pb-10" : "min-h-screen bg-[#F1F5F9] text-slate-800 font-sans pb-10"}>
+        <div className={isInline ? "pb-10" : "min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans pb-10"}>
             {!isInline && (
                 <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg">
                     <button

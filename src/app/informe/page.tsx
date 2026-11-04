@@ -8,7 +8,7 @@ export default function InformePage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans p-4 md:p-8 pb-20">
+    <div className="min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans p-4 md:p-8 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <button

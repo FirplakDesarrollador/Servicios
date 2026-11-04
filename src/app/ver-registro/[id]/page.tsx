@@ -362,8 +362,8 @@ export default function VerRegistroPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#f5f1ea] flex flex-col items-center justify-center">
-                <Loader2 className="w-10 h-10 text-[#254153] animate-spin mb-4" />
+            <div className="min-h-screen bg-[var(--c-crema-sup)] flex flex-col items-center justify-center">
+                <Loader2 className="w-10 h-10 text-[var(--c-navy-texto)] animate-spin mb-4" />
                 <p className="text-slate-500 font-medium">Cargando registro...</p>
             </div>
         );
@@ -371,13 +371,13 @@ export default function VerRegistroPage() {
 
     if (!registro) {
         return (
-            <div className="min-h-screen bg-[#f5f1ea] flex flex-col items-center justify-center p-4">
+            <div className="min-h-screen bg-[var(--c-crema-sup)] flex flex-col items-center justify-center p-4">
                 <FileText className="w-16 h-16 text-slate-300 mb-4" />
                 <h2 className="text-2xl font-bold text-slate-700 mb-2">Registro no encontrado</h2>
                 <p className="text-slate-500 mb-6">El registro solicitado no existe o fue eliminado.</p>
                 <button
                     onClick={() => router.push('/registro-solicitudes')}
-                    className="px-6 py-2.5 bg-[#254153] text-white font-bold rounded-xl shadow-lg shadow-[#254153]/20 hover:scale-105 transition-all"
+                    className="px-6 py-2.5 bg-[var(--c-navy)] text-white font-bold rounded-xl shadow-lg shadow-[var(--c-navy)]/20 hover:scale-105 transition-all"
                 >
                     Volver al listado
                 </button>
@@ -389,7 +389,7 @@ export default function VerRegistroPage() {
     const status = registro.estado || 'Abierto';
 
     return (
-        <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans pb-20">
+        <div className="min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans pb-20">
             {/* Header Sticky */}
             <header className="bg-white border-b border-gray-200/80 sticky top-0 z-30 shadow-sm">
                 <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -671,7 +671,7 @@ export default function VerRegistroPage() {
                             <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
                                 <Package className="w-5 h-5 text-slate-400" />
                                 Registro de Productos
-                                {isEditingProductos && <span className="text-[#254153] ml-2 text-xs font-bold">(Modo Edición)</span>}
+                                {isEditingProductos && <span className="text-[var(--c-navy-texto)] ml-2 text-xs font-bold">(Modo Edición)</span>}
                             </h3>
                             <div className="flex items-center gap-2">
                                 {!isEditingProductos ? (
@@ -699,13 +699,13 @@ export default function VerRegistroPage() {
                         <div className="p-6 overflow-y-auto bg-slate-50">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Productos de Compra */}
-                                <div className="bg-white rounded-[1.5rem] border border-[#e8e2d5] p-5 shadow-sm">
-                                    <div className="flex items-center justify-between mb-4 border-b border-[#e8e2d5]/60 pb-3">
+                                <div className="bg-white rounded-[1.5rem] border border-[var(--c-linea)] p-5 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4 border-b border-[var(--c-linea)]/60 pb-3">
                                         <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
                                             Productos de Compra
                                         </h4>
                                         {isEditingProductos && (
-                                            <button onClick={() => setShowBuscadorProductoCompra(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#254153] hover:text-[#254153]/80">
+                                            <button onClick={() => setShowBuscadorProductoCompra(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[var(--c-navy-texto)] hover:text-[var(--c-navy-texto)]/80">
                                                 <Plus className="w-3 h-3" /> Añadir
                                             </button>
                                         )}
@@ -763,13 +763,13 @@ export default function VerRegistroPage() {
                                 </div>
 
                                 {/* Productos Novedad */}
-                                <div className="bg-white rounded-[1.5rem] border border-[#e8e2d5] p-5 shadow-sm">
-                                    <div className="flex items-center justify-between mb-4 border-b border-[#e8e2d5]/60 pb-3">
+                                <div className="bg-white rounded-[1.5rem] border border-[var(--c-linea)] p-5 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4 border-b border-[var(--c-linea)]/60 pb-3">
                                         <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
                                             Productos con Novedad
                                         </h4>
                                         {isEditingProductos && (
-                                            <button onClick={() => setShowBuscadorProductoNovedad(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#254153] hover:text-[#254153]/80">
+                                            <button onClick={() => setShowBuscadorProductoNovedad(true)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[var(--c-navy-texto)] hover:text-[var(--c-navy-texto)]/80">
                                                 <Plus className="w-3 h-3" /> Añadir
                                             </button>
                                         )}
@@ -809,7 +809,7 @@ export default function VerRegistroPage() {
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-start gap-4">
-                                                            <div className="w-10 h-10 bg-[#1d1d1b] text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
+                                                            <div className="w-10 h-10 bg-[var(--c-negro)] text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
                                                                 <span className="text-[9px] font-bold uppercase leading-none opacity-70 mb-0.5">CANT</span>
                                                                 <span className="font-bold text-sm leading-none">{prod.cantidad || 1}</span>
                                                             </div>
@@ -897,7 +897,7 @@ export default function VerRegistroPage() {
                                 <select
                                     value={modalTipoServicio}
                                     onChange={(e) => setModalTipoServicio(e.target.value)}
-                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] transition-all appearance-none font-medium"
+                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 focus:border-[var(--c-navy-texto)] transition-all appearance-none font-medium"
                                 >
                                     <option value="">Seleccione una opción...</option>
                                     <option value="mantenimiento">Mantenimiento</option>
@@ -922,7 +922,7 @@ export default function VerRegistroPage() {
                                     id="modalFacturado"
                                     checked={modalFacturado}
                                     onChange={(e) => setModalFacturado(e.target.checked)}
-                                    className="w-5 h-5 rounded border-slate-300 text-[#254153] focus:ring-[#254153]"
+                                    className="w-5 h-5 rounded border-slate-300 text-[var(--c-navy-texto)] focus:ring-[var(--c-navy-texto)]"
                                 />
                                 <label htmlFor="modalFacturado" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
                                     ¿Es un servicio facturado?
@@ -937,14 +937,14 @@ export default function VerRegistroPage() {
                                     onChange={(e) => setModalComentario(e.target.value)}
                                     placeholder="Escriba un comentario para el servicio..."
                                     rows={3}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153] transition-all font-medium text-sm resize-none placeholder:text-slate-400"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 focus:border-[var(--c-navy-texto)] transition-all font-medium text-sm resize-none placeholder:text-slate-400"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                                     Adjuntar Archivos
                                 </label>
-                                <label className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-[#254153] hover:text-[#254153] hover:bg-slate-100 transition-all cursor-pointer">
+                                <label className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-[var(--c-navy-texto)] hover:text-[var(--c-navy-texto)] hover:bg-slate-100 transition-all cursor-pointer">
                                     <Paperclip className="w-4 h-4" />
                                     <span className="text-sm font-medium">Seleccionar archivos</span>
                                     <input
@@ -990,7 +990,7 @@ export default function VerRegistroPage() {
                             <button
                                 onClick={handleSolicitarServicio}
                                 disabled={isCreatingService}
-                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#254153] hover:bg-[#254153]/90 transition-colors disabled:opacity-50"
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[var(--c-navy)] hover:bg-[var(--c-navy)]/90 transition-colors disabled:opacity-50"
                             >
                                 {isCreatingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                 {isCreatingService ? 'Creando...' : 'Confirmar Creación'}
@@ -1135,28 +1135,28 @@ function ComentariosTab({ registro }: { registro: any }) {
     };
 
     return (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] overflow-hidden flex flex-col h-[600px] relative">
+        <div className="bg-white rounded-[2rem] shadow-sm border border-[var(--c-linea)] overflow-hidden flex flex-col h-[600px] relative">
             {/* Cabecera */}
-            <div className="p-6 border-b border-[#e8e2d5]/60 flex items-center justify-between shrink-0">
+            <div className="p-6 border-b border-[var(--c-linea)]/60 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#f5f1ea]/50 rounded-xl flex items-center justify-center text-[#749094]">
+                    <div className="w-10 h-10 bg-[var(--c-crema-sup)]/50 rounded-xl flex items-center justify-center text-[var(--c-oliva-texto)]">
                         <MessageSquare className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-[#1d1d1b]">Historial de Comentarios</h3>
-                        <p className="text-[11px] font-medium text-[#749094] uppercase tracking-widest mt-0.5">Discusión del caso</p>
+                        <h3 className="text-sm font-bold text-[var(--c-tinta)]">Historial de Comentarios</h3>
+                        <p className="text-[11px] font-medium text-[var(--c-oliva-texto)] uppercase tracking-widest mt-0.5">Discusión del caso</p>
                     </div>
                 </div>
-                <div className="text-xs font-bold text-[#1d1d1b]/70 bg-[#f5f1ea]/30 px-3 py-1.5 rounded-lg border border-[#e8e2d5]">
+                <div className="text-xs font-bold text-[var(--c-tinta)]/70 bg-[var(--c-crema-sup)]/30 px-3 py-1.5 rounded-lg border border-[var(--c-linea)]">
                     {comentarios.length} {comentarios.length === 1 ? 'Mensaje' : 'Mensajes'}
                 </div>
             </div>
 
             {/* Lista de Comentarios */}
-            <div className="flex-1 overflow-y-auto p-6 bg-[#f5f1ea]/10 custom-scrollbar space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 bg-[var(--c-crema-sup)]/10 custom-scrollbar space-y-6">
                 {loading ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                        <Loader2 className="w-8 h-8 animate-spin mb-3 text-[#254153]" />
+                        <Loader2 className="w-8 h-8 animate-spin mb-3 text-[var(--c-navy-texto)]" />
                         <p className="text-sm font-medium">Cargando comentarios...</p>
                     </div>
                 ) : comentarios.length === 0 ? (
@@ -1173,24 +1173,24 @@ function ComentariosTab({ registro }: { registro: any }) {
                         
                         return (
                             <div key={comentario.id || index} className="flex gap-4">
-                                <div className="w-10 h-10 bg-gradient-to-br from-[#254153] to-[#749094] rounded-full flex items-center justify-center shrink-0 shadow-md">
+                                <div className="w-10 h-10 bg-gradient-to-br from-[var(--c-navy)] to-[var(--c-oliva)] rounded-full flex items-center justify-center shrink-0 shadow-md">
                                     <span className="text-white font-black text-xs">
                                         {autorNombre.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
                                 <div className="flex-1 space-y-1.5">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm font-black text-[#1d1d1b]">{autorNombre}</span>
-                                        <span className="text-[10px] font-bold text-[#749094] uppercase tracking-wider">
+                                        <span className="text-sm font-black text-[var(--c-tinta)]">{autorNombre}</span>
+                                        <span className="text-[10px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider">
                                             {new Date(comentario.created_at).toLocaleString('es-CO', { 
                                                 day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                                             })}
                                         </span>
                                     </div>
-                                    <div className="bg-white border border-[#e8e2d5] p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-[#1d1d1b] leading-relaxed whitespace-pre-wrap">
+                                    <div className="bg-white border border-[var(--c-linea)] p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-[var(--c-tinta)] leading-relaxed whitespace-pre-wrap">
                                         {comentario.comentario || ''}
                                         {comentario.adjuntos && comentario.adjuntos.length > 0 && (
-                                            <div className={`flex flex-wrap gap-2 ${comentario.comentario ? 'mt-3 pt-3 border-t border-[#e8e2d5]/60' : ''}`}>
+                                            <div className={`flex flex-wrap gap-2 ${comentario.comentario ? 'mt-3 pt-3 border-t border-[var(--c-linea)]/60' : ''}`}>
                                                 {comentario.adjuntos.map((adjunto: any, i: number) => {
                                                     const ext = adjunto.url.split('.').pop()?.toLowerCase() || adjunto.name?.split('.').pop()?.toLowerCase();
                                                     const inferredIsImage = ext && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
@@ -1249,7 +1249,7 @@ function ComentariosTab({ registro }: { registro: any }) {
                                                         );
                                                     }
                                                     return (
-                                                        <a key={i} href={adjunto.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 bg-[#f5f1ea]/30 border border-[#e8e2d5] rounded-lg text-xs font-medium text-[#1d1d1b]/80 hover:bg-[#f5f1ea]/50 transition-colors w-full sm:w-auto shrink-0">
+                                                        <a key={i} href={adjunto.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 bg-[var(--c-crema-sup)]/30 border border-[var(--c-linea)] rounded-lg text-xs font-medium text-[var(--c-tinta)]/80 hover:bg-[var(--c-crema-sup)]/50 transition-colors w-full sm:w-auto shrink-0">
                                                             <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
                                                             <span className="truncate max-w-[150px]">{adjunto.name}</span>
                                                         </a>
@@ -1267,21 +1267,21 @@ function ComentariosTab({ registro }: { registro: any }) {
             </div>
 
             {/* Input para Nuevo Comentario */}
-            <div className="p-4 bg-white border-t border-[#e8e2d5] shrink-0">
+            <div className="p-4 bg-white border-t border-[var(--c-linea)] shrink-0">
                 {archivos.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
                         {archivos.map((file, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-brand/5 border border-brand/20 text-[#254153] px-3 py-1.5 rounded-lg text-xs font-medium">
+                            <div key={i} className="flex items-center gap-2 bg-brand/5 border border-brand/20 text-[var(--c-navy-texto)] px-3 py-1.5 rounded-lg text-xs font-medium">
                                 <span className="truncate max-w-[150px]">{file.name}</span>
-                                <button onClick={() => setArchivos(prev => prev.filter((_, idx) => idx !== i))} className="p-0.5 hover:bg-[#254153]/10 rounded-md transition-colors">
+                                <button onClick={() => setArchivos(prev => prev.filter((_, idx) => idx !== i))} className="p-0.5 hover:bg-[var(--c-navy)]/10 rounded-md transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         ))}
                     </div>
                 )}
-                <div className="flex items-end gap-3 bg-slate-50 border border-[#e8e2d5] p-2 rounded-2xl focus-within:border-[#254153] focus-within:ring-1 focus-within:ring-[#254153] transition-all">
-                    <label className="w-11 h-11 flex items-center justify-center text-[#749094] hover:text-[#254153] hover:bg-[#254153]/5 rounded-xl cursor-pointer transition-colors shrink-0">
+                <div className="flex items-end gap-3 bg-slate-50 border border-[var(--c-linea)] p-2 rounded-2xl focus-within:border-[var(--c-navy-texto)] focus-within:ring-1 focus-within:ring-[var(--c-navy-texto)] transition-all">
+                    <label className="w-11 h-11 flex items-center justify-center text-[var(--c-oliva-texto)] hover:text-[var(--c-navy-texto)] hover:bg-[var(--c-navy)]/5 rounded-xl cursor-pointer transition-colors shrink-0">
                         <Paperclip className="w-5 h-5" />
                         <input type="file" multiple className="hidden" onChange={(e) => {
                             if (e.target.files) {
@@ -1295,7 +1295,7 @@ function ComentariosTab({ registro }: { registro: any }) {
                         value={nuevoComentario}
                         onChange={(e) => setNuevoComentario(e.target.value)}
                         placeholder="Escribe un comentario..."
-                        className="flex-1 bg-transparent p-2 text-sm text-[#1d1d1b] focus:outline-none resize-none min-h-[44px] max-h-32 custom-scrollbar"
+                        className="flex-1 bg-transparent p-2 text-sm text-[var(--c-tinta)] focus:outline-none resize-none min-h-[44px] max-h-32 custom-scrollbar"
                         rows={1}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -1307,19 +1307,19 @@ function ComentariosTab({ registro }: { registro: any }) {
                     <button 
                         onClick={handleAddComentario}
                         disabled={(!nuevoComentario.trim() && archivos.length === 0) || isSubmitting}
-                        className="w-11 h-11 flex items-center justify-center bg-[#254153] text-white rounded-xl shadow-md hover:bg-[#254153]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className="w-11 h-11 flex items-center justify-center bg-[var(--c-navy)] text-white rounded-xl shadow-md hover:bg-[var(--c-navy)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                     >
                         {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-1" />}
                     </button>
                 </div>
-                <p className="text-[10px] text-[#749094] font-medium text-center mt-2 uppercase tracking-widest">
+                <p className="text-[10px] text-[var(--c-oliva-texto)] font-medium text-center mt-2 uppercase tracking-widest">
                     Presiona Enter para enviar, Shift + Enter para salto de línea
                 </p>
             </div>
 
             {/* Modal Lightbox / Carrusel de Adjuntos */}
             {lightboxOpen && lightboxItems.length > 0 && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#1d1d1b]/95 backdrop-blur-md transition-all select-none animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[var(--c-negro)]/95 backdrop-blur-md transition-all select-none animate-in fade-in duration-200">
                     {/* Backdrop / Cierre al hacer click fuera */}
                     <div className="absolute inset-0 cursor-zoom-out" onClick={() => setLightboxOpen(false)} />
 
@@ -1603,66 +1603,66 @@ function ClasificacionTab({
     };
 
     return (
-        <div className="bg-white rounded-[2rem] w-full shadow-sm border border-[#e8e2d5] flex flex-col relative z-10 overflow-hidden">
+        <div className="bg-white rounded-[2rem] w-full shadow-sm border border-[var(--c-linea)] flex flex-col relative z-10 overflow-hidden">
             {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-[#e8e2d5]/60 flex items-center justify-between bg-white shrink-0">
+            <div className="p-4 sm:p-5 border-b border-[var(--c-linea)]/60 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#254153]/10 text-[#254153] rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)] rounded-xl flex items-center justify-center">
                         <Tag className="w-5 h-5" />
                     </div>
                     <div>
-                        <h2 className="text-base font-bold text-[#1d1d1b]">Clasificación de Productos</h2>
-                        <p className="text-[11px] text-[#749094] font-medium">Asigna la clasificación detallada para cada novedad</p>
+                        <h2 className="text-base font-bold text-[var(--c-tinta)]">Clasificación de Productos</h2>
+                        <p className="text-[11px] text-[var(--c-oliva-texto)] font-medium">Asigna la clasificación detallada para cada novedad</p>
                     </div>
                 </div>
             </div>
             
             {/* Global Classification Fields */}
-            <div className="p-4 sm:p-6 bg-[#f5f1ea]/15 border-b border-[#e8e2d5] pb-0">
-                <div className="bg-white rounded-[1.5rem] shadow-sm border border-[#e8e2d5] p-5">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-[#749094] mb-4 flex items-center gap-2">
+            <div className="p-4 sm:p-6 bg-[var(--c-crema-sup)]/15 border-b border-[var(--c-linea)] pb-0">
+                <div className="bg-white rounded-[1.5rem] shadow-sm border border-[var(--c-linea)] p-5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-4 flex items-center gap-2">
                         <Info className="w-4 h-4" /> Datos Generales de la Solicitud
                     </h3>
                     
                     <div className="space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Vendedor</label>
-                                <select value={globalClasificacion.vendedor_id} onChange={(e) => handleGlobalClasificacionChange('vendedor_id', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Vendedor</label>
+                                <select value={globalClasificacion.vendedor_id} onChange={(e) => handleGlobalClasificacionChange('vendedor_id', e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]">
                                     <option value="">Seleccione Vendedor</option>
                                     {usuariosList.map(v => <option key={v.id} value={v.id}>{v.display_name || `${v.nombres||''} ${v.apellidos||''}`}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Responsable Atraso</label>
-                                <input type="text" value={globalClasificacion.responsable_atraso} onChange={(e) => handleGlobalClasificacionChange('responsable_atraso', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Responsable Atraso</label>
+                                <input type="text" value={globalClasificacion.responsable_atraso} onChange={(e) => handleGlobalClasificacionChange('responsable_atraso', e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Área Responsable</label>
-                                <input type="text" value={globalClasificacion.area_responsable} onChange={(e) => handleGlobalClasificacionChange('area_responsable', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Área Responsable</label>
+                                <input type="text" value={globalClasificacion.area_responsable} onChange={(e) => handleGlobalClasificacionChange('area_responsable', e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha Verificación</label>
-                                <input type="date" value={globalClasificacion.fecha_verificacion} onChange={(e) => handleGlobalClasificacionChange('fecha_verificacion', e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Fecha Verificación</label>
+                                <input type="date" value={globalClasificacion.fecha_verificacion} onChange={(e) => handleGlobalClasificacionChange('fecha_verificacion', e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-100 pt-5">
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Servicio</label>
-                                <input type="number" value={globalClasificacion.valor_servicio} onChange={(e) => handleGlobalClasificacionChange('valor_servicio', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Valor Servicio</label>
+                                <input type="number" value={globalClasificacion.valor_servicio} onChange={(e) => handleGlobalClasificacionChange('valor_servicio', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Flete</label>
-                                <input type="number" value={globalClasificacion.valor_flete} onChange={(e) => handleGlobalClasificacionChange('valor_flete', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Valor Flete</label>
+                                <input type="number" value={globalClasificacion.valor_flete} onChange={(e) => handleGlobalClasificacionChange('valor_flete', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Producto</label>
-                                <input type="number" value={globalClasificacion.valor_producto} onChange={(e) => handleGlobalClasificacionChange('valor_producto', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Valor Producto</label>
+                                <input type="number" value={globalClasificacion.valor_producto} onChange={(e) => handleGlobalClasificacionChange('valor_producto', e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Valor Total</label>
-                                <div className="w-full bg-[#254153]/5 border border-[#254153]/20 rounded-lg p-2.5 text-sm font-bold text-[#254153]">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Valor Total</label>
+                                <div className="w-full bg-[var(--c-navy)]/5 border border-[var(--c-navy-texto)]/20 rounded-lg p-2.5 text-sm font-bold text-[var(--c-navy-texto)]">
                                     ${((Number(globalClasificacion.valor_servicio)||0) + (Number(globalClasificacion.valor_flete)||0) + (Number(globalClasificacion.valor_producto)||0)).toLocaleString()}
                                 </div>
                             </div>
@@ -1678,16 +1678,16 @@ function ClasificacionTab({
                 ) : (
                     <ul className="space-y-6">
                         {editClasificacionProductos.map((prod: any, idx: number) => (
-                            <li key={idx} className="bg-white rounded-[1.5rem] border border-[#e8e2d5] p-5 shadow-sm">
+                            <li key={idx} className="bg-white rounded-[1.5rem] border border-[var(--c-linea)] p-5 shadow-sm">
                                 {/* Header del Producto */}
                                 <div className="flex items-start gap-4 mb-5 border-b border-slate-100 pb-4">
-                                    <div className="w-10 h-10 bg-[#1d1d1b] text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
+                                    <div className="w-10 h-10 bg-[var(--c-negro)] text-white shadow-sm rounded-lg flex flex-col items-center justify-center shrink-0">
                                         <span className="text-[9px] font-bold uppercase leading-none opacity-70 mb-0.5">CANT</span>
                                         <span className="font-bold text-sm leading-none">{prod.cantidad || 1}</span>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-bold text-[#1d1d1b] truncate">{prod.referencia || prod.codigo || prod.sku || 'Sin Referencia'}</p>
-                                        <p className="text-xs text-[#1d1d1b]/70 mt-0.5 line-clamp-2">{prod.descripcion || prod.nombre || 'Producto Genérico'}</p>
+                                        <p className="text-sm font-bold text-[var(--c-tinta)] truncate">{prod.referencia || prod.codigo || prod.sku || 'Sin Referencia'}</p>
+                                        <p className="text-xs text-[var(--c-tinta)]/70 mt-0.5 line-clamp-2">{prod.descripcion || prod.nombre || 'Producto Genérico'}</p>
                                     </div>
                                 </div>
 
@@ -1695,29 +1695,29 @@ function ClasificacionTab({
                                 <div className="space-y-5">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha de Compra</label>
-                                            <input type="date" value={prod.fecha_compra || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_compra', e.target.value)} onPaste={(e) => handleDatePaste(e, (d) => updateClasificacionProduct(idx, 'fecha_compra', d))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Fecha de Compra</label>
+                                            <input type="date" value={prod.fecha_compra || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_compra', e.target.value)} onPaste={(e) => handleDatePaste(e, (d) => updateClasificacionProduct(idx, 'fecha_compra', d))} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block">Fecha Fabricación</label>
-                                            <input type="date" value={prod.fecha_fabricacion || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_fabricacion', e.target.value)} onPaste={(e) => handleDatePaste(e, (d) => updateClasificacionProduct(idx, 'fecha_fabricacion', d))} className="w-full bg-white border border-[#e8e2d5] rounded-lg p-2.5 text-sm outline-none focus:border-[#254153] focus:ring-1 focus:ring-[#254153] hover:border-[#749094]/40 transition-colors text-[#1d1d1b]" />
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Fecha Fabricación</label>
+                                            <input type="date" value={prod.fecha_fabricacion || ''} onChange={(e) => updateClasificacionProduct(idx, 'fecha_fabricacion', e.target.value)} onPaste={(e) => handleDatePaste(e, (d) => updateClasificacionProduct(idx, 'fecha_fabricacion', d))} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                                         </div>
                                     </div>
 
                                     {/* Familia y Planta — obligatorios para cierre */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block flex items-center gap-1">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block flex items-center gap-1">
                                                 Familia
                                                 <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
                                             </label>
                                             <select
                                                 value={matchOption(FAMILIA_OPTIONS, prod.familia)}
                                                 onChange={(e) => updateClasificacionProduct(idx, 'familia', e.target.value)}
-                                                className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
+                                                className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[var(--c-tinta)] ${
                                                     globalClasificacion.fecha_verificacion && !prod.familia
                                                         ? 'border-red-400 focus:border-red-500 focus:ring-red-300'
-                                                        : 'border-[#e8e2d5] focus:border-[#254153] focus:ring-[#254153] hover:border-[#749094]/40'
+                                                        : 'border-[var(--c-linea)] focus:border-[var(--c-navy-texto)] focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40'
                                                 }`}
                                             >
                                                 <option value="">Seleccione familia...</option>
@@ -1728,17 +1728,17 @@ function ClasificacionTab({
                                             )}
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#749094] mb-1.5 block flex items-center gap-1">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block flex items-center gap-1">
                                                 Planta
                                                 <span className="text-red-500 ml-0.5" title="Obligatorio para cerrar">*</span>
                                             </label>
                                             <select
                                                 value={matchOption(PLANTA_OPTIONS, prod.planta)}
                                                 onChange={(e) => updateClasificacionProduct(idx, 'planta', e.target.value)}
-                                                className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[#1d1d1b] ${
+                                                className={`w-full bg-white border rounded-lg p-2.5 text-sm outline-none focus:ring-1 transition-colors text-[var(--c-tinta)] ${
                                                     globalClasificacion.fecha_verificacion && !prod.planta
                                                         ? 'border-red-400 focus:border-red-500 focus:ring-red-300'
-                                                        : 'border-[#e8e2d5] focus:border-[#254153] focus:ring-[#254153] hover:border-[#749094]/40'
+                                                        : 'border-[var(--c-linea)] focus:border-[var(--c-navy-texto)] focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40'
                                                 }`}
                                             >
                                                 <option value="">Seleccione planta...</option>
@@ -1750,32 +1750,32 @@ function ClasificacionTab({
                                         </div>
                                     </div>
 
-                                    <div className="border border-[#e8e2d5] rounded-xl p-4 bg-[#f5f1ea]/10 mt-4">
+                                    <div className="border border-[var(--c-linea)] rounded-xl p-4 bg-[var(--c-crema-sup)]/10 mt-4">
                                         <div className="flex items-center justify-between mb-3">
-                                            <label className="text-[11px] font-bold uppercase tracking-widest text-[#254153]">Defectos / Responsables</label>
-                                            <button onClick={() => addProductProblema(idx)} className="text-[10px] font-bold uppercase tracking-widest text-[#254153] hover:underline flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-[#254153]/10">
+                                            <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--c-navy-texto)]">Defectos / Responsables</label>
+                                            <button onClick={() => addProductProblema(idx)} className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-navy-texto)] hover:underline flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-[var(--c-navy-texto)]/10">
                                                 <Plus className="w-3 h-3" /> Añadir Defecto
                                             </button>
                                         </div>
                                         {(prod.problemas || []).length > 0 ? (
                                             <div className="space-y-3">
                                                 {(prod.problemas || []).map((prob: any, pIdx: number) => (
-                                                    <div key={pIdx} className="flex items-start sm:items-center gap-2 flex-col sm:flex-row bg-white p-3 rounded-lg border border-[#e8e2d5] shadow-sm">
+                                                    <div key={pIdx} className="flex items-start sm:items-center gap-2 flex-col sm:flex-row bg-white p-3 rounded-lg border border-[var(--c-linea)] shadow-sm">
                                                         <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                             <div>
                                                                 <span className="text-[9px] text-slate-400 block mb-1">Defecto</span>
-                                                                <select value={prob.tipo_problema_id || ''} onChange={(e) => handleDefectoChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-md p-2 text-xs outline-none focus:border-[#254153]">
+                                                                <select value={prob.tipo_problema_id || ''} onChange={(e) => handleDefectoChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-md p-2 text-xs outline-none focus:border-[var(--c-navy-texto)]">
                                                                     <option value="">Seleccione...</option>
                                                                     {localRazones.map(r => <option key={r.id} value={r.id}>{r.razon || r.defecto}</option>)}
-                                                                    <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Defecto...</option>
+                                                                    <option value="NEW" className="font-bold text-[var(--c-navy-texto)]">+ Crear Nuevo Defecto...</option>
                                                                 </select>
                                                             </div>
                                                             <div>
                                                                 <span className="text-[9px] text-slate-400 block mb-1">Responsable</span>
-                                                                <select value={prob.responsable_problema_id || ''} onChange={(e) => handleResponsableChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[#e8e2d5] rounded-md p-2 text-xs outline-none focus:border-[#254153]">
+                                                                <select value={prob.responsable_problema_id || ''} onChange={(e) => handleResponsableChange(idx, pIdx, e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-md p-2 text-xs outline-none focus:border-[var(--c-navy-texto)]">
                                                                     <option value="">Seleccione...</option>
                                                                     {localResponsables.map(r => <option key={r.id} value={r.id}>{r.responsable}</option>)}
-                                                                    <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Responsable...</option>
+                                                                    <option value="NEW" className="font-bold text-[var(--c-navy-texto)]">+ Crear Nuevo Responsable...</option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -1803,7 +1803,7 @@ function ClasificacionTab({
                 <button
                     onClick={handleSaveClasificacion}
                     disabled={isSavingClasificacion}
-                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#254153] text-white shadow-lg shadow-[#254153]/20 hover:scale-105 transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[var(--c-navy)] text-white shadow-lg shadow-[var(--c-navy)]/20 hover:scale-105 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
                     {isSavingClasificacion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Guardar Clasificación
@@ -1964,9 +1964,9 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
         <div className="space-y-6">
             
             {/* Datos Básicos */}
-            <div className="bg-white rounded-[2rem] shadow-sm border border-[#e8e2d5] p-6 sm:p-8">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[#749094] mb-6 flex items-center gap-2 border-b border-[#e8e2d5]/60 pb-4">
-                    <Info className="w-4 h-4 text-[#749094]" />
+            <div className="bg-white rounded-[2rem] shadow-sm border border-[var(--c-linea)] p-6 sm:p-8">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-6 flex items-center gap-2 border-b border-[var(--c-linea)]/60 pb-4">
+                    <Info className="w-4 h-4 text-[var(--c-oliva-texto)]" />
                     Detalles Principales
                 </h3>
                 
@@ -1979,34 +1979,34 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                         <InfoField label="Cerrado Por" value={usuarioCierre} icon={ShieldCheck} />
                     )}
                     
-                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
-                        <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[var(--c-linea)] bg-[var(--c-crema-sup)]/20 hover:border-[var(--c-oliva-texto)]/30 hover:bg-[var(--c-crema-sup)]/40 transition-colors">
+                        <div className="w-8 h-8 rounded-md bg-white border border-[var(--c-linea)] flex items-center justify-center text-[var(--c-oliva-texto)] shrink-0">
                             <Tag className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0 flex-1 relative">
-                            <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Tipo de Solicitud</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-0.5">Tipo de Solicitud</p>
                             <select 
                                 value={registro.tipo_solicitud || ''} 
                                 onChange={handleTipoSolicitudChange}
                                 disabled={isSavingTipoSolicitud}
-                                className="w-full text-xs font-semibold text-[#1d1d1b] bg-transparent outline-none cursor-pointer truncate appearance-none"
+                                className="w-full text-xs font-semibold text-[var(--c-tinta)] bg-transparent outline-none cursor-pointer truncate appearance-none"
                             >
                                 <option value="">Seleccionar opción...</option>
                                 {tiposSolicitud.map(tipo => (
                                     <option key={tipo} value={tipo}>{tipo}</option>
                                 ))}
-                                <option value="NEW" className="font-bold text-[#254153]">+ Crear Nuevo Tipo...</option>
+                                <option value="NEW" className="font-bold text-[var(--c-navy-texto)]">+ Crear Nuevo Tipo...</option>
                             </select>
-                            {isSavingTipoSolicitud && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[#254153]" />}
+                            {isSavingTipoSolicitud && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[var(--c-navy-texto)]" />}
                         </div>
                     </div>
                     <InfoField label="Canal de Venta" value={canalVentaFormat} icon={Building2} />
-                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
-                        <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[var(--c-linea)] bg-[var(--c-crema-sup)]/20 hover:border-[var(--c-oliva-texto)]/30 hover:bg-[var(--c-crema-sup)]/40 transition-colors">
+                        <div className="w-8 h-8 rounded-md bg-white border border-[var(--c-linea)] flex items-center justify-center text-[var(--c-oliva-texto)] shrink-0">
                             <FileText className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0 flex-1 relative">
-                            <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Orden de Venta</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-0.5">Orden de Venta</p>
                             <input 
                                 type="text"
                                 placeholder="N/A"
@@ -2015,29 +2015,29 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                                 onBlur={handleOrdenVentaBlur}
                                 onKeyDown={(e) => { if (e.key === 'Enter') handleOrdenVentaBlur(); }}
                                 disabled={isSavingOrdenVenta}
-                                className="w-full text-xs font-semibold text-[#1d1d1b] bg-transparent outline-none truncate placeholder:text-[#749094]/40"
+                                className="w-full text-xs font-semibold text-[var(--c-tinta)] bg-transparent outline-none truncate placeholder:text-[var(--c-oliva-texto)]/40"
                             />
-                            {isSavingOrdenVenta && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[#254153]" />}
+                            {isSavingOrdenVenta && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[var(--c-navy-texto)]" />}
                         </div>
                     </div>
-                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
-                        <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+                    <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[var(--c-linea)] bg-[var(--c-crema-sup)]/20 hover:border-[var(--c-oliva-texto)]/30 hover:bg-[var(--c-crema-sup)]/40 transition-colors">
+                        <div className="w-8 h-8 rounded-md bg-white border border-[var(--c-linea)] flex items-center justify-center text-[var(--c-oliva-texto)] shrink-0">
                             <UserCog className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0 flex-1 relative">
-                            <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">Asesor MAC</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-0.5">Asesor MAC</p>
                             <select 
                                 value={registro.asesor_mac_id || ''} 
                                 onChange={handleAsesorChange}
                                 disabled={isSavingAsesor}
-                                className="w-full text-xs font-semibold text-[#1d1d1b] bg-transparent outline-none cursor-pointer truncate appearance-none"
+                                className="w-full text-xs font-semibold text-[var(--c-tinta)] bg-transparent outline-none cursor-pointer truncate appearance-none"
                             >
                                 <option value="">Sin Asignar</option>
                                 {asesoresMac.map(u => (
                                     <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
                                 ))}
                             </select>
-                            {isSavingAsesor && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[#254153]" />}
+                            {isSavingAsesor && <Loader2 className="w-3 h-3 animate-spin absolute right-0 top-1/2 -translate-y-1/2 text-[var(--c-navy-texto)]" />}
                         </div>
                     </div>
                 </div>
@@ -2302,13 +2302,13 @@ function ServiciosEnlazadosTab({ registro }: { registro: any }) {
 
 function InfoField({ label, value, icon: Icon }: { label: string, value: string, icon: any }) {
     return (
-        <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[#e8e2d5] bg-[#f5f1ea]/20 hover:border-[#749094]/30 hover:bg-[#f5f1ea]/40 transition-colors">
-            <div className="w-8 h-8 rounded-md bg-white border border-[#e8e2d5] flex items-center justify-center text-[#749094] shrink-0">
+        <div className="flex gap-2.5 items-center p-2 rounded-lg border border-[var(--c-linea)] bg-[var(--c-crema-sup)]/20 hover:border-[var(--c-oliva-texto)]/30 hover:bg-[var(--c-crema-sup)]/40 transition-colors">
+            <div className="w-8 h-8 rounded-md bg-white border border-[var(--c-linea)] flex items-center justify-center text-[var(--c-oliva-texto)] shrink-0">
                 <Icon className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-                <p className="text-[8px] font-bold uppercase tracking-widest text-[#749094] mb-0.5">{label}</p>
-                <p className="text-xs font-semibold text-[#1d1d1b] truncate" title={value}>{value}</p>
+                <p className="text-[8px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-0.5">{label}</p>
+                <p className="text-xs font-semibold text-[var(--c-tinta)] truncate" title={value}>{value}</p>
             </div>
         </div>
     );
@@ -2322,7 +2322,7 @@ function PlaceholderTab({ title, description, icon: Icon }: { title: string, des
             </div>
             <h3 className="text-lg font-bold text-slate-700 mb-2">Pestaña de {title}</h3>
             <p className="text-slate-500 max-w-md">{description}</p>
-            <span className="mt-6 px-4 py-1.5 bg-brand/10 text-[#254153] rounded-full text-xs font-black uppercase tracking-widest">
+            <span className="mt-6 px-4 py-1.5 bg-brand/10 text-[var(--c-navy-texto)] rounded-full text-xs font-black uppercase tracking-widest">
                 Próximamente
             </span>
         </div>

@@ -1,49 +1,356 @@
 @import "tailwindcss";
 
+/* ── Paleta: navy, oliva, crema y negro ───────────────────────────────────
+   Cada pantalla usa estos tokens; el tema solo cambia sus valores. Las clases
+   slate/stone/gray de Tailwind se remapean aquí para que toda la app los herede. */
 :root {
-  --background: #f5f1ea;
-  --foreground: #1d1d1b;
+  color-scheme: light;
+  --c-navy: #1b3250;
+  --c-navy-hondo: #122338;
+  --c-navy-claro: #2f5075;
+  --c-negro: #121418;
+  --c-oliva: #66753a;
+  --c-oliva-claro: #8b9a56;
+  --c-arena: #cdbb93;
+  --c-crema: #f3ecdc;
+  --c-alerta: #a4622a;
+
+  --c-tinta: #14181f;
+  --c-navy-texto: #1b3250;
+  --c-oliva-texto: #57652f;
+  --c-apagado: #6f706a;
+  --c-linea: rgb(27 50 80 / 0.14);
+  --c-crema-sup: #f3ecdc;
+  --c-suave: rgb(255 252 244 / 0.55);
+
+  /* Series de las gráficas */
+  --serie-navy: #1b3250;
+  --serie-oliva: #66753a;
+  --serie-arena: #b9a26f;
+  --serie-petroleo: #3f6c7d;
+
+  /* Vidrio */
+  --sup: 255 252 245;
+  --vidrio: 0.6;
+  --vidrio-borde: rgb(255 255 255 / 0.65);
+  --vidrio-brillo: rgb(255 255 255 / 0.7);
+  --vidrio-sombra: rgb(18 35 56 / 0.2);
+  --lienzo: #efe7d5;
+  --mancha-a: rgb(27 50 80 / 0.34);
+  --mancha-b: rgb(102 117 58 / 0.42);
+  --mancha-c: rgb(205 187 147 / 0.75);
+  --mancha-d: rgb(47 80 117 / 0.22);
+
+  /* Neutros */
+  --n-50: #f8f4ea;
+  --n-100: #efe9da;
+  --n-200: #e2dbc9;
+  --n-300: #cbc5b3;
+  --n-400: #74756e;
+  --n-500: #63666a;
+  --n-600: #4c5259;
+  --n-700: #38404a;
+  --n-800: #232b36;
+  --n-900: #151b24;
+  --n-950: #0c1016;
+
+  /* Navy para las clases indigo, blue y sky */
+  --a-50: #e9eef4;
+  --a-100: #d7e0ea;
+  --a-200: #b5c4d5;
+  --a-300: #8ba2ba;
+  --a-400: #5f7d9c;
+  --a-500: #3b5c80;
+  --a-600: #2a4a6e;
+  --a-700: #1f3a5a;
+  --a-800: #1b3250;
+  --a-900: #122338;
+
+  /* Oliva para las clases emerald, green y teal */
+  --o-50: #f0f2e4;
+  --o-100: #e3e8cd;
+  --o-200: #cdd6a8;
+  --o-300: #b1bf7e;
+  --o-400: #8b9a56;
+  --o-500: #72823f;
+  --o-600: #66753a;
+  --o-700: #4f5b2d;
+  --o-800: #3f4925;
+  --o-900: #2f371c;
+}
+
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+  --c-navy: #274468;
+  --c-navy-hondo: #1b3250;
+  --c-navy-claro: #3b5f88;
+  --c-negro: #0b0d11;
+  --c-oliva: #76863f;
+  --c-oliva-claro: #a4b36a;
+  --c-alerta: #dd9a5d;
+
+  --c-tinta: #f4efe2;
+  --c-navy-texto: #d4e0ec;
+  --c-oliva-texto: #b8c682;
+  --c-apagado: #a7adb0;
+  --c-linea: rgb(243 236 220 / 0.14);
+  --c-crema-sup: rgb(243 236 220 / 0.07);
+  --c-suave: rgb(243 236 220 / 0.05);
+
+  --serie-navy: #8fb0d2;
+  --serie-oliva: #a4b36a;
+  --serie-arena: #d8c698;
+  --serie-petroleo: #6fa4b7;
+
+  --sup: 25 37 54;
+  --vidrio-borde: rgb(243 236 220 / 0.14);
+  --vidrio-brillo: rgb(243 236 220 / 0.14);
+  --vidrio-sombra: rgb(0 0 0 / 0.55);
+  --lienzo: #0c1119;
+  --mancha-a: rgb(47 80 117 / 0.62);
+  --mancha-b: rgb(102 117 58 / 0.42);
+  --mancha-c: rgb(18 35 56 / 0.95);
+  --mancha-d: rgb(205 187 147 / 0.1);
+
+  --n-50: #18222f;
+  --n-100: #1f2b3a;
+  --n-200: #2b394a;
+  --n-300: #3e4e60;
+  --n-400: #98a3aa;
+  --n-500: #acb5b9;
+  --n-600: #c1c7c8;
+  --n-700: #d6d9d4;
+  --n-800: #e7e6dd;
+  --n-900: #f3f0e6;
+  --n-950: #faf8f1;
+
+  --a-50: rgb(143 176 210 / 0.14);
+  --a-100: rgb(143 176 210 / 0.2);
+  --a-200: rgb(143 176 210 / 0.32);
+  --o-50: rgb(164 179 106 / 0.14);
+  --o-100: rgb(164 179 106 / 0.22);
+  --o-200: rgb(164 179 106 / 0.34);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: "Inter", "Outfit", var(--font-geist-sans);
+  --color-background: var(--lienzo);
+  --color-foreground: var(--c-tinta);
+  --font-sans: "Outfit", var(--font-outfit), var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-geist-mono);
-  --color-brand: #254153;
-  --color-brand-light: #749094;
-  --color-brand-dark: #1d1d1b;
-  --color-accent: #749094;
-  --color-success: #10B981;
-  --color-border: #e8e2d5;
-  /* Tonos de apoyo de la paleta FIRPLAK (navy #254153, salvia #749094, crema #f5f1ea) */
-  --color-brand-hover: #1c3443;
-  --color-brand-soft: #e9eef1;
-  --color-sage-soft: #eef3f3;
-  --color-cream: #f5f1ea;
-  --color-cream-light: #faf8f4;
-  --color-ink-muted: #8a8780;
+
+  --color-brand: var(--c-navy);
+  --color-brand-light: var(--c-oliva);
+  --color-brand-dark: var(--c-tinta);
+  --color-brand-hover: var(--c-navy-hondo);
+  --color-brand-soft: var(--a-50);
+  --color-sage-soft: var(--o-50);
+  --color-accent: var(--c-oliva);
+  --color-success: var(--c-oliva);
+  --color-border: var(--c-linea);
+  --color-cream: var(--c-crema-sup);
+  --color-cream-light: var(--c-suave);
+  --color-ink-muted: var(--c-apagado);
+
+  --color-slate-50: var(--n-50); --color-slate-100: var(--n-100); --color-slate-200: var(--n-200); --color-slate-300: var(--n-300); --color-slate-400: var(--n-400); --color-slate-500: var(--n-500); --color-slate-600: var(--n-600); --color-slate-700: var(--n-700); --color-slate-800: var(--n-800); --color-slate-900: var(--n-900); --color-slate-950: var(--n-950);
+  --color-stone-50: var(--n-50); --color-stone-100: var(--n-100); --color-stone-200: var(--n-200); --color-stone-300: var(--n-300); --color-stone-400: var(--n-400); --color-stone-500: var(--n-500); --color-stone-600: var(--n-600); --color-stone-700: var(--n-700); --color-stone-800: var(--n-800); --color-stone-900: var(--n-900); --color-stone-950: var(--n-950);
+  --color-gray-50: var(--n-50); --color-gray-100: var(--n-100); --color-gray-200: var(--n-200); --color-gray-300: var(--n-300); --color-gray-400: var(--n-400); --color-gray-500: var(--n-500); --color-gray-600: var(--n-600); --color-gray-700: var(--n-700); --color-gray-800: var(--n-800); --color-gray-900: var(--n-900); --color-gray-950: var(--n-950);
+
+  --color-indigo-50: var(--a-50); --color-indigo-100: var(--a-100); --color-indigo-200: var(--a-200); --color-indigo-300: var(--a-300); --color-indigo-400: var(--a-400); --color-indigo-500: var(--a-500); --color-indigo-600: var(--a-600); --color-indigo-700: var(--a-700); --color-indigo-800: var(--a-800); --color-indigo-900: var(--a-900);
+  --color-blue-50: var(--a-50); --color-blue-100: var(--a-100); --color-blue-200: var(--a-200); --color-blue-300: var(--a-300); --color-blue-400: var(--a-400); --color-blue-500: var(--a-500); --color-blue-600: var(--a-600); --color-blue-700: var(--a-700); --color-blue-800: var(--a-800); --color-blue-900: var(--a-900);
+  --color-sky-50: var(--a-50); --color-sky-100: var(--a-100); --color-sky-200: var(--a-200); --color-sky-300: var(--a-300); --color-sky-400: var(--a-400); --color-sky-500: var(--a-500); --color-sky-600: var(--a-600); --color-sky-700: var(--a-700); --color-sky-800: var(--a-800); --color-sky-900: var(--a-900);
+  --color-violet-50: var(--a-50); --color-violet-100: var(--a-100); --color-violet-500: var(--a-500); --color-violet-600: var(--a-600); --color-violet-700: var(--a-700);
+  --color-purple-50: var(--a-50); --color-purple-100: var(--a-100); --color-purple-500: var(--a-500); --color-purple-600: var(--a-600); --color-purple-700: var(--a-700);
+
+  --color-emerald-50: var(--o-50); --color-emerald-100: var(--o-100); --color-emerald-200: var(--o-200); --color-emerald-300: var(--o-300); --color-emerald-400: var(--o-400); --color-emerald-500: var(--o-500); --color-emerald-600: var(--o-600); --color-emerald-700: var(--o-700); --color-emerald-800: var(--o-800); --color-emerald-900: var(--o-900);
+  --color-green-50: var(--o-50); --color-green-100: var(--o-100); --color-green-200: var(--o-200); --color-green-300: var(--o-300); --color-green-400: var(--o-400); --color-green-500: var(--o-500); --color-green-600: var(--o-600); --color-green-700: var(--o-700); --color-green-800: var(--o-800); --color-green-900: var(--o-900);
+  --color-teal-50: var(--o-50); --color-teal-100: var(--o-100); --color-teal-500: var(--o-500); --color-teal-600: var(--o-600); --color-teal-700: var(--o-700);
+}
+
+html {
+  background: var(--lienzo);
 }
 
 body {
-  background: #f5f1ea;
-  color: #1d1d1b;
-  font-family: "Inter", sans-serif;
+  background: transparent;
+  color: var(--c-tinta);
+  font-family: var(--font-outfit), var(--font-geist-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
+  caret-color: var(--c-oliva);
+}
+
+::selection {
+  background: rgb(102 117 58 / 0.32);
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-oliva-claro);
+  outline-offset: 2px;
+}
+
+/* ── Fondo líquido ─────────────────────────────────────────────────────────
+   Formas que cambian lentamente detrás de todo. Se quedan fijas al desplazarse. */
+.fondo-liquido {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--lienzo);
+}
+
+.fondo-liquido span {
+  position: absolute;
+  display: block;
+  filter: blur(46px);
+  will-change: transform, border-radius;
+  animation: liquido 34s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+.fondo-liquido span:nth-child(1) { width: 56vmax; height: 46vmax; top: -18vmax; left: -12vmax; background: var(--mancha-a); }
+.fondo-liquido span:nth-child(2) { width: 46vmax; height: 42vmax; bottom: -16vmax; right: -10vmax; background: var(--mancha-b); animation-duration: 41s; animation-delay: -12s; }
+.fondo-liquido span:nth-child(3) { width: 40vmax; height: 34vmax; top: 22%; left: 34%; background: var(--mancha-c); animation-duration: 47s; animation-delay: -22s; }
+.fondo-liquido span:nth-child(4) { width: 26vmax; height: 26vmax; bottom: 4%; left: 4%; background: var(--mancha-d); animation-duration: 29s; animation-delay: -6s; }
+
+@keyframes liquido {
+  0% { border-radius: 58% 42% 33% 67% / 55% 38% 62% 45%; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  50% { border-radius: 38% 62% 64% 36% / 42% 62% 38% 58%; transform: translate3d(6vmax, 3vmax, 0) rotate(40deg) scale(1.1); }
+  100% { border-radius: 64% 36% 45% 55% / 36% 54% 46% 64%; transform: translate3d(-4vmax, 6vmax, 0) rotate(85deg) scale(0.94); }
+}
+
+/* Las páginas dejan ver el fondo */
+[class*="min-h-screen"][class*="bg-"]:not(.fixed),
+[class*="h-screen"][class*="bg-"]:not(.fixed) {
+  background: transparent !important;
+}
+
+/* ── Vidrio ───────────────────────────────────────────────────────────────
+   El fondo ya está desenfocado, así que el vidrio de las tarjetas no necesita
+   backdrop-filter: ese filtro confina modales y menús internos, y pesa con decenas
+   de tarjetas. Solo lo usan las capas que flotan sobre contenido. */
+.bg-white {
+  background-color: rgb(var(--sup) / var(--vidrio));
+}
+
+.bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl, [class*="rounded-["]),
+.enterprise-card {
+  background-color: transparent;
+  background-image:
+    radial-gradient(120% 90% at 0% 0%, var(--vidrio-brillo), transparent 46%),
+    linear-gradient(145deg, rgb(var(--sup) / min(1, calc(var(--vidrio) + 0.14))), rgb(var(--sup) / max(0.12, calc(var(--vidrio) - 0.08))));
+  background-size: 180% 180%, 100% 100%;
+  background-position: 0% 0%, 0 0;
+  border-color: var(--vidrio-borde);
+  box-shadow:
+    inset 0 1px 0 var(--vidrio-brillo),
+    0 18px 40px -26px var(--vidrio-sombra),
+    0 2px 6px -3px var(--vidrio-sombra);
+  transition: border-radius 0.9s cubic-bezier(0.22, 1, 0.36, 1), background-position 1.1s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease;
+}
+
+/* Liquid Morph: la tarjeta cambia de forma, despacio, al pasarle por encima */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl, [class*="rounded-["]):not(.fixed *):hover,
+  .enterprise-card:hover {
+    border-radius: 30px 18px 34px 20px / 22px 32px 18px 30px;
+    background-position: 30% 26%, 0 0;
+    box-shadow:
+      inset 0 1px 0 var(--vidrio-brillo),
+      0 24px 50px -26px var(--vidrio-sombra),
+      0 3px 8px -3px var(--vidrio-sombra);
+  }
 }
 
 .enterprise-card {
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--vidrio-borde);
+  border-radius: 16px;
 }
 
 .premium-shadow {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  box-shadow: 0 18px 40px -26px var(--vidrio-sombra), 0 2px 6px -3px var(--vidrio-sombra);
 }
 
-/* Custom Scrollbar */
+/* Lo que se lee sobre otras capas va casi opaco y con desenfoque real */
+.fixed .bg-white,
+.fixed.bg-white,
+.absolute.bg-white,
+.sticky.bg-white,
+.sticky .bg-white,
+thead.bg-white {
+  background-color: rgb(var(--sup) / 0.96);
+  background-image: none;
+}
+
+.fixed > .bg-white,
+.fixed.bg-white {
+  backdrop-filter: blur(22px) saturate(1.3);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3);
+  box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 30px 70px -28px rgb(12 16 22 / 0.6);
+}
+
+/* Campos de formulario siempre legibles */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]).bg-white,
+select.bg-white,
+textarea.bg-white {
+  background-color: rgb(var(--sup) / 0.82);
+  background-image: none;
+}
+
+/* Encabezados navy flotantes */
+header.bg-brand,
+header.fixed.bg-brand {
+  background-color: rgb(18 35 56 / 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid rgb(243 236 220 / 0.14);
+}
+
+/* ── Tema oscuro: lo que no resuelve el cambio de tokens ───────────────── */
+[data-tema="oscuro"] .text-brand,
+[data-tema="oscuro"] .hover\:text-brand:hover,
+[data-tema="oscuro"] .group-focus-within\:text-brand { color: var(--c-navy-texto); }
+[data-tema="oscuro"] [class*="text-brand/"] { color: var(--c-navy-texto); opacity: 0.75; }
+[data-tema="oscuro"] .border-brand { border-color: var(--c-navy-texto); }
+[data-tema="oscuro"] .bg-slate-700, [data-tema="oscuro"] .bg-stone-700, [data-tema="oscuro"] .bg-gray-700 { background-color: #2f4560; }
+[data-tema="oscuro"] .bg-slate-800, [data-tema="oscuro"] .bg-stone-800, [data-tema="oscuro"] .bg-gray-800 { background-color: #243850; }
+[data-tema="oscuro"] .bg-slate-900, [data-tema="oscuro"] .bg-stone-900, [data-tema="oscuro"] .bg-gray-900 { background-color: #1b2c42; }
+[data-tema="oscuro"] .hover\:bg-slate-800:hover, [data-tema="oscuro"] .hover\:bg-slate-900:hover { background-color: #2f4560; }
+
+/* Textos de estado: en oscuro necesitan la versión clara del color */
+[data-tema="oscuro"] :is(.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-green-600, .text-green-700, .text-green-800, .text-teal-600, .text-teal-700) { color: #b8c682; }
+[data-tema="oscuro"] :is(.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-blue-600, .text-blue-700, .text-blue-800, .text-sky-600, .text-sky-700) { color: #a9c3dc; }
+[data-tema="oscuro"] :is(.text-red-600, .text-red-700, .text-red-800, .text-rose-600, .text-rose-700, .text-rose-800) { color: #f0a59b; }
+[data-tema="oscuro"] :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-orange-600, .text-orange-700, .text-orange-800, .text-yellow-600, .text-yellow-700, .text-yellow-800) { color: #e6bb7c; }
+[data-tema="oscuro"] :is(.bg-red-50, .bg-rose-50) { background-color: rgb(240 165 155 / 0.13); }
+[data-tema="oscuro"] :is(.bg-red-100, .bg-rose-100) { background-color: rgb(240 165 155 / 0.2); }
+[data-tema="oscuro"] :is(.bg-amber-50, .bg-orange-50, .bg-yellow-50) { background-color: rgb(230 187 124 / 0.13); }
+[data-tema="oscuro"] :is(.bg-amber-100, .bg-orange-100, .bg-yellow-100) { background-color: rgb(230 187 124 / 0.2); }
+[data-tema="oscuro"] :is(.border-red-100, .border-red-200, .border-rose-100, .border-rose-200) { border-color: rgb(240 165 155 / 0.3); }
+[data-tema="oscuro"] :is(.border-amber-100, .border-amber-200, .border-orange-200) { border-color: rgb(230 187 124 / 0.3); }
+
+[data-tema="oscuro"] img[src*="logo-firplak"] { filter: brightness(0) invert(1); }
+
+/* Gráficas */
+.recharts-default-tooltip {
+  background-color: rgb(var(--sup) / 0.97) !important;
+  border-color: var(--c-linea) !important;
+  border-radius: 12px;
+}
+.recharts-default-tooltip .recharts-tooltip-label { color: var(--c-tinta); }
+.recharts-cartesian-axis-tick-value { fill: var(--c-apagado); }
+.recharts-legend-item-text { color: var(--c-apagado) !important; }
+
+/* ── Panel de Apariencia ───────────────────────────────────────────────── */
+.apariencia-rango {
+  width: 100%;
+  accent-color: var(--c-oliva);
+}
+
+/* Barras de desplazamiento */
+* {
+  scrollbar-color: var(--n-300) transparent;
+  scrollbar-width: thin;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -54,10 +361,29 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: var(--n-300);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--n-400);
+}
+
+/* ── Respetar a quien prefiere menos movimiento o transparencia ────────── */
+@media (prefers-reduced-motion: reduce) {
+  .fondo-liquido span { animation: none; }
+  .bg-white, .enterprise-card { transition: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root { --vidrio: 0.97 !important; }
+}
+
+@media (max-width: 640px) {
+  .fondo-liquido span { filter: blur(34px); animation-duration: 60s; }
+}
+
+@media print {
+  .fondo-liquido, .apariencia-flotante { display: none !important; }
+  html { background: #fff; }
 }

@@ -65,7 +65,7 @@ export default function ServiceHistoryCard({ service }: ServiceHistoryCardProps)
         >
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h3 className="text-base font-bold text-[#254153]">
+                <h3 className="text-base font-bold text-[var(--c-navy-texto)]">
                     {service.consecutivo || 'Sin consecutivo'}
                 </h3>
 
@@ -81,7 +81,7 @@ export default function ServiceHistoryCard({ service }: ServiceHistoryCardProps)
                         className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                         aria-label="Ver detalles"
                     >
-                        <Eye className="w-5 h-5 text-[#254153]" />
+                        <Eye className="w-5 h-5 text-[var(--c-navy-texto)]" />
                     </button>
                 </div>
             </div>

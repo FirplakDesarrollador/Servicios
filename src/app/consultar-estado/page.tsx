@@ -163,7 +163,7 @@ function ConsultarEstadoContent() {
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
                 >
-                    <div className="bg-gradient-to-br from-[#254153] to-[#3a5d73] p-8 text-white relative">
+                    <div className="bg-gradient-to-br from-[var(--c-navy)] to-[var(--c-navy-claro)] p-8 text-white relative">
                         <div className="absolute top-0 right-0 p-8 opacity-10">
                             <Search size={120} />
                         </div>
@@ -485,7 +485,7 @@ function ConsultarEstadoContent() {
                             </div>
                         </section>
 
-                        <section className="bg-gradient-to-br from-[#1a2e3b] via-[#254153] to-[#3a5d73] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+                        <section className="bg-gradient-to-br from-[#1a2e3b] via-[var(--c-navy)] to-[var(--c-navy-claro)] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-10">
                                 <PhoneCall size={100} />
                             </div>

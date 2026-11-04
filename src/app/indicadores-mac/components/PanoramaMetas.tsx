@@ -98,7 +98,7 @@ export default function PanoramaMetas({ entidades, data, filters, onFilterToggle
                                                 <span className={`text-xs font-bold tabular-nums shrink-0 ${fuera ? 'text-red-700' : 'text-stone-600'}`}>{fmtPorcentaje(valor)}</span>
                                             </div>
                                             <div className="relative h-2 mt-1 rounded-full bg-stone-100">
-                                                <div className={`absolute inset-y-0 left-0 rounded-full ${fuera ? 'bg-[#c96a4e]' : 'bg-[#749094]'}`} style={{ width: `${(valor / c.tope) * 100}%` }} />
+                                                <div className={`absolute inset-y-0 left-0 rounded-full ${fuera ? 'bg-[var(--c-alerta)]' : 'bg-[var(--c-oliva)]'}`} style={{ width: `${(valor / c.tope) * 100}%` }} />
                                                 <div className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-brand-dark" style={{ left: `${(metrica.meta / c.tope) * 100}%` }} />
                                             </div>
                                             {causa && <div className="text-[10px] text-stone-500 mt-1 truncate" title={causa}>{causa}</div>}

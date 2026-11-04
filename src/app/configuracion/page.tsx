@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { PanelApariencia } from '@/components/Apariencia';
 import { useRouter } from 'next/navigation';
 import {
     Users,
@@ -41,7 +42,7 @@ export default function ConfigurationPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans pb-10">
+        <div className="min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans pb-10">
             <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg">
                 <button
                     onClick={() => router.push('/')}
@@ -64,6 +65,11 @@ export default function ConfigurationPage() {
                     <h2 className="text-3xl font-black text-brand tracking-tighter mb-2">Panel de Control</h2>
                     <p className="text-slate-500 font-medium italic">Administración centralizada de accesos y permisos de la plataforma.</p>
                 </motion.div>
+
+                <section className="bg-white rounded-2xl border border-border p-5 mb-6">
+                    <h3 className="text-base font-bold text-slate-900 mb-4">Apariencia</h3>
+                    <PanelApariencia />
+                </section>
 
                 <div className="grid gap-4">
                     {options.map((option, index) => (

@@ -1298,7 +1298,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   </h2>
                   {docStatus && (
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                      docStatus === 'Cancelado' ? 'bg-red-50 text-red-700' : docStatus === 'Cerrado' ? 'bg-stone-100 text-stone-500' : 'bg-[#3E6E5E]/10 text-[#3E6E5E]'
+                      docStatus === 'Cancelado' ? 'bg-red-50 text-red-700' : docStatus === 'Cerrado' ? 'bg-stone-100 text-stone-500' : 'bg-[var(--c-oliva)]/10 text-[var(--c-oliva-texto)]'
                     }`}>
                       {docStatus === 'Abiertos' ? 'Abierto' : docStatus}
                     </span>

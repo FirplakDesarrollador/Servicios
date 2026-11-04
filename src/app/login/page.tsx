@@ -9,7 +9,7 @@ import { LogIn, Mail, Lock, AlertCircle, Loader2, ArrowRight, UserCircle } from 
 export default function LoginPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+            <div className="min-h-screen flex items-center justify-center bg-[var(--c-suave)]">
                 <Loader2 className="w-10 h-10 animate-spin text-brand" />
             </div>
         }>
@@ -58,7 +58,7 @@ function LoginContent() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-4 relative overflow-hidden font-sans">
+        <div className="min-h-screen flex items-center justify-center bg-[var(--c-suave)] p-4 relative overflow-hidden font-sans">
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
                 <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-brand/5 rounded-full blur-[150px]" />

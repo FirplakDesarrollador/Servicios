@@ -109,8 +109,8 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark whitespace-nowrap">{a.nombre}</td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums">{a.registros}</td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums text-stone-500">{a.participacion.toFixed(1)}%</td>
-                                    <td className="px-3 py-2.5 text-xs text-right tabular-nums font-bold text-[#b86835]">{a.abiertos}</td>
-                                    <td className="px-3 py-2.5 text-xs text-right tabular-nums font-bold text-[#3E6E5E]">{a.cerrados}</td>
+                                    <td className="px-3 py-2.5 text-xs text-right tabular-nums font-bold text-[var(--c-alerta)]">{a.abiertos}</td>
+                                    <td className="px-3 py-2.5 text-xs text-right tabular-nums font-bold text-[var(--c-oliva-texto)]">{a.cerrados}</td>
                                     <td className="px-3 py-2.5 text-right">
                                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${a.cumplimiento >= 95 ? 'bg-emerald-100 text-emerald-700' : a.cumplimiento >= 85 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
                                             {a.cumplimiento.toFixed(1)}%
@@ -118,7 +118,7 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                                     </td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums">{a.tiempo === null ? '—' : `${a.tiempo.toFixed(1)} d`}</td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums">{a.cierres}</td>
-                                    <td className={`px-3 py-2.5 text-xs text-right tabular-nums ${a.desfase !== null && a.desfase > 5 ? 'text-[#b86835] font-semibold' : ''}`}>
+                                    <td className={`px-3 py-2.5 text-xs text-right tabular-nums ${a.desfase !== null && a.desfase > 5 ? 'text-[var(--c-alerta)] font-semibold' : ''}`}>
                                         {a.desfase === null ? '—' : `${a.desfase.toFixed(0)} días`}
                                     </td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums">{a.mismoDia === null ? '—' : `${a.mismoDia.toFixed(1)}%`}</td>

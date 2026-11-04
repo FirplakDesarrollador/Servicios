@@ -93,11 +93,11 @@ export default function ApprovalServiceCard({ service, currentUserRole }: Props)
             {/* Header Row */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200">
                 <div className="flex items-center gap-4">
-                    <span className="text-lg font-bold text-[#254153]">
+                    <span className="text-lg font-bold text-[var(--c-navy-texto)]">
                         {service.consecutivo}
                     </span>
                     <span className="text-sm text-slate-600">
-                        <span className="font-medium text-[#254153]">Fecha solicitud: </span>
+                        <span className="font-medium text-[var(--c-navy-texto)]">Fecha solicitud: </span>
                         <span className="text-emerald-600 font-semibold">
                             {formatDate(service.created_at)}
                         </span>
@@ -116,10 +116,10 @@ export default function ApprovalServiceCard({ service, currentUserRole }: Props)
 
                     <button
                         onClick={() => router.push(`/servicios/${service.id}`)}
-                        className="p-2 hover:bg-[#254153]/10 rounded-lg transition-colors group"
+                        className="p-2 hover:bg-[var(--c-navy)]/10 rounded-lg transition-colors group"
                         title="Ver detalles"
                     >
-                        <Eye className="w-5 h-5 text-[#254153] group-hover:scale-110 transition-transform" />
+                        <Eye className="w-5 h-5 text-[var(--c-navy-texto)] group-hover:scale-110 transition-transform" />
                     </button>
                 </div>
             </div>
@@ -128,25 +128,25 @@ export default function ApprovalServiceCard({ service, currentUserRole }: Props)
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {/* Tipo de servicio */}
                 <div className="space-y-1">
-                    <p className="text-sm font-medium text-[#254153]">Tipo de servicio</p>
+                    <p className="text-sm font-medium text-[var(--c-navy-texto)]">Tipo de servicio</p>
                     <p className="text-sm text-slate-700">{service.tipo_de_servicio || 'N/A'}</p>
                 </div>
 
                 {/* Canal de venta */}
                 <div className="space-y-1">
-                    <p className="text-sm font-medium text-[#254153]">Canal de venta</p>
+                    <p className="text-sm font-medium text-[var(--c-navy-texto)]">Canal de venta</p>
                     <p className="text-sm text-slate-700">{service.canal_de_venta || 'N/A'}</p>
                 </div>
 
                 {/* Número de pedido */}
                 <div className="space-y-1">
-                    <p className="text-sm font-medium text-[#254153]">Número de pedido</p>
+                    <p className="text-sm font-medium text-[var(--c-navy-texto)]">Número de pedido</p>
                     <p className="text-sm text-slate-700">{service.numero_de_pedido || 'N/A'}</p>
                 </div>
 
                 {/* Aprobación MAC */}
                 <div className="space-y-1">
-                    <p className="text-sm font-medium text-[#254153]">Aprobación MAC</p>
+                    <p className="text-sm font-medium text-[var(--c-navy-texto)]">Aprobación MAC</p>
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(service.aprobacion_mac?.estado || 'No_aplica')}`}>
                         {service.aprobacion_mac?.estado || 'No_aplica'}
                     </span>
@@ -154,7 +154,7 @@ export default function ApprovalServiceCard({ service, currentUserRole }: Props)
 
                 {/* Aprobación Logística */}
                 <div className="space-y-1">
-                    <p className="text-sm font-medium text-[#254153]">Aprobación Logística</p>
+                    <p className="text-sm font-medium text-[var(--c-navy-texto)]">Aprobación Logística</p>
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(service.aprobacion_logistica?.estado || 'No_aplica')}`}>
                         {service.aprobacion_logistica?.estado || 'No_aplica'}
                     </span>
@@ -162,7 +162,7 @@ export default function ApprovalServiceCard({ service, currentUserRole }: Props)
 
                 {/* Aprobación Dir. comercial */}
                 <div className="space-y-1">
-                    <p className="text-sm font-medium text-[#254153]">Aprobación Dir. comercial</p>
+                    <p className="text-sm font-medium text-[var(--c-navy-texto)]">Aprobación Dir. comercial</p>
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(service.aprobacion_director?.estado || 'No_aplica')}`}>
                         {service.aprobacion_director?.estado || 'No_aplica'}
                     </span>

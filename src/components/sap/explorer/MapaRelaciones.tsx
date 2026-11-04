@@ -114,11 +114,11 @@ export default function MapaRelaciones({
         <svg className="absolute inset-0 pointer-events-none overflow-visible" width={layout.width} height={layout.height}>
           <defs>
             <marker id="mapa-flecha" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#749094" />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--serie-oliva)" />
             </marker>
           </defs>
           {layout.lines.map((l) => (
-            <path key={l.id} d={l.d} fill="none" stroke="#749094" strokeOpacity={0.7} strokeWidth={1.5} markerEnd="url(#mapa-flecha)" />
+            <path key={l.id} d={l.d} fill="none" stroke="var(--serie-oliva)" strokeOpacity={0.7} strokeWidth={1.5} markerEnd="url(#mapa-flecha)" />
           ))}
         </svg>
 

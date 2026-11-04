@@ -219,7 +219,7 @@ export default function AprobacionesPage() {
                             <select
                                 value={approvalType}
                                 onChange={(e) => setApprovalType(e.target.value as ApprovalType)}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             >
                                 <option value="Director comercial">Director comercial</option>
                                 <option value="Servicio al cliente">Servicio al cliente</option>
@@ -239,7 +239,7 @@ export default function AprobacionesPage() {
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="Consecutivo..."
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-bold placeholder:text-slate-400"
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-bold placeholder:text-slate-400"
                                 />
                             </div>
                         </div>
@@ -252,7 +252,7 @@ export default function AprobacionesPage() {
                             <select
                                 value={serviceStatus}
                                 onChange={(e) => setServiceStatus(e.target.value as ServiceStatus)}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             >
                                 <option value="Abiertos">Abiertos</option>
                                 <option value="Cerrados">Cerrados</option>
@@ -268,7 +268,7 @@ export default function AprobacionesPage() {
                             <select
                                 value={selectedMac || ''}
                                 onChange={(e) => setSelectedMac(e.target.value ? Number(e.target.value) : null)}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             >
                                 <option value="">Seleccione</option>
                                 {macUsers.map(user => (
@@ -291,7 +291,7 @@ export default function AprobacionesPage() {
                                         type="date"
                                         value={dateFrom}
                                         onChange={(e) => setDateFrom(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                                     />
                                 </div>
                             </div>
@@ -306,7 +306,7 @@ export default function AprobacionesPage() {
                                         type="date"
                                         value={dateTo}
                                         onChange={(e) => setDateTo(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                                     />
                                 </div>
                             </div>

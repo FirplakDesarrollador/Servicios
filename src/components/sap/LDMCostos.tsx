@@ -345,7 +345,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
                       <td className="border-r border-border/70 px-2 py-0.5 text-right text-stone-600">{formatNumber(row.Cantidad)}</td>
                       <td className="border-r border-border/70 px-2 py-0.5 text-right text-stone-600">{formatNumber(row.Costo_Unitario)}</td>
                       <td className={`border-r border-border/70 px-2 py-0.5 text-right ${row.Costo_Mp > 0 ? 'text-brand font-semibold' : 'text-stone-400'}`}>{formatNumber(row.Costo_Mp)}</td>
-                      <td className={`border-r border-border/70 px-2 py-0.5 text-right ${row.Costo_Mo > 0 ? 'text-[#3E6E5E] font-semibold' : 'text-stone-400'}`}>{formatNumber(row.Costo_Mo)}</td>
+                      <td className={`border-r border-border/70 px-2 py-0.5 text-right ${row.Costo_Mo > 0 ? 'text-[var(--c-oliva-texto)] font-semibold' : 'text-stone-400'}`}>{formatNumber(row.Costo_Mo)}</td>
                       <td className={`border-r border-border/70 px-2 py-0.5 text-right ${row.Costo_Cif > 0 ? 'text-[#9A7442] font-semibold' : 'text-stone-400'}`}>{formatNumber(row.Costo_Cif)}</td>
                       <td className={`px-2 py-0.5 text-right font-bold ${row.Costo_Total > 0 ? 'text-brand-dark' : 'text-stone-400'}`}>{formatNumber(row.Costo_Total)}</td>
                     </tr>

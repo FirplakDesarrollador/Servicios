@@ -398,7 +398,7 @@ function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View) => voi
                 <span className="font-semibold text-brand-dark">{relatedAccounts.length}</span> cuenta(s) más con la misma cédula/NIT
               </p>
               <label className="inline-flex items-center gap-2 text-xs text-stone-500 cursor-pointer select-none">
-                <input type="checkbox" checked={includeRelated} onChange={(e) => setIncludeRelated(e.target.checked)} className="accent-[#254153]" />
+                <input type="checkbox" checked={includeRelated} onChange={(e) => setIncludeRelated(e.target.checked)} className="accent-[var(--c-navy-texto)]" />
                 Incluir sus documentos
               </label>
             </div>

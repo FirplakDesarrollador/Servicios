@@ -202,7 +202,7 @@ function SalaDetailsContent() {
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-50 flex justify-center items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153]"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--c-navy-texto)]"></div>
             </div>
         )
     }
@@ -219,7 +219,7 @@ function SalaDetailsContent() {
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
             {/* Header */}
-            <div className="bg-[#254153] text-white shadow-md">
+            <div className="bg-[var(--c-navy)] text-white shadow-md">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <button
@@ -283,7 +283,7 @@ function SalaDetailsContent() {
                                     checked={formData.activo}
                                     onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
                                 />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#254153]"></div>
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--c-navy)]"></div>
                             </label>
                         </div>
                         <div className="md:col-span-2">
@@ -303,11 +303,11 @@ function SalaDetailsContent() {
                     {/* Row 2 */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-[#254153] mb-1">Asesor(a) comercial</label>
+                            <label className="block text-xs font-medium text-[var(--c-navy-texto)] mb-1">Asesor(a) comercial</label>
                             <select
                                 value={formData.asesor_id || ''}
                                 onChange={(e) => setFormData({ ...formData, asesor_id: e.target.value ? parseInt(e.target.value) : null })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#254153] focus:border-[#254153] outline-none"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--c-navy-texto)] focus:border-[var(--c-navy-texto)] outline-none"
                             >
                                 <option value="">Seleccione...</option>
                                 {asesores.map(a => (
@@ -316,21 +316,21 @@ function SalaDetailsContent() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#254153] mb-1">Persona de contacto</label>
+                            <label className="block text-xs font-medium text-[var(--c-navy-texto)] mb-1">Persona de contacto</label>
                             <input
                                 type="text"
                                 value={formData.nombre_contacto}
                                 onChange={(e) => setFormData({ ...formData, nombre_contacto: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#254153] focus:border-[#254153] outline-none"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--c-navy-texto)] focus:border-[var(--c-navy-texto)] outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#254153] mb-1">Teléfono</label>
+                            <label className="block text-xs font-medium text-[var(--c-navy-texto)] mb-1">Teléfono</label>
                             <input
                                 type="text"
                                 value={formData.telefono}
                                 onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#254153] focus:border-[#254153] outline-none"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--c-navy-texto)] focus:border-[var(--c-navy-texto)] outline-none"
                             />
                         </div>
                         <div>
@@ -339,7 +339,7 @@ function SalaDetailsContent() {
                                 type="text"
                                 value={formData.direccion}
                                 onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#254153] focus:border-[#254153] outline-none"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--c-navy-texto)] focus:border-[var(--c-navy-texto)] outline-none"
                             />
                         </div>
                     </div>
@@ -347,7 +347,7 @@ function SalaDetailsContent() {
                     {/* Row 3 */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-[#254153] mb-1">Ciudad</label>
+                            <label className="block text-xs font-medium text-[var(--c-navy-texto)] mb-1">Ciudad</label>
                             {/* Typically a dropdown, but keeping it simple/readonly if we don't have ciudads array */}
                             <input
                                 type="text"
@@ -472,7 +472,7 @@ function SalaDetailsContent() {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="bg-[#254153] hover:bg-[#1a2f3c] text-white px-10 py-3 rounded-lg font-medium shadow-md transition-colors flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="bg-[var(--c-navy)] hover:bg-[#1a2f3c] text-white px-10 py-3 rounded-lg font-medium shadow-md transition-colors flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {saving ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -505,7 +505,7 @@ function ToggleField({ label, checked, onChange }: { label: string, checked: boo
                     checked={checked}
                     onChange={(e) => onChange(e.target.checked)}
                 />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#254153]"></div>
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--c-navy)]"></div>
             </label>
         </div>
     )

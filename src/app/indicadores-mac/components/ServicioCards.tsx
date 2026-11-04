@@ -46,19 +46,19 @@ export function TendenciaSlaCard({ data, filters, onFilterToggle }: {
             <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={tendencia} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
-                        <XAxis dataKey="mes" interval={0} tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
-                        <YAxis yAxisId="izq" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
-                        <YAxis yAxisId="der" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--c-linea)" />
+                        <XAxis dataKey="mes" interval={0} tick={{ fontSize: 11, fill: 'var(--c-apagado)' }} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="izq" tick={{ fontSize: 11, fill: 'var(--c-apagado)' }} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="der" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: 'var(--c-apagado)' }} axisLine={false} tickLine={false} />
                         <YAxis yAxisId="dias" hide domain={[0, (max: number) => Math.max(SLA_DIAS_HABILES, Math.ceil(max * 1.3))]} />
                         <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e8e2d5', fontSize: 12 }} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <ReferenceLine yAxisId="der" y={90} stroke="#3E6E5E" strokeDasharray="4 4" />
-                        <Bar isAnimationActive={false} yAxisId="izq" dataKey="Casos" fill="#b3bec4" radius={[6, 6, 0, 0]} maxBarSize={44} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.key && onFilterToggle('mesCreacion', b.payload.key, e)}>
-                            {tendencia.map((t) => <Cell key={t.key} fill="#b3bec4" fillOpacity={filters.mesCreacion.length === 0 || filters.mesCreacion.includes(t.key) ? 1 : 0.3} />)}
+                        <Bar isAnimationActive={false} yAxisId="izq" dataKey="Casos" fill="var(--serie-arena)" radius={[6, 6, 0, 0]} maxBarSize={44} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.key && onFilterToggle('mesCreacion', b.payload.key, e)}>
+                            {tendencia.map((t) => <Cell key={t.key} fill="var(--serie-arena)" fillOpacity={filters.mesCreacion.length === 0 || filters.mesCreacion.includes(t.key) ? 1 : 0.3} />)}
                         </Bar>
-                        <Line isAnimationActive={false} yAxisId="dias" type="monotone" dataKey="Días promedio" stroke="#c96a4e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                        <Line isAnimationActive={false} yAxisId="der" type="monotone" dataKey="Cumplimiento SLA %" stroke="#254153" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+                        <Line isAnimationActive={false} yAxisId="dias" type="monotone" dataKey="Días promedio" stroke="var(--c-alerta)" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                        <Line isAnimationActive={false} yAxisId="der" type="monotone" dataKey="Cumplimiento SLA %" stroke="var(--serie-navy)" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>

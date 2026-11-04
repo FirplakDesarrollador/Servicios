@@ -32,35 +32,35 @@ interface Props {
 }
 
 const COLORS = [
-    '#254153', // Azul petróleo profundo Firplak
-    '#749094', // Verde pizarra / Salvia Firplak
-    '#c96a4e', // Terracota / Teja Firplak
+    'var(--serie-navy)', // Azul petróleo profundo Firplak
+    'var(--serie-oliva)', // Verde pizarra / Salvia Firplak
+    'var(--c-alerta)', // Terracota / Teja Firplak
     '#e09f3e', // Ámbar / Melocotón cálido Firplak
-    '#3b778c', // Azul acero / Petróleo suave Firplak
-    '#a67347', // Arena tostada / Avellana cálido Firplak
+    'var(--serie-petroleo)', // Azul acero / Petróleo suave Firplak
+    'var(--serie-arena)', // Arena tostada / Avellana cálido Firplak
     '#4e7c61', // Verde eucalipto / Spa Firplak
     '#9e382b', // Ladrillo oscuro / Teja carmesí Firplak
-    '#5b8e9e', // Celeste mineral suave Firplak
-    '#b86835', // Canela / Cobre cálido Firplak
-    '#4a6b82', // Pizarra azulada Firplak
+    'var(--serie-petroleo)', // Celeste mineral suave Firplak
+    'var(--c-alerta)', // Canela / Cobre cálido Firplak
+    'var(--serie-petroleo)', // Pizarra azulada Firplak
     '#839199', // Gris piedra ceniza Firplak
     '#34596b', // Azul petróleo medio Firplak
-    '#b3bec4', // Caliza suave Firplak
+    'var(--serie-arena)', // Caliza suave Firplak
 ];
 
 // Paleta amplia armónica de alta distinción y elegancia mineral/arquitectónica (fiel a Firplak, sin morados ni azules chillones)
 const DISTINCT_PALETTE: string[] = [
-    '#254153', // Azul petróleo profundo Firplak
-    '#749094', // Verde pizarra / Salvia Firplak
-    '#c96a4e', // Terracota / Teja cálido Firplak
+    'var(--serie-navy)', // Azul petróleo profundo Firplak
+    'var(--serie-oliva)', // Verde pizarra / Salvia Firplak
+    'var(--c-alerta)', // Terracota / Teja cálido Firplak
     '#e09f3e', // Ámbar / Melocotón cálido Firplak
-    '#3b778c', // Azul acero / Petróleo suave Firplak
-    '#a67347', // Arena tostada / Avellana cálido Firplak
+    'var(--serie-petroleo)', // Azul acero / Petróleo suave Firplak
+    'var(--serie-arena)', // Arena tostada / Avellana cálido Firplak
     '#4e7c61', // Verde eucalipto / Spa Firplak
     '#9e382b', // Ladrillo oscuro / Teja carmesí Firplak
-    '#5b8e9e', // Celeste mineral / Glaciar suave Firplak
-    '#b86835', // Canela / Cobre cálido Firplak
-    '#4a6b82', // Pizarra azulada / Grafito azul
+    'var(--serie-petroleo)', // Celeste mineral / Glaciar suave Firplak
+    'var(--c-alerta)', // Canela / Cobre cálido Firplak
+    'var(--serie-petroleo)', // Pizarra azulada / Grafito azul
     '#6b8a75', // Salvia bosque suave
     '#c48c37', // Ocre mostaza tostada
     '#34596b', // Azul petróleo medio
@@ -74,34 +74,34 @@ const DISTINCT_PALETTE: string[] = [
     '#3f6652', // Pino mineral
     '#a07855', // Madera roble suave
     '#2c4d5e', // Azul marino grafito
-    '#b3bec4', // Caliza clara
+    'var(--serie-arena)', // Caliza clara
 ];
 
 // Colores preferidos por tipo de solicitud (100% alineados a la identidad visual de Firplak)
 const TIPO_SOLICITUD_COLORS: Record<string, string> = {
-    'garantia': '#254153',       // Azul marino petróleo institucional base
-    'garantía': '#254153',
-    'encuesta b2c': '#3b778c',   // Azul acero / Petróleo suave Firplak (armónico, elegante, no saturado)
-    'encuesta b2b': '#749094',   // Verde pizarra / Salvia institucional Firplak
-    'atencion': '#c96a4e',       // Terracota / Teja cálido Firplak (icónico de la marca, sin morado)
-    'atención': '#c96a4e',
+    'garantia': 'var(--serie-navy)',       // Azul marino petróleo institucional base
+    'garantía': 'var(--serie-navy)',
+    'encuesta b2c': 'var(--serie-petroleo)',   // Azul acero / Petróleo suave Firplak (armónico, elegante, no saturado)
+    'encuesta b2b': 'var(--serie-oliva)',   // Verde pizarra / Salvia institucional Firplak
+    'atencion': 'var(--c-alerta)',       // Terracota / Teja cálido Firplak (icónico de la marca, sin morado)
+    'atención': 'var(--c-alerta)',
     'reclamo': '#e09f3e',        // Ámbar / Melocotón cálido Firplak
     'queja': '#9e382b',          // Ladrillo oscuro / Teja carmesí Firplak
-    'solicitud': '#4a6b82',      // Pizarra azulada Firplak
-    'peticion': '#5b8e9e',       // Celeste mineral suave Firplak
-    'petición': '#5b8e9e',
+    'solicitud': 'var(--serie-petroleo)',      // Pizarra azulada Firplak
+    'peticion': 'var(--serie-petroleo)',       // Celeste mineral suave Firplak
+    'petición': 'var(--serie-petroleo)',
     'servicio': '#5e7a68',       // Verde oliva mineral Firplak
     'servicio tecnico': '#5e7a68',
     'felicitacion': '#4e7c61',   // Verde laurel / Spa Firplak
     'felicitación': '#4e7c61',
-    'asesoria': '#a67347',       // Arena tostada / Avellana cálido Firplak
-    'asesoría': '#a67347',
-    'tramite': '#b86835',        // Canela / Cobre cálido Firplak
-    'trámite': '#b86835',
+    'asesoria': 'var(--serie-arena)',       // Arena tostada / Avellana cálido Firplak
+    'asesoría': 'var(--serie-arena)',
+    'tramite': 'var(--c-alerta)',        // Canela / Cobre cálido Firplak
+    'trámite': 'var(--c-alerta)',
     'consulta': '#34596b',       // Azul petróleo medio Firplak
     'soporte': '#415b6b',        // Petróleo pizarra Firplak
     'otros': '#839199',          // Gris piedra ceniza
-    'sin definir': '#b3bec4',    // Caliza clara neutra
+    'sin definir': 'var(--serie-arena)',    // Caliza clara neutra
 };
 
 // Generador que garantiza que CADA tipo de solicitud tenga un color 100% ÚNICO y diferente
@@ -280,14 +280,14 @@ const ParetoProblemas = ({ filas, activos, onFilterToggle }: {
                     >
                         <div className="flex items-baseline justify-between gap-2">
                             <span className="text-[11px] font-medium text-stone-700 truncate">
-                                {f.vital && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#c96a4e] mr-1.5 align-middle" />}
+                                {f.vital && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--c-alerta)] mr-1.5 align-middle" />}
                                 {f.nombre}
                             </span>
                             <span className="text-[11px] font-bold text-brand-dark tabular-nums shrink-0">{f.Registros}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                             <div className="flex-1 h-1 rounded-full bg-stone-100 overflow-hidden">
-                                <div className="h-full bg-[#254153]" style={{ width: `${(f.Registros / mayor) * 100}%` }} />
+                                <div className="h-full bg-[var(--c-navy)]" style={{ width: `${(f.Registros / mayor) * 100}%` }} />
                             </div>
                             <span className="text-[9px] text-stone-400 tabular-nums shrink-0">acum. {f.acumulado.toFixed(1)}%</span>
                         </div>
@@ -376,7 +376,7 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
                             >
                                 {data.map((entry, index) => {
                                     const isActive = activeFilters.length === 0 || activeFilters.includes(entry.nombre);
-                                    return <Cell key={`cell-${index}`} fill={isActive ? colors[index % colors.length] : '#e8e2d5'} />;
+                                    return <Cell key={`cell-${index}`} fill={isActive ? colors[index % colors.length] : 'var(--c-linea)'} />;
                                 })}
                             </Pie>
                             <RechartsTooltip content={<CustomPieTooltip />} />
@@ -400,7 +400,7 @@ const CleanDonutCard = ({ title, data, colors, filterKey, onFilterToggle, active
                                 }`}
                             >
                                 <div className="flex items-center gap-2 truncate pr-2 flex-1 min-w-0">
-                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: (activeFilters.length === 0 || activeFilters.includes(item.nombre)) ? colors[index % colors.length] : '#e8e2d5' }}></div>
+                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: (activeFilters.length === 0 || activeFilters.includes(item.nombre)) ? colors[index % colors.length] : 'var(--c-linea)' }}></div>
                                     <span className={`font-semibold truncate ${activeFilters.length > 0 && activeFilters.includes(item.nombre) ? 'text-brand' : 'text-stone-700'}`} title={item.nombre}>{item.nombre}</span>
                                 </div>
                                 <div className="flex items-center justify-end text-stone-500 whitespace-nowrap flex-shrink-0 ml-1">
@@ -469,7 +469,7 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
                     value={valor}
                     onChange={e => setValor(e.target.value)}
                     placeholder="Buscar producto o código: filtra toda la página"
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--c-oliva-texto)]/40 focus:border-[var(--c-oliva-texto)] transition-all"
                 />
                 {valor && (
                     <button onClick={() => { setValor(''); enviar(''); }} title="Limpiar búsqueda" className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors cursor-pointer">
@@ -509,8 +509,8 @@ const ProductTable = ({ title, data, maxHeight = 440, filterKey, onFilterToggle,
                                 >
                                     <td className="px-3 py-2.5 text-xs font-medium text-stone-700 leading-snug border-b border-border">{item.nombre}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{item.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{item['Productos Afectados']}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{item.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{item['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-oliva-texto)] text-right border-b border-border">{item.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -549,7 +549,7 @@ const TopCiudadesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar ciudad..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--c-oliva-texto)]/40 focus:border-[var(--c-oliva-texto)] transition-all"
                 />
                 {q && (
                     <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
@@ -587,8 +587,8 @@ const TopCiudadesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                                 >
                                     <td className="px-3 py-2.5 text-xs font-medium text-stone-700 leading-snug border-b border-border">{c.nombre}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{c.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{c['Productos Afectados']}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{c.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{c['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-oliva-texto)] text-right border-b border-border">{c.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -629,7 +629,7 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar cliente final..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--c-oliva-texto)]/40 focus:border-[var(--c-oliva-texto)] transition-all"
                 />
                 {q && (
                     <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
@@ -667,8 +667,8 @@ const TopClientesCard = ({ data, onFilterToggle, activeFilters = [] }: {
                                 >
                                     <td className="px-3 py-2.5 text-xs font-medium text-stone-700 leading-snug border-b border-border">{c.Cliente}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{c.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{c.Productos}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{c.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{c.Productos}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-oliva-texto)] text-right border-b border-border">{c.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -708,7 +708,7 @@ const PlantasProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar planta..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--c-oliva-texto)]/40 focus:border-[var(--c-oliva-texto)] transition-all"
                 />
                 {q && (
                     <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
@@ -738,11 +738,11 @@ const PlantasProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle
                                     <tr 
                                         key={item.nombre} 
                                         onClick={(e) => onFilterToggle('productos', `PL:${item.nombre}`, e)}
-                                        className={`cursor-pointer transition-colors ${i !== filtered.length - 1 ? 'border-b border-border' : ''} ${isSelected ? 'bg-[#254153]/10 hover:bg-[#254153]/20' : 'hover:bg-cream-light'}`}
+                                        className={`cursor-pointer transition-colors ${i !== filtered.length - 1 ? 'border-b border-border' : ''} ${isSelected ? 'bg-[var(--c-navy)]/10 hover:bg-[var(--c-navy)]/20' : 'hover:bg-cream-light'}`}
                                     >
                                         <td className="px-3 py-3 text-xs font-bold text-brand-dark">{item.nombre}</td>
                                         <td className="px-3 py-3 text-xs font-semibold text-stone-700 text-right">{item.Registros}</td>
-                                        <td className="px-3 py-3 text-xs font-bold text-[#c96a4e] text-right">{item['Productos Afectados']}</td>
+                                        <td className="px-3 py-3 text-xs font-bold text-[var(--c-alerta)] text-right">{item['Productos Afectados']}</td>
                                         <td className="px-3 py-3 text-[10px] font-medium text-stone-500 text-right">{item.Participacion}</td>
                                     </tr>
                                 );
@@ -785,7 +785,7 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     placeholder="Buscar grupo de producto..."
-                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#749094]/40 focus:border-[#749094] transition-all"
+                    className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-border bg-cream-light text-stone-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--c-oliva-texto)]/40 focus:border-[var(--c-oliva-texto)] transition-all"
                 />
                 {q && (
                     <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors">
@@ -823,8 +823,8 @@ const GruposProductoTableCard = ({ title, data, maxHeight = 440, onFilterToggle,
                                 >
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark leading-snug border-b border-border">{item.nombre}</td>
                                     <td className="px-3 py-2.5 text-xs font-bold text-brand-dark text-right border-b border-border">{item.Registros}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#c96a4e] text-right border-b border-border">{item['Productos Afectados']}</td>
-                                    <td className="px-3 py-2.5 text-xs font-bold text-[#749094] text-right border-b border-border">{item.Participacion}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-alerta)] text-right border-b border-border">{item['Productos Afectados']}</td>
+                                    <td className="px-3 py-2.5 text-xs font-bold text-[var(--c-oliva-texto)] text-right border-b border-border">{item.Participacion}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -878,11 +878,11 @@ export const MercadosParticipacionCard = ({
                 id: 'Nacional',
                 nombre: 'Mercado Nacional',
                 subtitulo: 'Colombia / Clientes Locales',
-                color: '#254153',
+                color: 'var(--serie-navy)',
                 hoverColor: '#1a2e3b',
                 borderClass: 'border-border',
-                activeBorderClass: 'border-[#254153]',
-                activeRingClass: 'ring-[#254153]/25',
+                activeBorderClass: 'border-[var(--c-navy-texto)]',
+                activeRingClass: 'ring-[var(--c-navy-texto)]/25',
                 activeBgClass: 'bg-cream-light/80',
                 regs: 0,
                 prods: 0,
@@ -893,8 +893,8 @@ export const MercadosParticipacionCard = ({
                 id: 'Internacional',
                 nombre: 'Mercado Internacional',
                 subtitulo: 'Exportaciones / Exterior',
-                color: '#3b778c',
-                hoverColor: '#254153',
+                color: 'var(--serie-petroleo)',
+                hoverColor: 'var(--serie-navy)',
                 borderClass: 'border-brand-light/30',
                 activeBorderClass: 'border-brand',
                 activeRingClass: 'ring-brand-light/25',
@@ -908,8 +908,8 @@ export const MercadosParticipacionCard = ({
                 id: 'Sin clasificar',
                 nombre: 'Sin clasificar',
                 subtitulo: 'Sin asignación de mercado',
-                color: '#b3bec4',
-                hoverColor: '#8a8780',
+                color: 'var(--serie-arena)',
+                hoverColor: 'var(--c-apagado)',
                 borderClass: 'border-border',
                 activeBorderClass: 'border-brand-light',
                 activeRingClass: 'ring-border/25',
@@ -1010,7 +1010,7 @@ export const MercadosParticipacionCard = ({
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-md bg-[#254153]/10 text-[#254153] flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-md bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)] flex items-center justify-center">
                         <Globe className="w-3 h-3" />
                     </div>
                     <h3 className="text-xs font-bold text-brand-dark uppercase tracking-wider flex items-center gap-1.5">
@@ -1018,7 +1018,7 @@ export const MercadosParticipacionCard = ({
                     </h3>
                     {hasFilter && (
                         <div className="flex items-center gap-1 ml-1">
-                            <span className="text-[9px] font-bold bg-[#254153] text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                            <span className="text-[9px] font-bold bg-[var(--c-navy)] text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                                 Filtrando: {activeMercadoFilters.join(', ')}
                             </span>
                             <button
@@ -1104,7 +1104,7 @@ export const MercadosParticipacionCard = ({
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                                     <span className="text-xs font-bold text-brand-dark">{cat.participacion}</span>
                                     {isSelected && (
-                                        <span className="text-[8px] font-bold bg-[#254153] text-white px-1.5 py-0.2 rounded-full">Activo</span>
+                                        <span className="text-[8px] font-bold bg-[var(--c-navy)] text-white px-1.5 py-0.2 rounded-full">Activo</span>
                                     )}
                                 </div>
                             </div>
@@ -1218,7 +1218,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                     'Exportaciones',
                     'Exportador'
                 ],
-                color: '#254153',
+                color: 'var(--serie-navy)',
                 regs: 0,
                 prods: 0,
                 mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
@@ -1227,7 +1227,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                 id: 'constructor',
                 nombre: 'Constructor',
                 matchingKeys: ['Canal Constructor', 'canal_constructor', 'Constructor'],
-                color: '#749094',
+                color: 'var(--serie-oliva)',
                 regs: 0,
                 prods: 0,
                 mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
@@ -1243,7 +1243,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                     'Canal Propio',
                     'Propio'
                 ],
-                color: '#3b778c',
+                color: 'var(--serie-petroleo)',
                 regs: 0,
                 prods: 0,
                 mercados: { 'Nacional': 0, 'Internacional': 0, 'Sin clasificar': 0 }
@@ -1457,7 +1457,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                             onClick={(e) => onFilterToggle('canalVenta', cat.id, e)}
                             className={`group relative p-2.5 rounded-lg border transition-all duration-200 cursor-pointer ${
                                 isSelected 
-                                    ? 'bg-white border-2 border-[#254153] ring-1.5 ring-[#254153]/20 shadow-xs' 
+                                    ? 'bg-white border-2 border-[var(--c-navy-texto)] ring-1.5 ring-[var(--c-navy-texto)]/20 shadow-xs' 
                                     : isDimmed
                                     ? 'bg-cream-light/50 border-border opacity-40 hover:opacity-95 hover:border-border'
                                     : 'bg-white border-border/80 shadow-2xs hover:shadow-xs hover:border-border'
@@ -1472,7 +1472,7 @@ export const CanalesVentaCard = ({ data, dataForCanalVenta, filters, onFilterTog
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                                     <span className="text-xs font-bold text-brand-dark">{cat.participacion}</span>
                                     {isSelected && (
-                                        <span className="text-[8px] font-bold bg-[#254153] text-white px-1.5 py-0.2 rounded-full">Activo</span>
+                                        <span className="text-[8px] font-bold bg-[var(--c-navy)] text-white px-1.5 py-0.2 rounded-full">Activo</span>
                                     )}
                                 </div>
                             </div>
@@ -1715,7 +1715,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
             <div className="bg-white/95 backdrop-blur-sm p-3.5 rounded-xl border border-border shadow-xl text-xs space-y-2 min-w-[200px]">
                 <div className="flex items-center justify-between border-b border-border pb-1.5">
                     <span className="font-bold text-brand-dark text-sm">{label || entry.mes}</span>
-                    <span className="font-extrabold text-[#254153] text-xs bg-stone-100 px-2 py-0.5 rounded-full">
+                    <span className="font-extrabold text-[var(--c-navy-texto)] text-xs bg-stone-100 px-2 py-0.5 rounded-full">
                         {total} {total === 1 ? 'solicitud' : 'solicitudes'}
                     </span>
                 </div>
@@ -2313,8 +2313,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={registrosPorMes} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8a8780' }} />
-                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8a8780' }} />
+                                <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--c-apagado)' }} />
+                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--c-apagado)' }} />
                                 <RechartsTooltip content={<CustomIngresosTooltip />} cursor={{ fill: '#f9fafb' }} />
                                 <Legend 
                                     iconType="circle" 
@@ -2367,7 +2367,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                 ) : (
                                     <Bar
                                         dataKey="Registros"
-                                        fill="#254153"
+                                        fill="var(--serie-navy)"
                                         radius={[4, 4, 0, 0]}
                                         maxBarSize={60}
                                         isAnimationActive={false}
@@ -2376,7 +2376,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                         {registrosPorMes.map((entry, index) => (
                                             <Cell
                                                 key={`cell-mes-${index}`}
-                                                fill="#254153"
+                                                fill="var(--serie-navy)"
                                                 fillOpacity={filters.mesCreacion.length === 0 || filters.mesCreacion.includes(entry.key) ? 1 : 0.25}
                                             />
                                         ))}
@@ -2395,7 +2395,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                         dataKey="total"
                                         position="top"
                                         offset={8}
-                                        style={{ fill: '#1d1d1b', fontSize: 12, fontWeight: 'bold' }}
+                                        style={{ fill: 'var(--c-tinta)', fontSize: 12, fontWeight: 'bold' }}
                                     />
                                 </Line>
                             </ComposedChart>
@@ -2427,12 +2427,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             <ResponsiveContainer width="99%" height="100%">
                                 <BarChart data={tipoProblemaStats} layout="vertical" margin={{ top: 10, right: 20, left: -25, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8a8780' }} />
-                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#8a8780' }} />
+                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-apagado)' }} />
+                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--c-apagado)' }} />
                                     <RechartsTooltip 
                                         cursor={{ fill: '#f9fafb' }} 
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '8px 12px' }} 
-                                        labelStyle={{ fontWeight: 'bold', color: '#1d1d1b', marginBottom: '4px', fontSize: '11px' }}
+                                        labelStyle={{ fontWeight: 'bold', color: 'var(--c-tinta)', marginBottom: '4px', fontSize: '11px' }}
                                         itemStyle={{ fontSize: '10px', padding: '2px 0' }}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
@@ -2444,9 +2444,9 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {tipoProblemaStats.map((entry, index) => (
-                                            <Cell key={`cell-reg-${index}`} fill="#749094" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(entry.nombre) ? 1 : 0.25} />
+                                            <Cell key={`cell-reg-${index}`} fill="var(--serie-oliva)" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(entry.nombre) ? 1 : 0.25} />
                                         ))}
-                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#8a8780', fontSize: 9 }} />
+                                        <LabelList dataKey="Participacion" position="right" style={{ fill: 'var(--c-apagado)', fontSize: 9 }} />
                                     </Bar>
                                     <Bar isAnimationActive={false} 
                                         dataKey="Productos Afectados" 
@@ -2456,7 +2456,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {tipoProblemaStats.map((entry, index) => (
-                                            <Cell key={`cell-prod-${index}`} fill="#c96a4e" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(entry.nombre) ? 1 : 0.25} />
+                                            <Cell key={`cell-prod-${index}`} fill="var(--c-alerta)" fillOpacity={filters.defectos.length === 0 || filters.defectos.includes(entry.nombre) ? 1 : 0.25} />
                                         ))}
                                     </Bar>
                                 </BarChart>
@@ -2474,12 +2474,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                             <ResponsiveContainer width="99%" height="100%">
                                 <BarChart data={responsableProblemaStats} layout="vertical" margin={{ top: 10, right: 20, left: -25, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8a8780' }} />
-                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#8a8780' }} />
+                                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-apagado)' }} />
+                                    <YAxis dataKey="nombre" type="category" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--c-apagado)' }} />
                                     <RechartsTooltip 
                                         cursor={{ fill: '#f9fafb' }} 
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '8px 12px' }} 
-                                        labelStyle={{ fontWeight: 'bold', color: '#1d1d1b', marginBottom: '4px', fontSize: '11px' }}
+                                        labelStyle={{ fontWeight: 'bold', color: 'var(--c-tinta)', marginBottom: '4px', fontSize: '11px' }}
                                         itemStyle={{ fontSize: '10px', padding: '2px 0' }}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
@@ -2491,9 +2491,9 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {responsableProblemaStats.map((entry, index) => (
-                                            <Cell key={`cell-reg-${index}`} fill="#749094" fillOpacity={filters.responsables.length === 0 || filters.responsables.includes(entry.nombre) ? 1 : 0.25} />
+                                            <Cell key={`cell-reg-${index}`} fill="var(--serie-oliva)" fillOpacity={filters.responsables.length === 0 || filters.responsables.includes(entry.nombre) ? 1 : 0.25} />
                                         ))}
-                                        <LabelList dataKey="Participacion" position="right" style={{ fill: '#8a8780', fontSize: 9 }} />
+                                        <LabelList dataKey="Participacion" position="right" style={{ fill: 'var(--c-apagado)', fontSize: 9 }} />
                                     </Bar>
                                     <Bar isAnimationActive={false} 
                                         dataKey="Productos Afectados" 
@@ -2503,7 +2503,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                                         className="cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                         {responsableProblemaStats.map((entry, index) => (
-                                            <Cell key={`cell-prod-${index}`} fill="#c96a4e" fillOpacity={filters.responsables.length === 0 || filters.responsables.includes(entry.nombre) ? 1 : 0.25} />
+                                            <Cell key={`cell-prod-${index}`} fill="var(--c-alerta)" fillOpacity={filters.responsables.length === 0 || filters.responsables.includes(entry.nombre) ? 1 : 0.25} />
                                         ))}
                                     </Bar>
                                 </BarChart>
@@ -2541,8 +2541,8 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
             {/* Indicadores por Fecha de Compra y Fecha de Fabricación (Mes y Año) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <FechaProductoCard titulo="Solicitudes por fecha de compra" campo="fecha_compra" color="#254153" data={dataForFechaCompra || data} filterKey="fechaCompra" activeValues={filters.fechaCompra || []} onFilterToggle={onFilterToggle} />
-                <FechaProductoCard titulo="Solicitudes por fecha de fabricación" campo="fecha_fabricacion" color="#749094" data={dataForFechaFabricacion || data} filterKey="fechaFabricacion" activeValues={filters.fechaFabricacion || []} onFilterToggle={onFilterToggle} />
+                <FechaProductoCard titulo="Solicitudes por fecha de compra" campo="fecha_compra" color="var(--serie-navy)" data={dataForFechaCompra || data} filterKey="fechaCompra" activeValues={filters.fechaCompra || []} onFilterToggle={onFilterToggle} />
+                <FechaProductoCard titulo="Solicitudes por fecha de fabricación" campo="fecha_fabricacion" color="var(--serie-oliva)" data={dataForFechaFabricacion || data} filterKey="fechaFabricacion" activeValues={filters.fechaFabricacion || []} onFilterToggle={onFilterToggle} />
             </div>
 
             {/* Tabla de Radicados y Comentarios */}

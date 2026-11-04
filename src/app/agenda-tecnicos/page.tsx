@@ -57,7 +57,7 @@ function PremiumTechSelector({ options, selectedId, onChange }: { options: any[]
                         )}
                         <div className="text-left">
                             <p className="text-[13px] font-black text-slate-800 leading-none mb-1">{selectedOption.label}</p>
-                            <p className="text-[9px] font-bold text-[#254153] uppercase tracking-[0.15em] opacity-80">{selectedOption.rol?.replace(/_/g, ' ')}</p>
+                            <p className="text-[9px] font-bold text-[var(--c-navy-texto)] uppercase tracking-[0.15em] opacity-80">{selectedOption.rol?.replace(/_/g, ' ')}</p>
                         </div>
                     </div>
                 ) : (
@@ -68,7 +68,7 @@ function PremiumTechSelector({ options, selectedId, onChange }: { options: any[]
                         <span className="text-slate-600 font-bold text-sm">Selecciona un técnico...</span>
                     </div>
                 )}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOpen ? 'bg-[#254153] text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOpen ? 'bg-[var(--c-navy)] text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}>
                     <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                 </div>
             </button>
@@ -88,7 +88,7 @@ function PremiumTechSelector({ options, selectedId, onChange }: { options: any[]
                                 placeholder="Buscar técnico..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#254153]/20 focus:border-[#254153]/30 transition-all placeholder:text-slate-400"
+                                className="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 focus:border-[var(--c-navy-texto)]/30 transition-all placeholder:text-slate-400"
                                 onClick={(e) => e.stopPropagation()}
                                 autoFocus
                             />
@@ -99,7 +99,7 @@ function PremiumTechSelector({ options, selectedId, onChange }: { options: any[]
                                     key={option.id}
                                     type="button"
                                     onClick={() => { onChange(option.id); setIsOpen(false); setSearchTerm(''); }}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${selectedId === option.id ? 'bg-[#254153] text-white shadow-md' : 'hover:bg-slate-50 border border-transparent'}`}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${selectedId === option.id ? 'bg-[var(--c-navy)] text-white shadow-md' : 'hover:bg-slate-50 border border-transparent'}`}
                                 >
                                     {option.url_foto ? (
                                         <img src={option.url_foto} alt={option.display_name} className="w-10 h-10 rounded-full object-cover shadow-sm bg-white" />
@@ -118,7 +118,7 @@ function PremiumTechSelector({ options, selectedId, onChange }: { options: any[]
                                     </div>
                                     {selectedId === option.id && (
                                         <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm">
-                                            <Check className="w-3 h-3 text-[#254153]" />
+                                            <Check className="w-3 h-3 text-[var(--c-navy-texto)]" />
                                         </div>
                                     )}
                                 </button>
@@ -221,16 +221,16 @@ export default function AgendaTecnicosPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-                <div className="w-12 h-12 border-4 border-[#254153]/20 border-t-[#254153] rounded-full animate-spin"></div>
+            <div className="min-h-screen flex items-center justify-center bg-[var(--c-suave)]">
+                <div className="w-12 h-12 border-4 border-[var(--c-navy-texto)]/20 border-t-[#254153] rounded-full animate-spin"></div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] pb-20">
+        <div className="min-h-screen bg-[var(--c-suave)] pb-20">
             {/* 1. Header Integrado con Glassmorphism */}
-            <div className="sticky top-0 z-40 bg-[#F8FAFC]/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
+            <div className="sticky top-0 z-40 bg-[var(--c-suave)]/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
                 <div className="max-w-5xl mx-auto px-4 py-4 lg:py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <button
@@ -240,7 +240,7 @@ export default function AgendaTecnicosPage() {
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-black text-[#254153] tracking-tight leading-none">Agenda Técnicos</h1>
+                            <h1 className="text-2xl font-black text-[var(--c-navy-texto)] tracking-tight leading-none">Agenda Técnicos</h1>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Visión General</p>
                         </div>
                     </div>
@@ -285,7 +285,7 @@ export default function AgendaTecnicosPage() {
                                         onClick={() => setSelectedDate(day)}
                                         className={`flex-shrink-0 flex flex-col items-center justify-center w-[60px] h-[80px] rounded-full transition-all relative
                                             ${isSelected 
-                                                ? 'bg-[#254153] text-white shadow-[0_8px_16px_rgba(37,65,83,0.3)] scale-105' 
+                                                ? 'bg-[var(--c-navy)] text-white shadow-[0_8px_16px_rgba(37,65,83,0.3)] scale-105' 
                                                 : isToday
                                                     ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
                                                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'

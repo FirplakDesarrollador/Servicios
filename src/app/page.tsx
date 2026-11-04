@@ -187,7 +187,7 @@ export default function Home() {
   };
 
   const allMenuItems = [
-    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-[#254153]/10 text-[#254153]' },
+    { title: 'Solicitar servicio', icon: Briefcase, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
     { title: 'Servicios Abiertos', icon: ClipboardList, color: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
     { title: 'Buscar servicio cerrado', icon: Search, color: 'bg-indigo-50 text-indigo-700 border border-indigo-100' },
     { title: 'Aprobaciones', icon: ClipboardCheck, color: 'bg-amber-50 text-amber-700 border border-amber-100' },
@@ -195,12 +195,12 @@ export default function Home() {
     { title: 'Historial de servicios', icon: History, color: 'bg-indigo-50 text-indigo-700 border border-indigo-100' },
     { title: 'Ayuda', icon: HelpCircle, color: 'bg-teal-50 text-teal-700 border border-teal-100' },
     { title: 'Exhibiciones', icon: ChefHat, color: 'bg-amber-50 text-amber-700 border border-amber-100' },
-    { title: 'Base de datos', icon: Database, color: 'bg-[#254153]/10 text-[#254153]' },
+    { title: 'Base de datos', icon: Database, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
     { title: 'Inventario Almacenes', icon: Warehouse, color: 'bg-lime-50 text-lime-700 border border-lime-100' },
     { title: 'Agenda Tecnicos', icon: BookOpen, color: 'bg-purple-50 text-purple-700 border border-purple-100' },
     { title: 'Solicitudes Clientes', icon: Users, color: 'bg-blue-50 text-blue-700 border border-blue-100' },
-    { title: 'BI', icon: BarChart3, color: 'bg-[#254153]/10 text-[#254153]' },
-    { title: 'Indicadores MAC', icon: PieChart, color: 'bg-[#254153]/10 text-[#254153]' },
+    { title: 'BI', icon: BarChart3, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
+    { title: 'Indicadores MAC', icon: PieChart, color: 'bg-[var(--c-navy)]/10 text-[var(--c-navy-texto)]' },
     { title: 'Registro Solicitudes', icon: FileText, color: 'bg-sky-50 text-sky-700 border border-sky-100' },
     { title: 'Consultas SAP', icon: Server, color: 'bg-orange-50 text-orange-700 border border-orange-100' },
     { title: 'Configuración', icon: Settings, color: 'bg-slate-100 text-slate-700 border border-slate-200' },
@@ -213,7 +213,7 @@ export default function Home() {
 
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-slate-800 font-sans flex flex-col">
+    <div className="min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans flex flex-col">
       <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-12 flex items-center px-4 justify-between shadow-md">
         <div className="flex items-center">
           <img src="/logo-firplak.png" alt="FIRPLAK" className="h-5 w-auto invert brightness-0" style={{ filter: 'brightness(0) invert(1)' }} />
@@ -264,7 +264,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col items-start min-w-0">
-            <h1 className="text-sm font-black text-[#254153] tracking-tight leading-none mb-1">
+            <h1 className="text-sm font-black text-[var(--c-navy-texto)] tracking-tight leading-none mb-1">
               {isCliente ? '¡Bienvenido Cliente Firplak!' : '¡Bienvenido!'}
             </h1>
             <p className="text-[11px] font-semibold text-slate-700 leading-tight mb-0.5">{fullName}</p>

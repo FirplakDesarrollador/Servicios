@@ -24,8 +24,8 @@ const COLORS = {
     regular: '#f59e0b',   // amber-500
     riesgo: '#f97316',    // orange-500
     demandante: '#ef4444',// red-500
-    brand: '#254153',
-    brandLight: '#749094'
+    brand: 'var(--serie-navy)',
+    brandLight: 'var(--serie-oliva)'
 };
 
 // Remove redundant parseDateSafe and calcularRiesgo
@@ -438,8 +438,8 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
                                 margin={{ top: 10, right: 30, left: 50, bottom: 5 }}
                             >
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8a8780' }} />
-                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#1d1d1b', fontWeight: '500' }} />
+                                <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--c-apagado)' }} />
+                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-tinta)', fontWeight: '500' }} />
                                 <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                                 <Bar isAnimationActive={false} 
                                     dataKey="value" 
@@ -488,7 +488,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
                                     className="cursor-pointer hover:opacity-80 transition-opacity"
                                 />
                                 <Line isAnimationActive={false} yAxisId="right" type="monotone" dataKey="Cumplimiento" stroke="#000000" strokeWidth={3} dot={{ r: 4 }} name="% Cumplimiento">
-                                    <LabelList dataKey="Cumplimiento" position="top" formatter={(val: any) => `${val}%`} style={{ fill: '#1d1d1b', fontSize: 11, fontWeight: 'bold' }} offset={10} />
+                                    <LabelList dataKey="Cumplimiento" position="top" formatter={(val: any) => `${val}%`} style={{ fill: 'var(--c-tinta)', fontSize: 11, fontWeight: 'bold' }} offset={10} />
                                 </Line>
                             </ComposedChart>
                         </ResponsiveContainer>
@@ -514,13 +514,13 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
                                     cursor={{ fill: '#f9fafb' }}
                                 />
                                 <Legend />
-                                <Bar isAnimationActive={false} dataKey="Radicados" fill="#3b778c" radius={[4, 4, 0, 0]} name="Radicados al Día" className="cursor-pointer" onClick={(barData: any, _i: number, e: any) => barData?.payload?.dateStr && onFilterToggle('diaCreacion', barData.payload.dateStr, e)}>
-                                    {tendenciaDiariaData.map(d => <Cell key={d.dateStr} fill="#3b778c" fillOpacity={(filters.diaCreacion || []).length === 0 || (filters.diaCreacion || []).includes(d.dateStr) ? 1 : 0.3} />)}
+                                <Bar isAnimationActive={false} dataKey="Radicados" fill="var(--serie-petroleo)" radius={[4, 4, 0, 0]} name="Radicados al Día" className="cursor-pointer" onClick={(barData: any, _i: number, e: any) => barData?.payload?.dateStr && onFilterToggle('diaCreacion', barData.payload.dateStr, e)}>
+                                    {tendenciaDiariaData.map(d => <Cell key={d.dateStr} fill="var(--serie-petroleo)" fillOpacity={(filters.diaCreacion || []).length === 0 || (filters.diaCreacion || []).includes(d.dateStr) ? 1 : 0.3} />)}
                                 </Bar>
-                                <Bar isAnimationActive={false} dataKey="Cerrados" fill="#749094" radius={[4, 4, 0, 0]} name="Cerrados al Día" className="cursor-pointer" onClick={(barData: any, _i: number, e: any) => barData?.payload?.dateStr && onFilterToggle('diaCreacion', barData.payload.dateStr, e)}>
-                                    {tendenciaDiariaData.map(d => <Cell key={d.dateStr} fill="#749094" fillOpacity={(filters.diaCreacion || []).length === 0 || (filters.diaCreacion || []).includes(d.dateStr) ? 1 : 0.3} />)}
+                                <Bar isAnimationActive={false} dataKey="Cerrados" fill="var(--serie-oliva)" radius={[4, 4, 0, 0]} name="Cerrados al Día" className="cursor-pointer" onClick={(barData: any, _i: number, e: any) => barData?.payload?.dateStr && onFilterToggle('diaCreacion', barData.payload.dateStr, e)}>
+                                    {tendenciaDiariaData.map(d => <Cell key={d.dateStr} fill="var(--serie-oliva)" fillOpacity={(filters.diaCreacion || []).length === 0 || (filters.diaCreacion || []).includes(d.dateStr) ? 1 : 0.3} />)}
                                 </Bar>
-                                <Line isAnimationActive={false} type="monotone" dataKey="Meta" stroke="#c96a4e" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta Equipo (9)" />
+                                <Line isAnimationActive={false} type="monotone" dataKey="Meta" stroke="var(--c-alerta)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta Equipo (9)" />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>

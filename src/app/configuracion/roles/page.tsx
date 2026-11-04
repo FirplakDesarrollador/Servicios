@@ -108,14 +108,14 @@ export default function RolesManagementPage() {
 
     if (loading && roles.length === 0) {
         return (
-            <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--c-suave)] flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-brand animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans pb-20">
+        <div className="min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans pb-20">
             <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg justify-between">
                 <div className="flex items-center">
                     <button

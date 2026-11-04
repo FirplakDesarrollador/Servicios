@@ -251,7 +251,7 @@ export default function ExhibicionesPage() {
 
                         {/* Búsqueda */}
                         <div className="flex-grow min-w-[200px]">
-                            <label className="block text-xs font-medium text-[#254153] mb-1">
+                            <label className="block text-xs font-medium text-[var(--c-navy-texto)] mb-1">
                                 Búsqueda avanzada
                             </label>
                             <input
@@ -259,7 +259,7 @@ export default function ExhibicionesPage() {
                                 value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}
                                 placeholder="Ingrese texto a buscar..."
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#254153] focus:border-[#254153]"
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--c-navy-texto)] focus:border-[var(--c-navy-texto)]"
                             />
                         </div>
 
@@ -267,13 +267,13 @@ export default function ExhibicionesPage() {
                         {true && (
 
                             <div className="flex-shrink-0">
-                                <label className="block text-xs font-medium text-[#254153] mb-1">
+                                <label className="block text-xs font-medium text-[var(--c-navy-texto)] mb-1">
                                     Filtrar por asesor
                                 </label>
                                 <select
                                     value={asesorId || ''}
                                     onChange={(e) => setAsesorId(e.target.value ? parseInt(e.target.value) : null)}
-                                    className="w-56 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#254153] focus:border-[#254153]"
+                                    className="w-56 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--c-navy-texto)] focus:border-[var(--c-navy-texto)]"
                                 >
                                     <option value="">Todos los asesores...</option>
                                     {asesores.map(asesor => (
@@ -287,13 +287,13 @@ export default function ExhibicionesPage() {
 
                         {/* Último mantenimiento */}
                         <div className="flex-shrink-0">
-                            <label className="block text-xs font-medium text-[#254153] mb-1">
+                            <label className="block text-xs font-medium text-[var(--c-navy-texto)] mb-1">
                                 Último mantenimiento
                             </label>
                             <select
                                 value={mantenimiento}
                                 onChange={(e) => setMantenimiento(e.target.value)}
-                                className="w-56 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#254153] focus:border-[#254153]"
+                                className="w-56 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--c-navy-texto)] focus:border-[var(--c-navy-texto)]"
                             >
                                 <option value="">Todos...</option>
                                 <option value="No registra">No registra</option>
@@ -318,7 +318,7 @@ export default function ExhibicionesPage() {
                 {/* Results count */}
                 <div className="flex justify-between items-center mb-4">
                     <p className="text-sm text-gray-700">
-                        <span className="font-medium text-[#254153]">Salas encontradas: </span>
+                        <span className="font-medium text-[var(--c-navy-texto)]">Salas encontradas: </span>
                         <span className="text-sm">{filteredSalas.length}</span>
                     </p>
                     {busqueda && (

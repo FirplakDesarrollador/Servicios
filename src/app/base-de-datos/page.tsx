@@ -285,7 +285,7 @@ export default function BaseDatosPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC]">
+        <div className="min-h-screen bg-[var(--c-suave)]">
             {/* Header Premium */}
             <header className="fixed top-0 left-0 w-full bg-slate-900 text-white z-50 h-[3.25rem] flex items-center px-6 shadow-xl border-b border-white/5">
                 <button 

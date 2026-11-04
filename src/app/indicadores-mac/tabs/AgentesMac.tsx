@@ -21,7 +21,7 @@ const COLORS = {
     regular: '#f59e0b',   // amber-500
     riesgo: '#f97316',    // orange-500
     demandante: '#ef4444',// red-500
-    brand: '#254153'
+    brand: 'var(--serie-navy)'
 };
 
 export default function AgentesMac({ data, prevData, filters, onFilterToggle, dataForAgente }: Props) {
