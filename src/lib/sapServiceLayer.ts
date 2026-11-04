@@ -2,10 +2,32 @@ if (typeof process !== 'undefined') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
-const SAP_BASE_URL = process.env.SAP_BASE_URL;
-const SAP_COMPANY_DB = process.env.SAP_COMPANY_DB || 'Firplak_SA';
-const SAP_USERNAME = process.env.SAP_USERNAME;
-const SAP_PASSWORD = process.env.SAP_PASSWORD;
+import { getSupabaseAdmin } from './supabaseAdmin';
+
+// Conexión a SAP: de las variables de entorno si están completas; si no, de la tabla privada sap_conexion
+// (supabase/create_sap_conexion.sql), que solo se lee en el servidor. Nunca va escrita en el código.
+let SAP_BASE_URL = process.env.SAP_BASE_URL;
+let SAP_COMPANY_DB = process.env.SAP_COMPANY_DB || 'Firplak_SA';
+let SAP_USERNAME = process.env.SAP_USERNAME;
+let SAP_PASSWORD = process.env.SAP_PASSWORD;
+const conexionPorVariables = Boolean(SAP_BASE_URL && SAP_USERNAME && SAP_PASSWORD);
+let conexionCargada = conexionPorVariables;
+
+async function cargarConexion(): Promise<void> {
+  if (conexionCargada) return;
+  const { data, error } = await getSupabaseAdmin()
+    .from('sap_conexion')
+    .select('base_url, company_db, usuario, clave')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer la conexión a SAP en Supabase: ${error.message}`);
+  if (!data) throw new Error('Falta la conexión a SAP: la tabla sap_conexion está vacía');
+  SAP_BASE_URL = data.base_url;
+  SAP_COMPANY_DB = data.company_db;
+  SAP_USERNAME = data.usuario;
+  SAP_PASSWORD = data.clave;
+  conexionCargada = true;
+}
 
 export { SAP_BASE_URL };
 
@@ -19,12 +41,7 @@ let sessionTimeoutMs = 30 * 60 * 1000;
 let loginInFlight: Promise<string> | null = null;
 
 async function loginToServiceLayer(): Promise<string> {
-  const faltantes = Object.entries({ SAP_BASE_URL, SAP_USERNAME, SAP_PASSWORD })
-    .filter(([, valor]) => !valor)
-    .map(([nombre]) => nombre);
-  if (faltantes.length > 0) {
-    throw new Error(`Faltan las variables de entorno de SAP: ${faltantes.join(', ')}`);
-  }
+  await cargarConexion();
 
   const loginUrl = `${SAP_BASE_URL}/Login`;
   console.log('[SAP Service Layer] Authenticating with:', loginUrl);
@@ -44,6 +61,8 @@ async function loginToServiceLayer(): Promise<string> {
   if (!res.ok) {
     const errText = await res.text();
     console.error('[SAP Service Layer] Login failed:', res.status, errText);
+    // Si la clave cambió en Supabase, el siguiente intento la vuelve a leer
+    conexionCargada = conexionPorVariables;
     throw new Error(`Error autenticando en SAP Service Layer (${res.status}): ${errText}`);
   }
 
@@ -119,9 +138,12 @@ export function sapQueuedFetch(url: string, init: RequestInit = {}, timeoutMs = 
  * Reintenta una vez con sesión nueva si SAP la invalidó (401).
  */
 export async function sapGetRaw(path: string, timeoutMs = 60000): Promise<Response> {
-  let res = await sapQueuedFetch(`${SAP_BASE_URL}/${path}`, { headers: { Cookie: await getSapSessionCookie() } }, timeoutMs);
+  // La sesión primero: el login es el que deja lista la dirección de SAP
+  const cookie = await getSapSessionCookie();
+  let res = await sapQueuedFetch(`${SAP_BASE_URL}/${path}`, { headers: { Cookie: cookie } }, timeoutMs);
   if (res.status === 401) {
-    res = await sapQueuedFetch(`${SAP_BASE_URL}/${path}`, { headers: { Cookie: await getSapSessionCookie(true) } }, timeoutMs);
+    const nueva = await getSapSessionCookie(true);
+    res = await sapQueuedFetch(`${SAP_BASE_URL}/${path}`, { headers: { Cookie: nueva } }, timeoutMs);
   }
   return res;
 }
