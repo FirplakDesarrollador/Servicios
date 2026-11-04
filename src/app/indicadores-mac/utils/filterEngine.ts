@@ -48,8 +48,12 @@ export const plantaDeVenta = (v: { familia?: string | null; planta?: string | nu
  * Grupo de una venta. Los accesorios y repuestos de hidromasaje se categorizan igual que sus novedades:
  * grupo Hidroterapia, planta Comercializado, aunque en Ventas su familia sea MPDIRECT o REPUESTO.
  */
-export const grupoDeVenta = (v: { familia?: string | null; grupo_articulo?: string | null }): string =>
-    /^(MPD04|REP01)\b/i.test(String(v.grupo_articulo || '').trim()) ? 'Hidroterapia' : normalizeGrupo(String(v.familia || ''));
+export const grupoDeVenta = (v: { familia?: string | null; grupo_articulo?: string | null }): string => {
+    if (/^(MPD04|REP01)\b/i.test(String(v.grupo_articulo || '').trim())) return 'Hidroterapia';
+    const grupo = normalizeGrupo(String(v.familia || ''));
+    // "En Blanco" es solo para novedades sin categorizar: una venta nunca queda ahí
+    return grupo === 'En Blanco' ? 'Comercializados' : grupo;
+};
 
 /** Filtros con vista cruzada ("todo menos este filtro"). El rango de fechas siempre se aplica. */
 export const CROSS_KEYS = [
