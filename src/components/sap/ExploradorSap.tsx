@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   ArrowLeft, Search, Loader2, User, Building2, Phone, Mail, MapPin, FileText, ExternalLink,
   ChevronRight, AlertCircle, GitBranch, Users, X, ListOrdered, Paperclip,
+  Briefcase,
 } from 'lucide-react';
 import {
   SAP_DOC_TYPES,
@@ -209,9 +210,41 @@ const PartnerAvatar = ({ cardCode, large = false }: { cardCode: string; large?: 
   </span>
 );
 
-function PartnerCard({ p, onOpen }: { p: SapBusinessPartner; onOpen: () => void }) {
+type CampoCliente = 'address' | 'city' | 'salesPerson' | 'contactPerson' | 'telefono' | 'email';
+
+const valorCampo = (p: SapBusinessPartner, campo: CampoCliente) =>
+  String((campo === 'telefono' ? p.cellular || p.phone : p[campo]) || '').trim().toUpperCase();
+
+/** Para cada cuenta, qué datos cambian frente a las demás cuentas con el mismo nombre. */
+function camposDiferentes(partners: SapBusinessPartner[]) {
+  const campos: CampoCliente[] = ['address', 'city', 'salesPerson', 'contactPerson', 'telefono', 'email'];
+  const grupos = new Map<string, SapBusinessPartner[]>();
+  partners.forEach((p) => {
+    const nombre = p.cardName.trim().toUpperCase();
+    grupos.set(nombre, [...(grupos.get(nombre) || []), p]);
+  });
+  const salida = new Map<string, { hayVarias: boolean; cambian: Set<CampoCliente> }>();
+  grupos.forEach((grupo) => {
+    const cambian = new Set(campos.filter((c) => new Set(grupo.map((p) => valorCampo(p, c))).size > 1));
+    grupo.forEach((p) => salida.set(p.cardCode, { hayVarias: grupo.length > 1, cambian }));
+  });
+  return salida;
+}
+
+function PartnerCard({ p, onOpen, hayVarias = false, cambian = new Set<CampoCliente>() }: {
+  p: SapBusinessPartner;
+  onOpen: () => void;
+  /** Hay más cuentas con este mismo nombre en los resultados */
+  hayVarias?: boolean;
+  cambian?: Set<CampoCliente>;
+}) {
+  // Entre cuentas iguales resalta lo que las distingue y oculta lo que se repite
+  const estilo = (campo: CampoCliente) => (cambian.has(campo) && campo !== 'telefono' && campo !== 'email' ? 'text-brand-dark font-medium' : 'text-stone-500');
+  const visible = (campo: CampoCliente) => !hayVarias || cambian.has(campo);
+  const telefono = p.cellular || p.phone;
+  const lugar = [p.address, p.city].filter(Boolean).join(' · ');
   return (
-    <button onClick={onOpen} className={`${card} text-left p-4 hover:border-brand-light hover:shadow-[0_10px_24px_-16px_rgba(37,65,83,0.45)] transition-all cursor-pointer group`}>
+    <button onClick={onOpen} className={`${card} text-left p-4 hover:border-brand-light hover:shadow-[0_10px_24px_-16px_rgba(37,65,83,0.45)] transition-all cursor-pointer group w-full`}>
       <div className="flex items-start gap-3">
         <PartnerAvatar cardCode={p.cardCode} />
         <div className="min-w-0 flex-1">
@@ -219,11 +252,37 @@ function PartnerCard({ p, onOpen }: { p: SapBusinessPartner; onOpen: () => void 
           <p className="text-xs text-stone-500 mt-1">
             {p.cardCode} · CC/NIT {p.federalTaxId || '—'}
             <span className="ml-2 px-1.5 py-px rounded-full bg-sage-soft text-brand text-[10px] font-medium">{p.cardType}</span>
+            {p.frozen && <span className="ml-1.5 px-1.5 py-px rounded-full bg-red-50 text-red-700 text-[10px] font-medium">Inactivo</span>}
           </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-stone-400">
-            {p.city && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{p.city}</span>}
-            {(p.cellular || p.phone) && <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />{p.cellular || p.phone}</span>}
-            {p.email && <span className="inline-flex items-center gap-1 truncate max-w-[220px]"><Mail className="w-3 h-3" />{p.email}</span>}
+          {lugar && (
+            <p className={`flex items-start gap-1.5 mt-2.5 text-xs ${estilo(cambian.has('address') ? 'address' : 'city')}`}>
+              <MapPin className="w-3.5 h-3.5 shrink-0 mt-px text-stone-400" aria-hidden />
+              <span className="min-w-0">{lugar}</span>
+            </p>
+          )}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs">
+            <span className={`inline-flex items-center gap-1.5 ${estilo('salesPerson')}`}>
+              <Briefcase className="w-3.5 h-3.5 shrink-0 text-stone-400" aria-hidden />
+              Asesor: {p.salesPerson || 'Sin asignar'}
+            </span>
+            {p.contactPerson && visible('contactPerson') && valorCampo(p, 'contactPerson') !== p.cardName.trim().toUpperCase() && (
+              <span className={`inline-flex items-center gap-1.5 ${estilo('contactPerson')}`}>
+                <User className="w-3.5 h-3.5 shrink-0 text-stone-400" aria-hidden />
+                Contacto: {p.contactPerson}
+              </span>
+            )}
+            {telefono && visible('telefono') && (
+              <span className={`inline-flex items-center gap-1.5 ${estilo('telefono')}`}>
+                <Phone className="w-3.5 h-3.5 shrink-0 text-stone-400" aria-hidden />
+                {telefono}
+              </span>
+            )}
+            {p.email && visible('email') && (
+              <span className={`inline-flex items-center gap-1.5 min-w-0 max-w-full ${estilo('email')}`}>
+                <Mail className="w-3.5 h-3.5 shrink-0 text-stone-400" aria-hidden />
+                <span className="truncate">{p.email}</span>
+              </span>
+            )}
           </div>
         </div>
         <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-brand group-hover:translate-x-0.5 transition-all mt-1" />
@@ -239,6 +298,7 @@ const docLabel = (d: SapDocSummary) => `${SAP_DOC_TYPES[d.type].short} ${d.docNu
 function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
   const { data, error, loading } = useSapData<SapSearchResult>(query.length >= 2 ? `/api/sap/search?q=${encodeURIComponent(query)}` : null);
   const [typeFilter, setTypeFilter] = useState<SapDocType | 'all'>('all');
+  const diferencias = useMemo(() => camposDiferentes(data?.partners || []), [data]);
 
   if (query.length < 2) return <SearchHelp />;
   if (loading) return <Loading label={`Buscando “${query}” en SAP…`} />;
@@ -266,7 +326,7 @@ function SearchView({ query, go }: { query: string; go: (v: View) => void }) {
         <Section title="Clientes" icon={Users}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {data.partners.map((p) => (
-              <PartnerCard key={p.cardCode} p={p} onOpen={() => go({ kind: 'customer', cardCode: p.cardCode, label: p.cardName })} />
+              <PartnerCard key={p.cardCode} p={p} {...diferencias.get(p.cardCode)} onOpen={() => go({ kind: 'customer', cardCode: p.cardCode, label: p.cardName })} />
             ))}
           </div>
         </Section>
@@ -681,7 +741,7 @@ export default function ExploradorSap({
 
   return (
     <div className="max-w-[1320px] mx-auto pb-12">
-      <div className="sticky top-14 z-30 -mx-4 px-4 pt-5 pb-3 bg-cream/95 backdrop-blur">
+      <div className="sticky top-14 z-30 -mx-4 px-4 pt-3 pb-3 bg-white/70 backdrop-blur">
         <form
           onSubmit={(e) => {
             e.preventDefault();

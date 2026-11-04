@@ -22,7 +22,7 @@ const MARKETING_DOC_SELECT =
 const PRODUCTION_ORDER_SELECT =
   'AbsoluteEntry,DocumentNumber,PostingDate,DueDate,ItemNo,ProductDescription,PlannedQuantity,CompletedQuantity,ProductionOrderStatus,CustomerCode,ProductionOrderOriginEntry,ProductionOrderOrigin';
 const BP_SELECT =
-  'CardCode,CardName,CardType,FederalTaxID,Phone1,Cellular,EmailAddress,City';
+  'CardCode,CardName,CardType,FederalTaxID,Phone1,Cellular,EmailAddress,City,Address,SalesPersonCode,ContactPerson,Frozen';
 const BP_DETAIL_SELECT =
   'CardCode,CardName,CardType,FederalTaxID,Phone1,Phone2,Cellular,EmailAddress,City,Address,CurrentAccountBalance,OpenOrdersBalance,OpenDeliveryNotesBalance,CreditLimit,SalesPersonCode,ContactPerson,Frozen';
 
@@ -203,6 +203,15 @@ export async function searchSap(rawQuery: string): Promise<SapSearchResult> {
 
   const [partnersRaw, productionDocs, ...docGroups] = await Promise.all([partnerPromise, productionPromise, ...docPromises]);
 
+  // Lo que distingue a varias cuentas o sedes de un mismo cliente
+  const partners = await Promise.all(partnersRaw.map(async (raw): Promise<SapBusinessPartner> => ({
+    ...toPartner(raw),
+    address: toStr(raw.Address),
+    contactPerson: toStr(raw.ContactPerson),
+    salesPerson: await salesPersonName(raw.SalesPersonCode),
+    frozen: raw.Frozen === 'tYES',
+  })));
+
   const documents = [...docGroups.flat(), ...productionDocs];
   // Primero las coincidencias exactas de número de documento, luego las más recientes.
   documents.sort((a, b) => {
@@ -214,7 +223,7 @@ export async function searchSap(rawQuery: string): Promise<SapSearchResult> {
 
   return {
     query,
-    partners: partnersRaw.map(toPartner),
+    partners,
     documents,
     tookMs: Date.now() - started,
   };

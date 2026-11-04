@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import OfertaDeVenta from '@/components/sap/OfertaDeVenta';
 import LDMCostos from '@/components/sap/LDMCostos';
 import ExploradorSap, { type ClassicSapMode } from '@/components/sap/ExploradorSap';
-import FirplakMark from '@/components/sap/explorer/FirplakMark';
 
 const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   Quotation: 'oferta-venta',
@@ -117,13 +116,12 @@ export default function ConsultasSapPage() {
             <motion.section
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="pt-14 sm:pt-20 pb-12 flex flex-col items-center text-center"
+              className="pt-3 sm:pt-5 pb-6 flex flex-col items-center text-center"
             >
-              <FirplakMark className="w-9 h-9 text-brand" />
-              <h1 className="mt-6 text-3xl sm:text-4xl font-semibold tracking-tight text-brand-dark">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-brand-dark">
                 ¿Qué necesitas consultar en SAP?
               </h1>
-              <p className="mt-3 text-sm sm:text-base text-ink-muted max-w-xl">
+              <p className="mt-1 text-xs sm:text-sm text-ink-muted max-w-2xl">
                 Busca un cliente por cédula o nombre, o cualquier documento por su número u orden de compra. Todo lo relacionado aparece junto.
               </p>
 
@@ -132,7 +130,7 @@ export default function ConsultasSapPage() {
                   e.preventDefault();
                   openExplorer(heroQuery);
                 }}
-                className="mt-8 w-full max-w-2xl flex items-center gap-2 bg-white rounded-2xl border border-border shadow-[0_8px_30px_-12px_rgba(37,65,83,0.18)] pl-5 pr-2 h-16 focus-within:border-brand-light transition-colors"
+                className="mt-3 w-full max-w-2xl flex items-center gap-2 bg-white rounded-2xl border border-border shadow-[0_8px_30px_-12px_rgba(37,65,83,0.18)] pl-4 pr-1.5 h-12 focus-within:border-brand-light transition-colors"
               >
                 <Search className="w-5 h-5 text-brand-light shrink-0" />
                 <input
@@ -140,19 +138,19 @@ export default function ConsultasSapPage() {
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
                   placeholder="Cédula, NIT, nombre, documento u orden de compra"
-                  className="flex-1 min-w-0 bg-transparent outline-none text-base sm:text-lg text-brand-dark placeholder:text-stone-400"
+                  className="flex-1 min-w-0 bg-transparent outline-none text-sm sm:text-base text-brand-dark placeholder:text-stone-400"
                 />
-                <button type="submit" className="h-12 px-6 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer">
+                <button type="submit" className="h-9 px-5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer">
                   Buscar
                 </button>
               </form>
 
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <div className="mt-2.5 flex flex-wrap justify-center gap-2">
                 {SEARCH_EXAMPLES.map((ex) => (
                   <button
                     key={ex.value}
                     onClick={() => openExplorer(ex.value)}
-                    className="h-8 px-3 rounded-full border border-border bg-white/70 text-xs text-stone-600 hover:border-brand-light hover:text-brand transition-colors cursor-pointer"
+                    className="h-7 px-2.5 rounded-full border border-border bg-white/70 text-[11px] text-stone-600 hover:border-brand-light hover:text-brand transition-colors cursor-pointer"
                   >
                     <span className="text-stone-400">{ex.label}:</span> <span className="font-medium">{ex.value}</span>
                   </button>
