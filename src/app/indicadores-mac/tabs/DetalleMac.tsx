@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useDeferredValue } from 'react';
 import { porcentajeCumplimiento } from '../utils/metricas';
+import { TendenciaSlaCard } from '../components/ServicioCards';
 import { RegistroMAC, FilterState } from '../types';
 import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
@@ -11,6 +12,7 @@ interface Props {
     prevData: RegistroMAC[];
     filters: FilterState;
     dataForMesPresupuesto?: RegistroMAC[];
+    dataForMesCreacion?: RegistroMAC[];
     dataForEstadoRiesgo?: RegistroMAC[];
     dataForDiaCreacion?: RegistroMAC[];
     setFilters?: any;
@@ -28,7 +30,7 @@ const COLORS = {
 
 // Remove redundant parseDateSafe and calcularRiesgo
 
-export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoRiesgo, dataForDiaCreacion, prevData, filters, setFilters, onFilterToggle }: Props) {
+export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCreacion, dataForEstadoRiesgo, dataForDiaCreacion, prevData, filters, setFilters, onFilterToggle }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchTipoProblema, setSearchTipoProblema] = useState('');
     const [searchResponsable, setSearchResponsable] = useState('');
@@ -588,6 +590,9 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForEstadoR
                     </div>
                 </div>
             </div>
+
+            {/* Cumplimiento y tiempo de solución por mes */}
+            <TendenciaSlaCard data={dataForMesCreacion || data} filters={filters} onFilterToggle={onFilterToggle} />
 
             {/* Tabla Detalle */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">

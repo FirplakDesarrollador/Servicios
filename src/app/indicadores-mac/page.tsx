@@ -920,7 +920,7 @@ export default function IndicadoresMacPage() {
                                         filtersComponent={verticalFiltersEl}
                                     />
                                 )}
-                                {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForEstadoRiesgo={dataForEstadoRiesgo} dataForDiaCreacion={dataForDiaCreacion} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
+                                {activeTab === 1 && <DetalleMac data={filteredData} dataForMesPresupuesto={dataForMesPresupuesto} dataForMesCreacion={dataForMesCreacion} dataForEstadoRiesgo={dataForEstadoRiesgo} dataForDiaCreacion={dataForDiaCreacion} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} />}
                                 {activeTab === 2 && <AgentesMac data={filteredData} prevData={data} filters={deferredFilters} setFilters={setFilters} onFilterToggle={handleFilterToggle} dataForAgente={dataForAgente} />}
                                 {activeTab === 5 && (qrrSource === 'local' || qrrSyncError) && (
                                     <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-xs text-amber-900">

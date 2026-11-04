@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useRowLimit } from '../utils/useRowLimit';
 import FechaProductoCard from '../components/FechaProductoCard';
-import { ProblemasRepetidosCard, TendenciaSlaCard } from '../components/ServicioCards';
 import { nuevoConteo, problemasDeProducto, sumarProblema, totalConteo, type ConteoIncremental } from '../utils/conteoProblemas';
 import { SLA_DIAS_HABILES, VENTANA_REPETIDOS_DIAS, calcularProblemasRepetidos, estaFueraDeSla, mediana, porcentajeCumplimiento, promedio, tiemposDeSolucion } from '../utils/metricas';
 import { EN_BLANCO, SIN_PRODUCTO_COMPRA, SIN_PRODUCTO_NOVEDAD, novedadCoincideTexto, productoCoincideTexto, registroCumpleProductos } from '../utils/filterEngine';
@@ -2539,11 +2538,6 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                 <TopClientesCard data={clientesData} onFilterToggle={onFilterToggle} activeFilters={filters.clientes} />
             </div>
 
-            {/* Cumplimiento por mes y problemas repetidos */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-                <TendenciaSlaCard data={dataForMesCreacion || data} filters={filters} onFilterToggle={onFilterToggle} />
-                <ProblemasRepetidosCard lista={servicio.repetidos.lista} filters={filters} onFilterToggle={onFilterToggle} />
-            </div>
 
             {/* Indicadores por Fecha de Compra y Fecha de Fabricación (Mes y Año) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
