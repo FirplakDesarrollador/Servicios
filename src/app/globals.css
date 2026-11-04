@@ -40,6 +40,7 @@
   --mancha-b: rgb(102 117 58 / 0.42);
   --mancha-c: rgb(205 187 147 / 0.75);
   --mancha-d: rgb(47 80 117 / 0.22);
+  --logo-fondo: rgb(27 50 80 / 0.3);
 
   /* Neutros */
   --n-50: #f8f4ea;
@@ -111,6 +112,7 @@
   --mancha-b: rgb(102 117 58 / 0.42);
   --mancha-c: rgb(18 35 56 / 0.95);
   --mancha-d: rgb(205 187 147 / 0.1);
+  --logo-fondo: rgb(143 176 210 / 0.24);
 
   --n-50: #18222f;
   --n-100: #1f2b3a;
@@ -215,6 +217,20 @@ body {
   0% { border-radius: 58% 42% 33% 67% / 55% 38% 62% 45%; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
   50% { border-radius: 38% 62% 64% 36% / 42% 62% 38% 58%; transform: translate3d(6vmax, 3vmax, 0) rotate(40deg) scale(1.1); }
   100% { border-radius: 64% 36% 45% 55% / 36% 54% 46% 64%; transform: translate3d(-4vmax, 6vmax, 0) rotate(85deg) scale(0.94); }
+}
+
+/* El logo de FIRPLAK, grande y centrado, sobre las formas líquidas */
+.fondo-liquido::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(92vw, 88vh);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: var(--logo-fondo);
+  -webkit-mask: url("/logo-firplak-casita.svg") center / contain no-repeat;
+  mask: url("/logo-firplak-casita.svg") center / contain no-repeat;
 }
 
 /* Las páginas dejan ver el fondo */

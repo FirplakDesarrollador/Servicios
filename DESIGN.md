@@ -23,6 +23,9 @@ Navy, verde oliva, crema y negro. Los tokens viven en `src/app/globals.css` y ca
 - `backdrop-filter` real solo en lo que flota sobre contenido: encabezados fijos y modales.
 - Menús, modales, encabezados de tabla pegajosos y campos van casi opacos para que se lean.
 
+## Logo de fondo
+La casita de FIRPLAK (`public/logo-firplak-casita.svg`) va grande y centrada, fija detrás de todo, entre las formas líquidas y las tarjetas. Su color se ajusta con `--logo-fondo` en cada tema. Exportes en 4K: `logo-firplak-casita-4k.png` (transparente) y `logo-firplak-casita-4k-fondo-oscuro.png`.
+
 ## Liquid Morph
 - Fondo: cuatro formas con `border-radius` y `transform` animados, entre 29 y 47 segundos.
 - Tarjetas: cambian de forma despacio al pasar el cursor.
