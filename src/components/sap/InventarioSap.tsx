@@ -93,13 +93,12 @@ function TablaAlmacenes({ articulo }: { articulo: ArticuloDetalle }) {
   );
 }
 
-type Pestana = 'stock' | 'general' | 'ventas' | 'planificacion' | 'propiedades';
+type Pestana = 'stock' | 'general' | 'ventas' | 'planificacion';
 const PESTANAS: Array<{ id: Pestana; nombre: string }> = [
   { id: 'stock', nombre: 'Stock por almacén' },
   { id: 'general', nombre: 'General' },
   { id: 'ventas', nombre: 'Precios' },
   { id: 'planificacion', nombre: 'Planificación' },
-  { id: 'propiedades', nombre: 'Propiedades' },
 ];
 
 function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => void }) {
@@ -134,6 +133,17 @@ function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => voi
           <p className="text-xs text-stone-500 mt-1">
             {articulo.codigo}{articulo.grupo ? ` · ${articulo.grupo}` : ''}{articulo.nombreExtranjero ? ` · ${articulo.nombreExtranjero}` : ''}
           </p>
+
+          {articulo.propiedades.length > 0 && (
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mt-4">
+              {articulo.propiedades.map((c) => (
+                <div key={c.etiqueta} className="min-w-0">
+                  <dt className="text-[11px] font-medium text-stone-500">{c.etiqueta}</dt>
+                  <dd className="text-sm font-medium text-brand-dark break-words mt-0.5">{c.valor || '—'}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
 
           <dl className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-border border-y border-border mt-4">
             <Indicador titulo="En stock" valor={articulo.enStock} unidad={articulo.unidad} />
@@ -182,7 +192,6 @@ function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => voi
               </ul>
             ))}
             {pestana === 'planificacion' && <ListaCampos campos={articulo.planificacion} vacio="Sin datos de planificación." />}
-            {pestana === 'propiedades' && <ListaCampos campos={articulo.propiedades} vacio="Sin propiedades." />}
           </div>
         </div>
       )}

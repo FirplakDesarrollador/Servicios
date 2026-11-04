@@ -115,12 +115,58 @@ const EMISION: Record<string, string> = { im_Backflush: 'Notificación posterior
 const LISTA_MATERIALES: Record<string, string> = { iNotATree: 'No tiene', iProductionTree: 'Producción', iSalesTree: 'Ventas', iAssemblyTree: 'Montaje', iTemplateTree: 'Plantilla' };
 const TIPO_MATERIAL: Record<string, string> = { mt_FinishedGoods: 'Producto terminado', mt_GoodsInProcess: 'Producto en proceso', mt_RawMaterial: 'Materia prima' };
 
-// Campos propios de FIRPLAK con nombre legible
-const ETIQUETAS_USUARIO: Record<string, string> = {
-  U_Grupo: 'Grupo', U_Familia: 'Familia', U_Linea: 'Línea', U_FIR_Plantas: 'Planta', U_Color: 'Color', U_Version: 'Versión', U_Prefijo: 'Prefijo',
-  U_Area: 'Área', U_Inventariable: 'Inventariable', U_TypeOC: 'Tipo de orden', U_Articulo_TOC: 'Artículo TOC', U_Paretto: 'Pareto', U_PLU: 'PLU',
-  U_DescMolde: 'Molde', U_Req_Molde: 'Requiere molde', U_Plano: 'Plano', U_CodBarras: 'Código de barras',
-};
+// ── Campos definidos por usuario ───────────────────────────────────────
+// Nombres, orden y valores válidos salen de la definición de SAP (tabla OITM), igual que en su ventana.
+interface DefinicionCampo {
+  campo: string;
+  etiqueta: string;
+  valores: Map<string, string>;
+  tablaVinculada: string | null;
+}
+
+let copiaDefiniciones: { en: number; lista: DefinicionCampo[] } | null = null;
+async function definicionesCampos(): Promise<DefinicionCampo[]> {
+  if (copiaDefiniciones && Date.now() - copiaDefiniciones.en < UNA_HORA) return copiaDefiniciones.lista;
+  const parametros = new URLSearchParams({ $filter: "TableName eq 'OITM'", $orderby: 'FieldID' });
+  const datos = await sapGet<{ value: any[] }>(`UserFieldsMD?${parametros}`.replace(/\+/g, '%20'), { maxPageSize: 500 });
+  const lista = datos.value.map((f) => ({
+    campo: `U_${f.Name}`,
+    etiqueta: texto(f.Description) || String(f.Name),
+    valores: new Map<string, string>((f.ValidValuesMD || []).map((v: any) => [String(v.Value), String(v.Description ?? v.Value)])),
+    tablaVinculada: texto(f.LinkedTable),
+  }));
+  copiaDefiniciones = { en: Date.now(), lista };
+  return lista;
+}
+
+// Valores que SAP toma de una tabla de usuario (por ejemplo, Color)
+const copiasTablas = new Map<string, { en: number; mapa: Map<string, string> }>();
+async function valoresTabla(tabla: string): Promise<Map<string, string>> {
+  const copia = copiasTablas.get(tabla);
+  if (copia && Date.now() - copia.en < UNA_HORA) return copia.mapa;
+  try {
+    const datos = await sapGet<{ value: any[] }>(`U_${tabla}?$select=Code,Name`, { maxPageSize: 5000 });
+    const mapa = new Map<string, string>(datos.value.map((f) => [String(f.Code), String(f.Name)]));
+    copiasTablas.set(tabla, { en: Date.now(), mapa });
+    return mapa;
+  } catch {
+    return copia?.mapa || new Map<string, string>();
+  }
+}
+
+// Los campos de usuario que le importan al negocio, con el nombre que tienen en SAP
+const CAMPOS_IMPORTANTES = ['Color', 'Línea', 'Familia', 'TypeOC', 'Molde', 'Grupo', 'Garantia', 'Articulo TOC'];
+
+async function camposDeUsuario(raw: any): Promise<CampoArticulo[]> {
+  const definiciones = (await definicionesCampos()).filter((d) => CAMPOS_IMPORTANTES.includes(d.etiqueta));
+  return Promise.all(definiciones.map(async (d) => {
+    const crudo = raw[d.campo];
+    const valor = crudo === null || crudo === undefined ? '' : String(crudo).trim();
+    if (!valor) return { etiqueta: d.etiqueta, valor: '' };
+    const tabla = d.tablaVinculada ? await valoresTabla(d.tablaVinculada) : null;
+    return { etiqueta: d.etiqueta, valor: d.valores.get(valor) || tabla?.get(valor) || valor };
+  }));
+}
 
 const campos = (lista: Array<[string, string | null | undefined]>): CampoArticulo[] =>
   lista.filter((c): c is [string, string] => !!c[1]).map(([etiqueta, valor]) => ({ etiqueta, valor }));
@@ -159,11 +205,7 @@ export async function obtenerArticulo(codigo: string): Promise<ArticuloDetalle |
     .filter((p: any) => numero(p.Price) > 0)
     .map((p: any) => ({ lista: listasMapa.get(String(p.PriceList)) || `Lista ${p.PriceList}`, precio: numero(p.Price), moneda: texto(p.Currency) }));
 
-  const propiedades = Object.keys(raw)
-    .filter((k) => k.startsWith('U_') && texto(raw[k]) && typeof raw[k] !== 'object')
-    .map((k) => ({ etiqueta: ETIQUETAS_USUARIO[k] || k.slice(2).replace(/_/g, ' '), valor: String(raw[k]), conocido: k in ETIQUETAS_USUARIO }))
-    .sort((a, b) => Number(b.conocido) - Number(a.conocido))
-    .map(({ etiqueta, valor }) => ({ etiqueta, valor }));
+  const propiedades = await camposDeUsuario(raw);
 
   return {
     ...aResumen(raw, gruposMapa),
