@@ -8,6 +8,7 @@ import NewMessageModal from '@/components/whatsapp/NewMessageModal';
 import AsesoresModal from '@/components/whatsapp/AsesoresModal';
 import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whatsapp/RespuestasRapidasModal';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
+import { apodoAsesor } from '@/lib/apodoAsesor';
 
 // Estilos de los botones de la barra de mensaje: iconos secundarios y botón principal (enviar / grabar)
 const composerIconBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-stone-400 hover:text-brand hover:bg-cream-light transition-colors';
@@ -394,7 +395,7 @@ export default function WhatsAppPage() {
   };
 
   // Una persona, un nombre: al asignar se usa su nombre de asesor. Los mensajes al cliente siguen con currentUserName.
-  const miNombreAsesor = asesoresVinculados.find((a) => a.usuario_id && a.usuario_id === currentUser?.user_id)?.nombre?.trim() || currentUserName;
+  const miNombreAsesor = apodoAsesor(asesoresVinculados.find((a) => a.usuario_id && a.usuario_id === currentUser?.user_id)?.nombre?.trim() || currentUserName);
 
   // ── Fetch Asesores dynamically ────────────────────────────────────────────────
   const fetchAsesores = async () => {
@@ -405,7 +406,7 @@ export default function WhatsAppPage() {
       .order('nombre', { ascending: true });
     if (data && data.length > 0) {
       setAsesoresVinculados(data);
-      setAsesoresList(data.map(a => a.nombre?.trim()).filter(Boolean));
+      setAsesoresList([...new Set(data.map(a => apodoAsesor(a.nombre)).filter((n): n is string => Boolean(n)))]);
     }
   };
 
@@ -415,16 +416,16 @@ export default function WhatsAppPage() {
     const nameMatch = chat.contact_name?.toLowerCase().includes(q) || chat.nombre_guardado?.toLowerCase().includes(q);
     const phoneMatch = chat.phone_number?.includes(q);
     const msgMatch = chat.last_message?.toLowerCase().includes(q);
-    const respMatchText = chat.responsable?.toLowerCase().includes(q);
+    const respMatchText = apodoAsesor(chat.responsable)?.toLowerCase().includes(q);
     const matchesSearch = !q || nameMatch || phoneMatch || msgMatch || respMatchText;
 
     let matchesResponsable = true;
     if (selectedResponsableFilter === 'mis_chats') {
-      matchesResponsable = !!(miNombreAsesor && chat.responsable?.toLowerCase().includes(miNombreAsesor.toLowerCase()));
+      matchesResponsable = !!(miNombreAsesor && apodoAsesor(chat.responsable)?.toLowerCase().includes(miNombreAsesor.toLowerCase()));
     } else if (selectedResponsableFilter === 'sin_asignar') {
       matchesResponsable = !chat.responsable;
     } else if (selectedResponsableFilter !== 'todos') {
-      matchesResponsable = chat.responsable === selectedResponsableFilter;
+      matchesResponsable = apodoAsesor(chat.responsable) === selectedResponsableFilter;
     }
 
     return matchesSearch && matchesResponsable;
@@ -1118,16 +1119,16 @@ export default function WhatsAppPage() {
                         className={`relative inline-flex items-center gap-1 max-w-full h-6 pl-2 pr-1 rounded-md border text-[11px] cursor-pointer transition-colors ${
                           chat.responsable ? 'bg-white border-border text-brand font-medium' : 'bg-transparent border-dashed border-stone-300 text-stone-400'
                         }`}
-                        title={chat.responsable || 'Sin asignar'}
+                        title={apodoAsesor(chat.responsable) || 'Sin asignar'}
                       >
                         <UserCheck className="w-3 h-3 shrink-0" strokeWidth={1.75} />
                         <select
-                          value={chat.responsable || ''}
+                          value={apodoAsesor(chat.responsable) || ''}
                           onChange={(e) => handleUpdateResponsable(chat.id, e.target.value)}
                           className="appearance-none [field-sizing:content] bg-transparent outline-none cursor-pointer truncate max-w-[150px] pr-4"
                         >
                           <option value="">Sin asignar</option>
-                          {Array.from(new Set([...asesoresList, ...(chat.responsable ? [chat.responsable] : [])])).map((r) => (
+                          {Array.from(new Set([...asesoresList, ...(chat.responsable ? [apodoAsesor(chat.responsable)] : [])])).map((r) => (
                             <option key={r} value={r}>{r}</option>
                           ))}
                         </select>
@@ -1184,7 +1185,7 @@ export default function WhatsAppPage() {
 
               <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {/* Asignarme Button */}
-                {miNombreAsesor && activeChat.responsable !== miNombreAsesor && (
+                {miNombreAsesor && apodoAsesor(activeChat.responsable) !== miNombreAsesor && (
                   <button
                     onClick={() => handleUpdateResponsable(activeChat.id, miNombreAsesor)}
                     className="h-9 px-3.5 rounded-lg border border-brand text-brand hover:bg-brand hover:text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -1199,12 +1200,12 @@ export default function WhatsAppPage() {
                 <label className="relative h-9 flex items-center gap-2 pl-3 pr-7 rounded-lg border border-border bg-cream-light hover:bg-white transition-colors cursor-pointer">
                   <span className="text-[11px] text-stone-400">Responsable</span>
                   <select
-                    value={activeChat.responsable || ''}
+                    value={apodoAsesor(activeChat.responsable) || ''}
                     onChange={(e) => handleUpdateResponsable(activeChat.id, e.target.value)}
                     className="appearance-none [field-sizing:content] bg-transparent text-xs font-semibold text-brand outline-none cursor-pointer border-none p-0 focus:ring-0"
                   >
                     <option value="">Sin responsable</option>
-                    {Array.from(new Set([...asesoresList, ...(activeChat.responsable ? [activeChat.responsable] : [])])).map((r) => (
+                    {Array.from(new Set([...asesoresList, ...(activeChat.responsable ? [apodoAsesor(activeChat.responsable)] : [])])).map((r) => (
                       <option key={r} value={r}>
                         {r}
                       </option>

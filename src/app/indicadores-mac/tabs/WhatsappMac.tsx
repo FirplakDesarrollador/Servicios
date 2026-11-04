@@ -7,6 +7,7 @@ import {
   calcularResumen, SIN_ASIGNAR,
   type ChatWhatsapp, type MensajeWhatsapp,
 } from '../utils/whatsappMetricas';
+import { apodoAsesor } from '@/lib/apodoAsesor';
 
 const PERIODOS = [
   { id: '7', nombre: '7 días', dias: 7 },
@@ -81,7 +82,7 @@ export default function WhatsappMac() {
 
   // El color sigue a la persona: no cambia al filtrar el periodo
   const colorDe = useMemo(() => {
-    const nombres = [...new Set((chats || []).map((c) => c.responsable?.trim() || SIN_ASIGNAR))].sort((a, b) => a.localeCompare(b, 'es'));
+    const nombres = [...new Set((chats || []).map((c) => apodoAsesor(c.responsable) || SIN_ASIGNAR))].sort((a, b) => a.localeCompare(b, 'es'));
     return new Map(nombres.map((n, i) => [n, SERIES[i % SERIES.length]]));
   }, [chats]);
 

@@ -1,6 +1,7 @@
 import { isWeekend, startOfWeek } from 'date-fns';
 import { isHoliday } from './businessDays';
 import { mediana } from './metricas';
+import { apodoAsesor } from '@/lib/apodoAsesor';
 
 // Rendimiento por agente en WhatsApp. Los mensajes no guardan quién los envió:
 // todo se le cuenta al responsable actual del chat.
@@ -124,7 +125,7 @@ export function calcularResumen(
   ahora: Date = new Date(),
 ): ResumenWhatsapp {
   const chatPorId = new Map(chats.map((c) => [c.id, c]));
-  const agenteDe = (chatId: string) => chatPorId.get(chatId)?.responsable?.trim() || SIN_ASIGNAR;
+  const agenteDe = (chatId: string) => apodoAsesor(chatPorId.get(chatId)?.responsable) || SIN_ASIGNAR;
 
   const acumulado = new Map<string, { chats: Set<string>; enviados: number; recibidos: number; fallidos: number; tiempos: number[]; aTiempo: number; sinResponder: number }>();
   const del = (agente: string) => {
