@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, type MouseEvent } from 'react';
 import { 
   ArrowLeft, Search, Printer, FileSpreadsheet, FileText, Download, 
   Lock, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -42,6 +42,12 @@ const getRowTextColor = (treeType?: string) => {
   if (treeType === 'i' || treeType === 'S') return 'text-red-600 font-bold';
   if (treeType === 'I') return 'text-stone-500 font-medium italic';
   return 'text-brand-dark font-medium';
+};
+
+// Al pasar el mouse muestra el texto completo, solo si no cabe en la celda
+const mostrarTextoCompleto = (e: MouseEvent<HTMLInputElement>) => {
+  const campo = e.currentTarget;
+  campo.title = campo.scrollWidth > campo.clientWidth ? campo.value : '';
 };
 
 export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinimizeChange, initialDocNum }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice', onMinimizeChange?: (isMin: boolean) => void, initialDocNum?: string }) {
@@ -826,7 +832,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   }
 
   return (
-    <div className="w-full bg-cream text-brand-dark font-sans select-none min-h-screen relative">
+    <div className="w-full bg-cream text-brand-dark font-sans min-h-screen relative">
       {isLoading && (
         <div className="absolute inset-0 z-50 flex items-start justify-center pt-40 bg-cream/60 backdrop-blur-[2px]">
           <div className="bg-white px-6 py-5 rounded-2xl shadow-[0_20px_50px_-20px_rgba(37,65,83,0.5)] flex items-center gap-3 border border-border">
@@ -1298,6 +1304,12 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
         <div 
           className="flex-1 min-w-0 bg-white border border-border rounded-2xl flex flex-col overflow-hidden text-[11px] relative"
           onContextMenu={(e) => {
+            // En un campo o sobre texto seleccionado queda el menú del navegador, con copiar y pegar
+            const enCampo = (e.target as HTMLElement).closest('input, textarea');
+            if (enCampo || window.getSelection()?.toString()) {
+              setContextMenu(null);
+              return;
+            }
             e.preventDefault();
             setContextMenu({ x: e.clientX, y: e.clientY });
           }}
@@ -1821,6 +1833,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                             <input
                               type="text"
                               value={row.description}
+                              onMouseEnter={mostrarTextoCompleto}
                               onChange={e => handleRowChange(row.id, 'description', e.target.value)}
                               className="w-full px-1.5 py-1 bg-white outline-none text-stone-600 text-[10px]"
                               placeholder="Descripción..."
@@ -2077,6 +2090,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                             <input 
                               type="text"
                               value={row.description}
+                              onMouseEnter={mostrarTextoCompleto}
                               onChange={e => handleRowChange(row.id, 'description', e.target.value)}
                               className={`w-full px-1.5 py-1 bg-transparent outline-none focus:bg-sage-soft ${getRowTextColor(row.treeType)}`}
                               placeholder="Descripción del artículo..."
