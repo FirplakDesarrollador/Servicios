@@ -26,7 +26,7 @@
 - Se calcula solo con `src/app/indicadores-mac/utils/conteoProblemas.ts`. No repetir la fórmula en las hojas.
 
 ## Familias de Ventas
-- Los grupos se muestran como en los radicados: `ROPAS` = Labores; `HIDROPOR`, `HIDROEMP`, `BAÑERA` = Hidroterapia. `REPUESTO`, `MPDIRECT` y `FINANZAS` siguen sumando como vendidos y se reportan como comercializados (`filterEngine.ts`).
+- Los grupos se muestran como en los radicados: `ROPAS` = Labores; `HIDROPOR`, `HIDROEMP`, `BAÑERA` = Hidroterapia. `REPUESTO`, `MPDIRECT` y `FINANZAS` siguen sumando como vendidos y su planta es Comercializado. Los accesorios y repuestos de hidromasaje (`grupo_articulo` `MPD04` y `REP01`) son grupo Hidroterapia, planta Comercializado, igual que sus novedades; los demás quedan en el grupo Comercializados (`filterEngine.ts`).
 
 ## Regla de cierre: productos
 - Un radicado no se cierra (ni recibe Fecha de Verificación) sin producto de compra, ni con menos productos con novedad que productos de compra: `src/lib/reglasRadicado.ts`.

@@ -44,6 +44,13 @@ export const normalizePlantaName = (planta: string): string => {
 export const plantaDeVenta = (v: { familia?: string | null; planta?: string | null }): string =>
     FAMILIAS_COMERCIALIZADAS.includes(familiaNormal(v.familia)) ? 'Comercializado' : normalizePlantaName(v.planta || '');
 
+/**
+ * Grupo de una venta. Los accesorios y repuestos de hidromasaje se categorizan igual que sus novedades:
+ * grupo Hidroterapia, planta Comercializado, aunque en Ventas su familia sea MPDIRECT o REPUESTO.
+ */
+export const grupoDeVenta = (v: { familia?: string | null; grupo_articulo?: string | null }): string =>
+    /^(MPD04|REP01)\b/i.test(String(v.grupo_articulo || '').trim()) ? 'Hidroterapia' : normalizeGrupo(String(v.familia || ''));
+
 /** Filtros con vista cruzada ("todo menos este filtro"). El rango de fechas siempre se aplica. */
 export const CROSS_KEYS = [
     'estado', 'mercado', 'canalVenta', 'tipoSolicitud', 'agenteMac', 'ciudades', 'zonas', 'clientes',

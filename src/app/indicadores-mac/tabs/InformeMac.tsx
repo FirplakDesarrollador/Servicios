@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { RegistroMAC, FilterState, QRRRecord } from '../types';
 import { ComparacionDetalle, ComparacionResumen, fmtVar, periodoAnteriorAutomatico, periodoDesdeFiltros } from '../components/ComparacionPeriodos';
 import PanoramaMetas from '../components/PanoramaMetas';
-import { normalizeGrupo, plantaDeVenta } from '../utils/filterEngine';
+import { grupoDeVenta, normalizeGrupo, plantaDeVenta } from '../utils/filterEngine';
 import { META_CALIDAD, META_ECONOMICA, generarDecisiones, generarResumen, getMercadoVenta, indicadoresDe, normalizeCanalName, type Entidad } from '../utils/panorama';
 import { leerRadicados, type ComentarioHilo } from '../utils/temasComentarios';
 import { resumirPor, totalProblemas, type LineaProblema } from '../utils/conteoProblemas';
@@ -56,6 +56,7 @@ interface VentaRecord {
     grupo_cliente?: string;
     planta?: string;
     nombre_cliente?: string;
+    grupo_articulo?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -143,7 +144,7 @@ async function cargarVentas(desde: string, hasta: string): Promise<VentaRecord[]
     for (let inicio = 0; ; inicio += TAMANO_PAGINA) {
         const { data, error } = await supabase
             .from('Ventas')
-            .select('fecha_contabilizacion, cantidad, valor_total, familia, codigo_articulo, descripcion_articulo, zona, ciudad, tipo_documento, vendedor_senior, tipo_venta, grupo_cliente, planta, nombre_cliente')
+            .select('fecha_contabilizacion, cantidad, valor_total, familia, codigo_articulo, descripcion_articulo, zona, ciudad, tipo_documento, vendedor_senior, tipo_venta, grupo_cliente, planta, nombre_cliente, grupo_articulo')
             .gte('fecha_contabilizacion', desde)
             .lte('fecha_contabilizacion', hasta)
             .order('id', { ascending: true })
@@ -258,7 +259,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             if (activo('ciudades') && v.ciudad && !ciudades.includes(v.ciudad.toLowerCase())) return false;
             if (activo('zonas') && v.zona && !zonas.includes(v.zona.toLowerCase())) return false;
             if (activo('productos')) {
-                const cumple = gruposFiltro.includes(normalizeGrupoName(v.familia).toUpperCase())
+                const cumple = gruposFiltro.includes(grupoDeVenta(v).toUpperCase())
                     || plantasFiltro.includes(plantaDeVenta(v).toUpperCase())
                     || referencias.includes(String(v.descripcion_articulo || '').toUpperCase().trim())
                     || referencias.includes(String(v.codigo_articulo || '').toUpperCase().trim());
@@ -320,7 +321,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
             ventasTotales += (v.valor_total || 0);
 
             const mKey = ventaMonthKey(v.fecha_contabilizacion);
-            const gKey = normalizeGrupoName(v.familia);
+            const gKey = grupoDeVenta(v);
             const pKey = `${v.codigo_articulo || 'N/A'} - ${v.descripcion_articulo || 'Sin Nombre'}`;
             const zKey = normalizeZoneName(v.zona);
             const cKey = (v.ciudad || 'SIN CIUDAD').toUpperCase();
@@ -669,7 +670,7 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
         };
 
         ventasForProductos.forEach(v => {
-            const gKey = normalizeGrupoName(v.familia);
+            const gKey = grupoDeVenta(v);
             const obj = getOrCreate(byGroup, gKey);
             obj.unidadesVendidas += (v.cantidad || 0);
             obj.ventasTotales += (v.valor_total || 0);

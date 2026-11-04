@@ -1,6 +1,6 @@
 // Panorama del Informe: qué está sobre la meta, qué lo explica, qué decisión tomar y con quién.
 import type { AllAnalyses, DateRange, PriorityLevel, RegistroMAC } from '../types';
-import { EN_BLANCO, normalizeGrupo, plantaDeVenta } from './filterEngine';
+import { EN_BLANCO, grupoDeVenta, plantaDeVenta } from './filterEngine';
 import { lineasDeProblema, resumirPor, totalProblemas, type LineaProblema } from './conteoProblemas';
 import { resumirTemas, type LecturaRadicado, type TemaResumido } from './temasComentarios';
 
@@ -82,9 +82,9 @@ export interface VentaPanorama {
     grupo_cliente?: string;
     tipo_venta: string;
     nombre_cliente?: string;
+    grupo_articulo?: string;
 }
 
-const grupoDeVenta = (v: VentaPanorama) => normalizeGrupo(v.familia);
 export const ventaEnEntidad = (e: Pick<Entidad, 'dimension' | 'nombre'>, v: VentaPanorama): boolean => {
     switch (e.dimension) {
         case 'planta': return plantaDeVenta(v) === e.nombre;
