@@ -11,6 +11,9 @@ export interface ArticuloResumen {
   disponible: number;
   unidad: string | null;
   activo: boolean;
+  inventario: boolean;
+  venta: boolean;
+  compra: boolean;
 }
 
 export interface StockAlmacen {
@@ -31,7 +34,8 @@ export interface CampoArticulo {
   valor: string;
 }
 
-export interface ArticuloDetalle extends ArticuloResumen {
+export interface ArticuloDetalle extends Omit<ArticuloResumen, 'inventario'> {
+  esInventario: boolean;
   nombreExtranjero: string | null;
   almacenes: StockAlmacen[];
   precios: Array<{ lista: string; precio: number; moneda: string | null }>;
@@ -42,7 +46,7 @@ export interface ArticuloDetalle extends ArticuloResumen {
   comentarios: string | null;
 }
 
-const LISTA_SELECT = 'ItemCode,ItemName,ItemsGroupCode,QuantityOnStock,QuantityOrderedFromVendors,QuantityOrderedByCustomers,InventoryUOM,Valid,Frozen';
+const LISTA_SELECT = 'ItemCode,ItemName,ItemsGroupCode,QuantityOnStock,QuantityOrderedFromVendors,QuantityOrderedByCustomers,InventoryUOM,Valid,Frozen,InventoryItem,SalesItem,PurchaseItem';
 
 const texto = (v: unknown) => {
   const s = v === null || v === undefined ? '' : String(v).trim();
@@ -93,13 +97,22 @@ function aResumen(raw: any, gruposMapa: Map<string, string>): ArticuloResumen {
     disponible: enStock - comprometido + pedido,
     unidad: texto(raw.InventoryUOM),
     activo: raw.Valid === 'tYES' && raw.Frozen !== 'tYES',
+    inventario: raw.InventoryItem === 'tYES',
+    venta: raw.SalesItem === 'tYES',
+    compra: raw.PurchaseItem === 'tYES',
   };
 }
 
-export async function buscarArticulos(consulta: string): Promise<ArticuloResumen[]> {
-  const q = consulta.trim();
-  if (q.length < 2) return [];
-  const filtro = `contains(ItemCode,${odata(q)}) or contains(ItemName,${odata(q)}) or BarCode eq ${odata(q)}`;
+/** Busca por descripción (todas las palabras, en cualquier orden) y por código; si llegan ambos, deben cumplirse. */
+export async function buscarArticulos(descripcion: string, codigo: string): Promise<ArticuloResumen[]> {
+  const d = descripcion.trim();
+  const c = codigo.trim();
+  if (d.length < 2 && c.length < 2) return [];
+  const condiciones = [
+    ...(d.length >= 2 ? d.split(/\s+/).map((palabra) => `contains(ItemName,${odata(palabra)})`) : []),
+    ...(c.length >= 2 ? [`(contains(ItemCode,${odata(c)}) or BarCode eq ${odata(c)})`] : []),
+  ];
+  const filtro = condiciones.join(' and ');
   const parametros = new URLSearchParams({ $select: LISTA_SELECT, $filter: filtro, $orderby: 'ItemCode', $top: '50' });
   const [datos, gruposMapa] = await Promise.all([
     sapGet<{ value: any[] }>(`Items?${parametros}`.replace(/\+/g, '%20'), { maxPageSize: 50 }),
@@ -209,6 +222,7 @@ export async function obtenerArticulo(codigo: string): Promise<ArticuloDetalle |
 
   return {
     ...aResumen(raw, gruposMapa),
+    esInventario: raw.InventoryItem === 'tYES',
     nombreExtranjero: texto(raw.ForeignName),
     almacenes,
     precios,
@@ -219,11 +233,6 @@ export async function obtenerArticulo(codigo: string): Promise<ArticuloDetalle |
       ['Código de barras', texto(raw.BarCode)],
       ['Proveedor principal', texto(raw.Mainsupplier)],
       ['Catálogo de proveedor', texto(raw.SupplierCatalogNo)],
-      ['Artículo de inventario', sino(raw.InventoryItem)],
-      ['Artículo de venta', sino(raw.SalesItem)],
-      ['Artículo de compra', sino(raw.PurchaseItem)],
-      ['Activo', sino(raw.Valid)],
-      ['Inactivo', raw.Frozen === 'tYES' ? 'Sí' : null],
       ['Creado', fecha(raw.CreateDate)],
       ['Actualizado', fecha(raw.UpdateDate)],
     ]),

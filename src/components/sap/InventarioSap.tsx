@@ -1,11 +1,30 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowLeft, ChevronRight, Loader2, Package, Search } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, ChevronRight, Hash, Loader2, Minus, Package, Search } from 'lucide-react';
 import type { ArticuloDetalle, ArticuloResumen, CampoArticulo } from '@/lib/sapInventario';
 import { formatMoney } from './explorer/sapFormat';
 
 const tarjeta = 'bg-white rounded-2xl border border-border';
 const cantidad = (v: number) => v.toLocaleString('es-CO', { maximumFractionDigits: 2 });
+
+/** Chulo si la marca está activa en SAP; raya si no. */
+function Chulo({ activo, nombre }: { activo: boolean; nombre: string }) {
+  const Icono = activo ? Check : Minus;
+  return (
+    <span title={`${nombre}: ${activo ? 'sí' : 'no'}`} aria-label={`${nombre}: ${activo ? 'sí' : 'no'}`} role="img" className="inline-flex">
+      <Icono className={`w-4 h-4 ${activo ? 'text-[var(--c-oliva-texto)]' : 'text-stone-400'}`} strokeWidth={activo ? 3 : 2} aria-hidden />
+    </span>
+  );
+}
+
+function MarcaDetalle({ activo, nombre }: { activo: boolean; nombre: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs ${activo ? 'font-medium text-brand-dark' : 'text-stone-500'}`}>
+      <Chulo activo={activo} nombre={nombre} />
+      {nombre}
+    </span>
+  );
+}
 
 function Mensaje({ icono: Icono = AlertCircle, texto, girando = false }: { icono?: React.ElementType; texto: string; girando?: boolean }) {
   return (
@@ -110,7 +129,7 @@ function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => voi
     const control = new AbortController();
     setArticulo(null);
     setError(null);
-    fetch(`/api/sap/inventario?codigo=${encodeURIComponent(codigo)}`, { signal: control.signal })
+    fetch(`/api/sap/inventario?articulo=${encodeURIComponent(codigo)}`, { signal: control.signal })
       .then((r) => r.json())
       .then((j) => (j.success ? setArticulo(j.articulo) : setError(j.error || 'No se pudo cargar el artículo.')))
       .catch((e) => { if (e.name !== 'AbortError') setError('No se pudo conectar con SAP. Intenta de nuevo.'); });
@@ -128,11 +147,17 @@ function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => voi
         <div className={`${tarjeta} p-5`}>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold text-brand-dark">{articulo.nombre}</h2>
-            {!articulo.activo && <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[11px] font-medium">Inactivo</span>}
           </div>
           <p className="text-xs text-stone-500 mt-1">
             {articulo.codigo}{articulo.grupo ? ` · ${articulo.grupo}` : ''}{articulo.nombreExtranjero ? ` · ${articulo.nombreExtranjero}` : ''}
           </p>
+
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-3">
+            <MarcaDetalle activo={articulo.activo} nombre="Activo" />
+            <MarcaDetalle activo={articulo.esInventario} nombre="Inventario" />
+            <MarcaDetalle activo={articulo.venta} nombre="Venta" />
+            <MarcaDetalle activo={articulo.compra} nombre="Compra" />
+          </div>
 
           {articulo.propiedades.length > 0 && (
             <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mt-4">
@@ -201,20 +226,21 @@ function DetalleArticulo({ codigo, volver }: { codigo: string; volver: () => voi
 
 /** Módulo Stock e inventario: Datos maestros de artículo de SAP, solo consulta. */
 export default function InventarioSap() {
-  const [texto, setTexto] = useState('');
-  const [consulta, setConsulta] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [consulta, setConsulta] = useState<{ descripcion: string; codigo: string } | null>(null);
   const [articulos, setArticulos] = useState<ArticuloResumen[] | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
 
   useEffect(() => {
-    if (consulta.length < 2) return;
+    if (!consulta) return;
     const control = new AbortController();
     setCargando(true);
     setError(null);
     setArticulos(null);
-    fetch(`/api/sap/inventario?q=${encodeURIComponent(consulta)}`, { signal: control.signal })
+    fetch(`/api/sap/inventario?${new URLSearchParams(consulta)}`, { signal: control.signal })
       .then((r) => r.json())
       .then((j) => (j.success ? setArticulos(j.articulos) : setError(j.error || 'No se pudo hacer la búsqueda.')))
       .catch((e) => { if (e.name !== 'AbortError') setError('No se pudo conectar con SAP. Intenta de nuevo.'); })
@@ -227,28 +253,40 @@ export default function InventarioSap() {
   return (
     <div className="space-y-4">
       <form
-        onSubmit={(e) => { e.preventDefault(); setConsulta(texto.trim()); }}
-        className={`${tarjeta} flex items-center gap-2 pl-4 pr-1.5 h-12`}
+        onSubmit={(e) => { e.preventDefault(); setConsulta({ descripcion: descripcion.trim(), codigo: codigo.trim() }); }}
+        className={`${tarjeta} grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] gap-2 p-2`}
       >
-        <Search className="w-5 h-5 text-brand-light shrink-0" aria-hidden />
-        <input
-          autoFocus
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          aria-label="Buscar artículo"
-          placeholder="Código, descripción o código de barras"
-          className="flex-1 min-w-0 bg-transparent outline-none text-sm sm:text-base text-brand-dark placeholder:text-stone-400"
-        />
-        <button type="submit" disabled={texto.trim().length < 2} className="h-9 px-5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover disabled:opacity-50 transition-colors cursor-pointer">
+        <label className="flex items-center gap-2 h-11 px-3 rounded-xl border border-border">
+          <Search className="w-4 h-4 text-brand-light shrink-0" aria-hidden />
+          <span className="sr-only">Buscar por descripción</span>
+          <input
+            autoFocus
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            placeholder="Descripción, ej.: lavamanos doha"
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-brand-dark placeholder:text-stone-500"
+          />
+        </label>
+        <label className="flex items-center gap-2 h-11 px-3 rounded-xl border border-border">
+          <Hash className="w-4 h-4 text-brand-light shrink-0" aria-hidden />
+          <span className="sr-only">Buscar por código</span>
+          <input
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value)}
+            placeholder="Código o código de barras"
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-brand-dark placeholder:text-stone-500"
+          />
+        </label>
+        <button type="submit" disabled={descripcion.trim().length < 2 && codigo.trim().length < 2} className="h-11 px-6 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover disabled:opacity-50 transition-colors cursor-pointer">
           Buscar
         </button>
       </form>
 
       <div className={tarjeta}>
-        {cargando && <Mensaje icono={Loader2} girando texto={`Buscando “${consulta}” en SAP…`} />}
+        {cargando && <Mensaje icono={Loader2} girando texto={`Buscando “${[consulta?.descripcion, consulta?.codigo].filter(Boolean).join(' · ')}” en SAP…`} />}
         {error && <Mensaje texto={error} />}
-        {!cargando && !error && articulos === null && <Mensaje icono={Package} texto="Escribe al menos 2 caracteres para buscar un artículo." />}
-        {!cargando && !error && articulos?.length === 0 && <Mensaje icono={Package} texto={`No hay artículos para “${consulta}”.`} />}
+        {!cargando && !error && articulos === null && <Mensaje icono={Package} texto="Busca un artículo por su descripción o por su código." />}
+        {!cargando && !error && articulos?.length === 0 && <Mensaje icono={Package} texto={`No hay artículos para “${[consulta?.descripcion, consulta?.codigo].filter(Boolean).join(' · ')}”.`} />}
         {!cargando && !error && articulos && articulos.length > 0 && (
           <>
             <p className="px-5 pt-4 pb-2 text-xs text-stone-500">
@@ -263,6 +301,10 @@ export default function InventarioSap() {
                     <th className="py-2 px-3 font-medium text-right">Comprometido</th>
                     <th className="py-2 px-3 font-medium text-right">Pedido</th>
                     <th className="py-2 px-3 font-medium text-right">Disponible</th>
+                    <th className="py-2 px-2 font-medium text-center">Activo</th>
+                    <th className="py-2 px-2 font-medium text-center">Inventario</th>
+                    <th className="py-2 px-2 font-medium text-center">Venta</th>
+                    <th className="py-2 px-2 font-medium text-center">Compra</th>
                     <th className="py-2 pr-5" />
                   </tr>
                 </thead>
@@ -278,13 +320,17 @@ export default function InventarioSap() {
                           {a.nombre}
                         </button>
                         <span className="block text-[11px] text-stone-500">
-                          {a.codigo}{a.grupo ? ` · ${a.grupo}` : ''}{a.activo ? '' : ' · Inactivo'}
+                          {a.codigo}{a.grupo ? ` · ${a.grupo}` : ''}
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums">{cantidad(a.enStock)}</td>
                       <td className="py-2.5 px-3 text-right tabular-nums">{cantidad(a.comprometido)}</td>
                       <td className="py-2.5 px-3 text-right tabular-nums">{cantidad(a.pedido)}</td>
                       <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${a.disponible < 0 ? 'text-red-700' : 'text-brand-dark'}`}>{cantidad(a.disponible)}</td>
+                      <td className="py-2.5 px-2 text-center"><Chulo activo={a.activo} nombre="Activo" /></td>
+                      <td className="py-2.5 px-2 text-center"><Chulo activo={a.inventario} nombre="Inventario" /></td>
+                      <td className="py-2.5 px-2 text-center"><Chulo activo={a.venta} nombre="Venta" /></td>
+                      <td className="py-2.5 px-2 text-center"><Chulo activo={a.compra} nombre="Compra" /></td>
                       <td className="py-2.5 pr-5 text-right"><ChevronRight className="w-4 h-4 inline text-stone-400" aria-hidden /></td>
                     </tr>
                   ))}
