@@ -2023,18 +2023,15 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
                 {/* Data Grid Table Container (Wide Horizontal Scrollbar) */}
                 <div className="flex-1 border border-border rounded-xl overflow-x-auto relative min-h-[280px] bg-white">
-                  <table className="min-w-[1750px] w-full text-left border-collapse text-[11px]">
+                  <table className="min-w-[1400px] w-full text-left border-collapse text-[11px]">
                     <thead>
                       <tr className="bg-cream-light text-stone-400 text-[10px] uppercase tracking-wider font-medium border-b border-border sticky top-0 z-10">
                         <th className="p-1.5 w-8 text-center border-r border-border">#</th>
                         <th className="p-1.5 w-56 border-r border-border">Número de artículo</th>
                         <th className="p-1.5 min-w-[320px] border-r border-border">Descripción del artículo</th>
-                        <th className="p-1.5 w-36 border-r border-border">Código de barra</th>
                         <th className="p-1.5 w-20 text-right border-r border-border">Cantidad</th>
-                        <th className="p-1.5 w-24 text-center border-r border-border">Unidad de medida</th>
                         <th className="p-1.5 w-32 text-right border-r border-border">Precio por unidad</th>
                         <th className="p-1.5 w-24 text-right border-r border-border">% de descuento</th>
-                        <th className="p-1.5 w-28 text-center border-r border-border">Indicador de impuesto</th>
                         <th className="p-1.5 w-36 text-right border-r border-border">Total (ML)</th>
                         <th className="p-1.5 w-24 text-center border-r border-border">Almacén</th>
                         <th className="p-1.5 w-36 text-center border-r border-border">Centro de Costo</th>
@@ -2086,17 +2083,6 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                             />
                           </td>
 
-                          {/* BarCode */}
-                          <td className="p-0 border-r border-border/70">
-                            <input 
-                              type="text"
-                              value={row.barCode || ''}
-                              onChange={e => handleRowChange(row.id, 'barCode', e.target.value)}
-                              className={`w-full px-1.5 py-1 bg-transparent outline-none text-center ${getRowTextColor(row.treeType)}`}
-                              placeholder="Código de barra"
-                            />
-                          </td>
-
                           {/* Quantity */}
                           <td className="p-0 border-r border-border/70">
                             <input 
@@ -2105,16 +2091,6 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                               value={row.quantity}
                               onChange={e => handleRowChange(row.id, 'quantity', e.target.value)}
                               className={`w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-sage-soft ${getRowTextColor(row.treeType)}`}
-                            />
-                          </td>
-
-                          {/* Unit Measure */}
-                          <td className="p-0 border-r border-border/70">
-                            <input 
-                              type="text"
-                              value={row.unitMsr || 'UND'}
-                              onChange={e => handleRowChange(row.id, 'unitMsr', e.target.value)}
-                              className={`w-full px-1.5 py-1 bg-transparent text-center outline-none ${getRowTextColor(row.treeType)}`}
                             />
                           </td>
 
@@ -2136,16 +2112,6 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                               value={row.discount}
                               onChange={e => handleRowChange(row.id, 'discount', e.target.value)}
                               className="w-full px-1.5 py-1 bg-transparent text-right outline-none focus:bg-sage-soft"
-                            />
-                          </td>
-
-                          {/* Tax Code */}
-                          <td className="p-0 border-r border-border/70">
-                            <input 
-                              type="text"
-                              value={row.taxCode || 'IVA 19%'}
-                              onChange={e => handleRowChange(row.id, 'taxCode', e.target.value)}
-                              className="w-full px-1.5 py-1 bg-transparent text-center outline-none text-stone-500"
                             />
                           </td>
 
