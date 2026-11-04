@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { createSapQuotation, fetchSapQuotationByDocNum, searchSapDocumentsList } from '@/lib/sapServiceLayer';
 
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const docNum = searchParams.get('docNum');
@@ -30,6 +34,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const body = await request.json();
     const { CardCode, DocumentLines, Comments, DocDueDate } = body;

@@ -16,6 +16,7 @@ import BuscadorOrdenesFabricacion from './BuscadorOrdenesFabricacion';
 import dynamic from 'next/dynamic';
 import { FlechaEnlace } from './explorer/FlechaEnlace';
 import type { VistaEnlace } from './EnlacesSap';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 
 const VentanaEnlace = dynamic(() => import('./EnlacesSap').then((m) => m.VentanaEnlace), { ssr: false });
 
@@ -177,7 +178,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
         setIsLoadingMap(true);
         try {
           setRelationshipMap(null);
-          const res = await fetch(`/api/sap/relationship-map?docNum=${encodeURIComponent(docNum)}&type=${mode}`);
+          const res = await fetchConSesion(`/api/sap/relationship-map?docNum=${encodeURIComponent(docNum)}&type=${mode}`);
           const data = await res.json();
           setRelationshipMap(res.ok && Array.isArray(data.nodes) ? data : null);
         } catch (error) {
@@ -226,7 +227,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   useEffect(() => {
     const loadSapData = async () => {
       try {
-        const ccRes = await fetch('/api/sap/cost-centers');
+        const ccRes = await fetchConSesion('/api/sap/cost-centers');
         const ccData = await ccRes.json();
         if (ccData.success && ccData.costCenters?.length > 0) {
           setCostCentersList(ccData.costCenters.map((cc: any) => ({
@@ -249,7 +250,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
     const q = customerSearchQuery.trim();
     setBuscandoClientes(true);
     const espera = setTimeout(() => {
-      fetch(`/api/sap/customers?q=${encodeURIComponent(q)}`, { signal: control.signal })
+      fetchConSesion(`/api/sap/customers?q=${encodeURIComponent(q)}`, { signal: control.signal })
         .then((r) => r.json())
         .then((j) => {
           setDbCustomers((j.customers || []).map((bp: any) => ({
@@ -271,7 +272,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
     const q = itemSearchQuery.trim();
     setBuscandoArticulos(true);
     const espera = setTimeout(() => {
-      fetch(`/api/sap/items?q=${encodeURIComponent(q)}`, { signal: control.signal })
+      fetchConSesion(`/api/sap/items?q=${encodeURIComponent(q)}`, { signal: control.signal })
         .then((r) => r.json())
         .then((j) => {
           setDbItems((j.items || []).map((it: any) => ({
@@ -318,7 +319,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       setStatusMessage(`● Consultando documento Nº ${searchTarget} en SAP Business One Service Layer...`);
       setStatusType('info');
 
-      const res = await fetch(`/api/sap/quotations?docNum=${encodeURIComponent(searchTarget.trim())}&type=${targetMode}`);
+      const res = await fetchConSesion(`/api/sap/quotations?docNum=${encodeURIComponent(searchTarget.trim())}&type=${targetMode}`);
       const data = await res.json();
 
       if (!res.ok || !data.success || !data.document) {
@@ -698,7 +699,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
         setIsDocListLoading(true);
         setIsDocListModalOpen(true);
         try {
-          const res = await fetch(`/api/sap/quotations?search=${encodeURIComponent(query)}&type=${mode}`);
+          const res = await fetchConSesion(`/api/sap/quotations?search=${encodeURIComponent(query)}&type=${mode}`);
           const data = await res.json();
           if (data.success) {
             setDocListResults(data.documents || []);
@@ -768,7 +769,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
         return;
       }
 
-      const res = await fetch('/api/sap/quotations', {
+      const res = await fetchConSesion('/api/sap/quotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { fetchSapItems } from '@/lib/sapServiceLayer';
 
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';

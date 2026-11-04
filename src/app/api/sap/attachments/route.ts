@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { sapGet, sapGetRaw, SapRequestError } from '@/lib/sapServiceLayer';
 
 // Anexos de documentos SAP (solo lectura), servidos por el Service Layer: el servidor de SAP sí tiene acceso
@@ -43,6 +44,9 @@ async function getLines(absEntry: number): Promise<AttachmentLine[] | null> {
 const fullName = (l: AttachmentLine) => (l.FileExtension ? `${l.FileName}.${l.FileExtension}` : l.FileName);
 
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const absEntry = Number(searchParams.get('absEntry'));

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { buscarArticulos, obtenerArticulo, obtenerListaMateriales } from '@/lib/sapInventario';
 
 // Stock e inventario (solo lectura): ?descripcion= y ?codigo= buscan artículos; ?articulo=ItemCode trae el detalle; ?ldm=ItemCode, su lista de materiales.
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const ldm = searchParams.get('ldm');

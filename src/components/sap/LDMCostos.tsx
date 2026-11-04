@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Download, Copy, Boxes, Minus, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 
 interface LDMCostosProps {
   onMinimizeChange?: (isMinimized: boolean) => void;
@@ -113,7 +114,7 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
     setData([]);
     try {
       const url = `/api/sap/ldm-costos?code1=${encodeURIComponent(code1.trim())}&code2=${encodeURIComponent(code2.trim())}`;
-      const res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
+      const res = await fetchConSesion(url, { method: 'GET', headers: { Accept: 'application/json' } });
 
       if (!res.ok) {
         let errStr = `Error API: ${res.status} ${res.statusText}`;

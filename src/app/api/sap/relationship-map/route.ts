@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { buildRelationshipMap, resolveDocEntry } from '@/lib/sapExplorer';
 import { SAP_DOC_TYPES, type SapDocType } from '@/lib/sapExplorerTypes';
 
@@ -6,6 +7,9 @@ import { SAP_DOC_TYPES, type SapDocType } from '@/lib/sapExplorerTypes';
 // ahora recorre los vínculos de las líneas de cada documento con GET, sin escribir nada en SAP.
 //   ?type=Order&docEntry=123   o   ?type=Order&docNum=456
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'Order';

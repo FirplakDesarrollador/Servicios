@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { getCustomer360, listCustomerDocuments } from '@/lib/sapExplorer';
 import { SAP_DOC_TYPES, type SapDocType } from '@/lib/sapExplorerTypes';
 
@@ -6,6 +7,9 @@ import { SAP_DOC_TYPES, type SapDocType } from '@/lib/sapExplorerTypes';
 //   ?cardCode=X                         → datos del socio, cuentas con la misma cédula/NIT y documentos recientes
 //   ?cardCodes=A,B&type=Order&skip=25   → página siguiente de un tipo de documento
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');

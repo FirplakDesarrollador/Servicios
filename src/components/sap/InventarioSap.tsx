@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowLeft, Check, ChevronRight, Hash, Loader2, Minus, Package, Search } from 'lucide-react';
 import type { ArticuloDetalle, ArticuloResumen, CampoArticulo } from '@/lib/sapInventario';
 import { formatMoney } from './explorer/sapFormat';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 
 const tarjeta = 'bg-white rounded-2xl border border-border';
 const cantidad = (v: number) => v.toLocaleString('es-CO', { maximumFractionDigits: 2 });
@@ -129,7 +130,7 @@ export function DetalleArticulo({ codigo, volver }: { codigo: string; volver?: (
     const control = new AbortController();
     setArticulo(null);
     setError(null);
-    fetch(`/api/sap/inventario?articulo=${encodeURIComponent(codigo)}`, { signal: control.signal })
+    fetchConSesion(`/api/sap/inventario?articulo=${encodeURIComponent(codigo)}`, { signal: control.signal })
       .then((r) => r.json())
       .then((j) => (j.success ? setArticulo(j.articulo) : setError(j.error || 'No se pudo cargar el artículo.')))
       .catch((e) => { if (e.name !== 'AbortError') setError('No se pudo conectar con SAP. Intenta de nuevo.'); });
@@ -242,7 +243,7 @@ export default function InventarioSap() {
     setCargando(true);
     setError(null);
     setArticulos(null);
-    fetch(`/api/sap/inventario?${new URLSearchParams(consulta)}`, { signal: control.signal })
+    fetchConSesion(`/api/sap/inventario?${new URLSearchParams(consulta)}`, { signal: control.signal })
       .then((r) => r.json())
       .then((j) => (j.success ? setArticulos(j.articulos) : setError(j.error || 'No se pudo hacer la búsqueda.')))
       .catch((e) => { if (e.name !== 'AbortError') setError('No se pudo conectar con SAP. Intenta de nuevo.'); })

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { buscarOrdenesFabricacion } from '@/lib/sapExplorer';
 
 // Órdenes de fabricación por pedido de cliente y/o producto (solo lectura).
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const ordenes = await buscarOrdenesFabricacion(searchParams.get('pedido') || '', searchParams.get('producto') || '');

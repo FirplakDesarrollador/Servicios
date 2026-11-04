@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { exigirSesion } from '@/lib/sesionApi';
 import { sapGet, SapRequestError } from '@/lib/sapServiceLayer';
 
 // LDM Costos (solo lectura): explosión multinivel de la lista de materiales con costo promedio por bodega.
@@ -178,6 +179,9 @@ async function buildLdm(code1: string) {
 }
 
 export async function GET(request: Request) {
+  const rechazo = await exigirSesion(request);
+  if (rechazo) return rechazo;
+
   try {
     const { searchParams } = new URL(request.url);
     const code1 = searchParams.get('code1')?.trim();

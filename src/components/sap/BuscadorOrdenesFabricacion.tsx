@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, ClipboardList, Loader2, Package, Search } from 'lucide-react';
 import type { SapDocSummary } from '@/lib/sapExplorerTypes';
 import { formatDate } from './explorer/sapFormat';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 
 const cantidad = (v: number | null | undefined) => (v === null || v === undefined ? '—' : v.toLocaleString('es-CO', { maximumFractionDigits: 2 }));
 
@@ -32,7 +33,7 @@ export default function BuscadorOrdenesFabricacion({ onAbrir }: { onAbrir: (docN
     setAbierto(true);
     try {
       const parametros = new URLSearchParams({ pedido: pedido.trim(), producto: producto.trim() });
-      const res = await fetch(`/api/sap/ordenes-fabricacion?${parametros}`);
+      const res = await fetchConSesion(`/api/sap/ordenes-fabricacion?${parametros}`);
       const json = await res.json();
       if (json.success) setOrdenes(json.ordenes);
       else setError(json.error || 'No se pudo hacer la búsqueda.');

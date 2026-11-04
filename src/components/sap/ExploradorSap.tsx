@@ -21,6 +21,7 @@ import {
 import MapaRelaciones from './explorer/MapaRelaciones';
 import AnexosSap from './explorer/AnexosSap';
 import { DOC_TYPE_STYLE, formatDate, formatMoney, formatQty, statusStyle } from './explorer/sapFormat';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 
 export type ClassicSapMode = 'Quotation' | 'Order' | 'Delivery' | 'Invoice' | 'ProductionOrder';
 
@@ -53,7 +54,7 @@ function useSapData<T>(url: string | null): { data: T | null; error: string | nu
     }
     setState({ url, data: null, error: null });
     const controller = new AbortController();
-    fetch(url, { signal: controller.signal })
+    fetchConSesion(url, { signal: controller.signal })
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok || json.success === false || json.error) {
@@ -405,7 +406,7 @@ export function CustomerView({ cardCode, go }: { cardCode: string; go: (v: View)
   const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const res = await fetch(`/api/sap/customer?cardCodes=${encodeURIComponent(cardCodes.join(','))}&type=${activeType}&skip=${rows.length}`);
+      const res = await fetchConSesion(`/api/sap/customer?cardCodes=${encodeURIComponent(cardCodes.join(','))}&type=${activeType}&skip=${rows.length}`);
       const json = await res.json();
       if (json.success) setExtra((prev) => ({ ...prev, [extraKey]: [...(prev[extraKey] || []), ...json.list.items] }));
     } finally {

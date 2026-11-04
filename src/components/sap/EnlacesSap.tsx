@@ -5,6 +5,7 @@ import type { ListaMateriales } from '@/lib/sapInventario';
 import { CustomerView, DocumentView, type View } from './ExploradorSap';
 import { DetalleArticulo } from './InventarioSap';
 import { FlechaEnlace } from './explorer/FlechaEnlace';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 
 /** Lo que se puede abrir desde una flecha: lo del explorador (cliente, documento) o un artículo. */
 export type VistaEnlace = Exclude<View, { kind: 'search' }> | { kind: 'articulo'; codigo: string };
@@ -64,7 +65,7 @@ function VistaArticulo({ codigo, abrir }: { codigo: string; abrir: (codigo: stri
 
   useEffect(() => {
     const control = new AbortController();
-    fetch(`/api/sap/inventario?ldm=${encodeURIComponent(codigo)}`, { signal: control.signal })
+    fetchConSesion(`/api/sap/inventario?ldm=${encodeURIComponent(codigo)}`, { signal: control.signal })
       .then((r) => r.json())
       .then((j) => setEstado(j.success ? { lista: j.lista, error: null } : { lista: null, error: j.error || 'No se pudo consultar la lista de materiales.' }))
       .catch((e) => { if (e.name !== 'AbortError') setEstado({ lista: null, error: 'No se pudo conectar con SAP. Intenta de nuevo.' }); });

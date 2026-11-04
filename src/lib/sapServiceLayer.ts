@@ -2,10 +2,10 @@ if (typeof process !== 'undefined') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
-const SAP_BASE_URL = process.env.SAP_BASE_URL || 'https://200.7.96.194:50000/b1s/v1';
+const SAP_BASE_URL = process.env.SAP_BASE_URL;
 const SAP_COMPANY_DB = process.env.SAP_COMPANY_DB || 'Firplak_SA';
-const SAP_USERNAME = process.env.SAP_USERNAME || 'manager';
-const SAP_PASSWORD = process.env.SAP_PASSWORD || '2023Fir#.*';
+const SAP_USERNAME = process.env.SAP_USERNAME;
+const SAP_PASSWORD = process.env.SAP_PASSWORD;
 
 export { SAP_BASE_URL };
 
@@ -19,6 +19,13 @@ let sessionTimeoutMs = 30 * 60 * 1000;
 let loginInFlight: Promise<string> | null = null;
 
 async function loginToServiceLayer(): Promise<string> {
+  const faltantes = Object.entries({ SAP_BASE_URL, SAP_USERNAME, SAP_PASSWORD })
+    .filter(([, valor]) => !valor)
+    .map(([nombre]) => nombre);
+  if (faltantes.length > 0) {
+    throw new Error(`Faltan las variables de entorno de SAP: ${faltantes.join(', ')}`);
+  }
+
   const loginUrl = `${SAP_BASE_URL}/Login`;
   console.log('[SAP Service Layer] Authenticating with:', loginUrl);
 
