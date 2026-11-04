@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { sinPlantaDeCatalogo } from '@/lib/reglasRadicado';
 import { RegistroMAC, FilterState, QRRRecord } from './types';
 import Filters, { LiveFilters, LiveFiltersContext } from './components/Filters';
-import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, ShieldCheckIcon } from 'lucide-react';
+import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, MessageCircleIcon, ShieldCheckIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
 import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
 import { computeFilterViews, normalizeGrupo, normalizePlantaName } from './utils/filterEngine';
@@ -20,6 +20,7 @@ const DetalleMac = lazy(() => import('./tabs/DetalleMac').then(m => ({ default: 
 const AgentesMac = lazy(() => import('./tabs/AgentesMac').then(m => ({ default: React.memo(m.default) })));
 const InformeMac = lazy(() => import('./tabs/InformeMac').then(m => ({ default: React.memo(m.default) })));
 const QrrMac = lazy(() => import('./tabs/QrrMac').then(m => ({ default: React.memo(m.default) })));
+const WhatsappMac = lazy(() => import('./tabs/WhatsappMac'));
 
 // ── Helpers para normalización de grupo / familia (normalizeGrupo / normalizePlantaName en utils/filterEngine) ──
 const getGrupoForProduct = (p: any): string => {
@@ -702,13 +703,14 @@ export default function IndicadoresMacPage() {
         XLSX.writeFile(workbook, `Base_Datos_MAC_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
-    // El id se conserva aunque se quiten hojas: 3 = Informe, 5 = QRR
+    // El id se conserva aunque se quiten hojas: 3 = Informe, 5 = QRR, 6 = WhatsApp
     const tabs: Array<{ id: number; label: string; icon: React.ElementType }> = [
         { id: 0, label: 'General', icon: LayoutDashboardIcon },
         { id: 1, label: 'Detalle', icon: ListChecksIcon },
         { id: 2, label: 'Agentes', icon: UsersIcon },
         { id: 3, label: 'Informe', icon: FileTextIcon },
         { id: 5, label: 'QRR', icon: ShieldCheckIcon },
+        { id: 6, label: 'WhatsApp', icon: MessageCircleIcon },
     ];
 
     if (loading) {
@@ -865,7 +867,11 @@ export default function IndicadoresMacPage() {
 
             <LiveFiltersContext.Provider value={liveFiltersCtx}>
             <main className={`flex-1 p-6 overflow-auto transition-opacity duration-150 ${isUpdating ? "opacity-70" : "opacity-100"}`}>
-                {activeTab === 3 ? (
+                {activeTab === 6 ? (
+                    <Suspense fallback={<TabFallback />}>
+                        <WhatsappMac />
+                    </Suspense>
+                ) : activeTab === 3 ? (
                     <div className="transition-opacity duration-300">
                         <Suspense fallback={<TabFallback />}>
                             <InformeMac 
