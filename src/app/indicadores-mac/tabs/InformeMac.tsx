@@ -1,7 +1,8 @@
 'use client';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { RegistroMAC, FilterState, QRRRecord } from '../types';
-import { ComparacionDetalle, ComparacionResumen, fmtVar, periodoAnteriorAutomatico, periodoDesdeFiltros } from '../components/ComparacionPeriodos';
+import { RamasDefectos, FlechaRama } from '../components/ArbolProblemas';
+import { ComparacionDetalle, ComparacionResumen, DecisionesRecomendadas, fmtVar, periodoAnteriorAutomatico, periodoDesdeFiltros } from '../components/ComparacionPeriodos';
 import PanoramaMetas from '../components/PanoramaMetas';
 import { grupoDeVenta, normalizeGrupo, plantaDeVenta } from '../utils/filterEngine';
 import { META_CALIDAD, META_ECONOMICA, generarDecisiones, generarResumen, getMercadoVenta, indicadoresDe, normalizeCanalName, type Entidad } from '../utils/panorama';
@@ -209,6 +210,14 @@ export default function InformeMac({ data, prevData, filters, filtersComponent, 
     const [metricView, setMetricView] = useState<'porcentajes' | 'unidades' | 'inversion'>('unidades');
     const [expandedProblem, setExpandedProblem] = useState<string | null>(null);
     const [verDetalle, setVerDetalle] = useState(false);
+    // Filas de grupo y planta desplegadas (flechitas)
+    const [desplegados, setDesplegados] = useState<Set<string>>(new Set());
+    const alternarDespliegue = (id: string) => setDesplegados((actual) => {
+        const siguiente = new Set(actual);
+        if (siguiente.has(id)) siguiente.delete(id);
+        else siguiente.add(id);
+        return siguiente;
+    });
 
     // 1. Cargar Ventas
     useEffect(() => {
@@ -852,6 +861,9 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
     }, [kpis, analytics]);
 
 
+    const plantasDelFiltro = (filters.plantas || []).map((p) => normalizePlantaName(p).toUpperCase());
+    const gruposDelFiltro = valoresConPrefijo(filters.productos || [], 'GF:').map((g) => normalizeGrupoName(g).toUpperCase());
+
     // ── Panorama: metas, explicación, decisiones y resumen ──────────────────
     const lecturas = useMemo(() => leerRadicados(prevData, hilo), [prevData, hilo]);
     const ventasPreviasFiltradas = useMemo(() => filterVentas(['mesCreacion'], ventasPrevias), [filterVentas, ventasPrevias]);
@@ -1048,174 +1060,16 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
 
             </div>
 
-            {/* RESUMEN, COMPARACIÓN, EXPLICACIÓN DE METAS Y DECISIONES */}
+            {/* RESUMEN EJECUTIVO */}
             <ComparacionResumen
                 actual={periodoActual}
                 anterior={periodoAnterior}
                 opciones={mesesParaComparar}
                 comparaCon={comparaCon}
                 onComparaCon={setComparaCon}
-                registros={basePeriodos}
-                onAddQRR={onAddQRR}
                 resumen={resumenEjecutivo}
-                decisiones={decisiones}
-                panorama={<PanoramaMetas entidades={entidades} data={data} filters={filters} onFilterToggle={onFilterToggle} />}
             />
 
-            {/* COMPORTAMIENTO MES A MES */}
-            <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col xl:flex-row">
-                <div className="flex-1 p-6 border-b xl:border-b-0 xl:border-r border-border">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                        <h3 className="text-sm font-bold text-[#254153] uppercase flex items-center gap-2">
-                            <TrendingUpIcon className="w-4 h-4 text-[#749094]" />
-                            Comportamiento Mes a Mes <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-stone-400">· clic en un mes para filtrar</span>
-                        </h3>
-                        <div className="flex bg-stone-100 p-1 rounded-lg">
-                            <button onClick={() => setMetricView('unidades')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'unidades' ? 'bg-white text-[#254153] shadow-sm' : 'text-stone-500 hover:text-[#254153]'}`}>Unidades</button>
-                            <button onClick={() => setMetricView('inversion')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'inversion' ? 'bg-white text-[#254153] shadow-sm' : 'text-stone-500 hover:text-[#254153]'}`}>Inversión</button>
-                            <button onClick={() => setMetricView('porcentajes')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'porcentajes' ? 'bg-white text-[#254153] shadow-sm' : 'text-stone-500 hover:text-[#254153]'}`}>Porcentajes</button>
-                        </div>
-                    </div>
-
-                    <div className="h-72 w-full">
-                        {metricView === 'porcentajes' && (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={analytics.monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
-                                    <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
-                                    <YAxis tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-                                    <RechartsTooltip 
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: any, name: any) => [fmtPct(Number(val) || 0), String(name || '')]}
-                                    />
-                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                    <ReferenceLine y={META_CALIDAD} stroke="#c96a4e" strokeDasharray="3 3" label={{ position: 'top', value: 'Meta Calidad 1%', fill: '#c96a4e', fontSize: 10 }} />
-                                    <ReferenceLine y={META_ECONOMICA} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'bottom', value: 'Meta Inversión 0.5%', fill: '#ef4444', fontSize: 10 }} />
-                                    <Line isAnimationActive={false} type="monotone" dataKey="pctNovedad" name="% Novedad" stroke="#c96a4e" strokeWidth={3} dot={{ r: 4, cursor: 'pointer' }} activeDot={{ r: 6, cursor: 'pointer', onClick: (_e: any, p: any) => { const m = p?.payload; if (m?.name) onFilterToggle('mesCreacion', m.name); } }} />
-                                    <Line isAnimationActive={false} type="monotone" dataKey="pctInversion" name="% Inversión" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, cursor: 'pointer' }} activeDot={{ r: 6, cursor: 'pointer', onClick: (_e: any, p: any) => { const m = p?.payload; if (m?.name) onFilterToggle('mesCreacion', m.name); } }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        )}
-                        {metricView === 'unidades' && (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={analytics.monthly} margin={{ top: 30, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
-                                    <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
-                                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v: any) => fmtN(Number(v) || 0)} />
-                                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v: any) => fmtN(Number(v) || 0)} />
-                                    <RechartsTooltip 
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: any, name: any) => [fmtN(Number(val) || 0), String(name || '')]}
-                                    />
-                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                    <Bar isAnimationActive={false} yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
-                                        <LabelList dataKey="unidadesVendidas" position="top" fill="#b3bec4" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
-                                    </Bar>
-                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="unidadesNovedad" name="Unidades Novedad" fill="#c96a4e" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
-                                        <LabelList dataKey="unidadesNovedad" position="top" fill="#c96a4e" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
-                                    </Bar>
-                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="registros" name="Cantidad Casos" fill="#3b778c" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
-                                        <LabelList dataKey="registros" position="top" fill="#3b778c" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                        {metricView === 'inversion' && (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={analytics.monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
-                                    <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
-                                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000000).toFixed(0)}M`} />
-                                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000000).toFixed(1)}M`} />
-                                    <RechartsTooltip 
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: any, name: any) => [fmt$(Number(val) || 0), String(name || '')]}
-                                    />
-                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                    <Bar isAnimationActive={false} yAxisId="left" dataKey="ventasTotales" name="$ Venta" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)} />
-                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="inversion" name="$ Inversión" fill="#ef4444" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                </div>
-                
-                <div className="xl:w-[500px] flex flex-col">
-                    <div className="p-4 border-b border-border bg-cream-light flex justify-between items-center">
-                        <h3 className="text-[11px] font-bold text-[#254153] uppercase">Tabla Mensual (Tendencias)</h3>
-                    </div>
-                    <div className="flex-1 overflow-auto p-0">
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                            <thead className="bg-white sticky top-0 shadow-sm z-10">
-                                <tr>
-                                    <th className="p-3 font-bold text-[#749094]">Mes</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">Casos</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">% Casos</th>
-                                    <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {analytics.monthly.map(m => {
-                                    const novTrendIcon = m.varPctNovedad === null ? '' : (m.varPctNovedad > 0.05 ? '↑' : (m.varPctNovedad < -0.05 ? '↓' : '→'));
-                                    const invTrendIcon = m.varPctInversion === null ? '' : (m.varPctInversion > 0.05 ? '↑' : (m.varPctInversion < -0.05 ? '↓' : '→'));
-                                    
-                                    return (
-                                        <tr key={m.name} className="hover:bg-cream-light">
-                                            <td className="p-3 font-medium text-[#1d1d1b]">{m.monthLabel}</td>
-                                            <td className="p-3 text-right">{fmtN(m.unidadesVendidas)}</td>
-                                            <td className="p-3 text-right font-bold text-[#c96a4e]">{fmtN(m.unidadesNovedad)}</td>
-                                            <td className="p-3 text-right font-bold text-[#3b778c]">{fmtN(m.registros)}</td>
-                                            <td className="p-3 text-right">
-                                                <div className={`font-bold ${m.pctNovedad > META_CALIDAD ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctNovedad)}</div>
-                                                {m.varPctNovedad !== null && (
-                                                    <div className="text-[9px] text-stone-400 font-medium mt-0.5" title="Variación vs mes anterior">
-                                                        {novTrendIcon} {m.varPctNovedad > 0 ? '+' : ''}{m.varPctNovedad.toFixed(2)} pp
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="p-3 text-right">
-                                                <div className={`font-bold ${m.pctCasos > META_CALIDAD ? 'text-red-600' : 'text-[#254153]'}`}>{fmtPct(m.pctCasos)}</div>
-                                                {m.varPctCasos !== null && (
-                                                    <div className="text-[9px] text-stone-400 font-medium mt-0.5" title="Variación vs mes anterior">
-                                                        {m.varPctCasos > 0.05 ? '↑' : (m.varPctCasos < -0.05 ? '↓' : '→')} {m.varPctCasos > 0 ? '+' : ''}{m.varPctCasos.toFixed(2)} pp
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="p-3 text-right">
-                                                <div className={`font-bold ${m.pctInversion > META_ECONOMICA ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctInversion)}</div>
-                                                {m.varPctInversion !== null && (
-                                                    <div className="text-[9px] text-stone-400 font-medium mt-0.5" title="Variación vs mes anterior">
-                                                        {invTrendIcon} {m.varPctInversion > 0 ? '+' : ''}{m.varPctInversion.toFixed(2)} pp
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {/* DETALLE: cerrado por defecto para que la hoja se lea de un vistazo */}
-            <button
-                onClick={() => setVerDetalle((v) => !v)}
-                aria-expanded={verDetalle}
-                className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-white rounded-2xl border border-border shadow-sm hover:bg-cream-light transition-colors cursor-pointer"
-            >
-                <span className="text-left">
-                    <span className="block text-sm font-bold text-brand-dark uppercase tracking-wider">{verDetalle ? 'Ocultar detalle' : 'Ver detalle'}</span>
-                    <span className="block text-[11px] text-stone-500 mt-0.5">Mercados, canales, tablas por grupo, planta y problema, responsables, referencias, ciudades y clientes</span>
-                </span>
-                {verDetalle ? <ChevronUpIcon className="w-5 h-5 text-stone-400 shrink-0" /> : <ChevronDownIcon className="w-5 h-5 text-stone-400 shrink-0" />}
-            </button>
-
-            {verDetalle && (
-                <>
             {/* INDICADORES POR MERCADO */}
             <div className="bg-white p-6 rounded-2xl border border-border shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
@@ -1405,8 +1259,8 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
 
 
             {/* TABLAS GENERALES CON CRUCE DE VENTAS */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-[400px]">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+                <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
                     <div className="p-4 border-b border-border bg-cream-light flex justify-between items-center">
                         <h3 className="text-sm font-bold text-[#254153] uppercase">Comportamiento por Grupo de Producto</h3>
                     </div>
@@ -1428,12 +1282,12 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                 {analyticsProductos.filter((g: any) => g.unidadesNovedad > 0 || g.registros > 0).map((g: any) => {
                                     const isSelected = filters.productos.includes(`GF:${g.name}`);
                                     return (
-                                        <tr 
-                                            key={g.name} 
+                                        <React.Fragment key={g.name}>
+                                            <tr
                                             onClick={(e) => onFilterToggle('productos', `GF:${g.name}`, e)}
                                             className={`transition-colors cursor-pointer ${isSelected ? 'bg-brand-soft/70 border-l-4 border-brand-light' : 'hover:bg-cream-light border-l-4 border-transparent'}`}
                                         >
-                                            <td className="p-3 font-medium text-[#1d1d1b]">{g.name}</td>
+                                            <td className="p-3 font-medium text-[#1d1d1b]"><FlechaRama abierto={desplegados.has(`g:${g.name}`)} onClick={() => alternarDespliegue(`g:${g.name}`)} nombre={g.name} />{g.name}</td>
                                             <td className="p-3 text-right">{fmtN(g.registros)}</td>
                                             <td className="p-3 text-right font-medium text-stone-500">{fmtPct(g.pctCasos)}</td>
                                             <td className="p-3 text-right">{fmtN(g.unidadesVendidas)}</td>
@@ -1442,6 +1296,8 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                             <td className="p-3 text-right font-bold">{fmtPct(g.pctInversion)}</td>
                                             <td className="p-3 text-right">{fmtVar(variacionGrupo(g.name))}</td>
                                         </tr>
+                                        {desplegados.has(`g:${g.name}`) && <RamasDefectos data={dataForProductos || prevData} filtro={(l) => l.grupo === g.name && (plantasDelFiltro.length === 0 || plantasDelFiltro.includes(l.planta.toUpperCase()))} vendidas={g.unidadesVendidas} ventasTotales={g.ventasTotales} />}
+                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>
@@ -1449,7 +1305,7 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-[400px]">
+                <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
                     <div className="p-4 border-b border-border bg-cream-light flex justify-between items-center">
                         <h3 className="text-sm font-bold text-[#254153] uppercase">Comportamiento por Planta</h3>
                     </div>
@@ -1471,12 +1327,12 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                 {analyticsPlantas.filter((pl: any) => pl.unidadesNovedad > 0 || pl.registros > 0).map((pl: any) => {
                                     const isSelected = filters.plantas && filters.plantas.includes(pl.name);
                                     return (
-                                        <tr 
-                                            key={pl.name} 
+                                        <React.Fragment key={pl.name}>
+                                            <tr
                                             onClick={(e) => onFilterToggle('plantas', pl.name, e)}
                                             className={`transition-colors cursor-pointer ${isSelected ? 'bg-brand-soft/70 border-l-4 border-brand-light' : 'hover:bg-cream-light border-l-4 border-transparent'}`}
                                         >
-                                            <td className="p-3 font-medium text-[#1d1d1b]">{pl.name}</td>
+                                            <td className="p-3 font-medium text-[#1d1d1b]"><FlechaRama abierto={desplegados.has(`pl:${pl.name}`)} onClick={() => alternarDespliegue(`pl:${pl.name}`)} nombre={pl.name} />{pl.name}</td>
                                             <td className="p-3 text-right">{fmtN(pl.registros)}</td>
                                             <td className="p-3 text-right font-medium text-stone-500">{fmtPct(pl.pctCasos)}</td>
                                             <td className="p-3 text-right">{fmtN(pl.unidadesVendidas)}</td>
@@ -1485,6 +1341,8 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                                             <td className="p-3 text-right font-bold">{fmtPct(pl.pctInversion)}</td>
                                             <td className="p-3 text-right">{fmtVar(variacionPlanta(pl.name))}</td>
                                         </tr>
+                                        {desplegados.has(`pl:${pl.name}`) && <RamasDefectos data={dataForPlantas || prevData} filtro={(l) => l.planta === pl.name && (gruposDelFiltro.length === 0 || gruposDelFiltro.includes(l.grupo.toUpperCase()))} vendidas={pl.unidadesVendidas} ventasTotales={pl.ventasTotales} />}
+                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>
@@ -1492,6 +1350,166 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                     </div>
                 </div>
             </div>
+            {/* COMPORTAMIENTO MES A MES */}
+            <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col xl:flex-row">
+                <div className="flex-1 p-6 border-b xl:border-b-0 xl:border-r border-border">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                        <h3 className="text-sm font-bold text-[#254153] uppercase flex items-center gap-2">
+                            <TrendingUpIcon className="w-4 h-4 text-[#749094]" />
+                            Comportamiento Mes a Mes <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-stone-400">· clic en un mes para filtrar</span>
+                        </h3>
+                        <div className="flex bg-stone-100 p-1 rounded-lg">
+                            <button onClick={() => setMetricView('unidades')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'unidades' ? 'bg-white text-[#254153] shadow-sm' : 'text-stone-500 hover:text-[#254153]'}`}>Unidades</button>
+                            <button onClick={() => setMetricView('inversion')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'inversion' ? 'bg-white text-[#254153] shadow-sm' : 'text-stone-500 hover:text-[#254153]'}`}>Inversión</button>
+                            <button onClick={() => setMetricView('porcentajes')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${metricView === 'porcentajes' ? 'bg-white text-[#254153] shadow-sm' : 'text-stone-500 hover:text-[#254153]'}`}>Porcentajes</button>
+                        </div>
+                    </div>
+
+                    <div className="h-72 w-full">
+                        {metricView === 'porcentajes' && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={analytics.monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
+                                    <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                                    <RechartsTooltip 
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(val: any, name: any) => [fmtPct(Number(val) || 0), String(name || '')]}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    <ReferenceLine y={META_CALIDAD} stroke="#c96a4e" strokeDasharray="3 3" label={{ position: 'top', value: 'Meta Calidad 1%', fill: '#c96a4e', fontSize: 10 }} />
+                                    <ReferenceLine y={META_ECONOMICA} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'bottom', value: 'Meta Inversión 0.5%', fill: '#ef4444', fontSize: 10 }} />
+                                    <Line isAnimationActive={false} type="monotone" dataKey="pctNovedad" name="% Novedad" stroke="#c96a4e" strokeWidth={3} dot={{ r: 4, cursor: 'pointer' }} activeDot={{ r: 6, cursor: 'pointer', onClick: (_e: any, p: any) => { const m = p?.payload; if (m?.name) onFilterToggle('mesCreacion', m.name); } }} />
+                                    <Line isAnimationActive={false} type="monotone" dataKey="pctInversion" name="% Inversión" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, cursor: 'pointer' }} activeDot={{ r: 6, cursor: 'pointer', onClick: (_e: any, p: any) => { const m = p?.payload; if (m?.name) onFilterToggle('mesCreacion', m.name); } }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
+                        {metricView === 'unidades' && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={analytics.monthly} margin={{ top: 30, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
+                                    <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
+                                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v: any) => fmtN(Number(v) || 0)} />
+                                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v: any) => fmtN(Number(v) || 0)} />
+                                    <RechartsTooltip 
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(val: any, name: any) => [fmtN(Number(val) || 0), String(name || '')]}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    <Bar isAnimationActive={false} yAxisId="left" dataKey="unidadesVendidas" name="Unidades Vendidas" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
+                                        <LabelList dataKey="unidadesVendidas" position="top" fill="#b3bec4" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
+                                    </Bar>
+                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="unidadesNovedad" name="Unidades Novedad" fill="#c96a4e" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
+                                        <LabelList dataKey="unidadesNovedad" position="top" fill="#c96a4e" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
+                                    </Bar>
+                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="registros" name="Cantidad Casos" fill="#3b778c" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)}>
+                                        <LabelList dataKey="registros" position="top" fill="#3b778c" fontSize={9} formatter={(v: any) => fmtN(Number(v) || 0)} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                        {metricView === 'inversion' && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={analytics.monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e2d5" />
+                                    <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} />
+                                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000000).toFixed(0)}M`} />
+                                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#8a8780' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000000).toFixed(1)}M`} />
+                                    <RechartsTooltip 
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(val: any, name: any) => [fmt$(Number(val) || 0), String(name || '')]}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    <Bar isAnimationActive={false} yAxisId="left" dataKey="ventasTotales" name="$ Venta" fill="#e8e2d5" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)} />
+                                    <Bar isAnimationActive={false} yAxisId="right" dataKey="inversion" name="$ Inversión" fill="#ef4444" radius={[4,4,0,0]} barSize={20} className="cursor-pointer" onClick={(b: any, _i: number, e: any) => b?.payload?.name && onFilterToggle('mesCreacion', b.payload.name, e)} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </div>
+                
+                <div className="xl:w-[500px] flex flex-col">
+                    <div className="p-4 border-b border-border bg-cream-light flex justify-between items-center">
+                        <h3 className="text-[11px] font-bold text-[#254153] uppercase">Tabla Mensual (Tendencias)</h3>
+                    </div>
+                    <div className="flex-1 overflow-auto p-0">
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                            <thead className="bg-white sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th className="p-3 font-bold text-[#749094]">Mes</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Vend.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Unds Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">Casos</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Nov.</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Casos</th>
+                                    <th className="p-3 font-bold text-[#749094] text-right">% Inv.</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {analytics.monthly.map(m => {
+                                    const novTrendIcon = m.varPctNovedad === null ? '' : (m.varPctNovedad > 0.05 ? '↑' : (m.varPctNovedad < -0.05 ? '↓' : '→'));
+                                    const invTrendIcon = m.varPctInversion === null ? '' : (m.varPctInversion > 0.05 ? '↑' : (m.varPctInversion < -0.05 ? '↓' : '→'));
+                                    
+                                    return (
+                                        <tr key={m.name} className="hover:bg-cream-light">
+                                            <td className="p-3 font-medium text-[#1d1d1b]">{m.monthLabel}</td>
+                                            <td className="p-3 text-right">{fmtN(m.unidadesVendidas)}</td>
+                                            <td className="p-3 text-right font-bold text-[#c96a4e]">{fmtN(m.unidadesNovedad)}</td>
+                                            <td className="p-3 text-right font-bold text-[#3b778c]">{fmtN(m.registros)}</td>
+                                            <td className="p-3 text-right">
+                                                <div className={`font-bold ${m.pctNovedad > META_CALIDAD ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctNovedad)}</div>
+                                                {m.varPctNovedad !== null && (
+                                                    <div className="text-[9px] text-stone-400 font-medium mt-0.5" title="Variación vs mes anterior">
+                                                        {novTrendIcon} {m.varPctNovedad > 0 ? '+' : ''}{m.varPctNovedad.toFixed(2)} pp
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <div className={`font-bold ${m.pctCasos > META_CALIDAD ? 'text-red-600' : 'text-[#254153]'}`}>{fmtPct(m.pctCasos)}</div>
+                                                {m.varPctCasos !== null && (
+                                                    <div className="text-[9px] text-stone-400 font-medium mt-0.5" title="Variación vs mes anterior">
+                                                        {m.varPctCasos > 0.05 ? '↑' : (m.varPctCasos < -0.05 ? '↓' : '→')} {m.varPctCasos > 0 ? '+' : ''}{m.varPctCasos.toFixed(2)} pp
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <div className={`font-bold ${m.pctInversion > META_ECONOMICA ? 'text-red-600' : 'text-green-600'}`}>{fmtPct(m.pctInversion)}</div>
+                                                {m.varPctInversion !== null && (
+                                                    <div className="text-[9px] text-stone-400 font-medium mt-0.5" title="Variación vs mes anterior">
+                                                        {invTrendIcon} {m.varPctInversion > 0 ? '+' : ''}{m.varPctInversion.toFixed(2)} pp
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* DÓNDE ESTAMOS MAL */}
+            <PanoramaMetas entidades={entidades} data={data} filters={filters} onFilterToggle={onFilterToggle} />
+
+            {/* DECISIONES RECOMENDADAS */}
+            <DecisionesRecomendadas decisiones={decisiones} registros={basePeriodos} onAddQRR={onAddQRR} />
+
+            {/* DETALLE: cerrado por defecto */}
+            <button
+                onClick={() => setVerDetalle((v) => !v)}
+                aria-expanded={verDetalle}
+                className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-white rounded-2xl border border-border shadow-sm hover:bg-cream-light transition-colors cursor-pointer"
+            >
+                <span className="text-left">
+                    <span className="block text-sm font-bold text-brand-dark uppercase tracking-wider">{verDetalle ? 'Ocultar detalle' : 'Ver detalle'}</span>
+                    <span className="block text-[11px] text-stone-500 mt-0.5">Tipo de problema, responsables, referencias, ciudades y clientes</span>
+                </span>
+                {verDetalle ? <ChevronUpIcon className="w-5 h-5 text-stone-400 shrink-0" /> : <ChevronDownIcon className="w-5 h-5 text-stone-400 shrink-0" />}
+            </button>
+
+            {verDetalle && (
+                <>
             {/* ANÁLISIS COMPLETO: TIPO DE PROBLEMA */}
             <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-border bg-cream-light flex justify-between items-center">

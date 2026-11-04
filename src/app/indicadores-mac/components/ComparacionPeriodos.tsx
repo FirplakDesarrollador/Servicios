@@ -107,53 +107,15 @@ const claseFila = (activa: boolean, i: number) =>
     `transition-colors cursor-pointer ${activa ? 'bg-sage-soft' : i % 2 === 0 ? 'bg-white hover:bg-cream-light' : 'bg-cream-light/60 hover:bg-cream-light'}`;
 
 // ── Resumen: selector, indicadores con variación y decisiones ──────────────
-export function ComparacionResumen({ actual, anterior, opciones, comparaCon, onComparaCon, registros, onAddQRR, resumen, decisiones, panorama }: {
+export function ComparacionResumen({ actual, anterior, opciones, comparaCon, onComparaCon, resumen }: {
     actual: DateRange;
     anterior: DateRange;
     /** Meses anteriores al periodo actual, elegibles para comparar */
     opciones: DateRange[];
     comparaCon: string;
     onComparaCon: (key: string) => void;
-    registros: RegistroMAC[];
-    onAddQRR: (rec: Partial<QRRRecord>) => void;
     resumen: SeccionResumen[];
-    decisiones: Decision[];
-    /** Metas y explicación, entre el resumen y las decisiones */
-    panorama: React.ReactNode;
 }) {
-    const [showRecords, setShowRecords] = useState<number[] | null>(null);
-    const associatedRecords = useMemo(() => {
-        if (!showRecords) return [];
-        const ids = new Set(showRecords);
-        return registros.filter((r) => ids.has(r.id));
-    }, [showRecords, registros]);
-
-    const handleOpenQRR = useCallback((d: Decision) => {
-        const temas = d.temas.slice(0, 3);
-        const fotos = d.fotos.slice(0, 5);
-        onAddQRR({
-            fechaInicio: new Date().toISOString().split('T')[0],
-            origen: 'Análisis de indicadores',
-            referencia: [d.topCompra, d.topPieza].filter(Boolean).filter((x, i, l) => l.indexOf(x) === i).join(' / '),
-            responsable: d.responsable,
-            problema: d.problema,
-            numCasos: d.problemas,
-            numUnidades: d.unidades,
-            impactoDinero: Math.round(d.inversion),
-            evidencia: [d.evidencia, ...(fotos.length ? [`Fotos: ${fotos.join(' ')}`] : [])].join('\n'),
-            observaciones: [
-                `Hablar con ${d.hablarCon}. ${d.motivo}`,
-                ...(d.empuja.length ? [`Empuja sobre la meta a: ${d.empuja.join(', ')}.`] : []),
-                ...temas.map((t) => `Comentarios de MAC — ${t.tema.nombre} (${t.radicados} radicados): ${t.cita}`),
-            ].join('\n'),
-            registrosAsociados: d.radicadosIds,
-            prioridad: d.prioridad,
-        });
-    }, [onAddQRR]);
-
-
-    const destacadas = decisiones.filter((d) => d.prioridad === 'inmediato' || d.prioridad === 'seguimiento').slice(0, 8);
-
     return (
         <div className="space-y-5">
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex flex-wrap items-center justify-between gap-3">
@@ -194,9 +156,51 @@ export function ComparacionResumen({ actual, anterior, opciones, comparaCon, onC
                     Lectura automática de los registros y comentarios: indica concentración y correlación, no causa raíz confirmada.
                 </p>
             </div>
+        </div>
+    );
+}
 
-            {panorama}
+// ── Decisiones: lo último de la hoja ───────────────────────────────────────
+export function DecisionesRecomendadas({ decisiones, registros, onAddQRR }: {
+    decisiones: Decision[];
+    registros: RegistroMAC[];
+    onAddQRR: (rec: Partial<QRRRecord>) => void;
+}) {
+    const [showRecords, setShowRecords] = useState<number[] | null>(null);
+    const associatedRecords = useMemo(() => {
+        if (!showRecords) return [];
+        const ids = new Set(showRecords);
+        return registros.filter((r) => ids.has(r.id));
+    }, [showRecords, registros]);
 
+    const handleOpenQRR = useCallback((d: Decision) => {
+        const temas = d.temas.slice(0, 3);
+        const fotos = d.fotos.slice(0, 5);
+        onAddQRR({
+            fechaInicio: new Date().toISOString().split('T')[0],
+            origen: 'Análisis de indicadores',
+            referencia: [d.topCompra, d.topPieza].filter(Boolean).filter((x, i, l) => l.indexOf(x) === i).join(' / '),
+            responsable: d.responsable,
+            problema: d.problema,
+            numCasos: d.problemas,
+            numUnidades: d.unidades,
+            impactoDinero: Math.round(d.inversion),
+            evidencia: [d.evidencia, ...(fotos.length ? [`Fotos: ${fotos.join(' ')}`] : [])].join('\n'),
+            observaciones: [
+                `Hablar con ${d.hablarCon}. ${d.motivo}`,
+                ...(d.empuja.length ? [`Empuja sobre la meta a: ${d.empuja.join(', ')}.`] : []),
+                ...temas.map((t) => `Comentarios de MAC — ${t.tema.nombre} (${t.radicados} radicados): ${t.cita}`),
+            ].join('\n'),
+            registrosAsociados: d.radicadosIds,
+            prioridad: d.prioridad,
+        });
+    }, [onAddQRR]);
+
+
+    const destacadas = decisiones.filter((d) => d.prioridad === 'inmediato' || d.prioridad === 'seguimiento').slice(0, 8);
+
+    return (
+        <div className="space-y-5">
             {/* ── Decisiones Recomendadas ─────────────────────────────────────── */}
             <CollapsibleSection
                 title="Decisiones Recomendadas"
