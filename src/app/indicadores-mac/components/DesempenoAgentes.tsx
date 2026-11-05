@@ -17,6 +17,12 @@ const diaCalendario = (v?: string | null) => {
     return Number.isNaN(d.getTime()) ? null : Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DIA_MS;
 };
 
+/**
+ * La Fecha de Cierre se empezó a registrar el 06/10/2026. Un caso resuelto antes de ese día
+ * sin Fecha de Cierre no aplica: no cuenta como faltante ni entra al desfase.
+ */
+const INICIO_FECHA_CIERRE = diaCalendario('2026-10-06') as number;
+
 const th = 'px-3 py-2.5 text-[10px] font-bold uppercase text-stone-500 whitespace-nowrap';
 
 export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
@@ -39,11 +45,16 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                 const desfases: number[] = [];
                 let cierres = 0;
                 let inconsistentes = 0;
+                let sinFechaCierre = 0;
                 for (const d of cerrados) {
                     const cierre = diaCalendario(d.fecha_cierre);
-                    if (cierre === null) continue;
-                    cierres++;
                     const verificacion = diaCalendario(d.fecha_verificacion);
+                    if (cierre === null) {
+                        // Antes del 06/10/2026 no existía la Fecha de Cierre: no aplica
+                        if (verificacion !== null && verificacion >= INICIO_FECHA_CIERRE) sinFechaCierre++;
+                        continue;
+                    }
+                    cierres++;
                     if (verificacion === null) continue;
                     // Más de 1 día antes de la solución o más de un año después es un error de digitación
                     const desfase = cierre - verificacion;
@@ -61,7 +72,7 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                     cierres,
                     desfase: mediana(desfases),
                     mismoDia: desfases.length ? (desfases.filter((x) => x === 0).length / desfases.length) * 100 : null,
-                    sinFechaCierre: cerrados.length - cierres,
+                    sinFechaCierre,
                     inconsistentes,
                 };
             })
@@ -77,7 +88,7 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                 <span className="text-[11px] text-stone-400">Clic en un agente para filtrar</span>
             </div>
             <p className="text-[11px] text-stone-400 mb-4">
-                Cumplimiento y tiempo se miden con la solución real al cliente; el desfase es lo que tarda el agente en registrar el cierre después de esa solución.
+                Cumplimiento y tiempo se miden con la solución real al cliente; el desfase es lo que tarda el agente en registrar el cierre después de esa solución. La Fecha de Cierre se registra desde el 06/10/2026; los casos resueltos antes sin esa fecha no aplican.
             </p>
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
