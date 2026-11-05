@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, Speech, Square, SendHorizontal, FileText, Zap, Settings2, BookmarkPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -9,7 +9,7 @@ import AsesoresModal from '@/components/whatsapp/AsesoresModal';
 import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whatsapp/RespuestasRapidasModal';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 import { apodoAsesor } from '@/lib/apodoAsesor';
-import { fechaChat } from '@/lib/fechaChat';
+import { claveDia, fechaChat, separadorDia } from '@/lib/fechaChat';
 
 // Estilos de los botones de la barra de mensaje: iconos secundarios y botón principal (enviar / grabar)
 const composerIconBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-stone-400 hover:text-brand hover:bg-cream-light transition-colors';
@@ -1237,7 +1237,10 @@ export default function WhatsAppPage() {
             {/* Messages */}
             {/* Bloque normal (no flex) para que los mensajes no se encojan y se vean completos al subir */}
             <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-1.5 custom-scrollbar">
-              {messages.map((msg) => {
+              {messages.map((msg, i) => {
+                // Separador de día cuando el mensaje es de un día distinto al anterior
+                const dia = claveDia(msg.created_at);
+                const nuevoDia = !!dia && (i === 0 || claveDia(messages[i - 1].created_at) !== dia);
                 const isMe = msg.sender === 'me';
                 const hasMedia = !!msg.media_url;
                 const isImage = msg.media_type === 'image' || msg.media_type === 'sticker';
@@ -1248,7 +1251,15 @@ export default function WhatsAppPage() {
                 const quotedMsg = msg.reply_to_wam_id ? messages.find(m => m.wam_id === msg.reply_to_wam_id) : null;
 
                 return (
-                  <div key={msg.id} className={`group flex w-full shrink-0 items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  <Fragment key={msg.id}>
+                  {nuevoDia && (
+                    <div className="flex justify-center py-2">
+                      <span className="px-3 py-1 rounded-lg bg-white/90 shadow-sm text-xs font-medium text-stone-500">
+                        {separadorDia(msg.created_at)}
+                      </span>
+                    </div>
+                  )}
+                  <div className={`group flex w-full shrink-0 items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
                     {/* Solo se puede citar un mensaje que ya tiene id de WhatsApp */}
                     {isMe && msg.wam_id && (
                       <button
@@ -1340,6 +1351,7 @@ export default function WhatsAppPage() {
                       </button>
                     )}
                   </div>
+                  </Fragment>
                 );
               })}
             </div>
