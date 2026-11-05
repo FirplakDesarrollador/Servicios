@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, Speech, Square, SendHorizontal, FileText, Zap, Settings2, BookmarkPlus } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, Speech, Square, SendHorizontal, FileText, Zap, Settings2, BookmarkPlus, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
@@ -1242,6 +1242,8 @@ export default function WhatsAppPage() {
                 const dia = claveDia(msg.created_at);
                 const nuevoDia = !!dia && (i === 0 || claveDia(messages[i - 1].created_at) !== dia);
                 const isMe = msg.sender === 'me';
+                // WhatsApp avisa por el webhook que el mensaje no se pudo entregar
+                const fallido = isMe && msg.status === 'failed';
                 const hasMedia = !!msg.media_url;
                 const isImage = msg.media_type === 'image' || msg.media_type === 'sticker';
                 const isAudio = msg.media_type === 'audio' || msg.media_type === 'voice' || (msg.media_type === 'document' && (msg.media_filename?.endsWith('.webm') || msg.media_mime_type?.includes('audio') || msg.media_mime_type?.includes('ogg')));
@@ -1274,7 +1276,7 @@ export default function WhatsAppPage() {
                     <div
                       id={msg.wam_id ? `wa-msg-${msg.wam_id}` : undefined}
                       className={`max-w-[70%] rounded-2xl overflow-hidden transition-shadow ${isMe
-                      ? 'bg-brand-soft text-brand-dark rounded-br-md'
+                      ? `bg-brand-soft text-brand-dark rounded-br-md${fallido ? ' ring-1 ring-red-300' : ''}`
                       : 'bg-white text-brand-dark border border-border rounded-bl-md'
                     }`}>
                       {/* Mensaje citado */}
@@ -1336,8 +1338,14 @@ export default function WhatsAppPage() {
                       )}
                       {/* Message Footer / Timestamp */}
                       <div className="px-3 pt-0.5 pb-1.5 flex items-center justify-end gap-1 text-stone-400">
+                        {fallido && (
+                          <span className="mr-auto flex items-center gap-1 text-[11px] font-semibold text-red-600" title="WhatsApp no pudo entregar este mensaje al cliente">
+                            <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} />
+                            No se entregó
+                          </span>
+                        )}
                         <span className="text-[10px]">{formatTime(msg.created_at)}</span>
-                        {isMe && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-brand-light' : 'text-stone-300'}`} />}
+                        {isMe && !fallido && <CheckCheck className={`w-3.5 h-3.5 ${msg.status === 'read' ? 'text-brand-light' : 'text-stone-300'}`} />}
                       </div>
                     </div>
                     {!isMe && msg.wam_id && (
