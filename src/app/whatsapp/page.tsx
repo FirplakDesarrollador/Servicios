@@ -9,6 +9,7 @@ import AsesoresModal from '@/components/whatsapp/AsesoresModal';
 import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whatsapp/RespuestasRapidasModal';
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 import { apodoAsesor } from '@/lib/apodoAsesor';
+import { fechaChat } from '@/lib/fechaChat';
 
 // Estilos de los botones de la barra de mensaje: iconos secundarios y botón principal (enviar / grabar)
 const composerIconBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-stone-400 hover:text-brand hover:bg-cream-light transition-colors';
@@ -1095,7 +1096,7 @@ export default function WhatsAppPage() {
                         {getDisplayName(chat)}
                       </h3>
                       <span className={`text-[11px] shrink-0 ${isUnread ? 'text-brand font-semibold' : 'text-stone-400'}`}>
-                        {formatTime(chat.last_message_time)}
+                        {fechaChat(chat.last_message_time)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center gap-2 mt-0.5">
