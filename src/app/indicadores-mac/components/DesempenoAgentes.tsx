@@ -19,7 +19,7 @@ const diaCalendario = (v?: string | null) => {
 
 /**
  * La Fecha de Cierre se empezó a registrar el 06/10/2026. Un caso resuelto antes de ese día
- * sin Fecha de Cierre no aplica: no cuenta como faltante ni entra al desfase.
+ * sin Fecha de Cierre toma la de verificación: cuenta como cierre registrado, no como faltante.
  */
 const INICIO_FECHA_CIERRE = diaCalendario('2026-10-06') as number;
 
@@ -50,8 +50,13 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                     const cierre = diaCalendario(d.fecha_cierre);
                     const verificacion = diaCalendario(d.fecha_verificacion);
                     if (cierre === null) {
-                        // Antes del 06/10/2026 no existía la Fecha de Cierre: no aplica
-                        if (verificacion !== null && verificacion >= INICIO_FECHA_CIERRE) sinFechaCierre++;
+                        if (verificacion !== null && verificacion < INICIO_FECHA_CIERRE) {
+                            // Antes del 06/10/2026 no existía la Fecha de Cierre: se toma la de verificación.
+                            // Cuenta como cierre registrado, pero no entra al desfase porque ese día no es real.
+                            cierres++;
+                        } else {
+                            sinFechaCierre++;
+                        }
                         continue;
                     }
                     cierres++;
@@ -88,7 +93,7 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                 <span className="text-[11px] text-stone-400">Clic en un agente para filtrar</span>
             </div>
             <p className="text-[11px] text-stone-400 mb-4">
-                Cumplimiento y tiempo se miden con la solución real al cliente; el desfase es lo que tarda el agente en registrar el cierre después de esa solución. La Fecha de Cierre se registra desde el 06/10/2026; los casos resueltos antes sin esa fecha no aplican.
+                Cumplimiento y tiempo se miden con la solución real al cliente; el desfase es lo que tarda el agente en registrar el cierre después de esa solución. La Fecha de Cierre se registra desde el 06/10/2026; a los casos resueltos antes sin esa fecha se les toma la de verificación, y no entran al desfase ni a mismo día.
             </p>
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
