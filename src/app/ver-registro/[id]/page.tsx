@@ -1543,7 +1543,30 @@ function ClasificacionTab({
         }
     };
 
+    // Rango permitido de la Fecha de Verificación: desde el día de creación del radicado hasta hoy
+    const diaLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const minVerificacion = registro?.created_at ? diaLocal(new Date(registro.created_at)) : undefined;
+    const maxVerificacion = diaLocal(new Date());
+
     const handleSaveClasificacion = async () => {
+        // La Fecha de Verificación no puede ser anterior a la creación del radicado ni posterior a hoy
+        const fechaVerif = globalClasificacion.fecha_verificacion;
+        if (fechaVerif && fechaVerif !== (registro.fecha_verificacion || '')) {
+            const formato = (v: string) => v.split('-').reverse().join('/');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaVerif)) {
+                alert('La Fecha de Verificación no es válida. Revísala antes de guardar.');
+                return;
+            }
+            if (minVerificacion && fechaVerif < minVerificacion) {
+                alert(`La Fecha de Verificación no puede ser anterior a la creación del radicado (${formato(minVerificacion)}).`);
+                return;
+            }
+            if (fechaVerif > maxVerificacion) {
+                alert(`La Fecha de Verificación no puede ser posterior a hoy (${formato(maxVerificacion)}).`);
+                return;
+            }
+        }
+
         // Validación: si se ingresa fecha de verificación (cierre), Familia y Planta son obligatorios
         if (globalClasificacion.fecha_verificacion) {
             const missing = editClasificacionProductos.findIndex(
@@ -1643,7 +1666,7 @@ function ClasificacionTab({
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-oliva-texto)] mb-1.5 block">Fecha Verificación</label>
-                                <input type="date" value={globalClasificacion.fecha_verificacion} onChange={(e) => handleGlobalClasificacionChange('fecha_verificacion', e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
+                                <input type="date" min={minVerificacion} max={maxVerificacion} value={globalClasificacion.fecha_verificacion} onChange={(e) => handleGlobalClasificacionChange('fecha_verificacion', e.target.value)} className="w-full bg-white border border-[var(--c-linea)] rounded-lg p-2.5 text-sm outline-none focus:border-[var(--c-navy-texto)] focus:ring-1 focus:ring-[var(--c-navy-texto)] hover:border-[var(--c-oliva-texto)]/40 transition-colors text-[var(--c-tinta)]" />
                             </div>
                         </div>
 
