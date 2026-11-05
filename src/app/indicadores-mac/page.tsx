@@ -76,9 +76,9 @@ async function fetchAllRows<T = any>(
 // ── Densidad de la vista: escala toda la página por igual (mismo orden y estética) ──
 type Densidad = 'compacta' | 'normal' | 'agrandada';
 const DENSIDADES: Array<{ id: Densidad; label: string; zoom: number; size: string }> = [
-    { id: 'compacta', label: 'Compacta', zoom: 0.7, size: 'text-[10px]' },
-    { id: 'normal', label: 'Normal', zoom: 0.8, size: 'text-[12px]' },
-    { id: 'agrandada', label: 'Agrandada', zoom: 1, size: 'text-[14px]' },
+    { id: 'compacta', label: 'Compacta', zoom: 0.8, size: 'text-[10px]' },
+    { id: 'normal', label: 'Normal', zoom: 1, size: 'text-[12px]' },
+    { id: 'agrandada', label: 'Agrandada', zoom: 1.2, size: 'text-[14px]' },
 ];
 
 // ── TabSuspense wrapper ──────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ export default function IndicadoresMacPage() {
         mq.addEventListener('change', actualizar);
         return () => mq.removeEventListener('change', actualizar);
     }, []);
-    const zoom = esPantallaPequena ? 1 : DENSIDADES.find(d => d.id === densidad)?.zoom ?? 0.8;
+    const zoom = esPantallaPequena ? 1 : DENSIDADES.find(d => d.id === densidad)?.zoom ?? 1;
 
     // ── QRR compartidos (tabla mac_qrr en Supabase; localStorage como respaldo) ──
     const [qrrRecords, setQrrRecordsState] = useState<QRRRecord[]>([]);
