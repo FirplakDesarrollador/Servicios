@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { parseLocalTimestamp } from '@/lib/dateUtils';
+import { aplicarDireccionesAServicios } from '@/lib/direccionesCliente';
 
 const escapeHtml = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '---';
@@ -62,13 +63,15 @@ const getSignatureSrc = (base64String: string) => {
 export const generateConsecutivoPDF = async (consecutivo: string, currentUser: any) => {
     try {
         // Fetch services
-        const { data: services, error: servicesError } = await supabase
+        const { data: servicesVista, error: servicesError } = await supabase
             .from('query_servicios')
             .select('*')
             .eq('consecutivo', consecutivo)
             .order('created_at', { ascending: true });
 
         if (servicesError) throw servicesError;
+        // Dirección escogida para el servicio (si no, la principal del cliente, como trae la vista)
+        const services = servicesVista ? await aplicarDireccionesAServicios(servicesVista) : servicesVista;
         if (!services || services.length === 0) throw new Error('No se encontraron servicios para este consecutivo');
 
         const serviceIds = services.map(s => s.id);

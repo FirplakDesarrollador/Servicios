@@ -21,6 +21,7 @@ import ServiceCard from '@/components/servicios-abiertos/ServiceCard';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 import ModalExportarCSV from '@/components/servicios-abiertos/ModalExportarCSV';
 import { generateConsecutivoPDF } from '@/lib/pdfGenerator';
+import { aplicarDireccionesAServicios } from '@/lib/direccionesCliente';
 
 export default function ServiciosAbiertosPage() {
     const router = useRouter();
@@ -120,6 +121,11 @@ export default function ServiciosAbiertosPage() {
                     }));
                     setServices(mappedServices);
                     setFilteredServices(mappedServices);
+
+                    // En segundo plano: la dirección escogida para cada servicio (la vista trae la principal)
+                    aplicarDireccionesAServicios(mappedServices).then(conDireccion => {
+                        if (conDireccion.some((s, i) => s !== mappedServices[i])) setServices(conDireccion);
+                    });
                 }
 
                 // Handle Technicians & MACs

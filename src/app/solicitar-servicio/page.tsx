@@ -43,6 +43,8 @@ import BuscadorRepuestos from '@/components/solicitar-servicio/BuscadorRepuestos
 import ModalCrearSala from '@/components/base-de-datos/ModalCrearSala';
 import ModalEditSala from '@/components/base-de-datos/ModalEditSala';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
+import SelectorDireccionCliente from '@/components/solicitar-servicio/SelectorDireccionCliente';
+import { DireccionCliente, guardarDireccionEnServicio } from '@/lib/direccionesCliente';
 
 interface SolicitarServicioProps {
     isInline?: boolean;
@@ -75,6 +77,10 @@ export default function SolicitarServicioPage(props: any) {
     // Selection States
     const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
     const [clienteFinalSeleccionado, setClienteFinalSeleccionado] = useState<any>(null);
+    // Dirección del cliente final donde se presta el servicio (por defecto la principal)
+    const [direccionServicio, setDireccionServicio] = useState<DireccionCliente | null>(null);
+    const [direccionPreferidaId, setDireccionPreferidaId] = useState<number | null>(null);
+    const [versionDirecciones, setVersionDirecciones] = useState(0);
     const [productosSeleccionados, setProductosSeleccionados] = useState<any[]>([]);
     const [repuestosSeleccionados, setRepuestosSeleccionados] = useState<any[]>([]);
     const [adjuntos, setAdjuntos] = useState<{ file?: File; url?: string; name?: string; isHidden: boolean }[]>([]);
@@ -130,6 +136,7 @@ export default function SolicitarServicioPage(props: any) {
                     setCanalVenta(parentData.canal_de_venta);
                     setClienteSeleccionado(parentData.Ubicaciones);
                     setClienteFinalSeleccionado(parentData.Consumidores);
+                    if (parentData.direccion_cliente_id) setDireccionPreferidaId(parentData.direccion_cliente_id);
                     if (parentData.numero_de_pedido) {
                         setNumeroPedido(parentData.numero_de_pedido);
                     }
@@ -480,7 +487,10 @@ export default function SolicitarServicioPage(props: any) {
 
             // 1. Prioridad: Cliente Final
             if (llevaClienteFinal && clienteFinalSeleccionado) {
-                if (clienteFinalSeleccionado.zona_id) {
+                if (direccionServicio?.zona_id) {
+                    // La zona sale de la dirección escogida para este servicio
+                    zoneId = direccionServicio.zona_id;
+                } else if (clienteFinalSeleccionado.zona_id) {
                     zoneId = clienteFinalSeleccionado.zona_id;
                 } else if (clienteFinalSeleccionado.ciudad_id) {
                     const { data: cityData } = await supabase.from('Ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).maybeSingle();
@@ -631,6 +641,14 @@ export default function SolicitarServicioPage(props: any) {
                 .rpc('create_service_with_details', { payload });
 
             if (servicioError) throw servicioError;
+
+            // Guardar la dirección escogida (el RPC no la conoce)
+            if (direccionServicio && finalConsumidorId && String(direccionServicio.consumidor_id) === String(finalConsumidorId)) {
+                const idCreado = typeof servicioData === 'number' || typeof servicioData === 'string'
+                    ? servicioData
+                    : (servicioData as any)?.id ?? (servicioData as any)?.servicio_id ?? null;
+                await guardarDireccionEnServicio({ id: idCreado, consecutivo }, direccionServicio.id);
+            }
 
             alert('Servicio creado correctamente');
             handleClear();
@@ -930,14 +948,14 @@ export default function SolicitarServicioPage(props: any) {
                                             <Building2 className="w-3.5 h-3.5" />
                                             <span className="text-[10px] font-black uppercase tracking-widest">Ciudad</span>
                                         </div>
-                                        <span className="text-xs font-bold text-emerald-800">{clienteFinalSeleccionado?.ciudad || '---'}</span>
+                                        <span className="text-xs font-bold text-emerald-800">{direccionServicio?.ciudad || clienteFinalSeleccionado?.ciudad || '---'}</span>
                                     </div>
                                     <div className="flex items-center justify-between group">
                                         <div className="flex items-center gap-2 text-emerald-600/60">
                                             <MapPin className="w-3.5 h-3.5" />
                                             <span className="text-[10px] font-black uppercase tracking-widest">Dirección</span>
                                         </div>
-                                        <span className="text-xs font-bold text-emerald-800 text-right max-w-[60%] line-clamp-1">{clienteFinalSeleccionado?.direccion || '---'}</span>
+                                        <span className="text-xs font-bold text-emerald-800 text-right max-w-[60%] line-clamp-1">{direccionServicio?.direccion || clienteFinalSeleccionado?.direccion || '---'}</span>
                                     </div>
                                     <div className="flex items-center justify-between group">
                                         <div className="flex items-center gap-2 text-emerald-600/60">
@@ -947,6 +965,14 @@ export default function SolicitarServicioPage(props: any) {
                                         <span className="text-xs font-bold text-emerald-800">{clienteFinalSeleccionado?.telefono || '---'}</span>
                                     </div>
                                 </div>
+
+                                <SelectorDireccionCliente
+                                    key={`dir-${clienteFinalSeleccionado?.id ?? 'ninguno'}-${versionDirecciones}`}
+                                    consumidorId={clienteFinalSeleccionado && clienteFinalSeleccionado._search_type !== 'ubicacion' ? clienteFinalSeleccionado.id : null}
+                                    value={direccionServicio}
+                                    onChange={setDireccionServicio}
+                                    preferidaId={direccionPreferidaId}
+                                />
                             </motion.div>
                         )}
                     </div>
@@ -1431,6 +1457,7 @@ export default function SolicitarServicioPage(props: any) {
                                 .eq('id', clienteFinalSeleccionado.id)
                                 .single();
                             if (data) setClienteFinalSeleccionado(data);
+                            setVersionDirecciones(v => v + 1);
                             setShowEditClienteFinal(false);
                         }}
                     />

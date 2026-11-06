@@ -19,6 +19,8 @@ import {
     Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DireccionesClienteFinal from './DireccionesClienteFinal';
+import type { DireccionCliente } from '@/lib/direccionesCliente';
 
 interface ModalCrearClienteFinalProps {
     isOpen?: boolean;
@@ -156,6 +158,18 @@ export default function ModalCrearClienteFinal({ isOpen = true, isInline = false
             String(city.ciudad || '').toLowerCase().includes(query)
         );
     }, [ciudades, citySearch]);
+
+    // Si cambia la dirección principal en la lista de direcciones, el formulario la refleja
+    // (al guardar el cliente, esa dirección se guarda como principal y no se pisa la nueva).
+    const handlePrincipalCambiada = (dir: DireccionCliente) => {
+        setFormData(prev => ({
+            ...prev,
+            direccion: dir.direccion || '',
+            descripcion_direccion: dir.descripcion_direccion || '',
+            ciudad_id: dir.ciudad_id ? dir.ciudad_id.toString() : prev.ciudad_id,
+        }));
+        setGeoInfo({ departamento: dir.departamento || '' });
+    };
 
     const handleNoEmail = () => {
         setFormData(prev => ({ ...prev, correo_electronico: 'notiene@correo.com' }));
@@ -394,7 +408,7 @@ export default function ModalCrearClienteFinal({ isOpen = true, isInline = false
 
                     {/* Dirección */}
                     <div className="space-y-2 md:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Dirección de Residencia</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{formData.id ? 'Dirección Principal' : 'Dirección de Residencia'}</label>
                         <div className="relative group">
                             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                             <input 
@@ -462,6 +476,16 @@ export default function ModalCrearClienteFinal({ isOpen = true, isInline = false
                         </div>
                     </div>
                 </div>
+
+                {/* Varias direcciones (solo al editar un cliente que ya existe) */}
+                {formData.id && (
+                    <div
+                        className="pt-2 border-t border-slate-100"
+                        onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault(); }}
+                    >
+                        <DireccionesClienteFinal consumidorId={formData.id} onPrincipalCambiada={handlePrincipalCambiada} />
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-4 pt-4 sticky bottom-0 bg-white pb-2">

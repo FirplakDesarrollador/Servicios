@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { sinCategorizar } from '@/lib/reglasRadicado';
 import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
+import SelectorDireccionCliente from '@/components/solicitar-servicio/SelectorDireccionCliente';
+import type { DireccionCliente } from '@/lib/direccionesCliente';
 import BuscadorProductos from '@/components/solicitar-servicio/BuscadorProductos';
 
 export default function ModalCrearRegistro({ 
@@ -87,6 +89,8 @@ export default function ModalCrearRegistro({
     // Clients & Products
     const [cliente, setCliente] = useState<any>(null);
     const [clienteFinal, setClienteFinal] = useState<any>(null);
+    // Dirección del cliente final a la que aplica el radicado (por defecto la principal)
+    const [direccionRadicado, setDireccionRadicado] = useState<DireccionCliente | null>(null);
     const [llevaClienteFinal, setLlevaClienteFinal] = useState(false);
     const [productosCompra, setProductosCompra] = useState<any[]>([]);
     const [productosNovedad, setProductosNovedad] = useState<any[]>([]);
@@ -199,6 +203,10 @@ export default function ModalCrearRegistro({
                 cliente_nombre: cliente ? (cliente.cliente_nombre || cliente.nombre) : null,
                 cliente_final_id: clienteFinal ? clienteFinal.id : null,
                 cliente_final_nombre: clienteFinal ? (clienteFinal.contacto || clienteFinal.nombre_contacto || clienteFinal.cedula) : null,
+                // Solo se envía si el cliente tiene direcciones (supabase/create_clientes_direcciones.sql ya ejecutado)
+                ...(clienteFinal && direccionRadicado && String(direccionRadicado.consumidor_id) === String(clienteFinal.id)
+                    ? { direccion_cliente_id: direccionRadicado.id }
+                    : {}),
                 productos_compra: formatProducts(productosCompra),
                 productos_novedad: formatProducts(productosNovedad).map(sinCategorizar),
                 comentarios: comentarios,
@@ -597,12 +605,16 @@ export default function ModalCrearRegistro({
                                                     </button>
                                                 </div>
                                             </div>
-                                            {(clienteFinal.direccion || clienteFinal.telefono) && (
+                                            {(direccionRadicado?.direccion || clienteFinal.direccion || clienteFinal.telefono) && (
                                                 <div className="p-3 bg-white flex flex-col gap-1 text-xs">
-                                                    {clienteFinal.direccion && (
+                                                    {(direccionRadicado?.direccion || clienteFinal.direccion) && (
                                                         <div className="flex items-start gap-2 text-slate-600">
                                                             <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                                                            <span className="font-medium">{clienteFinal.direccion} {clienteFinal.ciudad ? `- ${clienteFinal.ciudad}` : ''}</span>
+                                                            <span className="font-medium">
+                                                                {direccionRadicado
+                                                                    ? `${direccionRadicado.direccion || ''} ${direccionRadicado.ciudad ? `- ${direccionRadicado.ciudad}` : ''}`
+                                                                    : `${clienteFinal.direccion} ${clienteFinal.ciudad ? `- ${clienteFinal.ciudad}` : ''}`}
+                                                            </span>
                                                         </div>
                                                     )}
                                                     {clienteFinal.telefono && (
@@ -613,6 +625,14 @@ export default function ModalCrearRegistro({
                                                     )}
                                                 </div>
                                             )}
+                                            <SelectorDireccionCliente
+                                                key={`dir-${clienteFinal.id ?? 'ninguno'}`}
+                                                consumidorId={clienteFinal._search_type === 'ubicacion' ? null : clienteFinal.id}
+                                                value={direccionRadicado}
+                                                onChange={setDireccionRadicado}
+                                                preferidaId={initialData?.direccion_cliente_id ?? null}
+                                                className="p-3 bg-white border-t border-[var(--c-linea)]"
+                                            />
                                         </div>
                                     ) : (
                                         <button

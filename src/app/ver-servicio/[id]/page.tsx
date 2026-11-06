@@ -67,6 +67,7 @@ import ModalEditPedido from '@/components/ModalEditPedido';
 import ModalEditDistribuidor from '@/components/ModalEditDistribuidor';
 import ModalCerrarServicio from '@/components/servicios-abiertos/ModalCerrarServicio';
 import ModalCrearRegistro from '@/app/registro-solicitudes/components/ModalCrearRegistro';
+import { aplicarDireccionesAServicios } from '@/lib/direccionesCliente';
 
 type TabType = 'informacion' | 'observaciones' | 'agendamiento' | 'aprobaciones' | 'servicios_relacionados' | 'solicitud_repuesto';
 
@@ -547,7 +548,9 @@ export default function VerServicioPage() {
             return;
         }
 
-        setService(data);
+        // La vista trae la dirección principal; si el servicio tiene otra escogida, se muestra esa
+        const [conDireccion] = await aplicarDireccionesAServicios([data]);
+        setService(conDireccion);
         setLoading(false);
     }, [id, router]);
 
@@ -1116,7 +1119,7 @@ function InformacionTab({
                             <InfoField label="Correo Electrónico" value={service.consumidor_correo} icon={Mail} />
                             <InfoField label="Departamento" value={service.consumidor_departamento} />
                             <InfoField label="Ciudad" value={service.consumidor_ciudad} />
-                            <InfoField label="Dirección" value={service.consumidor_direccion} fullWidth />
+                            <InfoField label={service.direccion_cliente_alias ? `Dirección (${service.direccion_cliente_alias})` : 'Dirección'} value={service.consumidor_direccion} fullWidth />
                             <InfoField label="Descripción de la direccion" value={service.consumidor_descripcion_direccion} fullWidth />
                         </InfoSection>
                     )}

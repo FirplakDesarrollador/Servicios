@@ -14,6 +14,8 @@ import BuscadorClientes from '@/components/solicitar-servicio/BuscadorClientes';
 import BuscadorClienteFinal from '@/components/solicitar-servicio/BuscadorClienteFinal';
 import ModalCrearClienteFinal from '@/components/base-de-datos/ModalCrearClienteFinal';
 import ModalEditarUbicacion from '@/components/solicitar-servicio/ModalEditarUbicacion';
+import { cargarDireccionPorId, guardarDireccionEnServicio } from '@/lib/direccionesCliente';
+import SelectorDireccionCliente from '@/components/solicitar-servicio/SelectorDireccionCliente';
 
 type TabType = 'informacion' | 'comentarios' | 'clasificacion' | 'servicios';
 
@@ -130,6 +132,9 @@ export default function VerRegistroPage() {
             if (!Array.isArray(parsedNovedad)) parsedNovedad = [];
             data.productos_novedad = parsedNovedad;
 
+            // Dirección del cliente final escogida para este radicado (NULL en los anteriores)
+            data.DireccionCliente = data.direccion_cliente_id ? await cargarDireccionPorId(data.direccion_cliente_id) : null;
+
             setRegistro(data);
         } catch (error) {
             console.error('Error fetching registro:', error);
@@ -172,7 +177,7 @@ export default function VerRegistroPage() {
             let finalCoordinadorId = null;
             const ubi = registro.Ubicaciones || {};
             const cons = registro.Consumidores || {};
-            let zoneId = cons?.ciudades?.zona_id || ubi?.ciudades?.zona_id;
+            let zoneId = registro.DireccionCliente?.zona_id || cons?.ciudades?.zona_id || ubi?.ciudades?.zona_id;
             
             if (!zoneId && (registro.canal_venta === 'canal_propio_ecommerce' || registro.canal_venta === 'ecommerce')) {
                 zoneId = 985;
@@ -214,9 +219,14 @@ export default function VerRegistroPage() {
                 })
                 .select()
                 .single();
-                
+
             if (servicioError) throw servicioError;
-            
+
+            // El servicio va a la misma dirección del radicado
+            if (registro.direccion_cliente_id && registro.DireccionCliente) {
+                await guardarDireccionEnServicio({ id: servicioData?.id }, registro.direccion_cliente_id);
+            }
+
             // Subir archivos adjuntos si existen
             const uploadedDocs: string[] = [];
             if (modalArchivos.length > 0) {
@@ -2153,7 +2163,7 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                         </div>
                         <div>
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Ciudad</span>
-                            <span className="text-xs font-medium text-slate-600">{cons.ciudades?.ciudad || cons.ciudad || '---'}</span>
+                            <span className="text-xs font-medium text-slate-600">{registro.DireccionCliente?.ciudad || cons.ciudades?.ciudad || cons.ciudad || '---'}</span>
                         </div>
                         <div>
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Teléfono</span>
@@ -2161,8 +2171,27 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                         </div>
                         <div>
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Dirección</span>
-                            <span className="text-xs font-medium text-slate-600">{cons.direccion || '---'}</span>
+                            <span className="text-xs font-medium text-slate-600">
+                                {registro.DireccionCliente
+                                    ? `${registro.DireccionCliente.alias ? `${registro.DireccionCliente.alias}: ` : ''}${registro.DireccionCliente.direccion || '---'}`
+                                    : (cons.direccion || '---')}
+                            </span>
                         </div>
+                        <SelectorDireccionCliente
+                            key={`dir-${registro.cliente_final_id}-${registro.direccion_cliente_id ?? 'ninguna'}`}
+                            consumidorId={registro.cliente_final_id}
+                            value={registro.DireccionCliente || null}
+                            onChange={() => { /* solo cambia cuando la persona escoge */ }}
+                            onElegir={async (dir) => {
+                                if (String(dir.id) === String(registro.direccion_cliente_id)) return;
+                                const { error } = await supabase.from('registro_solicitudes')
+                                    .update({ direccion_cliente_id: dir.id })
+                                    .eq('id', registro.id);
+                                if (error) { alert(`No se pudo cambiar la dirección: ${error.message}`); return; }
+                                onRefresh();
+                            }}
+                            className="sm:col-span-2 lg:col-span-4"
+                        />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-6 bg-slate-50/50 rounded-xl border border-slate-100 border-dashed">
@@ -2217,7 +2246,11 @@ function InformacionTab({ registro, usuariosList, onRefresh, router }: { registr
                                 try {
                                     const { error } = await supabase.from('registro_solicitudes').update({
                                         cliente_final_id: cliente.id,
-                                        cliente_final_nombre: cliente.contacto || cliente.nombre_contacto || cliente.cedula
+                                        cliente_final_nombre: cliente.contacto || cliente.nombre_contacto || cliente.cedula,
+                                        // La dirección escogida era del cliente anterior
+                                        ...(registro.direccion_cliente_id && String(cliente.id) !== String(registro.cliente_final_id)
+                                            ? { direccion_cliente_id: null }
+                                            : {})
                                     }).eq('id', registro.id);
                                     if (error) throw error;
                                 } catch(e) {}
