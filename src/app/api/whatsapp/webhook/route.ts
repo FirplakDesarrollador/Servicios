@@ -318,6 +318,19 @@ export async function POST(request: Request) {
                 .from('whatsapp_messages')
                 .update({ status: msgStatus })
                 .eq('wam_id', wam_id);
+
+              // Motivo de la falla, aparte: si la columna aún no existe, el estado ya quedó guardado
+              const error = status.errors?.[0];
+              if (msgStatus === 'failed' && error) {
+                const { error: errMotivo } = await supabase
+                  .from('whatsapp_messages')
+                  .update({
+                    error_codigo: typeof error.code === 'number' ? error.code : null,
+                    error_detalle: error.error_data?.details || error.message || error.title || null,
+                  })
+                  .eq('wam_id', wam_id);
+                if (errMotivo) console.error('No se pudo guardar el motivo de la falla:', errMotivo.message);
+              }
             }
           }
         }

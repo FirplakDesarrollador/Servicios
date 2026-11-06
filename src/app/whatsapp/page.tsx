@@ -10,6 +10,7 @@ import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whats
 import { getNextAssignedAsesor } from '@/lib/whatsappAssignment';
 import { apodoAsesor } from '@/lib/apodoAsesor';
 import { claveDia, fechaChat, separadorDia } from '@/lib/fechaChat';
+import { motivoFallaWhatsapp } from '@/lib/motivoFallaWhatsapp';
 
 // Estilos de los botones de la barra de mensaje: iconos secundarios y botón principal (enviar / grabar)
 const composerIconBtn = 'w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-stone-400 hover:text-brand hover:bg-cream-light transition-colors';
@@ -1244,6 +1245,7 @@ export default function WhatsAppPage() {
                 const isMe = msg.sender === 'me';
                 // WhatsApp avisa por el webhook que el mensaje no se pudo entregar
                 const fallido = isMe && msg.status === 'failed';
+                const motivoFalla = fallido ? motivoFallaWhatsapp(msg.error_codigo, msg.error_detalle) : null;
                 const hasMedia = !!msg.media_url;
                 const isImage = msg.media_type === 'image' || msg.media_type === 'sticker';
                 const isAudio = msg.media_type === 'audio' || msg.media_type === 'voice' || (msg.media_type === 'document' && (msg.media_filename?.endsWith('.webm') || msg.media_mime_type?.includes('audio') || msg.media_mime_type?.includes('ogg')));
@@ -1336,10 +1338,16 @@ export default function WhatsAppPage() {
                           </p>
                         </div>
                       )}
+                      {/* Motivo de la falla, cuando WhatsApp lo informó */}
+                      {fallido && motivoFalla && (
+                        <p className="mx-3 mt-1 px-2 py-1 rounded-md bg-red-50 text-[11px] leading-snug text-red-700">
+                          {motivoFalla}
+                        </p>
+                      )}
                       {/* Message Footer / Timestamp */}
                       <div className="px-3 pt-0.5 pb-1.5 flex items-center justify-end gap-1 text-stone-400">
                         {fallido && (
-                          <span className="mr-auto flex items-center gap-1 text-[11px] font-semibold text-red-600" title="WhatsApp no pudo entregar este mensaje al cliente">
+                          <span className="mr-auto flex items-center gap-1 text-[11px] font-semibold text-red-600" title={motivoFalla || 'WhatsApp no pudo entregar este mensaje al cliente'}>
                             <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} />
                             No se entregó
                           </span>

@@ -374,6 +374,19 @@ serve(async (req) => {
             .update({ status: newStatus })
             .eq("wam_id", waMessageId);
 
+          // Motivo de la falla, aparte: si la columna aún no existe, el estado ya quedó guardado
+          const error = status.errors?.[0];
+          if (newStatus === "failed" && error) {
+            const { error: errMotivo } = await supabase
+              .from("whatsapp_messages")
+              .update({
+                error_codigo: typeof error.code === "number" ? error.code : null,
+                error_detalle: error.error_data?.details || error.message || error.title || null,
+              })
+              .eq("wam_id", waMessageId);
+            if (errMotivo) console.error("No se pudo guardar el motivo de la falla:", errMotivo.message);
+          }
+
           console.log(`📬 Status update: ${waMessageId} → ${newStatus}`);
         }
       }
