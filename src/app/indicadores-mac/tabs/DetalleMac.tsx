@@ -403,9 +403,9 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
     }, [data, dataForDiaCreacion]);
 
     const KpiCard = ({ title, value, prefix = '', suffix = '', subtitle = '' }: any) => (
-        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[70px]">
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-w-0 min-h-[70px] @container">
             <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5">{title}</h3>
-            <div className="text-lg font-bold text-brand-dark leading-tight">
+            <div className="text-[clamp(0.8rem,13cqi,1.125rem)] font-bold text-brand-dark leading-tight whitespace-nowrap truncate tabular-nums">
                 {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
             </div>
             {subtitle && <div className="mt-0.5 text-[9px] font-medium text-stone-400">{subtitle}</div>}
@@ -420,7 +420,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
                 <KpiCard title="Prom. Ingreso Día" value={promIngresoDia} suffix=" rads" subtitle="Diario" />
                 <KpiCard title="Prom. Ingreso Sem" value={promIngresoSemana} suffix=" rads" subtitle="Semanal" />
                 <KpiCard title="Cerradas" value={cerradas.length} subtitle={`${porcCierre.toFixed(1)}% de cierre`} />
-                <KpiCard title="Costo Promedio" value={costoPromedio.toLocaleString('es-CO', { maximumFractionDigits: 1 })} prefix="$" />
+                <KpiCard title="Costo Promedio" value={Math.round(costoPromedio).toLocaleString('es-CO')} prefix="$" />
                 <KpiCard title="Tiempo Prom. Cierre" value={tiempoPromedioCierre} suffix=" días" subtitle="Días hábiles" />
                 <KpiCard title="% Cumplimiento" value={porcCumplimiento} suffix="%" />
                 <KpiCard title="Backlog Operativo" value={backlog} />

@@ -130,9 +130,9 @@ export default function AgentesMac({ data, prevData, filters, onFilterToggle, da
     };
 
     const KpiCard = ({ title, value, suffix = '', prefix = '' }: any) => (
-        <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[60px]">
+        <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-w-0 min-h-[60px] @container">
             <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5" title={title}>{title}</h3>
-            <div className="text-lg font-bold text-brand-dark leading-tight">
+            <div className="text-[clamp(0.8rem,13cqi,1.125rem)] font-bold text-brand-dark leading-tight whitespace-nowrap truncate tabular-nums">
                 {prefix}{typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(1) : value}{suffix}
             </div>
         </div>
@@ -196,7 +196,7 @@ export default function AgentesMac({ data, prevData, filters, onFilterToggle, da
                 <KpiCard title="% Cierre" value={porcCierre} suffix="%" />
                 <KpiCard title="% Cumplim." value={porcCumplimiento} suffix="%" />
                 <KpiCard title="Tiempo Prom." value={tiempoPromedioCierre} suffix="d" />
-                <KpiCard title="Val. Invertido" value={valorInvertidoTotal.toLocaleString('es-CO')} prefix="$" />
+                <KpiCard title="Val. Invertido" value={Math.round(valorInvertidoTotal).toLocaleString('es-CO')} prefix="$" />
             </div>
 
             <DesempenoAgentes data={dataForAgente || data} filters={filters} onFilterToggle={onFilterToggle} />

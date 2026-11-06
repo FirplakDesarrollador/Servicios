@@ -2207,9 +2207,9 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
 
     // Helper para formatear fecha a "Mes Año" (Ej: "Ene 2026", "Feb 2026")
     const KpiCard = ({ title, value, prefix = '', suffix = '', variacion, subtitle }: { title: string, value: number | string, prefix?: string, suffix?: string, variacion?: number, subtitle?: string }) => (
-        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[70px]">
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-border flex flex-col justify-center min-w-0 min-h-[70px] @container">
             <h3 className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-0.5">{title}</h3>
-            <div className="text-lg font-bold text-brand-dark leading-tight">
+            <div className="text-[clamp(0.8rem,13cqi,1.125rem)] font-bold text-brand-dark leading-tight whitespace-nowrap truncate tabular-nums">
                 {prefix}{typeof value === 'number' ? value.toLocaleString('es-CO') : value}{suffix}
             </div>
             {subtitle && (
@@ -2253,7 +2253,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                     {/* Tarjetas KPI en fila completa */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                         <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
-                        <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
+                        <KpiCard title="Valor Invertido" value={Math.round(valorInvertido).toLocaleString('es-CO')} prefix="$" />
                         <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                         <KpiCard title="Solicitudes Cerradas" value={cerradas} />
                         <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
@@ -2279,7 +2279,7 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                     />
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
                         <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
-                        <KpiCard title="Valor Invertido" value={valorInvertido.toLocaleString('es-CO')} prefix="$" />
+                        <KpiCard title="Valor Invertido" value={Math.round(valorInvertido).toLocaleString('es-CO')} prefix="$" />
                         <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                         <KpiCard title="Solicitudes Cerradas" value={cerradas} />
                         <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
