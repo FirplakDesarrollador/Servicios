@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, ReceiptText, Boxes, ChevronRight, Loader2, Search, Warehouse, Users } from 'lucide-react';
+import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, ReceiptText, Boxes, ChevronRight, Loader2, Search, Warehouse, Users, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import type { ClassicSapMode } from '@/components/sap/ExploradorSap';
@@ -81,6 +81,21 @@ export default function ConsultasSapPage() {
     }
   };
 
+  // Nueva búsqueda: deja la pantalla abierta en blanco (se vuelve a montar) para consultar otro documento o código.
+  // En el Explorador vuelve al buscador principal.
+  const [reinicio, setReinicio] = useState(0);
+  const nuevaBusqueda = () => {
+    setClassicDocNum(undefined);
+    setOpenedFromExplorer(false);
+    if (selectedModule === 'explorador') {
+      setSelectedModule(null);
+      setExplorerQuery(null);
+      setHeroQuery('');
+    } else {
+      setReinicio((n) => n + 1);
+    }
+  };
+
   const backLabel = openedFromExplorer && selectedModule !== 'explorador'
     ? 'Volver al Explorador SAP'
     : selectedModule ? 'Volver a Consultas SAP' : 'Volver al Menú Principal';
@@ -105,6 +120,15 @@ export default function ConsultasSapPage() {
           <>
             <span className="w-px h-6 bg-border mx-1" />
             <span className="text-sm font-semibold text-brand truncate">{MODULE_TITLES[selectedModule] || ''}</span>
+            <button
+              onClick={nuevaBusqueda}
+              className="ml-auto shrink-0 inline-flex items-center gap-2 h-9 px-3 sm:px-4 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer"
+              title="Limpiar la pantalla para hacer una búsqueda nueva"
+              aria-label="Nueva búsqueda"
+            >
+              <RotateCcw className="w-4 h-4" aria-hidden />
+              <span className="hidden sm:inline">Nueva búsqueda</span>
+            </button>
           </>
         )}
       </header>
@@ -205,7 +229,7 @@ export default function ConsultasSapPage() {
           </div>
         ) : (
           /* Pantalla clásica SAP */
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="pt-6">
+          <motion.div key={reinicio} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="pt-6">
             {selectedModule === 'ldm-costos' ? (
               <LDMCostos onMinimizeChange={setIsAppMinimized} />
             ) : selectedModule === 'inventario-sap' ? (
