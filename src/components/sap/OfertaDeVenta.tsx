@@ -50,8 +50,8 @@ const mostrarTextoCompleto = (e: MouseEvent<HTMLInputElement>) => {
   campo.title = campo.scrollWidth > campo.clientWidth ? campo.value : '';
 };
 
-export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinimizeChange, initialDocNum }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice', onMinimizeChange?: (isMin: boolean) => void, initialDocNum?: string }) {
-  const [mode, setMode] = useState<'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice'>(initialMode);
+export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinimizeChange, initialDocNum }: { mode?: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice' | 'DebitNote', onMinimizeChange?: (isMin: boolean) => void, initialDocNum?: string }) {
+  const [mode, setMode] = useState<'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice' | 'DebitNote'>(initialMode);
 
   useEffect(() => {
     setMode(initialMode);
@@ -69,7 +69,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   const [docSeries, setDocSeries] = useState('');
   
   useEffect(() => {
-    setDocSeries(mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : mode === 'Invoice' ? 'NAL-FEN8' : 'Cot-Nal');
+    setDocSeries(mode === 'ProductionOrder' ? 'OF-Planta' : mode === 'Order' ? 'Ped.Nac' : mode === 'Delivery' ? 'Ent-Nal' : mode === 'Invoice' ? 'NAL-FEN8' : mode === 'DebitNote' ? 'ND' : 'Cot-Nal');
   }, [mode]);
   const [docNum, setDocNum] = useState('');
   const [docStatus, setDocStatus] = useState('');
@@ -303,7 +303,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDocNum, initialMode]);
 
-  const navigateToDocument = (targetDocNum: string, targetMode: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice') => {
+  const navigateToDocument = (targetDocNum: string, targetMode: 'Quotation' | 'ProductionOrder' | 'Order' | 'Delivery' | 'Invoice' | 'DebitNote') => {
     setIsMapaRelacionesModalOpen(false);
     setMode(targetMode);
     setDocNum(targetDocNum);
@@ -331,7 +331,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       if (!res.ok || !data.success || !data.document) {
         // Solo un 404 significa que el documento no existe; lo demás es una falla al consultar
         setStatusMessage(res.status === 404
-          ? `✖ No se encontró la Oferta u Orden de Venta Nº ${searchTarget} en SAP Business One.`
+          ? `✖ No se encontró el documento Nº ${searchTarget} en SAP Business One.`
           : `✖ No se pudo consultar SAP: ${data.error || data.message || `error ${res.status}`}`);
         setStatusType('error');
         return;
@@ -814,8 +814,8 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
     }
   };
 
-  const docTitle = mode === 'Invoice' ? 'Factura de deudores' : mode === 'ProductionOrder' ? 'Orden de fabricación' : mode === 'Order' ? 'Orden de venta' : mode === 'Delivery' ? 'Entrega' : 'Oferta de ventas';
-  const DocIcon = mode === 'Invoice' ? Receipt : mode === 'ProductionOrder' ? Factory : mode === 'Order' ? ClipboardList : mode === 'Delivery' ? Truck : FileText;
+  const docTitle = mode === 'DebitNote' ? 'Nota de débito de clientes' : mode === 'Invoice' ? 'Factura de deudores' : mode === 'ProductionOrder' ? 'Orden de fabricación' : mode === 'Order' ? 'Orden de venta' : mode === 'Delivery' ? 'Entrega' : 'Oferta de ventas';
+  const DocIcon = mode === 'Invoice' || mode === 'DebitNote' ? Receipt : mode === 'ProductionOrder' ? Factory : mode === 'Order' ? ClipboardList : mode === 'Delivery' ? Truck : FileText;
 
   if (isMinimized) {
     return (
@@ -908,7 +908,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                   <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
                 </div>
               </>
-            ) : mode === 'Invoice' ? (
+            ) : mode === 'Invoice' || mode === 'DebitNote' ? (
               <>
                 <div>
                   <label className="text-stone-500 block mb-0.5">Tiene Autorretención</label>
@@ -2297,7 +2297,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <label className="w-32 text-stone-500 text-right font-medium">
-                  {mode === 'Invoice' ? 'Empleado dpto.ventas' : 'Empleado de ventas'}
+                  {mode === 'Invoice' || mode === 'DebitNote' ? 'Empleado dpto.ventas' : 'Empleado de ventas'}
                 </label>
                 <div className="flex-1 flex items-center gap-1">
                   <input 

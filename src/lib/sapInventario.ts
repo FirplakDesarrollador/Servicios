@@ -191,34 +191,80 @@ export interface LineaMateriales {
   cantidad: number;
   almacen: string | null;
   esArticulo: boolean;
+  tipo: string;
+  unidad: string | null;
+  emision: string | null;
+  precio: number | null;
+  moneda: string | null;
+  comentario: string | null;
+  /** El componente tiene su propia lista de materiales (se puede bajar de nivel). */
+  tieneLdm: boolean;
 }
 
 export interface ListaMateriales {
   codigo: string;
   descripcion: string;
   cantidad: number;
+  tipo: string | null;
+  almacen: string | null;
   lineas: LineaMateriales[];
 }
+
+const TIPO_LDM: Record<string, string> = {
+  iProductionTree: 'Producción',
+  iSalesTree: 'Ventas',
+  iAssemblyTree: 'Montaje',
+  iTemplateTree: 'Plantilla',
+};
+const TIPO_LINEA: Record<string, string> = { pit_Item: 'Artículo', pit_Resource: 'Recurso', pit_Text: 'Texto' };
+const EMISION_LINEA: Record<string, string> = { im_Backflush: 'Notificación', im_Manual: 'Manual' };
 
 /** Lista de materiales de un artículo, un solo nivel como la ventana de SAP. Null si no tiene. */
 export async function obtenerListaMateriales(codigo: string): Promise<ListaMateriales | null> {
   const parametros = new URLSearchParams({
-    $select: 'TreeCode,ProductDescription,Quantity,ProductTreeLines',
     $filter: `TreeCode eq ${odata(codigo)}`,
   });
   const datos = await sapGet<{ value: any[] }>(`ProductTrees?${parametros}`.replace(/\+/g, '%20'), { maxPageSize: 1 });
   const arbol = datos.value[0];
   if (!arbol) return null;
-  const lineas = [...(arbol.ProductTreeLines || [])]
-    .sort((a: any, b: any) => numero(a.VisualOrder) - numero(b.VisualOrder))
-    .map((l: any): LineaMateriales => ({
-      codigo: l.ItemCode,
-      nombre: l.ItemName ?? null,
-      cantidad: numero(l.Quantity),
-      almacen: l.Warehouse ?? null,
-      esArticulo: !l.ItemType || l.ItemType === 'pit_Item',
-    }));
-  return { codigo: arbol.TreeCode, descripcion: arbol.ProductDescription || '', cantidad: numero(arbol.Quantity), lineas };
+  const crudas = [...(arbol.ProductTreeLines || [])].sort((a: any, b: any) => numero(a.VisualOrder) - numero(b.VisualOrder));
+
+  // Cuáles componentes tienen LDM propia: una consulta por cada 25 códigos
+  const codigos = [...new Set(crudas.map((l: any) => String(l.ItemCode)).filter(Boolean))];
+  const conLdm = new Set<string>();
+  for (let i = 0; i < codigos.length; i += 25) {
+    const grupo = codigos.slice(i, i + 25);
+    const p = new URLSearchParams({ $select: 'TreeCode', $filter: grupo.map((c) => `TreeCode eq ${odata(c)}`).join(' or ') });
+    try {
+      const r = await sapGet<{ value: any[] }>(`ProductTrees?${p}`.replace(/\+/g, '%20'), { maxPageSize: 25 });
+      for (const t of r.value || []) conLdm.add(String(t.TreeCode));
+    } catch {
+      // Si falla, simplemente no se ofrece bajar de nivel
+    }
+  }
+
+  const lineas = crudas.map((l: any): LineaMateriales => ({
+    codigo: l.ItemCode,
+    nombre: l.ItemName ?? null,
+    cantidad: numero(l.Quantity),
+    almacen: l.Warehouse ?? null,
+    esArticulo: !l.ItemType || l.ItemType === 'pit_Item',
+    tipo: TIPO_LINEA[l.ItemType] || 'Artículo',
+    unidad: texto(l.InventoryUOM),
+    emision: EMISION_LINEA[l.IssueMethod] || texto(l.IssueMethod),
+    precio: l.Price === undefined || l.Price === null ? null : numero(l.Price),
+    moneda: texto(l.Currency),
+    comentario: texto(l.Comment),
+    tieneLdm: conLdm.has(String(l.ItemCode)),
+  }));
+  return {
+    codigo: arbol.TreeCode,
+    descripcion: arbol.ProductDescription || '',
+    cantidad: numero(arbol.Quantity),
+    tipo: TIPO_LDM[arbol.TreeType] || texto(arbol.TreeType),
+    almacen: texto(arbol.Warehouse),
+    lineas,
+  };
 }
 
 export async function obtenerArticulo(codigo: string): Promise<ArticuloDetalle | null> {

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, Boxes, ChevronRight, Loader2, Search, Warehouse } from 'lucide-react';
+import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, ReceiptText, Boxes, ChevronRight, Loader2, Search, Warehouse, Users, ListTree } from 'lucide-react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import type { ClassicSapMode } from '@/components/sap/ExploradorSap';
@@ -16,6 +16,8 @@ const OfertaDeVenta = dynamic(() => import('@/components/sap/OfertaDeVenta'), { 
 const LDMCostos = dynamic(() => import('@/components/sap/LDMCostos'), { ssr: false, loading: cargandoModulo });
 const InventarioSap = dynamic(() => import('@/components/sap/InventarioSap'), { ssr: false, loading: cargandoModulo });
 const ExploradorSap = dynamic(() => import('@/components/sap/ExploradorSap'), { ssr: false, loading: cargandoModulo });
+const SocioNegociosSap = dynamic(() => import('@/components/sap/SocioNegociosSap'), { ssr: false, loading: cargandoModulo });
+const ListaMaterialesSap = dynamic(() => import('@/components/sap/ListaMaterialesSap'), { ssr: false, loading: cargandoModulo });
 
 const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   Quotation: 'oferta-venta',
@@ -25,14 +27,18 @@ const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   ProductionOrder: 'orden-fabricacion',
 };
 
+// En el orden de los menús de SAP: Ventas - Clientes, Socios de negocios, Inventario y Producción
 const SAP_MODULES = [
   { id: 'oferta-venta', title: 'Oferta de venta', description: 'Creación y consulta de ofertas de ventas.', icon: FileText, active: true },
   { id: 'orden-venta', title: 'Orden de venta', description: 'Seguimiento y detalle de pedidos de clientes.', icon: ClipboardList, active: true },
-  { id: 'orden-fabricacion', title: 'Orden de fabricación', description: 'Estado de las órdenes de fabricación en planta.', icon: Factory, active: true },
   { id: 'entrega-despacho', title: 'Entrega', description: 'Documentos de entrega y guías de despacho.', icon: Truck, active: true },
-  { id: 'factura-cliente', title: 'Factura de clientes', description: 'Histórico de facturación de clientes.', icon: Receipt, active: true },
+  { id: 'factura-cliente', title: 'Factura de deudores', description: 'Histórico de facturación de clientes.', icon: Receipt, active: true },
+  { id: 'nota-debito', title: 'Nota de débito de clientes', description: 'Notas débito emitidas a clientes.', icon: ReceiptText, active: true },
+  { id: 'socio-negocios', title: 'Datos maestros socio de negocios', description: 'Ficha del cliente o proveedor: contactos, direcciones y saldos.', icon: Users, active: true },
+  { id: 'inventario-sap', title: 'Datos maestros de artículo', description: 'Stock por almacén, precios y planificación.', icon: Warehouse, active: true },
+  { id: 'lista-materiales', title: 'Lista de materiales', description: 'Componentes del producto, nivel por nivel.', icon: ListTree, active: true },
+  { id: 'orden-fabricacion', title: 'Orden de fabricación', description: 'Estado de las órdenes de fabricación en planta.', icon: Factory, active: true },
   { id: 'ldm-costos', title: 'LDM Costos', description: 'Costo de producto terminado por lista de materiales.', icon: Boxes, active: true },
-  { id: 'inventario-sap', title: 'Stock e inventario', description: 'Stock por almacenes y datos maestros de artículos.', icon: Warehouse, active: true },
 ];
 
 const MODULE_TITLES: Record<string, string> = {
@@ -56,10 +62,17 @@ export default function ConsultasSapPage() {
   const [explorerQuery, setExplorerQuery] = useState<string | null>(null);
   const [classicDocNum, setClassicDocNum] = useState<string | undefined>(undefined);
   const [openedFromExplorer, setOpenedFromExplorer] = useState(false);
+  // Código con el que se abre una pantalla desde otra (p. ej. LDM Costos desde Lista de materiales)
+  const [codigoModulo, setCodigoModulo] = useState<string | undefined>(undefined);
 
   const openExplorer = (query: string) => {
     setExplorerQuery(query);
     setSelectedModule('explorador');
+  };
+
+  const abrirModulo = (id: string, codigo?: string) => {
+    setCodigoModulo(codigo);
+    setSelectedModule(id);
   };
 
   const goBack = () => {
@@ -178,7 +191,7 @@ export default function ConsultasSapPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 + idx * 0.04 }}
                     disabled={!mod.active}
-                    onClick={() => setSelectedModule(mod.id)}
+                    onClick={() => abrirModulo(mod.id)}
                     className={`group text-left flex items-center gap-4 bg-white rounded-2xl border border-border p-4 transition-all ${
                       mod.active ? 'hover:border-brand-light hover:shadow-[0_8px_24px_-14px_rgba(37,65,83,0.35)] cursor-pointer' : 'opacity-55 cursor-not-allowed'
                     }`}
@@ -203,9 +216,16 @@ export default function ConsultasSapPage() {
           /* Pantalla clásica SAP */
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="pt-6">
             {selectedModule === 'ldm-costos' ? (
-              <LDMCostos onMinimizeChange={setIsAppMinimized} />
+              <LDMCostos key={codigoModulo || ''} codigoInicial={codigoModulo} onMinimizeChange={setIsAppMinimized} />
             ) : selectedModule === 'inventario-sap' ? (
-              <InventarioSap />
+              <InventarioSap key={codigoModulo || ''} codigoInicial={codigoModulo} />
+            ) : selectedModule === 'socio-negocios' ? (
+              <SocioNegociosSap onVerDocumentos={(codigo) => openExplorer(codigo)} />
+            ) : selectedModule === 'lista-materiales' ? (
+              <ListaMaterialesSap
+                onVerCostos={(codigo) => abrirModulo('ldm-costos', codigo)}
+                onVerArticulo={(codigo) => abrirModulo('inventario-sap', codigo)}
+              />
             ) : (
               <OfertaDeVenta
                 key={`${selectedModule}-${classicDocNum || ''}`}
@@ -215,6 +235,7 @@ export default function ConsultasSapPage() {
                   selectedModule === 'orden-venta' ? 'Order' :
                   selectedModule === 'entrega-despacho' ? 'Delivery' :
                   selectedModule === 'factura-cliente' ? 'Invoice' :
+                  selectedModule === 'nota-debito' ? 'DebitNote' :
                   'Quotation'
                 }
                 onMinimizeChange={setIsAppMinimized}

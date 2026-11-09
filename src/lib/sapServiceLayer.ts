@@ -288,16 +288,29 @@ export async function fetchSapEmployeeName(empID: number | string): Promise<stri
  */
 export async function fetchSapQuotationByDocNum(
   docNumOrEntry: string,
-  preferType?: 'Order' | 'Quotation' | 'Delivery' | 'ProductionOrder' | 'Invoice'
+  preferType?: 'Order' | 'Quotation' | 'Delivery' | 'ProductionOrder' | 'Invoice' | 'DebitNote'
 ) {
   const cookie = await getSapSessionCookie();
   const target = docNumOrEntry.trim();
   const isNumeric = /^\d+$/.test(target);
 
   let docData: any = null;
-  let documentType: 'Quotation' | 'Order' | 'Delivery' | 'ProductionOrder' | 'Invoice' = preferType || 'Quotation';
+  let documentType: 'Quotation' | 'Order' | 'Delivery' | 'ProductionOrder' | 'Invoice' | 'DebitNote' = preferType || 'Quotation';
 
-  if (preferType === 'Invoice') {
+  if (preferType === 'DebitNote') {
+    // Nota de débito de clientes: en SAP B1 es una factura (OINV) con subtipo de documento nota débito
+    if (isNumeric) {
+      const ndUrl = `${SAP_BASE_URL}/Invoices?$filter=DocNum eq ${target} and DocumentSubType eq 'bod_DebitMemo'`;
+      const ndRes = await sapQueuedFetch(ndUrl, { headers: { 'Cookie': cookie } });
+      if (ndRes.ok) {
+        const ndData = await ndRes.json();
+        if (ndData.value && ndData.value.length > 0) {
+          docData = ndData.value[0];
+          documentType = 'DebitNote';
+        }
+      }
+    }
+  } else if (preferType === 'Invoice') {
     // 1. Try Invoices (OINV) first
     if (isNumeric) {
       const iUrl = `${SAP_BASE_URL}/Invoices?$filter=DocNum eq ${target}`;
@@ -560,7 +573,7 @@ export async function searchSapDocumentsList(query: string, docType: string) {
   let endpoint = 'Orders';
   if (docType === 'Quotation') endpoint = 'Quotations';
   else if (docType === 'Delivery') endpoint = 'DeliveryNotes';
-  else if (docType === 'Invoice') endpoint = 'Invoices';
+  else if (docType === 'Invoice' || docType === 'DebitNote') endpoint = 'Invoices';
   else if (docType === 'ProductionOrder') endpoint = 'ProductionOrders';
 
   // For Production Orders, the field is CustomerCode. For others, CardCode/CardName
@@ -569,6 +582,7 @@ export async function searchSapDocumentsList(query: string, docType: string) {
     filterStr = `CustomerCode eq '${query}' or startswith(ProductDescription, '${query}')`;
   } else {
     filterStr = `CardCode eq '${query}' or startswith(CardName, '${query}') or startswith(NumAtCard, '${query}')`;
+    if (docType === 'DebitNote') filterStr = `(${filterStr}) and DocumentSubType eq 'bod_DebitMemo'`;
   }
 
   // Use a select to minimize payload and optimize
