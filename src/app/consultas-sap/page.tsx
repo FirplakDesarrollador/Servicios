@@ -122,11 +122,11 @@ export default function ConsultasSapPage() {
             <span className="text-sm font-semibold text-brand truncate">{MODULE_TITLES[selectedModule] || ''}</span>
             <button
               onClick={nuevaBusqueda}
-              className="ml-auto shrink-0 inline-flex items-center gap-2 h-9 px-3 sm:px-4 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer"
+              className="group ml-auto shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-border bg-white/70 text-xs font-medium text-stone-600 hover:text-brand hover:border-brand-light hover:bg-cream-light transition-colors cursor-pointer"
               title="Limpiar la pantalla para hacer una búsqueda nueva"
               aria-label="Nueva búsqueda"
             >
-              <RotateCcw className="w-4 h-4" aria-hidden />
+              <RotateCcw className="w-3.5 h-3.5 text-brand-light group-hover:text-brand group-hover:-rotate-90 transition-transform duration-200" aria-hidden />
               <span className="hidden sm:inline">Nueva búsqueda</span>
             </button>
           </>
