@@ -5,6 +5,8 @@ import { fetchConSesion } from '@/lib/fetchConSesion';
 
 interface LDMCostosProps {
   onMinimizeChange?: (isMinimized: boolean) => void;
+  /** Código que se consulta apenas abre la pantalla (desde Lista de materiales). */
+  codigoInicial?: string;
 }
 
 interface LDMRow {
@@ -36,9 +38,9 @@ const NIVEL_STYLES: Record<number, { bg: string; text: string; weight: string; i
 const getNivelStyle = (nivel: number) =>
   NIVEL_STYLES[nivel] ?? { bg: 'bg-white', text: 'text-stone-500', weight: 'font-normal', indent: (nivel - 1) * 16 };
 
-export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
-  const [code1, setCode1] = useState('');
-  const [code2, setCode2] = useState('');
+export default function LDMCostos({ onMinimizeChange, codigoInicial }: LDMCostosProps) {
+  const [code1, setCode1] = useState(codigoInicial || '');
+  const [code2, setCode2] = useState(codigoInicial || '');
   const [data, setData] = useState<LDMRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +154,12 @@ export default function LDMCostos({ onMinimizeChange }: LDMCostosProps) {
       setIsLoading(false);
     }
   };
+
+  // Abierta desde Lista de materiales: consulta de una vez el código recibido
+  useEffect(() => {
+    if (codigoInicial) fetchCostos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Totales: toma la fila nivel 1 (producto terminado) */
   const totals = data.length > 0 && data[0].Nivel === 1 ? data[0] : null;
