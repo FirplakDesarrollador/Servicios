@@ -228,14 +228,14 @@ export function DetalleArticulo({ codigo, volver }: { codigo: string; volver?: (
 }
 
 /** Módulo Stock e inventario: Datos maestros de artículo de SAP, solo consulta. */
-export default function InventarioSap({ codigoInicial }: { codigoInicial?: string } = {}) {
+export default function InventarioSap() {
   const [descripcion, setDescripcion] = useState('');
   const [codigo, setCodigo] = useState('');
   const [consulta, setConsulta] = useState<{ descripcion: string; codigo: string } | null>(null);
   const [articulos, setArticulos] = useState<ArticuloResumen[] | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [seleccionado, setSeleccionado] = useState<string | null>(codigoInicial || null);
+  const [seleccionado, setSeleccionado] = useState<string | null>(null);
 
   useEffect(() => {
     if (!consulta) return;
