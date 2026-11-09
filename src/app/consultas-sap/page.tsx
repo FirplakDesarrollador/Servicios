@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, ReceiptText, Boxes, ChevronRight, Loader2, Search, Warehouse, Users, RotateCcw } from 'lucide-react';
+import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, ReceiptText, Boxes, ChevronRight, Loader2, Search, Warehouse, Users, RotateCcw, Tags } from 'lucide-react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import type { ClassicSapMode } from '@/components/sap/ExploradorSap';
@@ -17,6 +17,7 @@ const LDMCostos = dynamic(() => import('@/components/sap/LDMCostos'), { ssr: fal
 const InventarioSap = dynamic(() => import('@/components/sap/InventarioSap'), { ssr: false, loading: cargandoModulo });
 const ExploradorSap = dynamic(() => import('@/components/sap/ExploradorSap'), { ssr: false, loading: cargandoModulo });
 const SocioNegociosSap = dynamic(() => import('@/components/sap/SocioNegociosSap'), { ssr: false, loading: cargandoModulo });
+const CostosComercializados = dynamic(() => import('@/components/sap/CostosComercializados'), { ssr: false, loading: cargandoModulo });
 
 const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   Quotation: 'oferta-venta',
@@ -37,6 +38,7 @@ const SAP_MODULES = [
   { id: 'inventario-sap', title: 'Datos maestros de artículo', description: 'Stock por almacén, precios y planificación.', icon: Warehouse, active: true },
   { id: 'orden-fabricacion', title: 'Orden de fabricación', description: 'Estado de las órdenes de fabricación en planta.', icon: Factory, active: true },
   { id: 'ldm-costos', title: 'LDM Costos', description: 'Costo de producto terminado por lista de materiales.', icon: Boxes, active: true },
+  { id: 'costos-comercializados', title: 'Costos Comercializados', description: 'Costo promedio actual de comercializados en MP-01 y PT-01.', icon: Tags, active: true },
 ];
 
 const MODULE_TITLES: Record<string, string> = {
@@ -234,6 +236,8 @@ export default function ConsultasSapPage() {
               <LDMCostos onMinimizeChange={setIsAppMinimized} />
             ) : selectedModule === 'inventario-sap' ? (
               <InventarioSap />
+            ) : selectedModule === 'costos-comercializados' ? (
+              <CostosComercializados />
             ) : selectedModule === 'socio-negocios' ? (
               <SocioNegociosSap onVerDocumentos={(codigo) => openExplorer(codigo)} />
             ) : (
