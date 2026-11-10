@@ -25,6 +25,7 @@ const CLASSIC_MODULE_BY_MODE: Record<ClassicSapMode, string> = {
   Delivery: 'entrega-despacho',
   Invoice: 'factura-cliente',
   ProductionOrder: 'orden-fabricacion',
+  CreditNote: 'nota-credito',
 };
 
 // En el orden de los menús de SAP: Ventas - Clientes, Socios de negocios, Inventario y Producción
@@ -33,7 +34,7 @@ const SAP_MODULES = [
   { id: 'orden-venta', title: 'Orden de venta', description: 'Seguimiento y detalle de pedidos de clientes.', icon: ClipboardList, active: true },
   { id: 'entrega-despacho', title: 'Entrega', description: 'Documentos de entrega y guías de despacho.', icon: Truck, active: true },
   { id: 'factura-cliente', title: 'Factura de deudores', description: 'Histórico de facturación de clientes.', icon: Receipt, active: true },
-  { id: 'nota-debito', title: 'Nota de débito de clientes', description: 'Notas débito emitidas a clientes.', icon: ReceiptText, active: true },
+  { id: 'nota-credito', title: 'Nota de crédito de clientes', description: 'Notas crédito emitidas a clientes.', icon: ReceiptText, active: true },
   { id: 'socio-negocios', title: 'Datos maestros socio de negocios', description: 'Ficha del cliente o proveedor: contactos, direcciones y saldos.', icon: Users, active: true },
   { id: 'inventario-sap', title: 'Datos maestros de artículo', description: 'Stock por almacén, precios y planificación.', icon: Warehouse, active: true },
   { id: 'orden-fabricacion', title: 'Orden de fabricación', description: 'Estado de las órdenes de fabricación en planta.', icon: Factory, active: true },
@@ -249,7 +250,7 @@ export default function ConsultasSapPage() {
                   selectedModule === 'orden-venta' ? 'Order' :
                   selectedModule === 'entrega-despacho' ? 'Delivery' :
                   selectedModule === 'factura-cliente' ? 'Invoice' :
-                  selectedModule === 'nota-debito' ? 'DebitNote' :
+                  selectedModule === 'nota-credito' ? 'CreditNote' :
                   'Quotation'
                 }
                 onMinimizeChange={setIsAppMinimized}
