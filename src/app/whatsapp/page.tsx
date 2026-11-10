@@ -4,6 +4,7 @@ import { Fragment, useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Search, MoreVertical, Paperclip, Mic, Smile, CheckCheck, MessageSquarePlus, Trash2, UserCheck, Settings, ChevronDown, Check, Phone, Video, UserPlus, Edit2, X, Star, Reply, Mail, MailOpen, User, Speech, Square, SendHorizontal, FileText, Zap, Settings2, BookmarkPlus, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 import NewMessageModal from '@/components/whatsapp/NewMessageModal';
 import AsesoresModal from '@/components/whatsapp/AsesoresModal';
 import RespuestasRapidasModal, { type RespuestaRapida } from '@/components/whatsapp/RespuestasRapidasModal';
@@ -754,21 +755,44 @@ export default function WhatsAppPage() {
     setMessages(prev => [...prev, optimisticMsg]);
     setTimeout(scrollToBottom, 50);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('chat_id', activeChat.id);
-    formData.append('id', msgId);
-
     try {
+      // WhatsApp acepta documentos de hasta 100 MB, imágenes de 5 MB y audio/video de 16 MB
+      const limiteMb = waType === 'document' ? 100 : waType === 'image' ? 5 : 16;
+      if (file.size > limiteMb * 1024 * 1024) {
+        throw new Error(`WhatsApp no permite ${textLabel.toLowerCase()}s de más de ${limiteMb} MB (este pesa ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+      }
+
+      // El archivo sube directo a Supabase Storage: Vercel no deja pasar cuerpos de más de 4,5 MB
+      const urlRes = await fetchConSesion('/api/whatsapp/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name }),
+      });
+      const firma = await urlRes.json().catch(() => ({}));
+      if (!urlRes.ok || !firma.path) throw new Error(firma.error || 'No se pudo preparar la subida del archivo.');
+
+      const { error: subidaError } = await supabase.storage
+        .from('whatsapp-media')
+        .uploadToSignedUrl(firma.path, firma.token, file, { contentType: file.type || 'application/octet-stream' });
+      if (subidaError) throw new Error(`No se pudo subir el archivo: ${subidaError.message}`);
+
       const res = await fetch('/api/whatsapp/send-media', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: activeChat.id,
+          id: msgId,
+          storage_path: firma.path,
+          filename: file.name,
+          mime_type: file.type || 'application/octet-stream',
+        }),
       });
-      if (!res.ok) throw new Error('Error enviando archivo');
-    } catch (err) {
+      const resultado = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(resultado.error || `Error ${res.status}`);
+    } catch (err: any) {
       console.error(err);
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
-      alert('Error enviando el archivo. Intenta de nuevo.');
+      alert(`No se pudo enviar el archivo. ${err?.message || 'Intenta de nuevo.'}`);
     }
   };
 
