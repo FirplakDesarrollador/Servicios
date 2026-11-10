@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Loader2, MapPin, Search, UserRound } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, Loader2, MapPin, Search, UserRound } from 'lucide-react';
 import type { DocumentoAproximado } from '@/lib/sapBusquedaAproximada';
 import { formatDate, formatMoney } from './explorer/sapFormat';
 import { fetchConSesion } from '@/lib/fetchConSesion';
@@ -9,10 +9,11 @@ const colorCoincidencia = (v: number) =>
   v >= 90 ? 'bg-sage-soft text-brand' : v >= 70 ? 'bg-amber-50 text-amber-800' : 'bg-stone-100 text-stone-600';
 
 /**
- * Busca órdenes de venta o entregas por dirección de entrega y/o persona de contacto, aunque lo escrito
+ * Busca órdenes de venta o entregas por cliente, dirección de entrega y/o persona de contacto, aunque lo escrito
  * no sea exacto (abreviaturas, tildes, errores de digitación). Al elegir una, la abre en la pantalla.
  */
 export default function BuscadorDireccionContacto({ tipo, onAbrir }: { tipo: 'Order' | 'Delivery'; onAbrir: (docNum: string) => void }) {
+  const [cliente, setCliente] = useState('');
   const [direccion, setDireccion] = useState('');
   const [contacto, setContacto] = useState('');
   const [documentos, setDocumentos] = useState<DocumentoAproximado[] | null>(null);
@@ -25,8 +26,8 @@ export default function BuscadorDireccionContacto({ tipo, onAbrir }: { tipo: 'Or
 
   const buscar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (direccion.trim().length < 3 && contacto.trim().length < 3) {
-      setError('Escribe al menos 3 caracteres de la dirección de entrega o de la persona de contacto.');
+    if (cliente.trim().length < 3 && direccion.trim().length < 3 && contacto.trim().length < 3) {
+      setError('Escribe al menos 3 caracteres del cliente, la dirección de entrega o la persona de contacto.');
       return;
     }
     setBuscando(true);
@@ -35,7 +36,7 @@ export default function BuscadorDireccionContacto({ tipo, onAbrir }: { tipo: 'Or
     setElegido(null);
     setAbierto(true);
     try {
-      const parametros = new URLSearchParams({ tipo, direccion: direccion.trim(), contacto: contacto.trim() });
+      const parametros = new URLSearchParams({ tipo, cliente: cliente.trim(), direccion: direccion.trim(), contacto: contacto.trim() });
       const res = await fetchConSesion(`/api/sap/busqueda-aproximada?${parametros}`);
       const json = await res.json();
       if (json.success) setDocumentos(json.documentos);
@@ -54,7 +55,17 @@ export default function BuscadorDireccionContacto({ tipo, onAbrir }: { tipo: 'Or
 
   return (
     <div className="px-5 py-3 border-b border-border text-xs select-text">
-      <form onSubmit={buscar} className="grid grid-cols-1 sm:grid-cols-[minmax(0,3fr)_minmax(0,2fr)_auto] gap-2">
+      <form onSubmit={buscar} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_minmax(0,2fr)_auto] gap-2">
+        <label className="flex items-center gap-2 h-10 px-3 rounded-xl border border-border">
+          <Building2 className="w-4 h-4 text-brand-light shrink-0" aria-hidden />
+          <span className="sr-only">Cliente</span>
+          <input
+            value={cliente}
+            onChange={(e) => setCliente(e.target.value)}
+            placeholder="Cliente: nombre, código o NIT"
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-brand-dark placeholder:text-stone-500"
+          />
+        </label>
         <label className="flex items-center gap-2 h-10 px-3 rounded-xl border border-border">
           <MapPin className="w-4 h-4 text-brand-light shrink-0" aria-hidden />
           <span className="sr-only">Dirección de entrega</span>
@@ -81,7 +92,7 @@ export default function BuscadorDireccionContacto({ tipo, onAbrir }: { tipo: 'Or
         </button>
       </form>
       <p className="mt-1.5 text-[11px] text-stone-500">
-        No tiene que ser exacto: entiende abreviaturas (Calle, CL, Carrera, KR, #, Apto…), tildes y errores de digitación. Puedes llenar uno o los dos campos.
+        No tiene que ser exacto: entiende abreviaturas (Calle, CL, Carrera, KR, #, Apto…), tildes y errores de digitación. Llena uno o varios campos; con el cliente la búsqueda es más corta.
       </p>
 
       {error && <p role="alert" className="mt-2 text-red-700">{error}</p>}

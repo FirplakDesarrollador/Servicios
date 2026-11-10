@@ -1,4 +1,5 @@
-// Búsqueda aproximada de órdenes de venta y entregas por dirección de entrega y persona de contacto. Solo lectura.
+// Búsqueda aproximada de órdenes de venta y entregas por cliente, dirección de entrega y persona de contacto. Solo lectura.
+// El cliente (nombre o código/NIT) acorta la búsqueda: SAP solo trae documentos de ese cliente.
 //
 // SAP solo sabe buscar texto exacto ("contains"), así que la búsqueda va en dos pasos:
 //   1. SAP trae candidatos con las partes más seguras del texto (los números de la dirección, o las palabras
@@ -119,21 +120,49 @@ async function listar(entidad: string, filtro: string): Promise<any[]> {
   return datos.value || [];
 }
 
+interface FiltroCliente { filtro: string; porCodigo: boolean; buscado: string[] }
+
+/** Variantes de una palabra para el "contains" de SAP, que distingue mayúsculas. */
+function variantes(w: string): string[] {
+  const minus = w.toLowerCase();
+  return [...new Set([w, w.toUpperCase(), minus, minus.charAt(0).toUpperCase() + minus.slice(1)])];
+}
+
+/** Cliente por código/NIT (si trae 5 o más dígitos seguidos) o por palabras del nombre. */
+function filtroDeCliente(texto: string): FiltroCliente | null {
+  const t = texto.trim();
+  if (!t) return null;
+  const digitos = (t.match(/\d+/g) || []).sort((a, b) => b.length - a.length)[0];
+  if (digitos && digitos.length >= 5) {
+    return { filtro: `contains(CardCode,${odata(digitos)})`, porCodigo: true, buscado: [] };
+  }
+  const crudas = t.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3);
+  const buscado = palabras(t).filter((p) => p.length >= 3);
+  if (crudas.length === 0 || buscado.length === 0) return null;
+  // Las dos palabras más largas: ambas deben estar en el nombre del cliente
+  const clave = [...crudas].sort((a, b) => b.length - a.length).slice(0, 2);
+  const filtro = clave
+    .map((w) => '(' + variantes(w).map((v) => `contains(CardName,${odata(v)})`).join(' or ') + ')')
+    .join(' and ');
+  return { filtro, porCodigo: false, buscado };
+}
+
 /** Candidatos por dirección: primero con todos los números; si no hay, con cualquiera de las palabras clave. */
-async function candidatosPorDireccion(entidad: string, buscado: string[], texto: string): Promise<any[]> {
+async function candidatosPorDireccion(entidad: string, buscado: string[], texto: string, cliente: string): Promise<any[]> {
+  const y = (f: string) => (cliente ? `(${f}) and (${cliente})` : f);
   const numeros = [...new Set(buscado.filter((p) => /^\d+$/.test(p)))].slice(0, 4);
   const claves = [...new Set(buscado.filter((p) => !/^\d+$/.test(p) && p.length >= 4))].slice(0, 4);
   const crudas = [...new Set(sinTildes(texto).split(/[^a-z0-9]+/).filter((p) => p.length >= 4 && !/^\d+$/.test(p)))].slice(0, 4);
 
   if (numeros.length > 0) {
-    const todos = await listar(entidad, numeros.map((n) => `contains(Address2,${odata(n)})`).join(' and '));
+    const todos = await listar(entidad, y(numeros.map((n) => `contains(Address2,${odata(n)})`).join(' and ')));
     if (todos.length > 0) return todos;
     // Con algún número mal escrito: basta con que estén la mayoría
-    return listar(entidad, numeros.map((n) => `contains(Address2,${odata(n)})`).join(' or '));
+    return listar(entidad, y(numeros.map((n) => `contains(Address2,${odata(n)})`).join(' or ')));
   }
   const palabrasClave = [...new Set([...claves, ...crudas])];
-  if (palabrasClave.length === 0) return [];
-  return listar(entidad, palabrasClave.map((w) => `contains(Address2,${odata(w)})`).join(' or '));
+  if (palabrasClave.length === 0) return cliente ? listar(entidad, cliente) : [];
+  return listar(entidad, y(palabrasClave.map((w) => `contains(Address2,${odata(w)})`).join(' or ')));
 }
 
 interface Contacto { codigo: number; nombre: string; parecido: number }
@@ -163,12 +192,14 @@ async function contactosParecidos(texto: string): Promise<Contacto[]> {
   return [...vistos.values()].sort((a, b) => b.parecido - a.parecido).slice(0, 100);
 }
 
-export async function buscarPorDireccionYContacto(tipo: TipoBusqueda, direccion: string, contacto: string): Promise<DocumentoAproximado[]> {
+export async function buscarPorDireccionYContacto(tipo: TipoBusqueda, direccion: string, contacto: string, cliente = ''): Promise<DocumentoAproximado[]> {
   const entidad = ENTIDAD[tipo];
   const buscadoDir = palabras(direccion);
   const conDireccion = buscadoDir.length > 0;
   const conContacto = palabras(contacto).some((p) => p.length >= 3);
-  if (!conDireccion && !conContacto) return [];
+  const fCliente = filtroDeCliente(cliente);
+  if (!conDireccion && !conContacto && !fCliente) return [];
+  const yCliente = fCliente ? ` and (${fCliente.filtro})` : '';
 
   let contactos: Contacto[] = [];
   let candidatos: any[] = [];
@@ -178,10 +209,12 @@ export async function buscarPorDireccionYContacto(tipo: TipoBusqueda, direccion:
     const codigos = contactos.map((c) => c.codigo);
     for (let i = 0; i < codigos.length && candidatos.length < MAX_CANDIDATOS; i += 25) {
       const grupo = codigos.slice(i, i + 25).map((c) => `ContactPersonCode eq ${c}`).join(' or ');
-      candidatos.push(...(await listar(entidad, `(${grupo})`)));
+      candidatos.push(...(await listar(entidad, `(${grupo})${yCliente}`)));
     }
-  } else {
-    candidatos = await candidatosPorDireccion(entidad, buscadoDir, direccion);
+  } else if (conDireccion) {
+    candidatos = await candidatosPorDireccion(entidad, buscadoDir, direccion, fCliente?.filtro ?? '');
+  } else if (fCliente) {
+    candidatos = await listar(entidad, fCliente.filtro);
   }
 
   const porContacto = new Map(contactos.map((c) => [c.codigo, c]));
@@ -193,7 +226,9 @@ export async function buscarPorDireccionYContacto(tipo: TipoBusqueda, direccion:
     const c = porContacto.get(d.ContactPersonCode);
     const puntajeDir = conDireccion ? parecido(buscadoDir, d.Address2 || '') : null;
     const puntajeCon = conContacto ? c?.parecido ?? 0 : null;
-    const partes = [puntajeDir, puntajeCon].filter((v): v is number => v !== null);
+    const puntajeCli = !fCliente ? null : fCliente.porCodigo ? 1 : parecido(fCliente.buscado, d.CardName || '');
+    if (puntajeCli !== null && puntajeCli * 100 < MINIMO) continue;
+    const partes = [puntajeDir, puntajeCon, puntajeCli].filter((v): v is number => v !== null);
     const coincidencia = Math.round((partes.reduce((s, v) => s + v, 0) / partes.length) * 100);
     if (coincidencia < MINIMO || (puntajeDir !== null && puntajeDir * 100 < MINIMO)) continue;
     resultados.push({
