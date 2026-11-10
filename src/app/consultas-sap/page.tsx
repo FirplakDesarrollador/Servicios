@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchConSesion } from '@/lib/fetchConSesion';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Factory, ClipboardList, Truck, Receipt, ReceiptText, Boxes, ChevronRight, Loader2, Search, Warehouse, Users, RotateCcw, Tags } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -56,6 +57,11 @@ const SEARCH_EXAMPLES = [
 
 export default function ConsultasSapPage() {
   const router = useRouter();
+
+  // Prepara la conexión a SAP en segundo plano para que la primera búsqueda no espere el Login.
+  useEffect(() => {
+    fetchConSesion('/api/sap/preparar').catch(() => {});
+  }, []);
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [, setIsAppMinimized] = useState(false);
   // Explorador SAP: búsqueda inicial y documento abierto desde él en una pantalla clásica
