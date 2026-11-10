@@ -922,22 +922,23 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                 {/* KPIs EJECUTIVOS (DERECHA): volumen arriba, metas abajo; ocupan todo el alto de los filtros */}
                 <div className="flex-1 min-w-0 flex flex-col gap-3">
                     {/* VOLUMEN: 5 cifras en una fila; la cifra va en su propia línea para no chocar con el icono */}
-                    <div className="grid grid-cols-2 md:grid-cols-6 xl:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-6 2xl:grid-cols-5 gap-3">
                         {([
-                            { label: 'Ventas', valor: fmt$(kpis.ventasTotales), Icono: DollarSign, chip: 'bg-emerald-50 text-emerald-600', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 xl:col-span-1' },
-                            { label: 'Inversión MAC', valor: fmt$(kpis.inversionMac), Icono: Briefcase, chip: 'bg-stone-100 text-[var(--c-navy-texto)]', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 xl:col-span-1' },
-                            { label: 'Unds Vendidas', valor: fmtN(kpis.unidadesVendidas), Icono: Package, chip: 'bg-brand-soft text-brand-light', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 xl:col-span-1' },
-                            { label: 'Unds con Novedad', valor: fmtN(kpis.unidadesNovedad), Icono: AlertOctagon, chip: 'bg-red-50 text-red-500', tinta: 'text-[var(--c-tinta)]', span: 'md:col-span-3 xl:col-span-1' },
-                            { label: 'Registros Novedad', valor: fmtN(kpis.registrosNovedad), Icono: FileText, chip: 'bg-orange-50 text-orange-500', tinta: 'text-[var(--c-tinta)]', span: 'col-span-2 md:col-span-3 xl:col-span-1' },
+                            { label: 'Ventas', valor: fmt$(kpis.ventasTotales), Icono: DollarSign, chip: 'bg-emerald-50 text-emerald-600', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 2xl:col-span-1' },
+                            { label: 'Inversión MAC', valor: fmt$(kpis.inversionMac), Icono: Briefcase, chip: 'bg-stone-100 text-[var(--c-navy-texto)]', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 2xl:col-span-1' },
+                            { label: 'Unds Vendidas', valor: fmtN(kpis.unidadesVendidas), Icono: Package, chip: 'bg-brand-soft text-brand-light', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 2xl:col-span-1' },
+                            { label: 'Unds con Novedad', valor: fmtN(kpis.unidadesNovedad), Icono: AlertOctagon, chip: 'bg-red-50 text-red-500', tinta: 'text-[var(--c-tinta)]', span: 'md:col-span-3 2xl:col-span-1' },
+                            { label: 'Registros Novedad', valor: fmtN(kpis.registrosNovedad), Icono: FileText, chip: 'bg-orange-50 text-orange-500', tinta: 'text-[var(--c-tinta)]', span: 'col-span-2 md:col-span-3 2xl:col-span-1' },
                         ]).map(({ label, valor, Icono, chip, tinta, span }) => (
-                            <div key={label} className={`bg-white rounded-xl shadow-sm border border-border px-4 py-3 flex flex-col gap-2 min-w-0 ${span}`}>
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="text-[10px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider leading-tight">{label}</span>
+                            <div key={label} className={`@container bg-white rounded-xl shadow-sm border border-border px-4 py-3 flex flex-col justify-between gap-2 min-w-0 ${span}`}>
+                                <div className="flex items-start justify-between gap-2 min-w-0">
+                                    <span className="min-w-0 text-[10px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider leading-tight line-clamp-2">{label}</span>
                                     <span className={`p-1.5 rounded-lg shrink-0 ${chip}`}>
                                         <Icono className="w-3.5 h-3.5" />
                                     </span>
                                 </div>
-                                <span className={`text-lg font-bold leading-none tabular-nums whitespace-nowrap truncate ${tinta}`} title={valor}>{valor}</span>
+                                {/* El tamaño sigue el ancho de la tarjeta: la cifra completa siempre cabe */}
+                                <span className={`block text-[clamp(0.8rem,10cqi,1.25rem)] font-bold leading-none tabular-nums whitespace-nowrap overflow-hidden ${tinta}`} title={valor}>{valor}</span>
                             </div>
                         ))}
                     </div>
@@ -952,19 +953,19 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                             const desv = pct - meta;
                             const ok = pct <= meta;
                             return (
-                                <div key={label} className="bg-white px-5 py-4 rounded-xl shadow-sm border border-[var(--c-navy-texto)] flex flex-col justify-between gap-4 h-full">
-                                    <div className="flex flex-col gap-2">
-                                        <span className="text-[10px] font-bold text-[var(--c-navy-texto)] uppercase tracking-wider">{label}</span>
-                                        <span className="text-3xl font-bold leading-none tabular-nums text-[var(--c-tinta)]">{pct.toFixed(2)}%</span>
+                                <div key={label} className="@container min-w-0 bg-white px-5 py-4 rounded-xl shadow-sm border border-[var(--c-navy-texto)] flex flex-col justify-between gap-4 h-full">
+                                    <div className="flex flex-col gap-2 min-w-0">
+                                        <span className="text-[10px] font-bold text-[var(--c-navy-texto)] uppercase tracking-wider leading-tight">{label}</span>
+                                        <span className="text-[clamp(1.25rem,16cqi,1.875rem)] font-bold leading-none tabular-nums whitespace-nowrap text-[var(--c-tinta)]">{pct.toFixed(2)}%</span>
                                     </div>
                                     <div className="flex flex-col gap-1.5 text-[11px]">
-                                        <div className="flex justify-between text-stone-500 font-medium">
+                                        <div className="flex justify-between gap-2 text-stone-500 font-medium">
                                             <span>Meta</span>
-                                            <span className="tabular-nums">≤ {meta.toFixed(2)}%</span>
+                                            <span className="tabular-nums whitespace-nowrap">≤ {meta.toFixed(2)}%</span>
                                         </div>
-                                        <div className="flex justify-between text-stone-500 font-medium">
+                                        <div className="flex justify-between gap-2 text-stone-500 font-medium">
                                             <span>Desviación</span>
-                                            <span className="tabular-nums">{desv > 0 ? '+' : ''}{desv.toFixed(2)} pp</span>
+                                            <span className="tabular-nums whitespace-nowrap">{desv > 0 ? '+' : ''}{desv.toFixed(2)} pp</span>
                                         </div>
                                         <div className={`mt-1 py-1.5 px-2 rounded-md font-bold text-center ${ok ? 'bg-[var(--c-crema-sup)] text-[var(--c-navy-texto)]' : 'bg-red-50 text-red-700'}`}>
                                             {ok ? 'Dentro de meta' : 'Sobre meta'}
