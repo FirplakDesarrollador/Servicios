@@ -106,7 +106,21 @@ function parecido(buscado: string[], texto: string): number {
     if (p.length >= 3 && enTexto.some((t) => t.startsWith(p) || p.startsWith(t) && t.length >= 3)) { puntos += w * 0.8; continue; }
     if (p.length >= 4 && enTexto.some((t) => t.length >= 4 && distancia(p, t) <= (p.length >= 7 ? 2 : 1))) puntos += w * 0.7;
   }
-  return peso === 0 ? 0 : puntos / peso;
+  if (peso === 0) return 0;
+  let puntaje = puntos / peso;
+  // Los mismos números en otro orden son otra dirección (CL 10 # 3A ≠ CL 3A # 10): pierden puntos
+  const numeros = buscado.filter((p) => /^\d+$/.test(p));
+  if (numeros.length >= 2) {
+    let desde = 0;
+    let enOrden = true;
+    for (const n of numeros) {
+      const i = enTexto.indexOf(n, desde);
+      if (i === -1) { enOrden = enTexto.includes(n) ? false : enOrden; continue; }
+      desde = i + 1;
+    }
+    if (!enOrden) puntaje *= 0.85;
+  }
+  return puntaje;
 }
 
 function estado(d: any): DocumentoAproximado['estado'] {
