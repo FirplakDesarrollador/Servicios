@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { exigirSesion } from '@/lib/sesionApi';
+import { camposUsuarioDeDocumento, type CampoUsuario } from '@/lib/sapCamposUsuario';
 import { createSapQuotation, fetchSapQuotationByDocNum, searchSapDocumentsList } from '@/lib/sapServiceLayer';
 
 export async function GET(request: Request) {
@@ -26,7 +27,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'Documento no encontrado en SAP B1' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, document: docResult });
+    // Campos de usuario con la definición real de SAP; si fallan, el documento se muestra igual
+    let camposUsuario: CampoUsuario[] | null = null;
+    try {
+      camposUsuario = await camposUsuarioDeDocumento(docResult.documentType, docResult.data);
+    } catch (e) {
+      console.error('No se pudieron leer los campos de usuario de SAP:', e);
+    }
+
+    return NextResponse.json({ success: true, document: { ...docResult, camposUsuario } });
   } catch (error: any) {
     console.error('Error fetching SAP quotation:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
