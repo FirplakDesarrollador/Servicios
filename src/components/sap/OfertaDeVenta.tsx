@@ -13,6 +13,7 @@ import { SAP_DOC_TYPES, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
 import MapaRelaciones from './explorer/MapaRelaciones';
 import AnexosSap from './explorer/AnexosSap';
 import BuscadorOrdenesFabricacion from './BuscadorOrdenesFabricacion';
+import BuscadorDireccionContacto from './BuscadorDireccionContacto';
 import dynamic from 'next/dynamic';
 import { FlechaEnlace } from './explorer/FlechaEnlace';
 import type { VistaEnlace } from './EnlacesSap';
@@ -1365,6 +1366,10 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
 
           {mode === 'ProductionOrder' && (
             <BuscadorOrdenesFabricacion onAbrir={(numero) => { setDocNum(numero); handleSearchSapDocument(numero); }} />
+          )}
+
+          {(mode === 'Order' || mode === 'Delivery') && (
+            <BuscadorDireccionContacto key={mode} tipo={mode} onAbrir={(numero) => { setDocNum(numero); handleSearchSapDocument(numero); }} />
           )}
 
           {/* Form Header Section */}
