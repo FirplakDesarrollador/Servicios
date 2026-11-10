@@ -129,6 +129,8 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   const [pickRemarks, setPickRemarks] = useState('');
   const [numLote, setNumLote] = useState('');
   const [camposUsuario, setCamposUsuario] = useState<CampoUsuario[] | null>(null);
+  const [filtroCampos, setFiltroCampos] = useState('');
+  const [verCamposVacios, setVerCamposVacios] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [poCompletedQty, setPoCompletedQty] = useState('');
   const [poRejectedQty, setPoRejectedQty] = useState('');
@@ -864,7 +866,29 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
             ) : camposUsuario.length === 0 ? (
               <p className="text-xs text-stone-400">Este documento no tiene campos de usuario en SAP.</p>
             ) : (
-              camposUsuario.map((c) => (
+              <>
+                <div className="sticky -top-4 -mx-4 -mt-4 px-4 pt-4 pb-2 bg-white z-10 space-y-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <input
+                      value={filtroCampos}
+                      onChange={(e) => setFiltroCampos(e.target.value)}
+                      placeholder="Buscar campo"
+                      className="w-full bg-white border border-border rounded-md pl-7 pr-2 py-1 text-xs outline-none focus:border-brand-light"
+                    />
+                  </div>
+                  <label className="flex items-center gap-1.5 text-stone-500 cursor-pointer select-none">
+                    <input type="checkbox" checked={verCamposVacios} onChange={(e) => setVerCamposVacios(e.target.checked)} className="accent-brand" />
+                    Ver también los vacíos ({camposUsuario.length})
+                  </label>
+                </div>
+                {camposUsuario
+                  .filter((c) => verCamposVacios || (c.valor && !(c.tipo === 'numero' && /^0([.,]0+)?$/.test(c.valor))))
+                  .filter((c) => {
+                    const q = filtroCampos.trim().toLowerCase();
+                    return !q || c.etiqueta.toLowerCase().includes(q) || c.nombre.toLowerCase().includes(q) || c.valor.toLowerCase().includes(q);
+                  })
+                  .map((c) => (
                 <div key={c.nombre} title={c.nombre}>
                   <p className="text-stone-500 mb-0.5">{c.etiqueta}</p>
                   <div
@@ -875,7 +899,8 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
                     {c.valor || '—'}
                   </div>
                 </div>
-              ))
+              ))}
+              </>
             )}
           </div>
         </div>
