@@ -105,7 +105,8 @@ export interface SapCustomer360 {
 export interface SapRelationshipMap {
   rootKey: string;
   nodes: SapDocSummary[];
-  edges: Array<{ from: string; to: string }>;
+  /** referencia: vínculo por la pestaña "Documentos referenciados" de SAP (línea punteada), no por copiar a. */
+  edges: Array<{ from: string; to: string; referencia?: boolean }>;
   truncated: boolean;
 }
 

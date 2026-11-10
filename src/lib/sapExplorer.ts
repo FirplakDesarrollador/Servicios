@@ -446,6 +446,68 @@ async function findTargetDocs(node: SapDocSummary): Promise<string[]> {
   return (await Promise.all(lookups)).flat();
 }
 
+/** Tipo de documento de una referencia: SAP lo da como número de objeto o como texto (p. ej. "rot_SalesInvoice"). */
+function tipoReferencia(v: unknown): SapDocType | null {
+  const n = typeof v === 'number' ? v : /^\d+$/.test(String(v ?? '')) ? Number(v) : null;
+  if (n !== null) return TYPE_BY_OBJTYPE.get(n) ?? null;
+  const s = String(v ?? '').toLowerCase();
+  if (!s || s.includes('purchase')) return null;
+  if (s.includes('credit')) return 'CreditNote';
+  if (s.includes('return')) return 'Return';
+  if (s.includes('downpayment')) return 'DownPayment';
+  if (s.includes('delivery')) return 'Delivery';
+  if (s.includes('invoice')) return 'Invoice';
+  if (s.includes('order')) return 'Order';
+  if (s.includes('quotation')) return 'Quotation';
+  return null;
+}
+
+/** Documentos que este documento cita en su pestaña "Documentos referenciados" (p. ej. la NC que referencia la factura). */
+async function findReferencedDocs(node: SapDocSummary): Promise<string[]> {
+  if (node.type === 'ProductionOrder') return [];
+  try {
+    const doc = await sapGet<{ DocumentReferences?: any[] }>(`${SAP_DOC_TYPES[node.type].entity}(${node.docEntry})?$select=DocumentReferences`);
+    const keys = new Set<string>();
+    for (const r of doc.DocumentReferences || []) {
+      const tipo = tipoReferencia(r.RefObjType);
+      if (tipo && typeof r.RefDocEntr === 'number' && !(tipo === node.type && r.RefDocEntr === node.docEntry)) {
+        keys.add(docKey(tipo, r.RefDocEntr));
+      }
+    }
+    return [...keys];
+  } catch {
+    // Versiones de SAP sin esta pestaña en el Service Layer: el mapa sigue sin referencias
+    return [];
+  }
+}
+
+/** Notas crédito y facturas que citan a esta factura o entrega en sus documentos referenciados. */
+async function findReferencingDocs(node: SapDocSummary): Promise<string[]> {
+  if (node.type !== 'Invoice' && node.type !== 'Delivery') return [];
+  const lookups = (['CreditNote', 'Invoice'] as SapDocType[]).map(async (fuente) => {
+    const entity = SAP_DOC_TYPES[fuente].entity;
+    const path =
+      `$crossjoin(${entity},${entity}/DocumentReferences)` +
+      `?$expand=${entity}($select=DocEntry),${entity}/DocumentReferences($select=RefDocEntr,RefObjType)` +
+      `&$filter=${entity}/DocEntry eq ${entity}/DocumentReferences/DocEntry and ${entity}/DocumentReferences/RefDocEntr eq ${node.docEntry}`;
+    try {
+      const data = await sapGet<{ value: any[] }>(path.replace(/ /g, '%20'), { maxPageSize: 200 });
+      const keys = new Set<string>();
+      for (const row of data.value) {
+        const ref = row[`${entity}/DocumentReferences`];
+        const doc = row[entity] ? Object.values(row[entity])[0] : null;
+        if (typeof doc !== 'number' || tipoReferencia(ref?.RefObjType) !== node.type) continue;
+        if (fuente === node.type && doc === node.docEntry) continue;
+        keys.add(docKey(fuente, doc));
+      }
+      return [...keys];
+    } catch {
+      return [] as string[];
+    }
+  });
+  return (await Promise.all(lookups)).flat();
+}
+
 /**
  * Recorre en ambos sentidos todos los documentos vinculados (como el mapa de relaciones de SAP B1):
  * oferta → pedido → OF / anticipo → entrega → factura / devolución → nota crédito.
@@ -456,19 +518,25 @@ export async function buildRelationshipMap(type: SapDocType, docEntry: number): 
 
   const nodes = new Map<string, SapDocSummary>([[root.key, root]]);
   const edges = new Set<string>();
+  const refEdges = new Set<string>();
   let frontier: SapDocSummary[] = [root];
   let truncated = false;
 
   for (let depth = 0; depth < MAX_MAP_DEPTH && frontier.length > 0; depth++) {
     const found = await Promise.all(
       frontier.map(async (node) => {
-        const [bases, targets] = await Promise.all([findBaseDocs(node), findTargetDocs(node)]);
-        return { node, bases, targets };
+        const [bases, targets, citados, citantes] = await Promise.all([
+          findBaseDocs(node),
+          findTargetDocs(node),
+          findReferencedDocs(node),
+          findReferencingDocs(node),
+        ]);
+        return { node, bases, targets, citados, citantes };
       })
     );
 
     const newKeys = new Set<string>();
-    for (const { node, bases, targets } of found) {
+    for (const { node, bases, targets, citados, citantes } of found) {
       for (const b of bases) {
         edges.add(`${b}>${node.key}`);
         if (!nodes.has(b)) newKeys.add(b);
@@ -476,6 +544,15 @@ export async function buildRelationshipMap(type: SapDocType, docEntry: number): 
       for (const t of targets) {
         edges.add(`${node.key}>${t}`);
         if (!nodes.has(t)) newKeys.add(t);
+      }
+      // Documentos referenciados: la flecha va del documento citado al que lo cita (factura ⇢ NC), como en SAP
+      for (const c of citados) {
+        refEdges.add(`${c}>${node.key}`);
+        if (!nodes.has(c)) newKeys.add(c);
+      }
+      for (const c of citantes) {
+        refEdges.add(`${node.key}>${c}`);
+        if (!nodes.has(c)) newKeys.add(c);
       }
     }
 
@@ -498,12 +575,17 @@ export async function buildRelationshipMap(type: SapDocType, docEntry: number): 
   return {
     rootKey: root.key,
     nodes: [...nodes.values()],
-    edges: [...edges]
-      .map((e) => {
+    edges: [
+      ...[...edges].map((e) => {
         const [from, to] = e.split('>');
         return { from, to };
-      })
-      .filter((e) => nodes.has(e.from) && nodes.has(e.to)),
+      }),
+      // Una referencia que ya es vínculo de copia no se repite
+      ...[...refEdges].filter((e) => !edges.has(e)).map((e) => {
+        const [from, to] = e.split('>');
+        return { from, to, referencia: true };
+      }),
+    ].filter((e) => nodes.has(e.from) && nodes.has(e.to)),
     truncated,
   };
 }

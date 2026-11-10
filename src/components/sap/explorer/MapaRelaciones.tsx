@@ -119,10 +119,10 @@ export default function MapaRelaciones({
       const x2 = to.x;
       const y2 = to.y + to.h / 2;
       const dx = Math.max(24, (x2 - x1) / 2);
-      return [{ id, d: `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2 - 6} ${y2}` }];
+      return [{ id, referencia: !!e.referencia, d: `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2 - 6} ${y2}` }];
     });
 
-    return { boxes, lines, width: Math.max(CARD_W, columns.length * (CARD_W + COL_GAP) - COL_GAP), height };
+    return { boxes, lines, conReferencias: lines.some((l) => l.referencia), width: Math.max(CARD_W, columns.length * (CARD_W + COL_GAP) - COL_GAP), height };
   }, [map, expanded]);
 
   return (
@@ -133,10 +133,17 @@ export default function MapaRelaciones({
             <marker id="mapa-flecha" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--serie-oliva)" />
             </marker>
+            <marker id="mapa-flecha-ref" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-red-500, #ef4444)" />
+            </marker>
           </defs>
-          {layout.lines.map((l) => (
-            <path key={l.id} d={l.d} fill="none" stroke="var(--serie-oliva)" strokeOpacity={0.7} strokeWidth={1.5} markerEnd="url(#mapa-flecha)" />
-          ))}
+          {layout.lines.map((l) =>
+            l.referencia ? (
+              <path key={l.id} d={l.d} fill="none" stroke="var(--color-red-500, #ef4444)" strokeOpacity={0.8} strokeWidth={1.5} strokeDasharray="3 4" markerEnd="url(#mapa-flecha-ref)" />
+            ) : (
+              <path key={l.id} d={l.d} fill="none" stroke="var(--serie-oliva)" strokeOpacity={0.7} strokeWidth={1.5} markerEnd="url(#mapa-flecha)" />
+            )
+          )}
         </svg>
 
         {layout.boxes.map((b) => {
@@ -190,6 +197,12 @@ export default function MapaRelaciones({
           );
         })}
       </div>
+      {layout.conReferencias && (
+        <p className="mt-4 flex items-center justify-center gap-2 text-xs text-ink-muted">
+          <svg width="28" height="6" aria-hidden><line x1="0" y1="3" x2="28" y2="3" stroke="var(--color-red-500, #ef4444)" strokeWidth="1.5" strokeDasharray="3 4" /></svg>
+          Documento referenciado (pestaña &quot;Documentos referenciados&quot; de SAP)
+        </p>
+      )}
       {map.truncated && (
         <p className="mt-4 text-center text-xs text-ink-muted">
           El mapa tiene muchos documentos vinculados; se muestran los primeros {map.nodes.length}.
