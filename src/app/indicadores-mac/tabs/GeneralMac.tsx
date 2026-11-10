@@ -2251,15 +2251,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         </div>
                     </div>
                     {/* Tarjetas KPI en fila completa */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                         <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
                         <KpiCard title="Valor Invertido" value={Math.round(valorInvertido).toLocaleString('es-CO')} prefix="$" />
                         <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                         <KpiCard title="Solicitudes Cerradas" value={cerradas} />
                         <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
-                        <KpiCard title="Cumplimiento SLA" value={servicio.cumplimiento.toFixed(1)} suffix="%" subtitle={`${servicio.fueraSla} casos superaron ${SLA_DIAS_HABILES} días hábiles`} />
-                        <KpiCard title="Tiempo Real de Solución" value={servicio.tiempo === null ? '—' : servicio.tiempo.toFixed(1)} suffix={servicio.tiempo === null ? '' : ' días'} subtitle={servicio.mediana === null ? undefined : `Mediana ${servicio.mediana.toFixed(1)} · días hábiles`} />
-                        <KpiCard title="Abiertos Fuera de SLA" value={servicio.abiertosFueraSla} subtitle={`de ${abiertas} abiertos`} />
                         <KpiCard title="Problemas Repetidos" value={(servicio.repetidos.tasa * 100).toFixed(1)} suffix="%" subtitle={`${servicio.repetidos.clientes} clientes · ≤${VENTANA_REPETIDOS_DIAS} días`} />
                     </div>
                 </div>
@@ -2277,15 +2274,12 @@ export default function GeneralMac({ data, dataForFechaCompra, dataForFechaFabri
                         filters={filters}
                         onFilterToggle={onFilterToggle}
                     />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
                         <KpiCard title="Total Solicitudes" value={totalNovedades} variacion={variacionNovedades} />
                         <KpiCard title="Valor Invertido" value={Math.round(valorInvertido).toLocaleString('es-CO')} prefix="$" />
                         <KpiCard title="Solicitudes Abiertas" value={abiertas} />
                         <KpiCard title="Solicitudes Cerradas" value={cerradas} />
                         <KpiCard title="Promedio Mensual" value={promedioIngresoMensual} suffix=" / mes" subtitle={`Basado en ${registrosPorMes.length} ${registrosPorMes.length === 1 ? 'mes' : 'meses'}`} />
-                        <KpiCard title="Cumplimiento SLA" value={servicio.cumplimiento.toFixed(1)} suffix="%" subtitle={`${servicio.fueraSla} casos superaron ${SLA_DIAS_HABILES} días hábiles`} />
-                        <KpiCard title="Tiempo Real de Solución" value={servicio.tiempo === null ? '—' : servicio.tiempo.toFixed(1)} suffix={servicio.tiempo === null ? '' : ' días'} subtitle={servicio.mediana === null ? undefined : `Mediana ${servicio.mediana.toFixed(1)} · días hábiles`} />
-                        <KpiCard title="Abiertos Fuera de SLA" value={servicio.abiertosFueraSla} subtitle={`de ${abiertas} abiertos`} />
                         <KpiCard title="Problemas Repetidos" value={(servicio.repetidos.tasa * 100).toFixed(1)} suffix="%" subtitle={`${servicio.repetidos.clientes} clientes · ≤${VENTANA_REPETIDOS_DIAS} días`} />
                     </div>
                 </div>
