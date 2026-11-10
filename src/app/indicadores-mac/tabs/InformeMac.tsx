@@ -919,142 +919,61 @@ La inversión total representó el **${fmtPct(kpis.pctInversion)}** de las venta
                     </div>
                 )}
                 
-                {/* KPIs EJECUTIVOS (DERECHA) */}
-                <div className="flex-1 min-w-0">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                        
-                        {/* BLOQUE DE MÉTRICAS PEQUEÑAS (Izquierda) */}
-                        <div className="lg:col-span-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {/* VENTAS */}
-                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-border flex items-center justify-between gap-4">
-                                <div className="flex flex-col justify-center">
-                                    <span className="text-[9px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider mb-0.5">Ventas</span>
-                                    <span className="text-[17px] font-bold text-[var(--c-navy-texto)] leading-none">{fmt$(kpis.ventasTotales)}</span>
+                {/* KPIs EJECUTIVOS (DERECHA): volumen arriba, metas abajo; ocupan todo el alto de los filtros */}
+                <div className="flex-1 min-w-0 flex flex-col gap-3">
+                    {/* VOLUMEN: 5 cifras en una fila; la cifra va en su propia línea para no chocar con el icono */}
+                    <div className="grid grid-cols-2 md:grid-cols-6 xl:grid-cols-5 gap-3">
+                        {([
+                            { label: 'Ventas', valor: fmt$(kpis.ventasTotales), Icono: DollarSign, chip: 'bg-emerald-50 text-emerald-600', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 xl:col-span-1' },
+                            { label: 'Inversión MAC', valor: fmt$(kpis.inversionMac), Icono: Briefcase, chip: 'bg-stone-100 text-[var(--c-navy-texto)]', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 xl:col-span-1' },
+                            { label: 'Unds Vendidas', valor: fmtN(kpis.unidadesVendidas), Icono: Package, chip: 'bg-brand-soft text-brand-light', tinta: 'text-[var(--c-navy-texto)]', span: 'md:col-span-2 xl:col-span-1' },
+                            { label: 'Unds con Novedad', valor: fmtN(kpis.unidadesNovedad), Icono: AlertOctagon, chip: 'bg-red-50 text-red-500', tinta: 'text-[var(--c-tinta)]', span: 'md:col-span-3 xl:col-span-1' },
+                            { label: 'Registros Novedad', valor: fmtN(kpis.registrosNovedad), Icono: FileText, chip: 'bg-orange-50 text-orange-500', tinta: 'text-[var(--c-tinta)]', span: 'col-span-2 md:col-span-3 xl:col-span-1' },
+                        ]).map(({ label, valor, Icono, chip, tinta, span }) => (
+                            <div key={label} className={`bg-white rounded-xl shadow-sm border border-border px-4 py-3 flex flex-col gap-2 min-w-0 ${span}`}>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-[10px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider leading-tight">{label}</span>
+                                    <span className={`p-1.5 rounded-lg shrink-0 ${chip}`}>
+                                        <Icono className="w-3.5 h-3.5" />
+                                    </span>
                                 </div>
-                                <div className="p-1.5 bg-emerald-50 rounded-lg shrink-0">
-                                    <DollarSign className="w-4 h-4 text-emerald-600" />
-                                </div>
+                                <span className={`text-lg font-bold leading-none tabular-nums whitespace-nowrap truncate ${tinta}`} title={valor}>{valor}</span>
                             </div>
-                            
-                            {/* INVERSIÓN MAC */}
-                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-border flex items-center justify-between gap-4">
-                                <div className="flex flex-col justify-center">
-                                    <span className="text-[9px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider mb-0.5">Inversión MAC</span>
-                                    <span className="text-[17px] font-bold text-[var(--c-navy-texto)] leading-none">{fmt$(kpis.inversionMac)}</span>
-                                </div>
-                                <div className="p-1.5 bg-stone-100 rounded-lg shrink-0">
-                                    <Briefcase className="w-4 h-4 text-[var(--c-navy-texto)]" />
-                                </div>
-                            </div>
-
-                            {/* UNIDADES VENDIDAS */}
-                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-border flex items-center justify-between gap-4">
-                                <div className="flex flex-col justify-center">
-                                    <span className="text-[9px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider mb-0.5">Unds Vendidas</span>
-                                    <span className="text-[17px] font-bold text-[var(--c-navy-texto)] leading-none">{fmtN(kpis.unidadesVendidas)}</span>
-                                </div>
-                                <div className="p-1.5 bg-brand-soft rounded-lg shrink-0">
-                                    <Package className="w-4 h-4 text-brand-light" />
-                                </div>
-                            </div>
-
-                            {/* UNIDADES CON NOVEDAD */}
-                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-border flex items-center justify-between gap-4">
-                                <div className="flex flex-col justify-center">
-                                    <span className="text-[9px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider mb-0.5">Unds con Novedad</span>
-                                    <span className="text-[17px] font-bold text-[var(--c-tinta)] leading-none">{fmtN(kpis.unidadesNovedad)}</span>
-                                </div>
-                                <div className="p-1.5 bg-red-50 rounded-lg shrink-0">
-                                    <AlertOctagon className="w-4 h-4 text-red-500" />
-                                </div>
-                            </div>
-
-                            {/* REGISTROS DE NOVEDAD */}
-                            <div className="bg-white py-2 px-3.5 rounded-xl shadow-sm border border-border flex items-center justify-between gap-4">
-                                <div className="flex flex-col justify-center">
-                                    <span className="text-[9px] font-bold text-[var(--c-oliva-texto)] uppercase tracking-wider mb-0.5">Registros Novedad</span>
-                                    <span className="text-[17px] font-bold text-[var(--c-tinta)] leading-none">{fmtN(kpis.registrosNovedad)}</span>
-                                </div>
-                                <div className="p-1.5 bg-orange-50 rounded-lg shrink-0">
-                                    <FileText className="w-4 h-4 text-orange-500" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* BLOQUE DE PORCENTAJES (Derecha) */}
-                        <div className="lg:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {/* % PRODUCTO CON NOVEDAD */}
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-[var(--c-navy-texto)] flex flex-col justify-between h-full">
-                                <div>
-                                    <span className="text-[9px] font-bold text-[var(--c-navy-texto)] uppercase tracking-wider mb-1">% Producto con Novedad</span>
-                                    <div className="flex items-baseline mb-2">
-                                        <span className="text-xl font-bold text-[var(--c-tinta)]">{kpis.pctNovedad.toFixed(2)}%</span>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-1 text-[10px]">
-                                    <div className="flex justify-between text-stone-500 font-medium">
-                                        <span>Meta</span>
-                                        <span>≤ {META_CALIDAD.toFixed(2)}%</span>
-                                    </div>
-                                    <div className="flex justify-between text-stone-500 font-medium">
-                                        <span>Desviación</span>
-                                        <span>{(kpis.pctNovedad - META_CALIDAD) > 0 ? '+' : ''}{(kpis.pctNovedad - META_CALIDAD).toFixed(2)} pp</span>
-                                    </div>
-                                    <div className={`mt-1 py-1 px-2 rounded-md font-bold text-center ${kpis.pctNovedad <= META_CALIDAD ? 'bg-[var(--c-crema-sup)] text-[var(--c-navy-texto)]' : 'bg-red-50 text-red-700'}`}>
-                                        {kpis.pctNovedad <= META_CALIDAD ? 'Dentro de meta' : 'Sobre meta'}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* % CASOS CON NOVEDAD */}
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-[var(--c-navy-texto)] flex flex-col justify-between h-full">
-                                <div>
-                                    <span className="text-[9px] font-bold text-[var(--c-navy-texto)] uppercase tracking-wider mb-1">% Casos con Novedad</span>
-                                    <div className="flex items-baseline mb-2">
-                                        <span className="text-xl font-bold text-[var(--c-tinta)]">{kpis.pctCasos.toFixed(2)}%</span>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-1 text-[10px]">
-                                    <div className="flex justify-between text-stone-500 font-medium">
-                                        <span>Meta</span>
-                                        <span>≤ {META_CALIDAD.toFixed(2)}%</span>
-                                    </div>
-                                    <div className="flex justify-between text-stone-500 font-medium">
-                                        <span>Desviación</span>
-                                        <span>{(kpis.pctCasos - META_CALIDAD) > 0 ? '+' : ''}{(kpis.pctCasos - META_CALIDAD).toFixed(2)} pp</span>
-                                    </div>
-                                    <div className={`mt-1 py-1 px-2 rounded-md font-bold text-center ${kpis.pctCasos <= META_CALIDAD ? 'bg-[var(--c-crema-sup)] text-[var(--c-navy-texto)]' : 'bg-red-50 text-red-700'}`}>
-                                        {kpis.pctCasos <= META_CALIDAD ? 'Dentro de meta' : 'Sobre meta'}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* % INVERSIÓN / VENTA */}
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-[var(--c-navy-texto)] flex flex-col justify-between h-full">
-                                <div>
-                                    <span className="text-[9px] font-bold text-[var(--c-navy-texto)] uppercase tracking-wider mb-1">% Inversión / Venta</span>
-                                    <div className="flex items-baseline mb-2">
-                                        <span className="text-xl font-bold text-[var(--c-tinta)]">{kpis.pctInversion.toFixed(2)}%</span>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-1 text-[10px]">
-                                    <div className="flex justify-between text-stone-500 font-medium">
-                                        <span>Meta</span>
-                                        <span>≤ {META_ECONOMICA.toFixed(2)}%</span>
-                                    </div>
-                                    <div className="flex justify-between text-stone-500 font-medium">
-                                        <span>Desviación</span>
-                                        <span>{(kpis.pctInversion - META_ECONOMICA) > 0 ? '+' : ''}{(kpis.pctInversion - META_ECONOMICA).toFixed(2)} pp</span>
-                                    </div>
-                                    <div className={`mt-1 py-1 px-2 rounded-md font-bold text-center ${kpis.pctInversion <= META_ECONOMICA ? 'bg-[var(--c-crema-sup)] text-[var(--c-navy-texto)]' : 'bg-red-50 text-red-700'}`}>
-                                        {kpis.pctInversion <= META_ECONOMICA ? 'Dentro de meta' : 'Sobre meta'}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
+                        ))}
                     </div>
-                    
+
+                    {/* METAS: los 3 porcentajes estiran hasta el final de los filtros */}
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {([
+                            { label: '% Producto con Novedad', pct: kpis.pctNovedad, meta: META_CALIDAD },
+                            { label: '% Casos con Novedad', pct: kpis.pctCasos, meta: META_CALIDAD },
+                            { label: '% Inversión / Venta', pct: kpis.pctInversion, meta: META_ECONOMICA },
+                        ]).map(({ label, pct, meta }) => {
+                            const desv = pct - meta;
+                            const ok = pct <= meta;
+                            return (
+                                <div key={label} className="bg-white px-5 py-4 rounded-xl shadow-sm border border-[var(--c-navy-texto)] flex flex-col justify-between gap-4 h-full">
+                                    <div className="flex flex-col gap-2">
+                                        <span className="text-[10px] font-bold text-[var(--c-navy-texto)] uppercase tracking-wider">{label}</span>
+                                        <span className="text-3xl font-bold leading-none tabular-nums text-[var(--c-tinta)]">{pct.toFixed(2)}%</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5 text-[11px]">
+                                        <div className="flex justify-between text-stone-500 font-medium">
+                                            <span>Meta</span>
+                                            <span className="tabular-nums">≤ {meta.toFixed(2)}%</span>
+                                        </div>
+                                        <div className="flex justify-between text-stone-500 font-medium">
+                                            <span>Desviación</span>
+                                            <span className="tabular-nums">{desv > 0 ? '+' : ''}{desv.toFixed(2)} pp</span>
+                                        </div>
+                                        <div className={`mt-1 py-1.5 px-2 rounded-md font-bold text-center ${ok ? 'bg-[var(--c-crema-sup)] text-[var(--c-navy-texto)]' : 'bg-red-50 text-red-700'}`}>
+                                            {ok ? 'Dentro de meta' : 'Sobre meta'}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
 
             </div>
