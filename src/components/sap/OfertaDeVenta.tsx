@@ -2808,7 +2808,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       {isMapaRelacionesModalOpen && (
         <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={() => setIsMapaRelacionesModalOpen(false)}>
           <div
-            className="bg-white rounded-2xl shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] border border-border w-full max-w-6xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[92vh]"
+            className="bg-white rounded-2xl shadow-[0_30px_60px_-20px_rgba(37,65,83,0.45)] border border-border w-full max-w-[min(96vw,1680px)] overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4">

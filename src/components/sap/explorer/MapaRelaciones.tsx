@@ -4,15 +4,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SAP_DOC_TYPES, SAP_DOC_TYPE_ORDER, type SapDocSummary, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
 import { DOC_TYPE_STYLE, formatDate, formatMoney, formatQty, statusStyle } from './sapFormat';
 
-const CARD_W = 216;
+const CARD_W = 208;
 const CARD_H = 92;
-const COL_GAP = 64;
+const COL_GAP = 44;
 const ROW_GAP = 14;
 const PILL_H = 34;
 /** Si un tipo tiene más documentos que esto en el mapa, se agrupan con un botón "+N más". */
 const COLLAPSE_AFTER = 5;
 /** Lo más que se achica el mapa para que quepa a lo ancho; si con eso no cabe, se desplaza. */
-const ESCALA_MINIMA = 0.6;
+const ESCALA_MINIMA = 0.85;
 
 interface Box {
   key: string;
