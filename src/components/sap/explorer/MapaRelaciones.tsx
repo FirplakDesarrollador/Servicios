@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SAP_DOC_TYPES, SAP_DOC_TYPE_ORDER, type SapDocSummary, type SapRelationshipMap } from '@/lib/sapExplorerTypes';
 import { DOC_TYPE_STYLE, formatDate, formatMoney, formatQty, statusStyle } from './sapFormat';
 
@@ -11,6 +11,8 @@ const ROW_GAP = 14;
 const PILL_H = 34;
 /** Si un tipo tiene más documentos que esto en el mapa, se agrupan con un botón "+N más". */
 const COLLAPSE_AFTER = 5;
+/** Lo más que se achica el mapa para que quepa a lo ancho; si con eso no cabe, se desplaza. */
+const ESCALA_MINIMA = 0.6;
 
 interface Box {
   key: string;
@@ -125,9 +127,25 @@ export default function MapaRelaciones({
     return { boxes, lines, conReferencias: lines.some((l) => l.referencia), width: Math.max(CARD_W, columns.length * (CARD_W + COL_GAP) - COL_GAP), height };
   }, [map, expanded]);
 
+  // Ancho disponible para calcular cuánto achicar el mapa
+  const contenedor = useRef<HTMLDivElement>(null);
+  const [ancho, setAncho] = useState(0);
+  useEffect(() => {
+    const el = contenedor.current;
+    if (!el) return;
+    const medir = () => setAncho(el.clientWidth);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, []);
+  const escala = ancho > 0 && layout.width > ancho ? Math.max(ESCALA_MINIMA, ancho / layout.width) : 1;
+
   return (
-    <div className="w-full overflow-x-auto pb-2">
-      <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
+    <div ref={contenedor} className="w-full overflow-x-auto pb-2">
+      {/* Se achica para que el mapa completo quepa a lo ancho; por debajo de ESCALA_MINIMA se desplaza */}
+      <div className="mx-auto" style={{ width: layout.width * escala, height: layout.height * escala }}>
+      <div className="relative origin-top-left" style={{ width: layout.width, height: layout.height, transform: escala < 1 ? `scale(${escala})` : undefined }}>
         <svg className="absolute inset-0 pointer-events-none overflow-visible" width={layout.width} height={layout.height}>
           <defs>
             <marker id="mapa-flecha" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -196,6 +214,7 @@ export default function MapaRelaciones({
             </button>
           );
         })}
+      </div>
       </div>
       {layout.conReferencias && (
         <p className="mt-4 flex items-center justify-center gap-2 text-xs text-ink-muted">

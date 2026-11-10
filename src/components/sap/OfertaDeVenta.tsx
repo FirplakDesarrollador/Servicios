@@ -2827,7 +2827,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
               </button>
             </div>
 
-            <div className="p-6 bg-cream-light flex-1 overflow-auto relative min-h-[360px] text-[11px]">
+            <div className={`p-6 bg-cream-light flex-1 overflow-auto relative text-[11px] ${relationshipMap && !isLoadingMap ? "" : "min-h-[240px]"}`}>
               {isLoadingMap && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center gap-3">
                   <div className="w-6 h-6 border-[3px] border-border border-t-brand rounded-full animate-spin"></div>
