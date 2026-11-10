@@ -4,8 +4,8 @@ import { buscarPorDireccionYContacto, type TipoBusqueda } from '@/lib/sapBusqued
 
 export const maxDuration = 60;
 
-// Órdenes de venta y entregas por dirección de entrega y/o persona de contacto, con coincidencias aproximadas (solo lectura).
-//   ?tipo=Order|Delivery&direccion=...&contacto=...
+// Órdenes de venta y entregas por cliente, dirección de entrega y/o persona de contacto, con coincidencias aproximadas (solo lectura).
+//   ?tipo=Order|Delivery&cliente=...&direccion=...&contacto=...
 export async function GET(request: Request) {
   const rechazo = await exigirSesion(request);
   if (rechazo) return rechazo;
@@ -15,10 +15,11 @@ export async function GET(request: Request) {
     const tipo = searchParams.get('tipo') === 'Delivery' ? 'Delivery' : 'Order';
     const direccion = (searchParams.get('direccion') || '').trim().slice(0, 200);
     const contacto = (searchParams.get('contacto') || '').trim().slice(0, 120);
-    if (!direccion && !contacto) {
-      return NextResponse.json({ success: false, error: 'Escribe una dirección de entrega o una persona de contacto.' }, { status: 400 });
+    const cliente = (searchParams.get('cliente') || '').trim().slice(0, 120);
+    if (!direccion && !contacto && !cliente) {
+      return NextResponse.json({ success: false, error: 'Escribe un cliente, una dirección de entrega o una persona de contacto.' }, { status: 400 });
     }
-    const documentos = await buscarPorDireccionYContacto(tipo as TipoBusqueda, direccion, contacto);
+    const documentos = await buscarPorDireccionYContacto(tipo as TipoBusqueda, direccion, contacto, cliente);
     return NextResponse.json({ success: true, documentos });
   } catch (error: any) {
     console.error('[Búsqueda aproximada SAP] Error:', error);
