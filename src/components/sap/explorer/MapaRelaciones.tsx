@@ -36,9 +36,26 @@ export default function MapaRelaciones({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const layout = useMemo(() => {
+    // Columna según el tipo; si un documento sale de otro de la misma columna o de una posterior
+    // (p. ej. la cancelación de una nota crédito), pasa a la siguiente, como en SAP.
+    const nodo = new Map(map.nodes.map((n) => [n.key, n]));
+    const colOf = new Map<string, number>(map.nodes.map((n) => [n.key, SAP_DOC_TYPES[n.type].column]));
+    for (let pasada = 0; pasada < map.nodes.length; pasada++) {
+      let cambio = false;
+      for (const e of map.edges) {
+        const desde = colOf.get(e.from);
+        const hasta = colOf.get(e.to);
+        if (desde === undefined || hasta === undefined || hasta > desde) continue;
+        // Solo hacia adelante en el flujo: un vínculo hacia un tipo anterior no mueve nada
+        if (SAP_DOC_TYPE_ORDER.indexOf(nodo.get(e.to)!.type) < SAP_DOC_TYPE_ORDER.indexOf(nodo.get(e.from)!.type)) continue;
+        colOf.set(e.to, desde + 0.5);
+        cambio = true;
+      }
+      if (!cambio) break;
+    }
     const byColumn = new Map<number, SapDocSummary[]>();
     for (const n of map.nodes) {
-      const col = SAP_DOC_TYPES[n.type].column;
+      const col = colOf.get(n.key)!;
       byColumn.set(col, [...(byColumn.get(col) || []), n]);
     }
     const columns = [...byColumn.keys()].sort((a, b) => a - b);
