@@ -18,6 +18,7 @@ import dynamic from 'next/dynamic';
 import { FlechaEnlace } from './explorer/FlechaEnlace';
 import type { VistaEnlace } from './EnlacesSap';
 import { fetchConSesion } from '@/lib/fetchConSesion';
+import type { CampoUsuario } from '@/lib/sapCamposUsuario';
 
 const VentanaEnlace = dynamic(() => import('./EnlacesSap').then((m) => m.VentanaEnlace), { ssr: false });
 
@@ -127,6 +128,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
   const [poProject, setPoProject] = useState('');
   const [pickRemarks, setPickRemarks] = useState('');
   const [numLote, setNumLote] = useState('');
+  const [camposUsuario, setCamposUsuario] = useState<CampoUsuario[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [poCompletedQty, setPoCompletedQty] = useState('');
   const [poRejectedQty, setPoRejectedQty] = useState('');
@@ -339,6 +341,7 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
       }
 
       const sapDoc = data.document.data;
+      setCamposUsuario(Array.isArray(data.document.camposUsuario) ? data.document.camposUsuario : null);
       console.log('SAP Document fetched:', sapDoc);
 
       // Populate Header
@@ -852,451 +855,27 @@ export default function OfertaDeVenta({ mode: initialMode = 'Quotation', onMinim
             <p className="text-[10px] font-medium tracking-[0.16em] uppercase text-brand-light">Campos de usuario</p>
             <p className="text-sm font-semibold text-brand-dark mt-0.5">{docTitle}</p>
           </div>
-
-          {/* Form Fields */}
+          {/* Campos de usuario: definición y valores reales de SAP (solo lectura) */}
           <div className="p-4 space-y-3 overflow-y-auto max-h-[640px]">
-            {mode === 'ProductionOrder' ? (
-              <>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Sugerida Liberacion TOC</label>
-                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Liberacion Planificacion</label>
-                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Requisión</label>
-                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha Real Liberacion</label>
-                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Num. Lote</label>
-                  <input type="text" value={numLote} onChange={e => setNumLote(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs font-semibold text-brand-dark" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Tipo de Orden</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
-                    <option value="STANDARD">STANDARD</option>
-                    <option value="SPECIAL">SPECIAL</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Socio de negocio</label>
-                  <input type="text" value={businessPartner || cardCode} onChange={e => setBusinessPartner(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs font-semibold text-brand-dark" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha de finalización (desatraso)</label>
-                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Razón de retraso 2</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Fecha de finalización (desatraso) 2</label>
-                  <input type="date" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Razón de retraso</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Orden de Compra</label>
-                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs" />
-                </div>
-              </>
-            ) : mode === 'Invoice' || mode === 'CreditNote' ? (
-              <>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Tiene Autorretención</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">BPCOST</label>
-                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">WUID</label>
-                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Tipo de Nota</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Codigo de DifCambio</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">IVA x Muestras pagado</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Tiene Retefuente</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Tiene ReteICA</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value="No">No</option><option value="Si">Si</option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Incoterm</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha Real de Despacho</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Puerto Destino</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Medio de transporte</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha salida del Puerto</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha llegada de documentos</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha llegada al puerto destin</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha d Pre inspección</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha Pago Anticipo</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha de levante</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha de llegada a Firplak</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Plan Vallejo</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Importación Fraccionada</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Servicio (Calificación)</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Calidad (Calificación)</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Cantidad (calificación)</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Cumplimiento (Calificación)</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Tipo de devolucion NC</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5 font-medium">Validación E almacén vs Factur</label>
-                  <select value={validativeEAlmacen} onChange={e => setValidativeEAlmacen(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
-                    <option value="No requiere Autorizacion">No requiere Autorizacion</option>
-                    <option value="Requiere Autorizacion">Requiere Autorizacion</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">QRObservac</label>
-                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Codigo del vendedor Junior</label>
-                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Autorizacion de descuentos</label>
-                  <select className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs"><option value=""></option></select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Lugar de entrega</label>
-                  <input type="text" className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha esperada de entrega</label>
-                  <input type="date" className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-              </>
-            ) : mode === 'Delivery' ? (
-              <>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha Real de Despacho</label>
-                  <input type="date" value={fechaRealDespacho} onChange={e => setFechaRealDespacho(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Numero de guia</label>
-                  <textarea rows={3} value={numeroGuia} onChange={e => setNumeroGuia(e.target.value)} className="w-full bg-white border border-border rounded px-1.5 py-1 outline-none text-xs resize-none" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Transportador</label>
-                  <input type="text" value={transportador} onChange={e => setTransportador(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Anticipo</label>
-                  <select value={anticipoPct} onChange={e => setAnticipoPct(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
-                    <option value="SI tiene anticipo">SI tiene anticipo</option>
-                    <option value="NO tiene anticipo">NO tiene anticipo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Aplicacion Anticipo ?</label>
-                  <select value={aplicacionAnticipo} onChange={e => setAplicacionAnticipo(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
-                    <option value="NO">NO</option>
-                    <option value="SI">SI</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Tipo de pedido</label>
-                  <select value={tipoPedido} onChange={e => setTipoPedido(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
-                    <option value="Cliente Final">Cliente Final</option>
-                    <option value="Normal">Normal</option>
-                    <option value="Servicios">Servicios</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">% de amortizacion factura</label>
-                  <input type="text" value={amortizacionFacturaPct} onChange={e => setAmortizacionFacturaPct(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Bloqueado para Despacho</label>
-                  <select value={bloqueadoDespacho} onChange={e => setBloqueadoDespacho(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
-                    <option value="No Bloqueado">No Bloqueado</option>
-                    <option value="Bloqueado">Bloqueado</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Actualizar BF</label>
-                  <select value={actualizarBF} onChange={e => setActualizarBF(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
-                    <option value="NO">NO</option>
-                    <option value="SI">SI</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Orden de Venta</label>
-                  <input type="text" value={ordenVenta} onChange={e => setOrdenVenta(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">FechaRealEntregaEnt</label>
-                  <input type="date" value={fechaRealEntregaEnt} onChange={e => setFechaRealEntregaEnt(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">StatusEntrega</label>
-                  <select value={statusEntrega} onChange={e => setStatusEntrega(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
-                    <option value="Entregada">Entregada</option>
-                    <option value="En Ruta">En Ruta</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">FechaRetPOD</label>
-                  <input type="date" value={fechaRetPOD} onChange={e => setFechaRetPOD(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">POF?</label>
-                  <select value={pof} onChange={e => setPof(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-xs">
-                    <option value=""></option>
-                    <option value="SI">SI</option>
-                    <option value="NO">NO</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Estado de la Oferta de Venta</label>
-                  <select value={estadoOfertaVenta} onChange={e => setEstadoOfertaVenta(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs">
-                    <option value="Confirmada">Confirmada</option>
-                    <option value="Pendiente">Pendiente</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha Planeada Entrega Cliente</label>
-                  <input type="date" value={fechaPlaneadaEntregaCliente} onChange={e => setFechaPlaneadaEntregaCliente(e.target.value)} className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none text-xs" />
-                </div>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">% Contenedor</label>
-                  <input type="text" value={pctContenedor} onChange={e => setPctContenedor(e.target.value)} className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs" />
-                </div>
-              </>
+            {camposUsuario === null ? (
+              <p className="text-xs text-stone-400 leading-relaxed">
+                {cardCode ? 'No se pudieron leer los campos de usuario de SAP.' : 'Busca un documento para ver sus campos de usuario.'}
+              </p>
+            ) : camposUsuario.length === 0 ? (
+              <p className="text-xs text-stone-400">Este documento no tiene campos de usuario en SAP.</p>
             ) : (
-              <>
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Anticipo</label>
-                  <select 
-                    value={anticipoPct}
-                    onChange={e => setAnticipoPct(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
+              camposUsuario.map((c) => (
+                <div key={c.nombre} title={c.nombre}>
+                  <p className="text-stone-500 mb-0.5">{c.etiqueta}</p>
+                  <div
+                    className={`w-full min-h-[26px] bg-white border border-border rounded-md px-2 py-1 text-xs break-words ${
+                      c.valor ? 'font-semibold text-brand-dark' : 'text-stone-300'
+                    } ${c.tipo === 'numero' ? 'text-right tabular-nums' : ''} ${c.tipo === 'memo' ? 'whitespace-pre-wrap' : ''}`}
                   >
-                    <option value="SI tiene anticipo">SI tiene anticipo</option>
-                    <option value="NO tiene anticipo">NO tiene anticipo</option>
-                    <option value="0.00">0.00</option>
-                    {anticipoPct && !['SI tiene anticipo', 'NO tiene anticipo', '0.00'].includes(anticipoPct) && (
-                      <option value={anticipoPct}>{anticipoPct}</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">% de amortizacion factura</label>
-                  <input 
-                    type="text"
-                    value={amortizacionFacturaPct}
-                    onChange={e => setAmortizacionFacturaPct(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-right focus:border-brand-light"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Aplicacion Anticipo ?</label>
-                  <select 
-                    value={aplicacionAnticipo}
-                    onChange={e => setAplicacionAnticipo(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
-                  >
-                    <option value="NO">NO</option>
-                    <option value="SI">SI</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">% Contenedor</label>
-                  <input 
-                    type="text"
-                    value={pctContenedor}
-                    onChange={e => setPctContenedor(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-right focus:border-brand-light"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Actualizar BF</label>
-                  <select 
-                    value={actualizarBF}
-                    onChange={e => setActualizarBF(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
-                  >
-                    <option value="NO">NO</option>
-                    <option value="SI">SI</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Fecha de cierre</label>
-                  <input 
-                    type="date"
-                    value={fechaCierre}
-                    onChange={e => setFechaCierre(e.target.value)}
-                    className="w-full bg-white border border-border rounded px-1 py-0.5 outline-none focus:border-brand-light text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Bloqueado para Despacho</label>
-                  <select 
-                    value={bloqueadoDespacho}
-                    onChange={e => setBloqueadoDespacho(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light"
-                  >
-                    <option value="No Bloqueado">No Bloqueado</option>
-                    <option value="Bloqueado">Bloqueado</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Estado de la Oferta de Venta</label>
-                  <select 
-                    value={estadoOfertaVenta}
-                    onChange={e => setEstadoOfertaVenta(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
-                  >
-                    <option value="Confirmada">Confirmada</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Aprobado">Aprobado</option>
-                    <option value="Rechazado">Rechazado</option>
-                    <option value="Anulada">Anulada</option>
-                    {estadoOfertaVenta && !['Confirmada', 'Pendiente', 'Aprobado', 'Rechazado', 'Anulada'].includes(estadoOfertaVenta) && (
-                      <option value={estadoOfertaVenta}>{estadoOfertaVenta}</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Tipo de pedido</label>
-                  <select 
-                    value={tipoPedido}
-                    onChange={e => setTipoPedido(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
-                  >
-                    <option value="Normal">Normal</option>
-                    <option value="Llenado Eventos">Llenado Eventos</option>
-                    <option value="Llenado Ferias">Llenado Ferias</option>
-                    <option value="Reposicion Repuesto">Reposicion Repuesto</option>
-                    <option value="Firplak.com">Firplak.com</option>
-                    <option value="Cliente Final">Cliente Final</option>
-                    <option value="Reabastecimiento Firplak Home">Reabastecimiento Firplak Home</option>
-                    <option value="Llenado Stock">Llenado Stock</option>
-                    <option value="Exportacion">Exportacion</option>
-                    <option value="Muestras y exhibiciones">Muestras y exhibiciones</option>
-                    <option value="Servicios">Servicios</option>
-                    <option value="Reposicion Producto">Reposicion Producto</option>
-                    <option value="Atención">Atención</option>
-                    <option value="Muestra Facturable">Muestra Facturable</option>
-                    <option value="FulFilment">FulFilment</option>
-                    {tipoPedido && !['Normal', 'Llenado Eventos', 'Llenado Ferias', 'Reposicion Repuesto', 'Firplak.com', 'Cliente Final', 'Reabastecimiento Firplak Home', 'Llenado Stock', 'Exportacion', 'Muestras y exhibiciones', 'Servicios', 'Reposicion Producto', 'Atención', 'Muestra Facturable', 'FulFilment'].includes(tipoPedido) && (
-                      <option value={tipoPedido}>{tipoPedido}</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-stone-500 block mb-0.5">Valor Anticipo</label>
-                  <input 
-                    type="text"
-                    value={valorAnticipo}
-                    onChange={e => setValorAnticipo(e.target.value)}
-                    className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light text-right focus:border-brand-light"
-                  />
-                </div>
-
-                {mode === 'Order' && (
-                  <div>
-                    <label className="text-stone-500 block mb-0.5 font-medium">Tipo Facturacion</label>
-                    <select 
-                      value={tipoFacturacion}
-                      onChange={e => setTipoFacturacion(e.target.value)}
-                      className="w-full bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-brand-light focus:border-brand-light text-xs"
-                    >
-                      <option value="Sin POD">Sin POD</option>
-                      <option value="Con POD">Con POD</option>
-                      {tipoFacturacion && !['Sin POD', 'Con POD'].includes(tipoFacturacion) && (
-                        <option value={tipoFacturacion}>{tipoFacturacion}</option>
-                      )}
-                    </select>
+                    {c.valor || '—'}
                   </div>
-                )}
-              </>
+                </div>
+              ))
             )}
           </div>
         </div>
