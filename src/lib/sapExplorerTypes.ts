@@ -18,7 +18,7 @@ export interface SapDocTypeInfo {
   /** Columna en el mapa de relaciones (flujo de izquierda a derecha). */
   column: number;
   /** Pantalla clásica de Consultas SAP que puede abrir el documento. */
-  classicMode?: 'Quotation' | 'Order' | 'Delivery' | 'Invoice' | 'ProductionOrder';
+  classicMode?: 'Quotation' | 'Order' | 'Delivery' | 'Invoice' | 'ProductionOrder' | 'CreditNote';
 }
 
 export const SAP_DOC_TYPES: Record<SapDocType, SapDocTypeInfo> = {
@@ -29,7 +29,7 @@ export const SAP_DOC_TYPES: Record<SapDocType, SapDocTypeInfo> = {
   Delivery: { objType: 15, entity: 'DeliveryNotes', label: 'Entrega', short: 'Entrega', column: 3, classicMode: 'Delivery' },
   Return: { objType: 16, entity: 'Returns', label: 'Devolución', short: 'Devolución', column: 4 },
   Invoice: { objType: 13, entity: 'Invoices', label: 'Factura de clientes', short: 'Factura', column: 4, classicMode: 'Invoice' },
-  CreditNote: { objType: 14, entity: 'CreditNotes', label: 'Nota crédito', short: 'NC', column: 5 },
+  CreditNote: { objType: 14, entity: 'CreditNotes', label: 'Nota crédito', short: 'NC', column: 5, classicMode: 'CreditNote' },
 };
 
 export const SAP_DOC_TYPE_ORDER: SapDocType[] = [

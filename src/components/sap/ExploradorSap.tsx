@@ -23,7 +23,7 @@ import AnexosSap from './explorer/AnexosSap';
 import { DOC_TYPE_STYLE, formatDate, formatMoney, formatQty, statusStyle } from './explorer/sapFormat';
 import { fetchConSesion } from '@/lib/fetchConSesion';
 
-export type ClassicSapMode = 'Quotation' | 'Order' | 'Delivery' | 'Invoice' | 'ProductionOrder';
+export type ClassicSapMode = 'Quotation' | 'Order' | 'Delivery' | 'Invoice' | 'ProductionOrder' | 'CreditNote';
 
 export type View =
   | { kind: 'search'; query: string }
