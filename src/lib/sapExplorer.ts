@@ -29,16 +29,20 @@ const BP_DETAIL_SELECT =
 /** Documentos de marketing (todos menos la orden de fabricación). */
 const MARKETING_TYPES = SAP_DOC_TYPE_ORDER.filter((t) => t !== 'ProductionOrder');
 
-/** Documentos que se pueden crear "copiando a" desde cada tipo (vínculo por línea BaseType/BaseEntry). */
+/**
+ * Documentos que se pueden crear "copiando a" desde cada tipo (vínculo por línea BaseType/BaseEntry).
+ * El mismo tipo aparece como destino porque al cancelar una entrega, factura, anticipo, devolución o nota crédito
+ * SAP crea un documento de cancelación del mismo tipo que apunta al original (p. ej. NC 1006257 → NC 1006258).
+ */
 const FORWARD_TARGETS: Record<SapDocType, SapDocType[]> = {
   Quotation: ['Order', 'Delivery', 'Invoice'],
   Order: ['Delivery', 'Invoice', 'DownPayment'],
-  DownPayment: [],
+  DownPayment: ['DownPayment'],
   ProductionOrder: [],
-  Delivery: ['Invoice', 'Return'],
-  Return: ['CreditNote'],
-  Invoice: ['CreditNote'],
-  CreditNote: [],
+  Delivery: ['Invoice', 'Return', 'Delivery'],
+  Return: ['CreditNote', 'Return'],
+  Invoice: ['CreditNote', 'Invoice'],
+  CreditNote: ['CreditNote'],
 };
 
 const TYPE_BY_OBJTYPE = new Map<number, SapDocType>(
