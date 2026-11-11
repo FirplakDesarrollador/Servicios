@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Send, Phone, MessageSquareText } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Send, Phone, MessageSquareText, Loader2 } from 'lucide-react';
 
 const TEMPLATES = [
   {
@@ -23,7 +23,7 @@ const TEMPLATES = [
 interface NewMessageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { phoneNumber: string; template: any; parameters: string[] }) => void;
+  onSubmit: (data: { phoneNumber: string; template: any; parameters: string[] }) => void | Promise<void>;
   /** Con número: se reenvía la plantilla a un chat ya abierto */
   telefonoInicial?: string | null;
 }
@@ -32,10 +32,15 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoIni
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [parameters, setParameters] = useState<string[]>([]);
+  // Un solo envío por apertura: el ref frena el doble clic antes de que React repinte el botón
+  const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
       // Reset form on open
+      setEnviando(false);
+      enviandoRef.current = false;
       setPhoneNumber(telefonoInicial || '');
       setSelectedTemplateId('');
       setParameters([]);
@@ -54,9 +59,9 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoIni
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber || !selectedTemplate) return;
+    if (enviandoRef.current || !phoneNumber || !selectedTemplate) return;
     
     // Validar que todos los parámetros estén llenos
     if (parameters.some(p => p.trim() === '')) {
@@ -64,11 +69,19 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoIni
       return;
     }
 
-    onSubmit({
-      phoneNumber,
-      template: selectedTemplate,
-      parameters
-    });
+    enviandoRef.current = true;
+    setEnviando(true);
+    try {
+      await onSubmit({
+        phoneNumber,
+        template: selectedTemplate,
+        parameters
+      });
+    } finally {
+      // Si falló, el formulario sigue abierto y se puede reintentar
+      enviandoRef.current = false;
+      setEnviando(false);
+    }
   };
 
   const handleParameterChange = (index: number, value: string) => {
@@ -185,11 +198,11 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoIni
             </button>
             <button
               type="submit"
-              disabled={!phoneNumber || !selectedTemplate || parameters.some(p => !p.trim())}
+              disabled={enviando || !phoneNumber || !selectedTemplate || parameters.some(p => !p.trim())}
               className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-brand hover:bg-brand-hover rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              <Send className="w-4 h-4" />
-              Enviar Plantilla
+              {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {enviando ? 'Enviando…' : 'Enviar Plantilla'}
             </button>
           </div>
 
