@@ -19,6 +19,7 @@ import {
 import {
     ArrowLeft,
     Calendar,
+    CalendarOff,
     User,
     MessageSquare,
     CheckCircle,
@@ -1791,10 +1792,15 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
         setTempStartTime(null);
     };
 
-    const handleSave = async () => {
+    const handleSave = async (withoutSchedule: boolean = false) => {
         if (aplicaTecnico && !selectedTechId) {
             alert('Por favor seleccione un técnico.');
             return;
+        }
+
+        if (withoutSchedule) {
+            const confirmed = window.confirm('¿Está seguro de que desea agendar este servicio con el técnico seleccionado sin definir fecha ni horario?');
+            if (!confirmed) return;
         }
 
         setIsSaving(true);
@@ -1834,8 +1840,8 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
 
                 const visitData = {
                     tecnico_id: selectedTechId,
-                    fecha_hora_inicio: toLocalForDB(fechaInicio),
-                    fecha_hora_fin: toLocalForDB(fechaFin),
+                    fecha_hora_inicio: withoutSchedule ? null : toLocalForDB(fechaInicio),
+                    fecha_hora_fin: withoutSchedule ? null : toLocalForDB(fechaFin),
                     servicio_id: service.id,
                     nombre: service.consecutivo || `Servicio-${service.id}`,
                     estado: true,
@@ -1865,14 +1871,19 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                         .eq('id', existingVisit[0].id);
                     
                     if (updateError) throw new Error(`Error actualizando visita: ${updateError.message}`);
+                    setCurrentVisitId(existingVisit[0].id);
                     console.log('[AgendamientoTab] Visita actualizada, id:', existingVisit[0].id);
                 } else {
                     // ── INSERT ──
-                    const { error: insertError } = await supabase
+                    const { data: insertedData, error: insertError } = await supabase
                         .from('Visitas')
-                        .insert([visitData]);
+                        .insert([visitData])
+                        .select('id');
                     
                     if (insertError) throw new Error(`Error creando visita: ${insertError.message}`);
+                    if (insertedData?.[0]?.id) {
+                        setCurrentVisitId(insertedData[0].id);
+                    }
                     console.log('[AgendamientoTab] Visita creada correctamente');
                 }
             } else {
@@ -1881,9 +1892,14 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                     .from('Visitas')
                     .update({ estado: false, modified_by: currentUser?.id })
                     .eq('servicio_id', service.id);
+                setCurrentVisitId(null);
             }
 
-            alert('Agendamiento guardado correctamente.');
+            alert(withoutSchedule ? 'Servicio agendado sin fecha ni horario correctamente.' : 'Agendamiento guardado correctamente.');
+            if (withoutSchedule) {
+                setFechaInicio('');
+                setFechaFin('');
+            }
             setHasSavedVisit(true);
             onRefresh();
             fetchHistorialVisitas();
@@ -2074,6 +2090,53 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                             </motion.div>
                         )}
 
+                        {/* ── Resumen cuando está agendado SIN fecha ni horario ── */}
+                        {hasSavedVisit && !fechaInicio && (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 p-8 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-50/30 border border-amber-200/60 rounded-[2.5rem] shadow-xl shadow-amber-500/5"
+                            >
+                                <div className="flex items-center gap-6">
+                                    <div className="w-16 h-16 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-amber-500/30 transform rotate-3">
+                                        <CalendarOff className="w-8 h-8 text-white" />
+                                    </div>
+                                    <div>
+                                        <span className="inline-block text-[10px] font-black text-amber-700 uppercase tracking-[0.3em] mb-1">
+                                            Agendado Sin Fecha
+                                        </span>
+                                        <h5 className="text-xl font-black text-slate-800 tracking-tight leading-tight">
+                                            Técnico asignado sin fecha ni horario
+                                        </h5>
+                                        <p className="text-xs text-slate-500 font-medium mt-1">
+                                            El técnico está asignado a la atención, pero la fecha y hora de la visita están pendientes por definir.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setHasSavedVisit(false)}
+                                        className="px-5 py-3.5 bg-white border border-slate-200 hover:border-brand/40 text-slate-700 hover:text-brand text-[10px] font-black uppercase tracking-wider rounded-2xl shadow-sm hover:shadow transition-all flex items-center gap-2"
+                                        title="Abrir calendario para asignar fecha y hora"
+                                    >
+                                        <Calendar className="w-4 h-4 text-brand" />
+                                        Definir Fecha/Hora
+                                    </button>
+                                    {!isCancelling && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCancelling(true)}
+                                            className="px-5 py-3.5 bg-rose-500 text-white text-[10px] font-black uppercase tracking-wider rounded-2xl shadow-xl shadow-rose-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                                        >
+                                            <XCircle className="w-4 h-4" />
+                                            Cancelar Cita
+                                        </button>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+
                         {/* ── UI de Cancelación ── */}
                         <AnimatePresence>
                             {isCancelling && (
@@ -2164,6 +2227,17 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                         <button onClick={() => { setFechaInicio(''); setFechaFin(''); }}
                                             className="h-9 px-4 bg-white text-slate-500 text-[9px] font-bold uppercase rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
                                             Limpiar
+                                        </button>
+                                        <div className="w-px h-6 bg-slate-200 mx-1" />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSave(true)}
+                                            disabled={isSaving || !selectedTechId}
+                                            className="h-9 px-4 bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Agendar el técnico seleccionado sin definir fecha ni horario"
+                                        >
+                                            <CalendarOff className="w-3.5 h-3.5" />
+                                            Agendar sin fecha ni horario
                                         </button>
                                     </div>
                                 </div>
@@ -2295,9 +2369,20 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                 )}
             </AnimatePresence>
 
-            <div className="flex justify-end gap-4 pt-6">
+            <div className="flex items-center justify-end flex-wrap gap-4 pt-6">
+                {aplicaTecnico && selectedTechId && !hasSavedVisit && (
+                    <button
+                        type="button"
+                        onClick={() => handleSave(true)}
+                        disabled={isSaving || !selectedTechId}
+                        className="h-16 px-8 bg-amber-500 hover:bg-amber-600 text-white rounded-3xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-xl shadow-amber-500/20 active:scale-95"
+                    >
+                        <CalendarOff className="w-5 h-5" />
+                        Agendar sin fecha ni horario
+                    </button>
+                )}
                 <button
-                    onClick={handleSave}
+                    onClick={() => handleSave(false)}
                     disabled={isSaving || (aplicaTecnico && !selectedTechId)}
                     className="group relative h-16 px-12 bg-slate-900 text-white rounded-3xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-4"
                 >
