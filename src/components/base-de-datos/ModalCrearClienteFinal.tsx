@@ -113,7 +113,7 @@ export default function ModalCrearClienteFinal({ isOpen = true, isInline = false
                 
                 // Fallback: try finding by name if ID lookup failed
                 if (!city && cityName) {
-                    const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const normalize = (str: string) => str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     const targetName = normalize(cityName);
                     city = (data || []).find(c => c.ciudad && normalize(c.ciudad) === targetName);
                     
