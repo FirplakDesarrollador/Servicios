@@ -171,8 +171,9 @@ export default function SolicitarServicioPage(props: any) {
                 if (solicitudData) {
                     setLlevaClienteFinal(true);
                     setCanalVenta('canal_propio_ecommerce');
-                    if (solicitudData.consecutivo) {
-                        setSolicitudConsecutivo(solicitudData.consecutivo);
+                    // El servicio toma como consecutivo el número de la solicitud (#274 → 274)
+                    if (solicitudData.id != null) {
+                        setSolicitudConsecutivo(String(solicitudData.id));
                     }
                     if (solicitudData.tipodeservicio) {
                         const tipo = solicitudData.tipodeservicio.toLowerCase();
