@@ -2151,31 +2151,46 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                         exit={{ opacity: 0, y: -10 }}
                         className="bg-white rounded-[2.5rem] border border-slate-100 p-8 md:p-12 premium-shadow space-y-10"
                     >
-                        <div className="space-y-6">
-                            <label className="flex items-center gap-3 text-[10px] font-black text-brand uppercase tracking-[0.3em] ml-1">
-                                <div className="w-8 h-8 bg-brand/10 rounded-xl flex items-center justify-center">
-                                    <UserCheck className="w-4 h-4 text-brand" />
-                                </div>
-                                Técnico Responsable
-                            </label>
-                            
-                            <div className="relative max-w-2xl">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 to-blue-500/20 rounded-[2.5rem] blur opacity-25" />
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+                            <div className="space-y-4 flex-1 max-w-2xl">
+                                <label className="flex items-center gap-3 text-[10px] font-black text-brand uppercase tracking-[0.3em] ml-1">
+                                    <div className="w-8 h-8 bg-brand/10 rounded-xl flex items-center justify-center">
+                                        <UserCheck className="w-4 h-4 text-brand" />
+                                    </div>
+                                    Técnico Responsable
+                                </label>
+                                
                                 <div className="relative">
-                                    <DropdownSingleSelect 
-                                        options={technicians.map(t => ({ 
-                                            id: t.id, 
-                                            label: `${t.display_name} ${t.cedula ? `(${t.cedula})` : ''}`,
-                                            url_foto: t.url_foto,
-                                            display_name: t.display_name,
-                                            rol: t.rol
-                                        }))}
-                                        selectedId={selectedTechId}
-                                        onChange={(id) => setSelectedTechId(id)}
-                                        placeholder="Seleccione un técnico para ver su agenda..."
-                                    />
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 to-blue-500/20 rounded-[2.5rem] blur opacity-25" />
+                                    <div className="relative">
+                                        <DropdownSingleSelect 
+                                            options={technicians.map(t => ({ 
+                                                id: t.id, 
+                                                label: `${t.display_name} ${t.cedula ? `(${t.cedula})` : ''}`,
+                                                url_foto: t.url_foto,
+                                                display_name: t.display_name,
+                                                rol: t.rol
+                                            }))}
+                                            selectedId={selectedTechId}
+                                            onChange={(id) => setSelectedTechId(id)}
+                                            placeholder="Seleccione un técnico para ver su agenda..."
+                                        />
+                                    </div>
                                 </div>
                             </div>
+
+                            {selectedTechId && !hasSavedVisit && !isCancelling && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleSave(true)}
+                                    disabled={isSaving}
+                                    className="h-[58px] px-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 active:scale-95 transition-all flex items-center justify-center gap-2.5 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Agendar al técnico sin definir fecha ni horario"
+                                >
+                                    <CalendarOff className="w-4 h-4" />
+                                    Agendar sin fecha ni horario
+                                </button>
+                            )}
                         </div>
 
                         {/* ── Resumen del rango agendado ── */}
@@ -2370,17 +2385,6 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                                             className="h-9 px-4 bg-white text-slate-500 text-[9px] font-bold uppercase rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
                                             Limpiar
                                         </button>
-                                        <div className="w-px h-6 bg-slate-200 mx-1" />
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSave(true)}
-                                            disabled={isSaving || !selectedTechId}
-                                            className="h-9 px-4 bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            title="Agendar el técnico seleccionado sin definir fecha ni horario"
-                                        >
-                                            <CalendarOff className="w-3.5 h-3.5" />
-                                            Agendar sin fecha ni horario
-                                        </button>
                                     </div>
                                 </div>
 
@@ -2511,13 +2515,13 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                 )}
             </AnimatePresence>
 
-            <div className="flex items-center justify-end flex-wrap gap-4 pt-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 pt-6">
                 {aplicaTecnico && selectedTechId && !hasSavedVisit && (
                     <button
                         type="button"
                         onClick={() => handleSave(true)}
                         disabled={isSaving || !selectedTechId}
-                        className="h-16 px-8 bg-amber-500 hover:bg-amber-600 text-white rounded-3xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-xl shadow-amber-500/20 active:scale-95"
+                        className="h-16 px-8 bg-amber-500 hover:bg-amber-600 text-white rounded-3xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-amber-500/20 active:scale-95"
                     >
                         <CalendarOff className="w-5 h-5" />
                         Agendar sin fecha ni horario
@@ -2526,7 +2530,7 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                 <button
                     onClick={() => handleSave(false)}
                     disabled={isSaving || (aplicaTecnico && !selectedTechId)}
-                    className="group relative h-16 px-12 bg-slate-900 text-white rounded-3xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-4"
+                    className="group relative h-16 px-12 bg-slate-900 text-white rounded-3xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4"
                 >
                     {isSaving ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
