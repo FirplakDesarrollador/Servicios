@@ -262,6 +262,12 @@ export default function WhatsAppPage() {
 
   const [sending, setSending] = useState(false);
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
+  // Número del chat abierto cuando se reenvía la plantilla (null = conversación nueva)
+  const [telefonoPlantilla, setTelefonoPlantilla] = useState<string | null>(null);
+  const abrirPlantilla = (telefono: string | null) => {
+    setTelefonoPlantilla(telefono);
+    setIsNewMessageModalOpen(true);
+  };
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<any[]>([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
@@ -929,7 +935,7 @@ export default function WhatsAppPage() {
             <img src="/logo-firplak-wordmark.png" alt="FIRPLAK" className="h-[15px] w-auto self-start" />
             <span className="text-[11px] font-medium tracking-[0.18em] uppercase text-brand-light mt-1">WhatsApp</span>
           </div>
-          <button onClick={() => setIsNewMessageModalOpen(true)} className={headerIconBtn} title="Nueva conversación">
+          <button onClick={() => abrirPlantilla(null)} className={headerIconBtn} title="Nueva conversación">
             <MessageSquarePlus className="w-5 h-5" strokeWidth={1.75} />
           </button>
           <div
@@ -1243,6 +1249,13 @@ export default function WhatsAppPage() {
                 <div className="w-px h-6 bg-border mx-1"></div>
 
                 <button
+                  onClick={() => abrirPlantilla(activeChat.phone_number)}
+                  className={headerIconBtn}
+                  title="Enviar plantilla"
+                >
+                  <FileText className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                </button>
+                <button
                   onClick={() => setShowContactInfo(!showContactInfo)}
                   className={`${headerIconBtn} ${showContactInfo ? 'bg-brand-soft text-brand' : ''}`}
                   title="Ver información del contacto"
@@ -1367,6 +1380,15 @@ export default function WhatsAppPage() {
                         <p className="mx-3 mt-1 px-2 py-1 rounded-md bg-red-50 text-[11px] leading-snug text-red-700">
                           {motivoFalla}
                         </p>
+                      )}
+                      {fallido && isMe && activeChat && (
+                        <button
+                          type="button"
+                          onClick={() => abrirPlantilla(activeChat.phone_number)}
+                          className="mx-3 mt-1 text-[11px] font-semibold text-brand hover:underline"
+                        >
+                          Reenviar plantilla
+                        </button>
                       )}
                       {/* Message Footer / Timestamp */}
                       <div className="px-3 pt-0.5 pb-1.5 flex items-center justify-end gap-1 text-stone-400">
@@ -1785,6 +1807,7 @@ export default function WhatsAppPage() {
         isOpen={isNewMessageModalOpen}
         onClose={() => setIsNewMessageModalOpen(false)}
         onSubmit={handleSendTemplate}
+        telefonoInicial={telefonoPlantilla}
       />
 
       <RespuestasRapidasModal

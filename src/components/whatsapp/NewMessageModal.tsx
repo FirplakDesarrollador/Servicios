@@ -24,9 +24,11 @@ interface NewMessageModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: { phoneNumber: string; template: any; parameters: string[] }) => void;
+  /** Con número: se reenvía la plantilla a un chat ya abierto */
+  telefonoInicial?: string | null;
 }
 
-export default function NewMessageModal({ isOpen, onClose, onSubmit }: NewMessageModalProps) {
+export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoInicial }: NewMessageModalProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [parameters, setParameters] = useState<string[]>([]);
@@ -34,11 +36,11 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit }: NewMessag
   useEffect(() => {
     if (isOpen) {
       // Reset form on open
-      setPhoneNumber('');
+      setPhoneNumber(telefonoInicial || '');
       setSelectedTemplateId('');
       setParameters([]);
     }
-  }, [isOpen]);
+  }, [isOpen, telefonoInicial]);
 
   const selectedTemplate = TEMPLATES.find(t => t.id === selectedTemplateId);
 
@@ -90,8 +92,8 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit }: NewMessag
               <MessageSquareText className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-brand-dark">Nueva Conversación</h2>
-              <p className="text-sm text-stone-500">Inicia un chat enviando una plantilla</p>
+              <h2 className="text-lg font-semibold text-brand-dark">{telefonoInicial ? 'Enviar plantilla' : 'Nueva Conversación'}</h2>
+              <p className="text-sm text-stone-500">{telefonoInicial ? 'Vuelve a enviar una plantilla a este cliente' : 'Inicia un chat enviando una plantilla'}</p>
             </div>
           </div>
           <button 
