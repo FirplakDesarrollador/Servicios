@@ -171,9 +171,9 @@ export default function SolicitarServicioPage(props: any) {
                 if (solicitudData) {
                     setLlevaClienteFinal(true);
                     setCanalVenta('canal_propio_ecommerce');
-                    // Consecutivo de página: Fpagina + tipo de servicio + número de la solicitud (ej. FpaginaInst274)
+                    // Consecutivo de página: Fpagina + tipo de servicio + número de la solicitud con 5 dígitos (ej. FpaginaInst00274)
                     if (solicitudData.id != null) {
-                        setSolicitudConsecutivo(String(solicitudData.id));
+                        setSolicitudConsecutivo(String(solicitudData.id).padStart(5, '0'));
                     }
                     if (solicitudData.tipodeservicio) {
                         const tipo = solicitudData.tipodeservicio.toLowerCase();
