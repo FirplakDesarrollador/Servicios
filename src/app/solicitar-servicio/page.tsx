@@ -70,7 +70,7 @@ export default function SolicitarServicioPage(props: any) {
     const [decisionCliente, setDecisionCliente] = useState('');
     const [observaciones, setObservaciones] = useState('');
     const [llevaClienteFinal, setLlevaClienteFinal] = useState(true);
-    const [solicitudConsecutivo, setSolicitudConsecutivo] = useState<string | null>(null);
+    const [desdeSolicitudPagina, setDesdeSolicitudPagina] = useState(false);
 
     // Selection States
     const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
@@ -171,10 +171,8 @@ export default function SolicitarServicioPage(props: any) {
                 if (solicitudData) {
                     setLlevaClienteFinal(true);
                     setCanalVenta('canal_propio_ecommerce');
-                    // Consecutivo de página: Fpagina + tipo de servicio + número de la solicitud con 5 dígitos (ej. FpaginaInst00274)
-                    if (solicitudData.id != null) {
-                        setSolicitudConsecutivo(String(solicitudData.id).padStart(5, '0'));
-                    }
+                    // Consecutivo de página: Fpagina + tipo de servicio + 5 dígitos únicos (ej. FpaginaInst48213)
+                    setDesdeSolicitudPagina(true);
                     if (solicitudData.tipodeservicio) {
                         const tipo = solicitudData.tipodeservicio.toLowerCase();
                         if (tipo.includes('visita')) {
@@ -269,7 +267,7 @@ export default function SolicitarServicioPage(props: any) {
 
     // Update consecutivo when tipoServicio or user changes
     useEffect(() => {
-        if (solicitudConsecutivo) {
+        if (desdeSolicitudPagina) {
             const tipoPagina = tipoServicio === 'instalacion'
                 ? 'Inst'
                 : tipoServicio === 'visita_instalacion'
@@ -277,7 +275,7 @@ export default function SolicitarServicioPage(props: any) {
                     : tipoServicio
                         ? tipoServicio.charAt(0).toUpperCase() + tipoServicio.slice(1, 4).toLowerCase()
                         : '';
-            setConsecutivo(`Fpagina${tipoPagina}${solicitudConsecutivo}`);
+            setConsecutivo(`Fpagina${tipoPagina}${randomSuffix}`);
             return;
         }
 
@@ -298,7 +296,7 @@ export default function SolicitarServicioPage(props: any) {
         }
 
         setConsecutivo(newConsecutivo);
-    }, [tipoServicio, currentUser, randomSuffix, facturado, solicitudConsecutivo]);
+    }, [tipoServicio, currentUser, randomSuffix, facturado, desdeSolicitudPagina]);
 
     const handleClear = () => {
         setNumeroPedido('');
