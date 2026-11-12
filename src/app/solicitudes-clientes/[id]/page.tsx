@@ -316,7 +316,7 @@ export default function DetalleSolicitudClientePage() {
                                             defaultSolicitudId={solicitud.id} 
                                             onSuccess={() => {
                                                 alert('Servicio generado exitosamente.');
-                                                setActiveTab('detalle');
+                                                router.push('/solicitudes-clientes');
                                             }} 
                                         />
                                     </div>

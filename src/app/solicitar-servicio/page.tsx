@@ -669,6 +669,12 @@ export default function SolicitarServicioPage(props: any) {
 
             if (servicioError) throw servicioError;
 
+            // Eliminar la solicitud de la lista de pendientes si se creó a partir de una solicitud web
+            const solicitudActualId = defaultSolicitudId || searchParams.get('solicitud_id');
+            if (solicitudActualId) {
+                await supabase.from('solicitudes_clientes').delete().eq('id', solicitudActualId);
+            }
+
             alert('Servicio creado correctamente');
             handleClear();
             if (onSuccess) {
