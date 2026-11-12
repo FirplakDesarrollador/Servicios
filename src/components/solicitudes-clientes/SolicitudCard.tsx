@@ -59,6 +59,12 @@ export default function SolicitudCard({ solicitud, onClick }: SolicitudCardProps
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter leading-none">Fecha de registro</span>
                         <span className="text-xs font-bold text-slate-600">{formatDate(solicitud.created_at)}</span>
                     </div>
+                    {solicitud.consecutivo && (
+                        <div className="flex flex-col min-w-0 pl-3 border-l border-slate-100">
+                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter leading-none">Consecutivo</span>
+                            <span className="text-xs font-bold text-brand truncate">{solicitud.consecutivo}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
