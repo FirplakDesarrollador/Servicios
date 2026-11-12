@@ -171,7 +171,7 @@ export default function SolicitarServicioPage(props: any) {
                 if (solicitudData) {
                     setLlevaClienteFinal(true);
                     setCanalVenta('canal_propio_ecommerce');
-                    // El servicio toma como consecutivo el número de la solicitud (#274 → 274)
+                    // Consecutivo de página: Fpagina + tipo de servicio + número de la solicitud (ej. FpaginaInst274)
                     if (solicitudData.id != null) {
                         setSolicitudConsecutivo(String(solicitudData.id));
                     }
@@ -270,7 +270,14 @@ export default function SolicitarServicioPage(props: any) {
     // Update consecutivo when tipoServicio or user changes
     useEffect(() => {
         if (solicitudConsecutivo) {
-            setConsecutivo(solicitudConsecutivo);
+            const tipoPagina = tipoServicio === 'instalacion'
+                ? 'Inst'
+                : tipoServicio === 'visita_instalacion'
+                    ? 'Visi'
+                    : tipoServicio
+                        ? tipoServicio.charAt(0).toUpperCase() + tipoServicio.slice(1, 4).toLowerCase()
+                        : '';
+            setConsecutivo(`Fpagina${tipoPagina}${solicitudConsecutivo}`);
             return;
         }
 
