@@ -97,9 +97,9 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoIni
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-[2px] animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-border overflow-hidden relative animate-in zoom-in-95 duration-300">
-        {/* Header */}
-        <div className="relative z-10 px-6 py-5 border-b border-border flex items-center justify-between">
+      <div className="bg-white w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col rounded-2xl shadow-xl border border-border overflow-hidden relative animate-in zoom-in-95 duration-300">
+        {/* Header: fijo arriba, con la X siempre visible */}
+        <div className="relative z-10 shrink-0 px-6 py-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-brand-soft text-brand rounded-xl">
               <MessageSquareText className="w-6 h-6" />
@@ -109,17 +109,22 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoIni
               <p className="text-sm text-stone-500">{telefonoInicial ? 'Vuelve a enviar una plantilla a este cliente' : 'Inicia un chat enviando una plantilla'}</p>
             </div>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-all"
+            aria-label="Cerrar sin enviar"
+            title="Cerrar sin enviar"
+            className="p-2 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-all"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="relative z-10 p-6 space-y-5">
-          
+        <form onSubmit={handleSubmit} className="relative z-10 flex flex-col flex-1 min-h-0">
+          {/* Contenido desplazable */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-5">
+
           {/* Phone Number */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-stone-700">Número de Teléfono</label>
@@ -186,9 +191,10 @@ export default function NewMessageModal({ isOpen, onClose, onSubmit, telefonoIni
               </div>
             </div>
           )}
+          </div>
 
-          {/* Actions */}
-          <div className="pt-4 flex items-center justify-end gap-3 border-t border-border">
+          {/* Actions: fijas abajo, siempre visibles */}
+          <div className="shrink-0 px-6 py-4 flex items-center justify-end gap-3 border-t border-border bg-white">
             <button
               type="button"
               onClick={onClose}
