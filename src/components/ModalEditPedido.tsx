@@ -13,6 +13,7 @@ interface ModalEditPedidoProps {
     initialData: {
         numero_de_pedido: string | null;
     };
+    isClosed?: boolean;
 }
 
 export default function ModalEditPedido({
@@ -20,7 +21,8 @@ export default function ModalEditPedido({
     onClose,
     onSuccess,
     serviceId,
-    initialData
+    initialData,
+    isClosed = false
 }: ModalEditPedidoProps) {
     const [loading, setLoading] = useState(false);
     const [numeroPedido, setNumeroPedido] = useState(initialData.numero_de_pedido || '');
@@ -32,6 +34,10 @@ export default function ModalEditPedido({
     }, [isOpen, initialData]);
 
     const handleSave = async () => {
+        if (isClosed) {
+            alert('No se puede modificar un servicio cerrado.');
+            return;
+        }
         try {
             setLoading(true);
             const { error } = await supabase

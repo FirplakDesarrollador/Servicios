@@ -12,9 +12,10 @@ interface CommentModalProps {
     consecutivo?: string;
     currentUser?: any;
     onSuccess?: () => void;
+    isClosed?: boolean;
 }
 
-export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, currentUser, consecutivo }: CommentModalProps) {
+export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, currentUser, consecutivo, isClosed = false }: CommentModalProps) {
     const [content, setContent] = useState('');
     const [files, setFiles] = useState<{ file: File; isHidden: boolean }[]>([]);
     const [uploading, setUploading] = useState(false);
@@ -42,6 +43,10 @@ export default function CommentModal({ isOpen, onClose, serviceId, onSuccess, cu
     };
 
     const handleSubmit = async () => {
+        if (isClosed) {
+            alert('No se pueden agregar comentarios a un servicio cerrado.');
+            return;
+        }
         if (isUploadingRef.current) return;
 
         if (!content.trim()) {

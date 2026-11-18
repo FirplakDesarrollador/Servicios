@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { X, Loader2, Package, Tag, Hash, Box, Edit2, Plus, Trash2, CheckCircle2, AlertCircle, Cpu, ChevronDown, ChevronUp, Copy, PlusCircle, MinusCircle } from 'lucide-react';
+import { X, Loader2, Package, Tag, Hash, Box, Edit2, Plus, Trash2, CheckCircle2, AlertCircle, Cpu, ChevronDown, ChevronUp, Copy, PlusCircle, MinusCircle, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BuscadorProductos from './solicitar-servicio/BuscadorProductos';
 import BuscadorRepuestos from './solicitar-servicio/BuscadorRepuestos';
@@ -11,9 +11,10 @@ interface ProductsModalProps {
     isOpen: boolean;
     onClose: () => void;
     servicioId: number;
+    isClosed?: boolean;
 }
 
-export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsModalProps) {
+export default function ProductsModal({ isOpen, onClose, servicioId, isClosed = false }: ProductsModalProps) {
     const [loading, setLoading] = useState(true);
     const [productos, setProductos] = useState<any[]>([]);
     const [repuestos, setRepuestos] = useState<any[]>([]);
@@ -111,15 +112,19 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
 
     useEffect(() => {
         if (isOpen) {
+            if (isClosed) {
+                setIsEditing(false);
+            }
             fetchData();
             fetchUser();
         } else {
             setIsEditing(false);
             setExpandedProductId(null);
         }
-    }, [isOpen, servicioId]);
+    }, [isOpen, servicioId, isClosed]);
 
     const handleRemoveProduct = async (id: number) => {
+        if (isClosed) return;
         if (!window.confirm('¿Eliminar este producto del servicio?')) return;
         
         try {
@@ -136,6 +141,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleRemoveRepuesto = async (id: number) => {
+        if (isClosed) return;
         if (!window.confirm('¿Eliminar este repuesto del servicio?')) return;
         
         try {
@@ -152,6 +158,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleUpdateQuantity = async (table: string, id: number, quantity: number) => {
+        if (isClosed) return;
         if (quantity < 1) return;
         try {
             const { error } = await supabase
@@ -172,6 +179,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleAddProduct = async (producto: any) => {
+        if (isClosed) return;
         try {
             const { data, error } = await supabase
                 .from('productos_servicios')
@@ -192,6 +200,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleAddRepuesto = async (repuesto: any) => {
+        if (isClosed) return;
         try {
             const { data, error } = await supabase
                 .from('Repuestos_Servicios')
@@ -212,6 +221,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleAddIotCode = async (productId: number, currentCodes: string[], cantidad: number) => {
+        if (isClosed) return;
         if (!newIotCode.trim()) return;
         if (currentCodes.length >= cantidad) {
             alert('No se pueden agregar más códigos que la cantidad del producto.');
@@ -234,6 +244,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleRemoveIotCode = async (productId: number, currentCodes: string[], indexToRemove: number) => {
+        if (isClosed) return;
         if (!window.confirm('¿Eliminar este código IOT?')) return;
 
         try {
@@ -251,6 +262,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleAddServicioDefecto = async () => {
+        if (isClosed) return;
         if (!defectoSeleccionado || defectoSeleccionado === 0) {
             alert('Por favor selecciona un defecto');
             return;
@@ -276,6 +288,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleAddMacDefecto = async (productId: number) => {
+        if (isClosed) return;
         if (!macResponsableId || !macRazonId) {
             alert('Selecciona responsable y razón');
             return;
@@ -302,6 +315,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
     };
 
     const handleRemoveServicioDefecto = async (id: number) => {
+        if (isClosed) return;
         if (!window.confirm('¿Eliminar este reporte de defecto?')) return;
         
         try {
@@ -334,26 +348,33 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                 <p className="text-sm text-slate-400 font-medium">Gestionar items asociados</p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setIsEditing(!isEditing)}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all ${
-                                        isEditing 
-                                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600' 
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                >
-                                    {isEditing ? (
-                                        <>
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Terminar Edición
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Edit2 className="w-4 h-4" />
-                                            Editar Items
-                                        </>
-                                    )}
-                                </button>
+                                {isClosed ? (
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider">
+                                        <Lock className="w-3.5 h-3.5 text-rose-500" />
+                                        Solo lectura (Cerrado)
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsEditing(!isEditing)}
+                                        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all ${
+                                            isEditing 
+                                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600' 
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {isEditing ? (
+                                            <>
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                Terminar Edición
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Edit2 className="w-4 h-4" />
+                                                Editar Items
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                                 <button
                                     onClick={onClose}
                                     className="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all"
@@ -498,7 +519,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                                                             <p className="text-[9px] text-slate-400 italic">Solo para hidromasaje con IoT, Ingrese el código de la caja MTS</p>
                                                                             
                                                                             {/* Add Code Form */}
-                                                                            {(item.codigos_iot?.length || 0) < item.cantidad && (
+                                                                            {!isClosed && (item.codigos_iot?.length || 0) < item.cantidad && (
                                                                                 <div className="flex gap-2">
                                                                                     <input 
                                                                                         type="text"
@@ -532,12 +553,14 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                                                                             >
                                                                                                 <Copy className="w-3.5 h-3.5" />
                                                                                             </button>
-                                                                                            <button 
-                                                                                                onClick={() => handleRemoveIotCode(item.id, item.codigos_iot, idx)}
-                                                                                                className="p-1.5 text-rose-300 hover:text-rose-500 transition-colors"
-                                                                                            >
-                                                                                                <MinusCircle className="w-3.5 h-3.5" />
-                                                                                            </button>
+                                                                                            {!isClosed && (
+                                                                                                <button 
+                                                                                                    onClick={() => handleRemoveIotCode(item.id, item.codigos_iot, idx)}
+                                                                                                    className="p-1.5 text-rose-300 hover:text-rose-500 transition-colors"
+                                                                                                >
+                                                                                                    <MinusCircle className="w-3.5 h-3.5" />
+                                                                                                </button>
+                                                                                            )}
                                                                                         </div>
                                                                                     </div>
                                                                                 ))}
@@ -547,51 +570,53 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                                                         /* Defects Section */
                                                                         <div className="space-y-6">
                                                                             {/* Add Defecto Form (Service) */}
-                                                                            <div className="bg-amber-50/50 border border-amber-100 rounded-3xl p-5 space-y-4">
-                                                                                <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
-                                                                                    <AlertCircle className="w-4 h-4" />
-                                                                                    Reportar Falla del Servicio
-                                                                                </h4>
-                                                                                <div className="grid grid-cols-2 gap-3">
-                                                                                    <div className="space-y-1">
-                                                                                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Planta</label>
-                                                                                        <select 
-                                                                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] font-bold outline-none"
-                                                                                            value={plantaSeleccionada}
-                                                                                            onChange={e => { setPlantaSeleccionada(e.target.value); setDefectoSeleccionado(0); }}
-                                                                                        >
-                                                                                            <option value="">Planta...</option>
-                                                                                            <option value="Marmol sintetico">Mármol</option>
-                                                                                            <option value="Muebles">Muebles</option>
-                                                                                            <option value="Fibra de vidrio">Fibra</option>
-                                                                                        </select>
+                                                                            {!isClosed && (
+                                                                                <div className="bg-amber-50/50 border border-amber-100 rounded-3xl p-5 space-y-4">
+                                                                                    <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
+                                                                                        <AlertCircle className="w-4 h-4" />
+                                                                                        Reportar Falla del Servicio
+                                                                                    </h4>
+                                                                                    <div className="grid grid-cols-2 gap-3">
+                                                                                        <div className="space-y-1">
+                                                                                            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Planta</label>
+                                                                                            <select 
+                                                                                                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] font-bold outline-none"
+                                                                                                value={plantaSeleccionada}
+                                                                                                onChange={e => { setPlantaSeleccionada(e.target.value); setDefectoSeleccionado(0); }}
+                                                                                            >
+                                                                                                <option value="">Planta...</option>
+                                                                                                <option value="Marmol sintetico">Mármol</option>
+                                                                                                <option value="Muebles">Muebles</option>
+                                                                                                <option value="Fibra de vidrio">Fibra</option>
+                                                                                            </select>
+                                                                                        </div>
+                                                                                        <div className="space-y-1">
+                                                                                            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Defecto</label>
+                                                                                            <select 
+                                                                                                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] font-bold outline-none"
+                                                                                                value={defectoSeleccionado}
+                                                                                                onChange={e => setDefectoSeleccionado(Number(e.target.value))}
+                                                                                                disabled={!plantaSeleccionada}
+                                                                                            >
+                                                                                                <option value={0}>Defecto...</option>
+                                                                                                {referenciaDefectos
+                                                                                                    .filter(d => d.planta === plantaSeleccionada)
+                                                                                                    .map(d => <option key={d.id} value={d.id}>{d.defecto}</option>)
+                                                                                                }
+                                                                                            </select>
+                                                                                        </div>
                                                                                     </div>
-                                                                                    <div className="space-y-1">
-                                                                                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Defecto</label>
-                                                                                        <select 
-                                                                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] font-bold outline-none"
-                                                                                            value={defectoSeleccionado}
-                                                                                            onChange={e => setDefectoSeleccionado(Number(e.target.value))}
-                                                                                            disabled={!plantaSeleccionada}
-                                                                                        >
-                                                                                            <option value={0}>Defecto...</option>
-                                                                                            {referenciaDefectos
-                                                                                                .filter(d => d.planta === plantaSeleccionada)
-                                                                                                .map(d => <option key={d.id} value={d.id}>{d.defecto}</option>)
-                                                                                            }
-                                                                                        </select>
-                                                                                    </div>
+                                                                                    <button 
+                                                                                        onClick={handleAddServicioDefecto}
+                                                                                        className="w-full py-2.5 bg-amber-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-amber-600 transition-all shadow-lg shadow-amber-100"
+                                                                                    >
+                                                                                        Agregar Defecto
+                                                                                    </button>
                                                                                 </div>
-                                                                                <button 
-                                                                                    onClick={handleAddServicioDefecto}
-                                                                                    className="w-full py-2.5 bg-amber-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-amber-600 transition-all shadow-lg shadow-amber-100"
-                                                                                >
-                                                                                    Agregar Defecto
-                                                                                </button>
-                                                                            </div>
+                                                                            )}
 
                                                                             {/* MAC Defects (Conditional) */}
-                                                                            {(user?.rol === 'desarrollador' || user?.rol === 'mac') && (
+                                                                            {!isClosed && (user?.rol === 'desarrollador' || user?.rol === 'mac') && (
                                                                                 <div className="pt-4 border-t border-slate-100 space-y-4">
                                                                                     <div className="flex items-center gap-2">
                                                                                         <Edit2 className="w-4 h-4 text-rose-500" />
@@ -764,7 +789,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                                             {item.defecto?.defecto || 'Sin descripción'}
                                                         </p>
                                                     </div>
-                                                    {isEditing && (
+                                                    {!isClosed && isEditing && (
                                                         <button 
                                                             onClick={() => handleRemoveServicioDefecto(item.id)}
                                                             className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
@@ -791,14 +816,14 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                 onClick={onClose}
                                 className="px-10 py-3 bg-brand text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
                             >
-                                {isEditing ? 'Listo' : 'Entendido'}
+                                {isClosed ? 'Cerrar' : isEditing ? 'Listo' : 'Entendido'}
                             </button>
                         </div>
                     </motion.div>
                     
                     {/* Pickers */}
                     <AnimatePresence>
-                        {showProductPicker && (
+                        {!isClosed && showProductPicker && (
                             <BuscadorProductos 
                                 productosSeleccionados={productos.map(p => p.producto)}
                                 onAdd={(p) => {
@@ -811,7 +836,7 @@ export default function ProductsModal({ isOpen, onClose, servicioId }: ProductsM
                                 onClose={() => setShowProductPicker(false)}
                             />
                         )}
-                        {showRepuestoPicker && (
+                        {!isClosed && showRepuestoPicker && (
                             <BuscadorRepuestos 
                                 repuestosSeleccionados={repuestos.map(r => r.repuesto)}
                                 onAdd={(r) => {
