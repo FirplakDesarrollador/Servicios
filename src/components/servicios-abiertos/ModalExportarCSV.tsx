@@ -194,42 +194,62 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
             csvRows = [headers];
 
             finalServicesToExport.forEach(s => {
-                const row = BASE_COLUMNS.map(c => formatCsvField(c.getValue(s)));
-
+                // Preparar lista de productos para este servicio
+                let sProductsList: string[] = [];
                 if (includeProducts) {
                     const sProducts = allProducts.filter(p => p.servicio_id === s.id);
-                    let prodStr = '';
                     if (sProducts.length > 0) {
-                        prodStr = sProducts.map(p => {
+                        sProductsList = sProducts.map(p => {
                             const prod = p.Productos || p.producto || {};
                             const nombre = prod.nombre || prod.descripcion || prod.producto || '';
                             const cant = p.cantidad || 1;
                             const ref = prod.sku || prod.referencia || '';
                             return `${cant}x ${nombre}${ref ? ` (${ref})` : ''}`.trim();
-                        }).filter(Boolean).join(' | ');
+                        }).filter(Boolean);
                     } else if (Array.isArray(s.productos) && s.productos.length > 0) {
-                        prodStr = s.productos.map((p: any) => {
+                        sProductsList = s.productos.map((p: any) => {
                             const nombre = p.producto || p.nombre || '';
                             const cant = p.cantidad || 1;
                             return `${cant}x ${nombre}`.trim();
-                        }).filter(Boolean).join(' | ');
+                        }).filter(Boolean);
                     }
-                    row.push(formatCsvField(prodStr));
                 }
 
+                // Preparar lista de repuestos para este servicio
+                let sPartsList: string[] = [];
                 if (includeParts) {
                     const sParts = allParts.filter(p => p.servicio_id === s.id);
-                    const partsStr = sParts.map(p => {
-                        const rep = p.Repuestos || p.repuesto || {};
-                        const nombre = rep.nombre || rep.descripcion || rep.repuesto || '';
-                        const cant = p.cantidad || 1;
-                        const ref = rep.sku || rep.referencia || '';
-                        return `${cant}x ${nombre}${ref ? ` (${ref})` : ''}`.trim();
-                    }).filter(Boolean).join(' | ');
-                    row.push(formatCsvField(partsStr));
+                    if (sParts.length > 0) {
+                        sPartsList = sParts.map(p => {
+                            const rep = p.Repuestos || p.repuesto || {};
+                            const nombre = rep.nombre || rep.descripcion || rep.repuesto || '';
+                            const cant = p.cantidad || 1;
+                            const ref = rep.sku || rep.referencia || '';
+                            return `${cant}x ${nombre}${ref ? ` (${ref})` : ''}`.trim();
+                        }).filter(Boolean);
+                    }
                 }
 
-                csvRows.push(row);
+                // Si piden productos o repuestos, repetir filas con la misma información del servicio
+                const maxRows = Math.max(
+                    1,
+                    includeProducts ? sProductsList.length : 0,
+                    includeParts ? sPartsList.length : 0
+                );
+
+                for (let i = 0; i < maxRows; i++) {
+                    const row = BASE_COLUMNS.map(c => formatCsvField(c.getValue(s)));
+
+                    if (includeProducts) {
+                        row.push(formatCsvField(sProductsList[i] || ''));
+                    }
+
+                    if (includeParts) {
+                        row.push(formatCsvField(sPartsList[i] || ''));
+                    }
+
+                    csvRows.push(row);
+                }
             });
 
             const csvContent = csvRows.map(e => e.join(";")).join("\n");
