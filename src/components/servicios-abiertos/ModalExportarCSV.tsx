@@ -186,47 +186,56 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
 
             const headers = BASE_COLUMNS.map(c => c.key);
             if (includeProducts) {
-                headers.push('PRODUCTOS');
+                headers.push('PRODUCTOS', 'CANTIDAD');
             }
             if (includeParts) {
-                headers.push('REPUESTOS');
+                headers.push('REPUESTOS', includeProducts ? 'CANTIDAD_REPUESTOS' : 'CANTIDAD');
             }
             csvRows = [headers];
 
             finalServicesToExport.forEach(s => {
                 // Preparar lista de productos para este servicio
-                let sProductsList: string[] = [];
+                let sProductsList: { desc: string; cant: number | string }[] = [];
                 if (includeProducts) {
                     const sProducts = allProducts.filter(p => p.servicio_id === s.id);
                     if (sProducts.length > 0) {
                         sProductsList = sProducts.map(p => {
                             const prod = p.Productos || p.producto || {};
                             const nombre = prod.nombre || prod.descripcion || prod.producto || '';
-                            const cant = p.cantidad || 1;
+                            const cant = p.cantidad ?? 1;
                             const ref = prod.sku || prod.referencia || '';
-                            return `${cant}x ${nombre}${ref ? ` (${ref})` : ''}`.trim();
-                        }).filter(Boolean);
+                            return {
+                                desc: `${nombre}${ref ? ` (${ref})` : ''}`.trim(),
+                                cant
+                            };
+                        }).filter((item: any) => item.desc);
                     } else if (Array.isArray(s.productos) && s.productos.length > 0) {
                         sProductsList = s.productos.map((p: any) => {
                             const nombre = p.producto || p.nombre || '';
-                            const cant = p.cantidad || 1;
-                            return `${cant}x ${nombre}`.trim();
-                        }).filter(Boolean);
+                            const cant = p.cantidad ?? 1;
+                            return {
+                                desc: nombre.trim(),
+                                cant
+                            };
+                        }).filter((item: any) => item.desc);
                     }
                 }
 
                 // Preparar lista de repuestos para este servicio
-                let sPartsList: string[] = [];
+                let sPartsList: { desc: string; cant: number | string }[] = [];
                 if (includeParts) {
                     const sParts = allParts.filter(p => p.servicio_id === s.id);
                     if (sParts.length > 0) {
                         sPartsList = sParts.map(p => {
                             const rep = p.Repuestos || p.repuesto || {};
                             const nombre = rep.nombre || rep.descripcion || rep.repuesto || '';
-                            const cant = p.cantidad || 1;
+                            const cant = p.cantidad ?? 1;
                             const ref = rep.sku || rep.referencia || '';
-                            return `${cant}x ${nombre}${ref ? ` (${ref})` : ''}`.trim();
-                        }).filter(Boolean);
+                            return {
+                                desc: `${nombre}${ref ? ` (${ref})` : ''}`.trim(),
+                                cant
+                            };
+                        }).filter((item: any) => item.desc);
                     }
                 }
 
@@ -241,11 +250,15 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
                     const row = BASE_COLUMNS.map(c => formatCsvField(c.getValue(s)));
 
                     if (includeProducts) {
-                        row.push(formatCsvField(sProductsList[i] || ''));
+                        const item = sProductsList[i];
+                        row.push(formatCsvField(item?.desc || ''));
+                        row.push(formatCsvField(item?.cant !== undefined ? item.cant : ''));
                     }
 
                     if (includeParts) {
-                        row.push(formatCsvField(sPartsList[i] || ''));
+                        const item = sPartsList[i];
+                        row.push(formatCsvField(item?.desc || ''));
+                        row.push(formatCsvField(item?.cant !== undefined ? item.cant : ''));
                     }
 
                     csvRows.push(row);
