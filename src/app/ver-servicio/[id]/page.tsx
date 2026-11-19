@@ -1175,16 +1175,14 @@ function InformacionTab({
                             </button>
                         )}
 
-                        {!isClosed && (
-                            <button
-                                onClick={handleOpenCrearRadicado}
-                                disabled={loadingRadicado}
-                                className="w-full h-12 flex items-center justify-center gap-3 bg-amber-500 text-white rounded-md text-sm font-semibold hover:bg-amber-600 transition-colors mt-3 disabled:opacity-50"
-                            >
-                                <FileText className="w-4 h-4" />
-                                Crear Radicado Enlazado
-                            </button>
-                        )}
+                        <button
+                            onClick={handleOpenCrearRadicado}
+                            disabled={loadingRadicado}
+                            className="w-full h-12 flex items-center justify-center gap-3 bg-amber-500 text-white rounded-md text-sm font-semibold hover:bg-amber-600 transition-colors mt-3 disabled:opacity-50"
+                        >
+                            <FileText className="w-4 h-4" />
+                            Crear Radicado Enlazado
+                        </button>
 
                         {service.estado === true && (
                             <button
