@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -51,6 +51,18 @@ interface SolicitarServicioProps {
 }
 
 export default function SolicitarServicioPage(props: any) {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[var(--c-suave)]">
+                <Loader2 className="w-10 h-10 animate-spin text-brand" />
+            </div>
+        }>
+            <SolicitarServicioContent {...props} />
+        </Suspense>
+    );
+}
+
+function SolicitarServicioContent(props: any) {
     const { isInline = false, defaultSolicitudId, onSuccess } = props || {};
     const router = useRouter();
     const searchParams = useSearchParams();
