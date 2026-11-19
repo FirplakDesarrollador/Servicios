@@ -111,7 +111,7 @@ export default function UsuariosPage() {
     );
 
     return (
-        <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans pb-10">
+        <div className="min-h-screen bg-[var(--c-suave)] text-slate-800 font-sans pb-10">
             <header className="fixed top-0 left-0 w-full bg-brand text-white z-50 h-[3.5rem] flex items-center px-6 shadow-lg">
                 <button
                     onClick={() => router.push('/configuracion')}

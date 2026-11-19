@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import AparienciaFlotante, { SCRIPT_APARIENCIA } from "@/components/Apariencia";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -32,11 +33,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_APARIENCIA }} />
+      </head>
       <body
         className={`${outfit.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <div className="fondo-liquido" aria-hidden="true"><span /><span /><span /><span /></div>
         {children}
+        <AparienciaFlotante />
       </body>
     </html>
   );

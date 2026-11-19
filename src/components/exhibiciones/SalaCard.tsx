@@ -12,12 +12,12 @@ export default function SalaCard({ sala }: SalaCardProps) {
             {/* Header Row */}
             <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
                 <div className="text-xs">
-                    <span className="text-[#254153] font-medium">NIT: </span>
+                    <span className="text-[var(--c-navy-texto)] font-medium">NIT: </span>
                     <span className="text-purple-600">{sala.nit || 'N/A'}</span>
                 </div>
 
                 <div className="text-xs">
-                    <span className="text-[#254153] font-medium">Ultimo Mantenimiento: </span>
+                    <span className="text-[var(--c-navy-texto)] font-medium">Ultimo Mantenimiento: </span>
                     <span className="text-gray-700">
                         {sala.ultimo_mantenimiento_fecha_cierre
                             ? new Date(sala.ultimo_mantenimiento_fecha_cierre).toLocaleDateString()
@@ -26,7 +26,7 @@ export default function SalaCard({ sala }: SalaCardProps) {
                 </div>
 
                 <div className="text-xs">
-                    <span className="text-[#254153] font-medium">Id: </span>
+                    <span className="text-[var(--c-navy-texto)] font-medium">Id: </span>
                     <span className="text-purple-600">{sala.id}</span>
                 </div>
             </div>
@@ -35,8 +35,8 @@ export default function SalaCard({ sala }: SalaCardProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Cliente y Sala */}
                 <div className="space-y-1">
-                    <p className="text-xs font-medium text-[#254153]">{sala.cliente_nombre || 'N/A'}</p>
-                    <p className="text-xs font-light text-[#254153]">{sala.nombre || 'N/A'}</p>
+                    <p className="text-xs font-medium text-[var(--c-navy-texto)]">{sala.cliente_nombre || 'N/A'}</p>
+                    <p className="text-xs font-light text-[var(--c-navy-texto)]">{sala.nombre || 'N/A'}</p>
                 </div>
 
                 {/* Ciudad */}
