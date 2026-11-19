@@ -18,6 +18,65 @@ const GRUPOS = [
     'ZOCALOS', 'QUARTZSTONE', 'GRIFERIA', 'WELLNESS'
 ];
 
+function getSearchVariants(token: string): string[] {
+    const raw = token.trim();
+    if (!raw) return [];
+    
+    // Normalization removing accents: á->a, é->e, í->i, ó->o, ú->u
+    const unaccented = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const variants = new Set<string>();
+    variants.add(raw);
+    variants.add(unaccented);
+
+    // Common Spanish word variations: bano <-> baño
+    if (/bano/i.test(raw)) {
+        variants.add(raw.replace(/bano/gi, 'baño'));
+    }
+    if (/baño/i.test(raw)) {
+        variants.add(raw.replace(/baño/gi, 'bano'));
+    }
+    if (raw.includes('ñ') || raw.includes('Ñ')) {
+        variants.add(raw.replace(/ñ/gi, 'n'));
+        variants.add(raw.replace(/Ñ/gi, 'N'));
+    }
+
+    return Array.from(variants).filter(Boolean);
+}
+
+function sanitizeToken(str: string): string {
+    return str.replace(/[,()%.]/g, '').trim();
+}
+
+function rankProduct(item: any, rawQuery: string, tokens: string[]): number {
+    const rawLower = rawQuery.toLowerCase().trim();
+    const rawNoAccent = rawLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const sku = (item.sku || '').toLowerCase();
+    const skuNoAccent = sku.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const nombre = (item.nombre || '').toLowerCase();
+    const nombreNoAccent = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // 1. Exact SKU match
+    if (sku === rawLower || skuNoAccent === rawNoAccent) return 1000;
+    
+    // 2. SKU starts with exact search query
+    if (sku.startsWith(rawLower) || skuNoAccent.startsWith(rawNoAccent)) return 800;
+
+    // 3. Exact full phrase in nombre
+    if (nombre.includes(rawLower) || nombreNoAccent.includes(rawNoAccent)) return 600;
+
+    // 4. Nombre starts with any search token
+    if (tokens.some(t => nombre.startsWith(t) || nombreNoAccent.startsWith(t))) return 400;
+
+    // 5. SKU contains query
+    if (sku.includes(rawLower) || skuNoAccent.includes(rawNoAccent)) return 300;
+
+    // 6. Default score
+    return 100;
+}
+
 export default function BuscadorProductos({ productosSeleccionados, onAdd, onRemove, onClose }: BuscadorProductosProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [grupo, setGrupo] = useState<string>('TODOS');
@@ -36,16 +95,48 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                     query = query.eq('grupo', grupo);
                 }
 
-                if (searchTerm) {
-                    query = query.or(`nombre.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,color_base.ilike.%${searchTerm}%,color_mueble.ilike.%${searchTerm}%`);
+                const tokens = searchTerm.trim().split(/\s+/).filter(Boolean);
+
+                if (tokens.length > 0) {
+                    tokens.forEach(token => {
+                        const variants = getSearchVariants(token).map(sanitizeToken).filter(Boolean);
+                        if (variants.length > 0) {
+                            const orClauses: string[] = [];
+                            variants.forEach(v => {
+                                orClauses.push(
+                                    `nombre.ilike.%${v}%`,
+                                    `sku.ilike.%${v}%`,
+                                    `color_base.ilike.%${v}%`,
+                                    `color_mueble.ilike.%${v}%`,
+                                    `sku_base.ilike.%${v}%`,
+                                    `codigo_barras.ilike.%${v}%`
+                                );
+                            });
+                            query = query.or(orClauses.join(','));
+                        }
+                    });
                 }
 
                 const { data, error } = await query
                     .order('nombre', { ascending: true })
-                    .limit(50);
+                    .limit(150);
 
                 if (error) throw error;
-                setResults(data || []);
+                
+                let sortedData = data || [];
+                if (searchTerm.trim() && sortedData.length > 0) {
+                    const cleanTokens = tokens.map(t => t.toLowerCase());
+                    sortedData.sort((a, b) => {
+                        const scoreA = rankProduct(a, searchTerm, cleanTokens);
+                        const scoreB = rankProduct(b, searchTerm, cleanTokens);
+                        if (scoreB !== scoreA) {
+                            return scoreB - scoreA;
+                        }
+                        return (a.nombre || '').localeCompare(b.nombre || '');
+                    });
+                }
+
+                setResults(sortedData);
             } catch (err: any) {
                 console.error('Error searching products:', err);
                 setSearchError(err.message || 'Error al buscar productos');
@@ -54,7 +145,7 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
             }
         };
 
-        const timer = setTimeout(search, 500);
+        const timer = setTimeout(search, 350);
         return () => clearTimeout(timer);
     }, [searchTerm, grupo]);
 
@@ -104,16 +195,26 @@ export default function BuscadorProductos({ productosSeleccionados, onAdd, onRem
                         </div>
 
                         {/* Advanced Search Input */}
-                        <div className="w-[320px] flex flex-col gap-1">
+                        <div className="flex-1 min-w-[280px] flex flex-col gap-1">
                             <label className="text-sm text-slate-700 font-medium">Filtro avanzado</label>
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="sku / descripcion / color"
-                                    className="w-full h-10 px-3 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                                    placeholder="Buscar por palabras clave (ej: cocina agata 180, sikuani, sku...)"
+                                    className="w-full h-10 pl-3 pr-9 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
                                 />
+                                {searchTerm && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 transition-colors"
+                                        title="Limpiar búsqueda"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
