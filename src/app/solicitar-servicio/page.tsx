@@ -51,19 +51,23 @@ interface SolicitarServicioProps {
 }
 
 export default function SolicitarServicioPage(props: any) {
+    const { isInline = false, defaultSolicitudId, onSuccess } = props || {};
     return (
         <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-[var(--c-suave)]">
                 <Loader2 className="w-10 h-10 animate-spin text-brand" />
             </div>
         }>
-            <SolicitarServicioContent {...props} />
+            <SolicitarServicioContent 
+                isInline={isInline}
+                defaultSolicitudId={defaultSolicitudId}
+                onSuccess={onSuccess}
+            />
         </Suspense>
     );
 }
 
-function SolicitarServicioContent(props: any) {
-    const { isInline = false, defaultSolicitudId, onSuccess } = props || {};
+function SolicitarServicioContent({ isInline = false, defaultSolicitudId, onSuccess }: SolicitarServicioProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
@@ -108,175 +112,182 @@ function SolicitarServicioContent(props: any) {
     const observacionesRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setLoading(false);
+        }, 7000);
+
         const init = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                router.push('/login');
-                return;
-            }
+            try {
+                const { data: { session }, error: authError } = await supabase.auth.getSession();
+                if (authError) throw authError;
 
-            // Fetch user and consecutivo in parallel
-            const [userRes, consecRes] = await Promise.all([
-                supabase.from('Usuarios').select('*').eq('user_id', session.user.id).single(),
-                supabase.from('nuevo_consecutivo').select('nuevo_consecutivo').limit(1).single()
-            ]);
-
-            if (userRes.data) setCurrentUser(userRes.data);
-            if (consecRes.data) setNextConsecutivo(consecRes.data.nuevo_consecutivo);
-
-            // Generate 5-digit random suffix
-            const random = Math.floor(10000 + Math.random() * 90000).toString();
-            setRandomSuffix(random);
-
-            // Handle parent service pre-fill
-            const parentId = searchParams.get('parent_id');
-            if (parentId) {
-                setParentServiceId(parentId);
-                const { data: parentData } = await supabase
-                    .from('Servicios')
-                    .select('*, Ubicaciones(*), Consumidores(*)')
-                    .eq('id', parentId)
-                    .single();
-
-                if (parentData) {
-                    setCanalVenta(parentData.canal_de_venta);
-                    setClienteSeleccionado(parentData.Ubicaciones);
-                    setClienteFinalSeleccionado(parentData.Consumidores);
-                    if (parentData.numero_de_pedido) {
-                        setNumeroPedido(parentData.numero_de_pedido);
-                    }
-
-                    // Logic for tipo_de_servicio
-                    if (parentData.tipo_de_servicio === 'visita_instalacion') {
-                        setTipoServicio('instalacion');
-                    } else {
-                        setTipoServicio('garantia_sin_pedido');
-                    }
-
-                    setObservaciones(`Este es un servicio enlazado y el servicio original es ${parentData.consecutivo}`);
-
-                    // Fetch products from parent service
-                    const { data: productsData } = await supabase
-                        .from('productos_servicios')
-                        .select('*, Productos(*)')
-                        .eq('servicio_id', parentId);
-                    
-                    if (productsData) {
-                        const formattedProducts = productsData.map(ps => ({
-                            ...ps.Productos,
-                            cantidad: ps.cantidad
-                        }));
-                        setProductosSeleccionados(formattedProducts);
-                    }
+                if (!session) {
+                    router.push('/login');
+                    return;
                 }
-            }
 
-            // Handle solicitud_id pre-fill
-            const solicitudId = defaultSolicitudId || searchParams.get('solicitud_id');
-            if (solicitudId) {
-                const { data: solicitudData } = await supabase
-                    .from('solicitudes_clientes')
-                    .select('*')
-                    .eq('id', solicitudId)
-                    .single();
+                // Fetch user and consecutivo in parallel
+                const [userRes, consecRes] = await Promise.all([
+                    supabase.from('Usuarios').select('*').eq('user_id', session.user.id).single(),
+                    supabase.from('nuevo_consecutivo').select('nuevo_consecutivo').limit(1).single()
+                ]);
 
-                if (solicitudData) {
-                    setLlevaClienteFinal(true);
-                    setCanalVenta('canal_propio_ecommerce');
-                    if (solicitudData.consecutivo) {
-                        setSolicitudConsecutivo(solicitudData.consecutivo);
-                    }
-                    if (solicitudData.tipodeservicio) {
-                        const tipo = solicitudData.tipodeservicio.toLowerCase();
-                        if (tipo.includes('visita')) {
-                            setTipoServicio('visita_instalacion');
-                        } else if (tipo.includes('instalaci')) {
+                if (userRes.data) setCurrentUser(userRes.data);
+                if (consecRes.data) setNextConsecutivo(consecRes.data.nuevo_consecutivo);
+
+                // Generate 5-digit random suffix
+                const random = Math.floor(10000 + Math.random() * 90000).toString();
+                setRandomSuffix(random);
+
+                // Handle parent service pre-fill
+                const parentId = searchParams?.get('parent_id');
+                if (parentId) {
+                    setParentServiceId(parentId);
+                    const { data: parentData } = await supabase
+                        .from('Servicios')
+                        .select('*, Ubicaciones(*), Consumidores(*)')
+                        .eq('id', parentId)
+                        .single();
+
+                    if (parentData) {
+                        setCanalVenta(parentData.canal_de_venta);
+                        setClienteSeleccionado(parentData.Ubicaciones);
+                        setClienteFinalSeleccionado(parentData.Consumidores);
+                        if (parentData.numero_de_pedido) {
+                            setNumeroPedido(parentData.numero_de_pedido);
+                        }
+
+                        // Logic for tipo_de_servicio
+                        if (parentData.tipo_de_servicio === 'visita_instalacion') {
                             setTipoServicio('instalacion');
+                        } else {
+                            setTipoServicio('garantia_sin_pedido');
+                        }
+
+                        setObservaciones(`Este es un servicio enlazado y el servicio original es ${parentData.consecutivo}`);
+
+                        // Fetch products from parent service
+                        const { data: productsData } = await supabase
+                            .from('productos_servicios')
+                            .select('*, Productos(*)')
+                            .eq('servicio_id', parentId);
+                        
+                        if (productsData) {
+                            const formattedProducts = productsData.map(ps => ({
+                                ...ps.Productos,
+                                cantidad: ps.cantidad
+                            }));
+                            setProductosSeleccionados(formattedProducts);
                         }
                     }
-                    // Mapear los datos de la solicitud al cliente final seleccionado (aunque no tenga ID en BD aún)
-                    // Se creará en la BD automáticamente al guardar el servicio si no tiene ID.
-                    setClienteFinalSeleccionado({
-                        cedula: solicitudData.numeroid,
-                        contacto: solicitudData.nombre_razon_social,
-                        telefono: solicitudData.telefono,
-                        direccion: solicitudData.direccion,
-                        ciudad: (solicitudData.ciudad || '').trim(),
-                        correo_electronico: solicitudData.correo_electronico,
-                        _search_type: 'consumidor'
-                    });
-
-                    // Auto-attach files from solicitud
-                    const newAdjuntos = [];
-                    if (solicitudData.soporte_pago_url) newAdjuntos.push({ url: solicitudData.soporte_pago_url, name: 'Soporte de Pago', isHidden: true }); // Facturado/Pago usually hidden
-                    if (solicitudData.factura_url) newAdjuntos.push({ url: solicitudData.factura_url, name: 'Factura', isHidden: true });
-                    if (solicitudData.rut_url) newAdjuntos.push({ url: solicitudData.rut_url, name: 'RUT / Cédula', isHidden: true });
-                    if (newAdjuntos.length > 0) setAdjuntos(newAdjuntos);
                 }
-            }
 
-            // Handle ubicacion_id pre-fill (from sala-details)
-            const ubicacionId = searchParams.get('ubicacion_id');
-            if (ubicacionId) {
-                const { data: ubicacionData } = await supabase
-                    .from('Ubicaciones')
-                    .select('*')
-                    .eq('id', ubicacionId)
-                    .single();
-
-                if (ubicacionData) {
-                    setClienteSeleccionado(ubicacionData);
-                    // Decide canalVenta based on ubicacionData or default to canal_ditribuidor
-                    if (ubicacionData.id === 515 || ubicacionData.id === 516) {
-                        setCanalVenta('canal_propio_ecommerce');
-                        setLlevaClienteFinal(true);
-                    } else {
-                        setCanalVenta('canal_ditribuidor');
-                    }
-                    
-                    // Fetch products of this ubicacion as default? 
-                    // Wait, in FF it auto-populates products from exhibiciones.
-                    const { data: exhibicionesData } = await supabase
-                        .from('query_exhibiciones')
+                // Handle solicitud_id pre-fill
+                const solicitudId = defaultSolicitudId || searchParams?.get('solicitud_id');
+                if (solicitudId) {
+                    const { data: solicitudData } = await supabase
+                        .from('solicitudes_clientes')
                         .select('*')
-                        .eq('ubicacion_id', ubicacionId);
+                        .eq('id', solicitudId)
+                        .single();
 
-                    if (exhibicionesData) {
-                        const formattedProducts = exhibicionesData.map(ps => ({
-                            id: ps.producto_id,
-                            sku: ps.producto_sku,
-                            nombre: ps.producto_descripcion,
-                            cantidad: 1
-                        }));
-                        setProductosSeleccionados(formattedProducts);
-                    }
-                }
-            } else if (!parentId && !searchParams.get('solicitud_id') && userRes.data?.sucursal_predeterminada) {
-                // Handle default sucursal if user has one configured
-                const { data: sucursalData } = await supabase
-                    .from('Ubicaciones')
-                    .select('*')
-                    .eq('id', userRes.data.sucursal_predeterminada)
-                    .single();
-
-                if (sucursalData) {
-                    setClienteSeleccionado(sucursalData);
-                    if (sucursalData.id === 515 || sucursalData.id === 516) {
-                        setCanalVenta('canal_propio_ecommerce');
+                    if (solicitudData) {
                         setLlevaClienteFinal(true);
-                    } else if (sucursalData.cliente_id === 2063 || sucursalData.nombre?.toLowerCase().includes('firplakhome') || sucursalData.nombre?.toLowerCase().includes('sala')) {
-                        setCanalVenta('canal_propio_firplakhome');
-                    } else {
-                        setCanalVenta('canal_ditribuidor');
+                        setCanalVenta('canal_propio_ecommerce');
+                        if (solicitudData.consecutivo) {
+                            setSolicitudConsecutivo(solicitudData.consecutivo);
+                        }
+                        if (solicitudData.tipodeservicio) {
+                            const tipo = solicitudData.tipodeservicio.toLowerCase();
+                            if (tipo.includes('visita')) {
+                                setTipoServicio('visita_instalacion');
+                            } else if (tipo.includes('instalaci')) {
+                                setTipoServicio('instalacion');
+                            }
+                        }
+                        setClienteFinalSeleccionado({
+                            cedula: solicitudData.numeroid,
+                            contacto: solicitudData.nombre_razon_social,
+                            telefono: solicitudData.telefono,
+                            direccion: solicitudData.direccion,
+                            ciudad: (solicitudData.ciudad || '').trim(),
+                            correo_electronico: solicitudData.correo_electronico,
+                            _search_type: 'consumidor'
+                        });
+
+                        // Auto-attach files from solicitud
+                        const newAdjuntos = [];
+                        if (solicitudData.soporte_pago_url) newAdjuntos.push({ url: solicitudData.soporte_pago_url, name: 'Soporte de Pago', isHidden: true });
+                        if (solicitudData.factura_url) newAdjuntos.push({ url: solicitudData.factura_url, name: 'Factura', isHidden: true });
+                        if (solicitudData.rut_url) newAdjuntos.push({ url: solicitudData.rut_url, name: 'RUT / Cédula', isHidden: true });
+                        if (newAdjuntos.length > 0) setAdjuntos(newAdjuntos);
                     }
                 }
-            }
 
-            setLoading(false);
+                // Handle ubicacion_id pre-fill (from sala-details)
+                const ubicacionId = searchParams?.get('ubicacion_id');
+                if (ubicacionId) {
+                    const { data: ubicacionData } = await supabase
+                        .from('Ubicaciones')
+                        .select('*')
+                        .eq('id', ubicacionId)
+                        .single();
+
+                    if (ubicacionData) {
+                        setClienteSeleccionado(ubicacionData);
+                        if (ubicacionData.id === 515 || ubicacionData.id === 516) {
+                            setCanalVenta('canal_propio_ecommerce');
+                            setLlevaClienteFinal(true);
+                        } else {
+                            setCanalVenta('canal_ditribuidor');
+                        }
+                        
+                        const { data: exhibicionesData } = await supabase
+                            .from('query_exhibiciones')
+                            .select('*')
+                            .eq('ubicacion_id', ubicacionId);
+
+                        if (exhibicionesData) {
+                            const formattedProducts = exhibicionesData.map(ps => ({
+                                id: ps.producto_id,
+                                sku: ps.producto_sku,
+                                nombre: ps.producto_descripcion,
+                                cantidad: 1
+                            }));
+                            setProductosSeleccionados(formattedProducts);
+                        }
+                    }
+                } else if (!parentId && !searchParams?.get('solicitud_id') && userRes.data?.sucursal_predeterminada) {
+                    // Handle default sucursal if user has one configured
+                    const { data: sucursalData } = await supabase
+                        .from('Ubicaciones')
+                        .select('*')
+                        .eq('id', userRes.data.sucursal_predeterminada)
+                        .single();
+
+                    if (sucursalData) {
+                        setClienteSeleccionado(sucursalData);
+                        const sucursalNombre = String(sucursalData.nombre || '').toLowerCase();
+                        if (sucursalData.id === 515 || sucursalData.id === 516) {
+                            setCanalVenta('canal_propio_ecommerce');
+                            setLlevaClienteFinal(true);
+                        } else if (sucursalData.cliente_id === 2063 || sucursalNombre.includes('firplakhome') || sucursalNombre.includes('sala')) {
+                            setCanalVenta('canal_propio_firplakhome');
+                        } else {
+                            setCanalVenta('canal_ditribuidor');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error inicializando solicitar-servicio:', err);
+            } finally {
+                clearTimeout(timeoutId);
+                setLoading(false);
+            }
         };
 
         init();
-    }, [router]);
+    }, []);
 
     // Update consecutivo when tipoServicio or user changes
     useEffect(() => {
@@ -682,7 +693,7 @@ function SolicitarServicioContent(props: any) {
             if (servicioError) throw servicioError;
 
             // Eliminar la solicitud de la lista de pendientes si se creó a partir de una solicitud web
-            const solicitudActualId = defaultSolicitudId || searchParams.get('solicitud_id');
+            const solicitudActualId = defaultSolicitudId || searchParams?.get('solicitud_id');
             if (solicitudActualId) {
                 await supabase.from('solicitudes_clientes').delete().eq('id', solicitudActualId);
             }
@@ -1525,13 +1536,13 @@ function SolicitarServicioContent(props: any) {
                                 </div>
 
                                 <div className="bg-slate-100 rounded-2xl overflow-hidden flex items-center justify-center min-h-[300px] max-h-[70vh]">
-                                    {previewFile.type.startsWith('image/') ? (
+                                    {previewFile.type?.startsWith('image/') ? (
                                         <img
                                             src={URL.createObjectURL(previewFile)}
                                             alt="Preview"
                                             className="max-w-full max-h-full object-contain shadow-inner"
                                         />
-                                    ) : previewFile.type.startsWith('video/') ? (
+                                    ) : previewFile.type?.startsWith('video/') ? (
                                         <video
                                             controls
                                             autoPlay
