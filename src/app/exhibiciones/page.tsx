@@ -4,9 +4,10 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, RefreshCw, Eraser } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Eraser, FileSpreadsheet } from 'lucide-react'
 import SalaCard from '@/components/exhibiciones/SalaCard'
 import { QueryUbicacionesRow } from '@/types/supabase'
+import { exportarInformeExhibiciones } from './exportarExhibiciones'
 
 interface Usuario {
     id: number
@@ -202,6 +203,23 @@ export default function ExhibicionesPage() {
         window.location.reload()
     }
 
+    const [exportando, setExportando] = useState(false)
+    const handleExportar = async () => {
+        if (filteredSalas.length === 0) {
+            alert('No hay salas para exportar con los filtros aplicados')
+            return
+        }
+        setExportando(true)
+        try {
+            await exportarInformeExhibiciones(filteredSalas)
+        } catch (error) {
+            console.error('[Exhibiciones] Error exportando informe:', error)
+            alert('Hubo un error al generar el informe de Excel.')
+        } finally {
+            setExportando(false)
+        }
+    }
+
     const rolesConFiltroAsesor = ['everyone'] // Dummy value
 
 
@@ -321,11 +339,22 @@ export default function ExhibicionesPage() {
                         <span className="font-medium text-[var(--c-navy-texto)]">Salas encontradas: </span>
                         <span className="text-sm">{filteredSalas.length}</span>
                     </p>
-                    {busqueda && (
-                        <p className="text-sm text-red-600">
-                            búsqueda aplicada: &quot;{busqueda}&quot;
-                        </p>
-                    )}
+                    <div className="flex items-center gap-4">
+                        {busqueda && (
+                            <p className="text-sm text-red-600">
+                                búsqueda aplicada: &quot;{busqueda}&quot;
+                            </p>
+                        )}
+                        <button
+                            onClick={handleExportar}
+                            disabled={exportando || loading}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            title="Descarga clientes, salas y unidades en exhibición de las salas filtradas"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            {exportando ? 'Generando...' : 'Informe Excel'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Loading */}
