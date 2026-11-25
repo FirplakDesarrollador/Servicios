@@ -185,9 +185,8 @@ function SalaDetailsContent() {
                 .select('*')
                 .eq('ubicacion_id', id);
 
+            // El buscador queda abierto para seguir agregando; el producto aparece en "Productos seleccionados"
             if (productosData) setProductos(productosData);
-            setShowBuscadorProductos(false);
-            alert('Producto agregado correctamente');
         } catch (error: any) {
             console.error('Error adding product:', error);
             alert('Hubo un error al agregar el producto: ' + (error?.message || error?.details || JSON.stringify(error)));
@@ -494,9 +493,18 @@ function SalaDetailsContent() {
 
             {showBuscadorProductos && (
                 <BuscadorProductos
-                    productosSeleccionados={[]} // In FF it shows nothing or the ones already there. We just want to add one.
+                    // Lo que ya tiene la sala en exhibición. El id es el de la exhibición (no el del producto)
+                    // para que el mismo SKU se pueda agregar otra vez: cada fila es una unidad exhibida.
+                    productosSeleccionados={productos.map(p => ({
+                        id: `exhibicion-${p.id}`,
+                        sku: p.producto_sku,
+                        nombre: p.producto_descripcion,
+                    }))}
                     onAdd={(item) => handleAddProduct(item)}
-                    onRemove={() => {}}
+                    onRemove={(idx) => {
+                        const exhibicion = productos[idx]
+                        if (exhibicion) handleRemoveProduct(exhibicion.id)
+                    }}
                     onClose={() => setShowBuscadorProductos(false)}
                 />
             )}
