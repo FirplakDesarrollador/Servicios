@@ -156,13 +156,23 @@ function SalaDetailsContent() {
     const handleAddProduct = async (productoItem: any) => {
         if (!id) return;
         try {
+            // created_by guarda el id numérico de Usuarios, no el uuid de Auth
             const { data: userData } = await supabase.auth.getUser();
-            const userId = userData.user?.id;
+            let creadoPor: number | null = null;
+            if (userData.user?.id) {
+                const { data: perfil } = await supabase
+                    .from('Usuarios')
+                    .select('id')
+                    .eq('user_id', userData.user.id)
+                    .maybeSingle();
+                creadoPor = perfil?.id ?? null;
+            }
 
-            const { error } = await supabase.from('exhibiciones').insert({
+            // La tabla real de exhibiciones es productos_ubicaciones (query_exhibiciones es su vista)
+            const { error } = await supabase.from('productos_ubicaciones').insert({
                 producto_id: productoItem.id,
-                ubicacion_id: id,
-                created_by: userId,
+                ubicacion_id: Number(id),
+                created_by: creadoPor,
                 comentario: productoItem.nombre,
                 mueble_marcado: false
             });
@@ -180,14 +190,14 @@ function SalaDetailsContent() {
             alert('Producto agregado correctamente');
         } catch (error: any) {
             console.error('Error adding product:', error);
-            alert('Hubo un error al agregar el producto: ' + error.message);
+            alert('Hubo un error al agregar el producto: ' + (error?.message || error?.details || JSON.stringify(error)));
         }
     }
 
     const handleRemoveProduct = async (exhibicionId: number) => {
         try {
             const { error } = await supabase
-                .from('exhibiciones')
+                .from('productos_ubicaciones')
                 .delete()
                 .eq('id', exhibicionId);
             if (error) throw error;
