@@ -24,7 +24,7 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
         const fetchProfile = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                const { data } = await supabase.from('Usuarios').select('id, rol, sucursal_predeterminada').eq('user_id', session.user.id).single();
+                const { data } = await supabase.from('Usuarios').select('id, rol, sucursal_predeterminada, id_colaboradores').eq('user_id', session.user.id).single();
                 setUserProfile(data);
             }
         };
@@ -50,11 +50,12 @@ export default function BuscadorClientes({ canalVenta, onSelect, onClose }: Busc
                 });
 
                 if (userProfile?.rol === 'comercial') {
+                    const validAsesorIds = [userProfile.id, ...(userProfile.id_colaboradores || [])];
+                    const filters: string[] = validAsesorIds.map((aid: number) => `asesor_id.eq.${aid}`);
                     if (userProfile?.sucursal_predeterminada) {
-                        uQuery = uQuery.or(`asesor_id.eq.${userProfile.id},id.eq.${userProfile.sucursal_predeterminada}`);
-                    } else {
-                        uQuery = uQuery.eq('asesor_id', userProfile.id);
+                        filters.push(`id.eq.${userProfile.sucursal_predeterminada}`);
                     }
+                    uQuery = uQuery.or(filters.join(','));
                 }
 
                 const ubicacionesRes = await uQuery.limit(40);

@@ -15,6 +15,7 @@ interface ModalEditCondebeProps {
         tipo_de_servicio: string;
         facturado: boolean;
     };
+    isClosed?: boolean;
 }
 
 export default function ModalEditCondebe({
@@ -22,7 +23,8 @@ export default function ModalEditCondebe({
     onClose,
     onSuccess,
     serviceId,
-    initialData
+    initialData,
+    isClosed = false
 }: ModalEditCondebeProps) {
     const [loading, setLoading] = useState(false);
     const [consecutivo, setConsecutivo] = useState(initialData.consecutivo || '');
@@ -67,6 +69,10 @@ export default function ModalEditCondebe({
     };
 
     const handleSave = async () => {
+        if (isClosed) {
+            alert('No se puede modificar un servicio cerrado.');
+            return;
+        }
         try {
             setLoading(true);
             const { error } = await supabase

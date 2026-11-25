@@ -14,13 +14,15 @@ interface ModalEditDistribuidorProps {
         ubicacion_contacto: string;
         ubicacion_telefono: string;
     };
+    isClosed?: boolean;
 }
 
 export default function ModalEditDistribuidor({
     isOpen,
     onClose,
     onSuccess,
-    initialData
+    initialData,
+    isClosed = false
 }: ModalEditDistribuidorProps) {
     const [formData, setFormData] = useState({
         direccion: initialData.ubicacion_direccion || '',
@@ -94,6 +96,10 @@ export default function ModalEditDistribuidor({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isClosed) {
+            setError('No se puede modificar la información de un servicio cerrado.');
+            return;
+        }
         if (!initialData.ubicacion_id) {
             setError('No hay un distribuidor/ubicación asociada a este servicio.');
             return;

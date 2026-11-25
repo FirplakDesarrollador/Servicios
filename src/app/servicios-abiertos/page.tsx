@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,22 @@ import { generateConsecutivoPDF } from '@/lib/pdfGenerator';
 import { aplicarDireccionesAServicios } from '@/lib/direccionesCliente';
 
 export default function ServiciosAbiertosPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-slate-200 border-t-brand rounded-full animate-spin"></div>
+                    <Settings className="w-6 h-6 text-brand absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                </div>
+                <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-xs mt-4">Cargando servicios...</p>
+            </div>
+        }>
+            <ServiciosAbiertosContent />
+        </Suspense>
+    );
+}
+
+function ServiciosAbiertosContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
@@ -51,7 +67,7 @@ export default function ServiciosAbiertosPage() {
     const [currentPage, setCurrentPage] = useState(Number(searchParams.get('p')) || 1);
     const itemsPerPage = 50;
 
-    // Sync filters to URL
+    // Sync filters to URL only if they changed
     useEffect(() => {
         const params = new URLSearchParams();
         if (searchTerm) params.set('q', searchTerm);
@@ -63,8 +79,14 @@ export default function ServiciosAbiertosPage() {
         if (showUnassignedOnly) params.set('unassigned', 'true');
         if (currentPage > 1) params.set('p', currentPage.toString());
 
-        router.replace(`?${params.toString()}`, { scroll: false });
-    }, [searchTerm, filterDateStart, filterDateEnd, filterStatus, filterTechnician, filterMacAdvisor, showUnassignedOnly, currentPage, router]);
+        const currentQuery = searchParams.toString();
+        const nextQuery = params.toString();
+
+        if (currentQuery !== nextQuery) {
+            const nextUrl = nextQuery ? `?${nextQuery}` : '/servicios-abiertos';
+            router.replace(nextUrl, { scroll: false });
+        }
+    }, [searchTerm, filterDateStart, filterDateEnd, filterStatus, filterTechnician, filterMacAdvisor, showUnassignedOnly, currentPage, router, searchParams]);
 
     useEffect(() => {
         const init = async () => {
@@ -142,7 +164,7 @@ export default function ServiciosAbiertosPage() {
         };
 
         init();
-    }, [router]);
+    }, []);
 
     // Filtering logic
     useEffect(() => {
@@ -151,20 +173,20 @@ export default function ServiciosAbiertosPage() {
         if (searchTerm) {
             const lowerSearch = searchTerm.toLowerCase();
             result = result.filter(s =>
-                (s.consecutivo?.toLowerCase().includes(lowerSearch)) ||
-                (s.numero_de_pedido?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidor_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.asesor_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.tecnico_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.macNombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.coordinador_nombre?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion_ciudad?.toLowerCase().includes(lowerSearch)) ||
-                (s.tipo_de_servicio?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion_nit?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidor_cedula?.toLowerCase().includes(lowerSearch)) ||
-                (s.ubicacion_telefono?.toLowerCase().includes(lowerSearch)) ||
-                (s.consumidor_telefono?.toLowerCase().includes(lowerSearch))
+                String(s.consecutivo || '').toLowerCase().includes(lowerSearch) ||
+                String(s.numero_de_pedido || '').toLowerCase().includes(lowerSearch) ||
+                String(s.ubicacion_nombre || '').toLowerCase().includes(lowerSearch) ||
+                String(s.consumidor_nombre || '').toLowerCase().includes(lowerSearch) ||
+                String(s.asesor_nombre || '').toLowerCase().includes(lowerSearch) ||
+                String(s.tecnico_nombre || '').toLowerCase().includes(lowerSearch) ||
+                String(s.macNombre || '').toLowerCase().includes(lowerSearch) ||
+                String(s.coordinador_nombre || '').toLowerCase().includes(lowerSearch) ||
+                String(s.ubicacion_ciudad || '').toLowerCase().includes(lowerSearch) ||
+                String(s.tipo_de_servicio || '').toLowerCase().includes(lowerSearch) ||
+                String(s.ubicacion_nit || '').toLowerCase().includes(lowerSearch) ||
+                String(s.consumidor_cedula || '').toLowerCase().includes(lowerSearch) ||
+                String(s.ubicacion_telefono || '').toLowerCase().includes(lowerSearch) ||
+                String(s.consumidor_telefono || '').toLowerCase().includes(lowerSearch)
             );
         }
 
@@ -206,7 +228,7 @@ export default function ServiciosAbiertosPage() {
             result = result.filter(s => {
                 const serviceType = (s.tipoDeServicio || '').toLowerCase().trim();
                 const hasType = warrantyTypes.includes(serviceType);
-                const noMacAdvisor = !s.asesorMacNombre || s.asesorMacNombre.trim() === '';
+                const noMacAdvisor = !s.asesorMacNombre || String(s.asesorMacNombre).trim() === '';
                 return hasType && noMacAdvisor;
             });
         }

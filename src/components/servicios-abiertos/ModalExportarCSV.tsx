@@ -11,6 +11,46 @@ interface ModalExportarCSVProps {
     services: any[];
 }
 
+const BASE_COLUMNS: { key: string; getValue: (s: any) => any }[] = [
+    { key: 'id', getValue: (s) => s.id },
+    { key: 'fecha_solicitud', getValue: (s) => s.created_at ? String(s.created_at).replace('T', ' ').split('.')[0] : '' },
+    { key: 'consecutivo', getValue: (s) => s.consecutivo || '' },
+    { key: 'numero_de_pedido', getValue: (s) => s.numero_de_pedido || s.numeroDePedido || '' },
+    { key: 'estado', getValue: (s) => s.estado === true ? 'Abierto' : (s.estado === false ? 'Cerrado' : (s.estado ?? '')) },
+    { key: 'tipo_de_servicio', getValue: (s) => s.tipo_de_servicio || s.tipoDeServicio || '' },
+    { key: 'canal_de_venta', getValue: (s) => s.canal_de_venta || s.canalDeVenta || '' },
+    { key: 'facturado', getValue: (s) => s.facturado === true ? 'Sí' : (s.facturado === false ? 'No' : (s.facturado ?? '')) },
+    { key: 'asesor_comercial', getValue: (s) => s.asesor_nombre || s.asesorNombre || '' },
+    { key: 'coordinador_nombre', getValue: (s) => s.coordinador_nombre || s.coordinadorNombre || '' },
+    { key: 'cliente', getValue: (s) => s.cliente_nombre || s.clienteNombre || '' },
+    { key: 'cliente_nit', getValue: (s) => s.ubicacion_nit || s.ubicacionNit || '' },
+    { key: 'cliente_obra_sala', getValue: (s) => s.ubicacion_nombre || s.ubicacionNombre || '' },
+    { key: 'cliente_contacto', getValue: (s) => s.ubicacion_contacto || s.ubicacionContacto || '' },
+    { key: 'cliente_telefono', getValue: (s) => s.ubicacion_telefono || s.ubicacionTelefono || '' },
+    { key: 'cliente_direccion', getValue: (s) => s.ubicacion_direccion || s.ubicacionDireccion || '' },
+    { key: 'cliente_ciudad', getValue: (s) => s.ubicacion_ciudad || s.ubicacionCiudad || '' },
+    { key: 'cliente_zona', getValue: (s) => s.ubicacion_zona || s.ubicacionZona || '' },
+    { key: 'cliente_pais', getValue: (s) => s.ubicacion_pais || s.ubicacionPais || '' },
+    { key: 'cliente_departamento', getValue: (s) => s.ubicacion_departamento || s.ubicacionDepartamento || '' },
+    { key: 'clienteFinal_cedula', getValue: (s) => s.consumidor_cedula || s.consumidorCedula || '' },
+    { key: 'clienteFinal_contacto', getValue: (s) => s.consumidor_contacto || s.consumidorContacto || s.consumidor_nombre || s.consumidorNombre || '' },
+    { key: 'clienteFinal_telefono', getValue: (s) => s.consumidor_telefono || s.consumidorTelefono || '' },
+    { key: 'clienteFinal_direccion', getValue: (s) => s.consumidor_direccion || s.consumidorDireccion || '' },
+    { key: 'clienteFinal_descripcion_direccion', getValue: (s) => s.consumidor_descripcion_direccion || s.consumidorDescripcionDireccion || '' },
+    { key: 'clienteFinal_ciudad', getValue: (s) => s.consumidor_ciudad || s.consumidorCiudad || '' },
+    { key: 'clienteFinal_pais', getValue: (s) => s.consumidor_pais || s.consumidorPais || '' },
+    { key: 'clienteFinal_departamento', getValue: (s) => s.consumidor_departamento || s.consumidorDepartamento || '' },
+    { key: 'clienteFinal_zona', getValue: (s) => s.consumidor_zona || s.consumidorZona || '' },
+    { key: 'clienteFinal_correo', getValue: (s) => s.consumidor_correo || s.consumidorCorreo || '' },
+    { key: 'aplica_tecnico', getValue: (s) => s.aplica_tecnico === true || s.aplicaTecnico === true ? 'Sí' : (s.aplica_tecnico === false || s.aplicaTecnico === false ? 'No' : (s.aplica_tecnico ?? s.aplicaTecnico ?? '')) },
+    { key: 'tecnico', getValue: (s) => s.tecnico_nombre || s.tecnicoNombre || '' },
+    { key: 'visita_fecha_hora_inicio', getValue: (s) => s.visita_fecha_hora_inicio ? String(s.visita_fecha_hora_inicio).replace('T', ' ').split('.')[0] : '' },
+    { key: 'visita_fecha_hora_fin', getValue: (s) => s.visita_fecha_hora_fin ? String(s.visita_fecha_hora_fin).replace('T', ' ').split('.')[0] : '' },
+    { key: 'estado_visita', getValue: (s) => s.estado_visita || s.estadoVisita || s.estadoAgendamiento || '' },
+    { key: 'fecha_cierre', getValue: (s) => s.fecha_cierre ? String(s.fecha_cierre).split('T')[0] : '' },
+    { key: 'cerrado_por', getValue: (s) => s.nombre_cerrado_por || s.nombreCerradoPor || s.cerrado_por || '' }
+];
+
 export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExportarCSVProps) {
     const [includeProducts, setIncludeProducts] = useState(false);
     const [includeParts, setIncludeParts] = useState(false);
@@ -116,22 +156,6 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
             }
             let csvRows = [];
             
-            // Generate basic headers from the first service
-            // Excluding objects/arrays and internal fields
-            const allKeys = Object.keys(services[0]).filter(k => 
-                typeof services[0][k] !== 'object' && 
-                !k.startsWith('_')
-            );
-            
-            // Create a unique set of headers to ensure no duplicates
-            const baseHeaders = Array.from(new Set([
-                'id', 'consecutivo', 'created_at', 'estado_agendamiento', 'tipo_de_servicio', 
-                'numero_de_pedido', 'consumidor_nombre', 'consumidor_cedula', 'consumidor_telefono',
-                'consumidor_ciudad', 'consumidor_direccion', 'ubicacion_nombre', 'ubicacion_ciudad',
-                'asesor_nombre', 'tecnico_nombre', 'coordinador_nombre', 'asesor_mac_nombre',
-                ...allKeys
-            ]));
-
             let allProducts: any[] = [];
             if (includeProducts) {
                 const serviceIds = finalServicesToExport.map(s => s.id);
@@ -160,46 +184,83 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
                 }
             }
 
-            const headers = [...baseHeaders];
+            const headers = BASE_COLUMNS.map(c => c.key);
             if (includeProducts) {
-                headers.push('Producto_Referencia', 'Producto_Descripcion', 'Producto_Cantidad');
+                headers.push('PRODUCTOS', 'CANTIDAD');
             }
             if (includeParts) {
-                headers.push('Repuesto_Referencia', 'Repuesto_Descripcion', 'Repuesto_Cantidad');
+                headers.push('REPUESTOS', includeProducts ? 'CANTIDAD_REPUESTOS' : 'CANTIDAD');
             }
             csvRows = [headers];
 
             finalServicesToExport.forEach(s => {
-                const sProducts = includeProducts ? allProducts.filter(p => p.servicio_id === s.id) : [];
-                const sParts = includeParts ? allParts.filter(p => p.servicio_id === s.id) : [];
-                
-                const maxRows = Math.max(1, sProducts.length, sParts.length);
-                
+                // Preparar lista de productos para este servicio
+                let sProductsList: { desc: string; cant: number | string }[] = [];
+                if (includeProducts) {
+                    const sProducts = allProducts.filter(p => p.servicio_id === s.id);
+                    if (sProducts.length > 0) {
+                        sProductsList = sProducts.map(p => {
+                            const prod = p.Productos || p.producto || {};
+                            const nombre = prod.nombre || prod.descripcion || prod.producto || '';
+                            const cant = p.cantidad ?? 1;
+                            const ref = prod.sku || prod.referencia || '';
+                            return {
+                                desc: `${nombre}${ref ? ` (${ref})` : ''}`.trim(),
+                                cant
+                            };
+                        }).filter((item: any) => item.desc);
+                    } else if (Array.isArray(s.productos) && s.productos.length > 0) {
+                        sProductsList = s.productos.map((p: any) => {
+                            const nombre = p.producto || p.nombre || '';
+                            const cant = p.cantidad ?? 1;
+                            return {
+                                desc: nombre.trim(),
+                                cant
+                            };
+                        }).filter((item: any) => item.desc);
+                    }
+                }
+
+                // Preparar lista de repuestos para este servicio
+                let sPartsList: { desc: string; cant: number | string }[] = [];
+                if (includeParts) {
+                    const sParts = allParts.filter(p => p.servicio_id === s.id);
+                    if (sParts.length > 0) {
+                        sPartsList = sParts.map(p => {
+                            const rep = p.Repuestos || p.repuesto || {};
+                            const nombre = rep.nombre || rep.descripcion || rep.repuesto || '';
+                            const cant = p.cantidad ?? 1;
+                            const ref = rep.sku || rep.referencia || '';
+                            return {
+                                desc: `${nombre}${ref ? ` (${ref})` : ''}`.trim(),
+                                cant
+                            };
+                        }).filter((item: any) => item.desc);
+                    }
+                }
+
+                // Si piden productos o repuestos, repetir filas con la misma información del servicio
+                const maxRows = Math.max(
+                    1,
+                    includeProducts ? sProductsList.length : 0,
+                    includeParts ? sPartsList.length : 0
+                );
+
                 for (let i = 0; i < maxRows; i++) {
-                    const row = baseHeaders.map(h => formatCsvField(s[h]));
-                    
+                    const row = BASE_COLUMNS.map(c => formatCsvField(c.getValue(s)));
+
                     if (includeProducts) {
-                        if (i < sProducts.length) {
-                            const prod = sProducts[i].producto || sProducts[i].Productos || sProducts[i].productos || {};
-                            const ref = prod.referencia || prod.codigo || prod.id || '';
-                            const desc = prod.descripcion || prod.nombre || prod.producto || '';
-                            row.push(formatCsvField(ref), formatCsvField(desc), formatCsvField(sProducts[i].cantidad));
-                        } else {
-                            row.push('', '', '');
-                        }
+                        const item = sProductsList[i];
+                        row.push(formatCsvField(item?.desc || ''));
+                        row.push(formatCsvField(item?.cant !== undefined ? item.cant : ''));
                     }
-                    
+
                     if (includeParts) {
-                        if (i < sParts.length) {
-                            const part = sParts[i].repuesto || sParts[i].Repuestos || sParts[i].repuestos || {};
-                            const ref = part.referencia || part.codigo || part.id || '';
-                            const desc = part.descripcion || part.nombre || part.repuesto || '';
-                            row.push(formatCsvField(ref), formatCsvField(desc), formatCsvField(sParts[i].cantidad));
-                        } else {
-                            row.push('', '', '');
-                        }
+                        const item = sPartsList[i];
+                        row.push(formatCsvField(item?.desc || ''));
+                        row.push(formatCsvField(item?.cant !== undefined ? item.cant : ''));
                     }
-                    
+
                     csvRows.push(row);
                 }
             });
@@ -265,8 +326,8 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
                             <FileText className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black text-indigo-900">General (Todas las columnas)</h3>
-                            <p className="text-xs font-medium text-indigo-600">Exportar todos los datos de los servicios listados, incluyendo el técnico.</p>
+                            <h3 className="text-sm font-black text-indigo-900">General (Columnas principales)</h3>
+                            <p className="text-xs font-medium text-indigo-600">Exporta las columnas base del servicio, cliente y técnico.</p>
                         </div>
                     </div>
 
@@ -283,7 +344,7 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
                         </div>
                         <div className="flex-1">
                             <h3 className={`text-sm font-black ${includeProducts ? 'text-emerald-900' : 'text-slate-700'}`}>Incluir Productos</h3>
-                            <p className={`text-xs font-medium ${includeProducts ? 'text-emerald-600' : 'text-slate-500'}`}>Incluye las columnas de los productos asociados a cada servicio.</p>
+                            <p className={`text-xs font-medium ${includeProducts ? 'text-emerald-600' : 'text-slate-500'}`}>Incluye la columna PRODUCTOS asociada a cada servicio.</p>
                         </div>
                         <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${includeProducts ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300'}`}>
                             {includeProducts && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
@@ -303,7 +364,7 @@ export default function ModalExportarCSV({ isOpen, onClose, services }: ModalExp
                         </div>
                         <div className="flex-1">
                             <h3 className={`text-sm font-black ${includeParts ? 'text-amber-900' : 'text-slate-700'}`}>Incluir Repuestos</h3>
-                            <p className={`text-xs font-medium ${includeParts ? 'text-amber-600' : 'text-slate-500'}`}>Incluye las columnas de los repuestos utilizados en cada servicio.</p>
+                            <p className={`text-xs font-medium ${includeParts ? 'text-amber-600' : 'text-slate-500'}`}>Incluye la columna REPUESTOS asociada a cada servicio.</p>
                         </div>
                         <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${includeParts ? 'border-amber-500 bg-amber-500' : 'border-slate-300'}`}>
                             {includeParts && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}

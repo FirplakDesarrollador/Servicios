@@ -13,6 +13,53 @@ interface BuscadorRepuestosProps {
     onClose: () => void;
 }
 
+function getSearchVariants(token: string): string[] {
+    const raw = token.trim();
+    if (!raw) return [];
+    
+    // Normalization removing accents: á->a, é->e, í->i, ó->o, ú->u
+    const unaccented = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const variants = new Set<string>();
+    variants.add(raw);
+    variants.add(unaccented);
+
+    if (/bano/i.test(raw)) {
+        variants.add(raw.replace(/bano/gi, 'baño'));
+    }
+    if (/baño/i.test(raw)) {
+        variants.add(raw.replace(/baño/gi, 'bano'));
+    }
+    if (raw.includes('ñ') || raw.includes('Ñ')) {
+        variants.add(raw.replace(/ñ/gi, 'n'));
+        variants.add(raw.replace(/Ñ/gi, 'N'));
+    }
+
+    return Array.from(variants).filter(Boolean);
+}
+
+function sanitizeToken(str: string): string {
+    return str.replace(/[,()%.]/g, '').trim();
+}
+
+function rankRepuesto(item: any, rawQuery: string, tokens: string[]): number {
+    const rawLower = rawQuery.toLowerCase().trim();
+    const rawNoAccent = rawLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const sku = (item.sku || '').toLowerCase();
+    const skuNoAccent = sku.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const nombre = (item.nombre || '').toLowerCase();
+    const nombreNoAccent = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    if (sku === rawLower || skuNoAccent === rawNoAccent) return 1000;
+    if (sku.startsWith(rawLower) || skuNoAccent.startsWith(rawNoAccent)) return 800;
+    if (nombre.includes(rawLower) || nombreNoAccent.includes(rawNoAccent)) return 600;
+    if (tokens.some(t => nombre.startsWith(t) || nombreNoAccent.startsWith(t))) return 400;
+    if (sku.includes(rawLower) || skuNoAccent.includes(rawNoAccent)) return 300;
+    return 100;
+}
+
 export default function BuscadorRepuestos({ repuestosSeleccionados, onAdd, onRemove, onUpdateQuantity, onClose }: BuscadorRepuestosProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<any[]>([]);
@@ -26,19 +73,46 @@ export default function BuscadorRepuestos({ repuestosSeleccionados, onAdd, onRem
             try {
                 let query = supabase
                     .from('Repuestos')
-                    .select('*')
-                    .limit(50);
+                    .select('*');
 
-                if (searchTerm) {
-                    query = query.or(`nombre.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`);
-                } else {
-                    query = query.order('nombre', { ascending: true });
+                const tokens = searchTerm.trim().split(/\s+/).filter(Boolean);
+
+                if (tokens.length > 0) {
+                    tokens.forEach(token => {
+                        const variants = getSearchVariants(token).map(sanitizeToken).filter(Boolean);
+                        if (variants.length > 0) {
+                            const orClauses: string[] = [];
+                            variants.forEach(v => {
+                                orClauses.push(
+                                    `nombre.ilike.%${v}%`,
+                                    `sku.ilike.%${v}%`
+                                );
+                            });
+                            query = query.or(orClauses.join(','));
+                        }
+                    });
                 }
 
-                const { data, error } = await query;
+                const { data, error } = await query
+                    .order('nombre', { ascending: true })
+                    .limit(150);
 
                 if (error) throw error;
-                setResults(data || []);
+                
+                let sortedData = data || [];
+                if (searchTerm.trim() && sortedData.length > 0) {
+                    const cleanTokens = tokens.map(t => t.toLowerCase());
+                    sortedData.sort((a, b) => {
+                        const scoreA = rankRepuesto(a, searchTerm, cleanTokens);
+                        const scoreB = rankRepuesto(b, searchTerm, cleanTokens);
+                        if (scoreB !== scoreA) {
+                            return scoreB - scoreA;
+                        }
+                        return (a.nombre || '').localeCompare(b.nombre || '');
+                    });
+                }
+
+                setResults(sortedData);
                 setSearchError(null);
             } catch (err: any) {
                 console.error('Error searching repuestos:', err);
@@ -48,7 +122,7 @@ export default function BuscadorRepuestos({ repuestosSeleccionados, onAdd, onRem
             }
         };
 
-        const timer = setTimeout(search, 500);
+        const timer = setTimeout(search, 350);
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
@@ -86,10 +160,20 @@ export default function BuscadorRepuestos({ repuestosSeleccionados, onAdd, onRem
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="sku / descripcion"
-                                className="w-full h-12 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-bold"
+                                placeholder="Buscar por palabras clave o SKU (ej: pulsador blanco, VHEM, válvula...)"
+                                className="w-full h-12 pl-11 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
                             />
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 transition-colors"
+                                    title="Limpiar búsqueda"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

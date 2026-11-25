@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,6 +53,18 @@ interface SolicitarServicioProps {
 }
 
 export default function SolicitarServicioPage(props: any) {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[var(--c-suave)]">
+                <Loader2 className="w-10 h-10 animate-spin text-brand" />
+            </div>
+        }>
+            <SolicitarServicioContent {...props} />
+        </Suspense>
+    );
+}
+
+function SolicitarServicioContent(props: any) {
     const { isInline = false, defaultSolicitudId, onSuccess } = props || {};
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -196,7 +208,7 @@ export default function SolicitarServicioPage(props: any) {
                         contacto: solicitudData.nombre_razon_social,
                         telefono: solicitudData.telefono,
                         direccion: solicitudData.direccion,
-                        ciudad: solicitudData.ciudad,
+                        ciudad: (solicitudData.ciudad || '').trim(),
                         correo_electronico: solicitudData.correo_electronico,
                         _search_type: 'consumidor'
                     });
@@ -496,7 +508,18 @@ export default function SolicitarServicioPage(props: any) {
                     const { data: cityData } = await supabase.from('Ciudades').select('zona_id').eq('id', clienteFinalSeleccionado.ciudad_id).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 } else if (clienteFinalSeleccionado.ciudad) {
-                    const { data: cityData } = await supabase.from('Ciudades').select('zona_id').ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`).limit(1).maybeSingle();
+                    const ciudadNombre = (clienteFinalSeleccionado.ciudad || '').trim();
+                    let { data: cityData } = await supabase.from('Ciudades').select('zona_id').ilike('ciudad', `%${ciudadNombre}%`).limit(1).maybeSingle();
+                    if (!cityData && ciudadNombre) {
+                        const { data: allCities } = await supabase.from('Ciudades').select('id, ciudad, zona_id');
+                        const normalize = (str: string) => str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        const target = normalize(ciudadNombre);
+                        const match = (allCities || []).find(c => {
+                            const cNorm = normalize(c.ciudad || '');
+                            return cNorm === target || target.includes(cNorm) || cNorm.includes(target);
+                        });
+                        if (match) cityData = { zona_id: match.zona_id };
+                    }
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 }
             }
@@ -505,19 +528,34 @@ export default function SolicitarServicioPage(props: any) {
             let finalConsumidorId = llevaClienteFinal ? (clienteFinalSeleccionado?.id || null) : null;
             if (llevaClienteFinal && clienteFinalSeleccionado && !clienteFinalSeleccionado.id) {
                 let ciudadId = null;
-                if (clienteFinalSeleccionado.ciudad) {
-                    const { data: cityData } = await supabase
+                const ciudadNombre = (clienteFinalSeleccionado.ciudad || '').trim();
+                if (ciudadNombre) {
+                    let { data: cityData } = await supabase
                         .from('Ciudades')
                         .select('id, zona_id')
-                        .ilike('ciudad', `%${clienteFinalSeleccionado.ciudad}%`)
+                        .ilike('ciudad', `%${ciudadNombre}%`)
                         .limit(1)
                         .maybeSingle();
+
+                    if (!cityData) {
+                        const { data: allCities } = await supabase.from('Ciudades').select('id, ciudad, zona_id');
+                        const normalize = (str: string) => str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        const target = normalize(ciudadNombre);
+                        const match = (allCities || []).find(c => {
+                            const cNorm = normalize(c.ciudad || '');
+                            return cNorm === target || target.includes(cNorm) || cNorm.includes(target);
+                        });
+                        if (match) {
+                            cityData = { id: match.id, zona_id: match.zona_id };
+                        }
+                    }
+
                     if (cityData) {
                         ciudadId = cityData.id;
                         if (!zoneId && cityData.zona_id) {
                             zoneId = cityData.zona_id;
                         }
-                    } else if (clienteFinalSeleccionado.ciudad) {
+                    } else if (ciudadNombre) {
                         alert(`No se encontró la ciudad "${clienteFinalSeleccionado.ciudad}" en el sistema. Por favor corrija el nombre o agréguela en la base de datos.`);
                         setIsSaving(false);
                         return;
@@ -551,7 +589,18 @@ export default function SolicitarServicioPage(props: any) {
                     const { data: cityData } = await supabase.from('Ciudades').select('zona_id').eq('id', clienteSeleccionado.ciudad_id).maybeSingle();
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 } else if (clienteSeleccionado.ciudad) {
-                    const { data: cityData } = await supabase.from('Ciudades').select('zona_id').ilike('ciudad', `%${clienteSeleccionado.ciudad}%`).limit(1).maybeSingle();
+                    const ciudadNombre = (clienteSeleccionado.ciudad || '').trim();
+                    let { data: cityData } = await supabase.from('Ciudades').select('zona_id').ilike('ciudad', `%${ciudadNombre}%`).limit(1).maybeSingle();
+                    if (!cityData && ciudadNombre) {
+                        const { data: allCities } = await supabase.from('Ciudades').select('id, ciudad, zona_id');
+                        const normalize = (str: string) => str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        const target = normalize(ciudadNombre);
+                        const match = (allCities || []).find(c => {
+                            const cNorm = normalize(c.ciudad || '');
+                            return cNorm === target || target.includes(cNorm) || cNorm.includes(target);
+                        });
+                        if (match) cityData = { zona_id: match.zona_id };
+                    }
                     if (cityData?.zona_id) zoneId = cityData.zona_id;
                 }
             }
@@ -648,6 +697,12 @@ export default function SolicitarServicioPage(props: any) {
                     ? servicioData
                     : (servicioData as any)?.id ?? (servicioData as any)?.servicio_id ?? null;
                 await guardarDireccionEnServicio({ id: idCreado, consecutivo }, direccionServicio.id);
+            }
+
+            // Eliminar la solicitud de la lista de pendientes si se creó a partir de una solicitud web
+            const solicitudActualId = defaultSolicitudId || searchParams.get('solicitud_id');
+            if (solicitudActualId) {
+                await supabase.from('solicitudes_clientes').delete().eq('id', solicitudActualId);
             }
 
             alert('Servicio creado correctamente');

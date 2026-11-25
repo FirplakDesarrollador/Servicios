@@ -157,7 +157,8 @@ export default function BaseDatosPage() {
                         query = query.or(`nombre.ilike.%${searchTerm}%,cliente_nombre.ilike.%${searchTerm}%,nit.ilike.%${searchTerm}%,direccion.ilike.%${searchTerm}%`);
                     }
                     if (userProfileRef.current?.rol === 'comercial') {
-                        query = query.eq('asesor_id', userProfileRef.current.id);
+                        const validIds = [userProfileRef.current.id, ...(userProfileRef.current.id_colaboradores || [])];
+                        query = query.in('asesor_id', validIds);
                     }
                     query = query.order('cliente_nombre').range(from, to);
                     break;
@@ -206,7 +207,7 @@ export default function BaseDatosPage() {
 
             const { data: profile } = await supabase
                 .from('Usuarios')
-                .select('id, rol')
+                .select('id, rol, id_colaboradores')
                 .eq('user_id', session.user.id)
                 .single();
 
