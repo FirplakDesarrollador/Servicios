@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Paleta: navy, oliva, crema y negro ───────────────────────────────────
+/* ── Paleta: navy, oliva y negro sobre blanco ───────────────────────────────────
    Cada pantalla usa estos tokens; el tema solo cambia sus valores. Las clases
    slate/stone/gray de Tailwind se remapean aquí para que toda la app los herede. */
 :root {
@@ -20,8 +20,8 @@
   --c-oliva-texto: #57652f;
   --c-apagado: #6f706a;
   --c-linea: rgb(27 50 80 / 0.14);
-  --c-crema-sup: #f3ecdc;
-  --c-suave: rgb(255 252 244 / 0.55);
+  --c-crema-sup: #f4f6f8;
+  --c-suave: rgb(255 255 255 / 0.55);
 
   /* Series de las gráficas */
   --serie-navy: #1b3250;
@@ -30,12 +30,12 @@
   --serie-petroleo: #3f6c7d;
 
   /* Vidrio */
-  --sup: 255 254 251;
+  --sup: 255 255 255;
   --vidrio: 0.6;
   --vidrio-borde: rgb(255 255 255 / 0.65);
   --vidrio-brillo: rgb(255 255 255 / 0.7);
   --vidrio-sombra: rgb(18 35 56 / 0.2);
-  --lienzo: #f3f1ec;
+  --lienzo: #ffffff;
   --mancha-a: rgb(27 50 80 / 0.2);
   --mancha-b: rgb(47 80 117 / 0.16);
   --mancha-c: rgb(255 255 255 / 0.75);
@@ -44,10 +44,10 @@
   --cursor-grafica: rgb(27 50 80 / 0.08);
 
   /* Neutros */
-  --n-50: #f8f4ea;
-  --n-100: #efe9da;
-  --n-200: #e2dbc9;
-  --n-300: #cbc5b3;
+  --n-50: #f7f8fa;
+  --n-100: #eef0f3;
+  --n-200: #e1e4e9;
+  --n-300: #c9cdd4;
   --n-400: #74756e;
   --n-500: #63666a;
   --n-600: #4c5259;
