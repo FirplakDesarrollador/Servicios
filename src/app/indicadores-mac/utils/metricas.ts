@@ -6,16 +6,27 @@ export const SLA_DIAS_HABILES = 15;
 /** Días hábiles del caso: hasta la verificación si está cerrado; hasta hoy si sigue abierto. */
 const diasDelCaso = (d: RegistroMAC) => (d._tiempoCierre != null ? d._tiempoCierre : d._diasHabilesAbierta ?? 0);
 
-/** El caso superó el SLA: cerrado tarde o abierto que ya pasó el plazo. */
-export const estaFueraDeSla = (d: RegistroMAC) => diasDelCaso(d) > SLA_DIAS_HABILES;
+// ── Mercado ────────────────────────────────────────────────────────────────────
+// El SLA de 15 días hábiles es solo del mercado nacional: reponer en Panamá o Ecuador tarda
+// mucho más, así que el internacional no tiene meta; solo se mide su tiempo promedio de cierre.
+// "Sin clasificar" se toma como nacional (la gran mayoría de clientes son locales).
+export const esInternacional = (d: RegistroMAC) => d._mercado === 'Internacional';
+
+/** Casos que se miden contra el SLA (mercado nacional). */
+export const casosConSla = (data: RegistroMAC[]) => data.filter((d) => !esInternacional(d));
+
+/** El caso superó el SLA: cerrado tarde o abierto que ya pasó el plazo. Un internacional nunca, porque no tiene meta. */
+export const estaFueraDeSla = (d: RegistroMAC) => !esInternacional(d) && diasDelCaso(d) > SLA_DIAS_HABILES;
 
 /**
- * % de cumplimiento oficial: casos (cerrados y abiertos) que no han superado el SLA sobre el total.
+ * % de cumplimiento oficial, solo mercado nacional: casos (cerrados y abiertos) que no han superado el SLA sobre el total.
  * Decisión de negocio: un abierto vencido también descuenta, aunque aún no se haya resuelto.
+ * Devuelve 0 si no hay casos nacionales.
  */
 export function porcentajeCumplimiento(data: RegistroMAC[]): number {
-    if (data.length === 0) return 0;
-    return ((data.length - data.filter(estaFueraDeSla).length) / data.length) * 100;
+    const nacional = casosConSla(data);
+    if (nacional.length === 0) return 0;
+    return ((nacional.length - nacional.filter(estaFueraDeSla).length) / nacional.length) * 100;
 }
 
 export const promedio = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
@@ -30,6 +41,19 @@ export function mediana(xs: number[]): number | null {
 /** Días hábiles reales de solución (creación → fecha de verificación) de los casos cerrados. */
 export const tiemposDeSolucion = (data: RegistroMAC[]) =>
     data.filter((d) => d.estado === 'Cerrado' && typeof d._tiempoCierre === 'number').map((d) => d._tiempoCierre as number);
+
+/** Mercado internacional (sin meta): días hábiles promedio de cierre y cuántos casos hay. */
+export function cierreInternacional(data: RegistroMAC[]) {
+    const internacional = data.filter(esInternacional);
+    const tiempos = tiemposDeSolucion(internacional);
+    return {
+        total: internacional.length,
+        cerrados: tiempos.length,
+        abiertos: internacional.filter((d) => d.estado !== 'Cerrado').length,
+        promedio: promedio(tiempos),
+        mediana: mediana(tiempos),
+    };
+}
 
 // ── Problemas repetidos ────────────────────────────────────────────────────────
 // Un distribuidor tiene muchos radicados por volumen; lo que afecta la experiencia es que

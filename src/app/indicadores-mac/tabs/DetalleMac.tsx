@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useDeferredValue } from 'react';
-import { porcentajeCumplimiento } from '../utils/metricas';
+import { casosConSla, cierreInternacional, porcentajeCumplimiento, promedio, tiemposDeSolucion } from '../utils/metricas';
 import { TendenciaSlaCard } from '../components/ServicioCards';
 import { RegistroMAC, FilterState } from '../types';
 import { ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
@@ -75,11 +75,10 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
     const valorInvertidoTotal = cerradas.reduce((acc, curr) => acc + (curr._valorInvertido || 0), 0);
     const costoPromedio = cerradas.length > 0 ? valorInvertidoTotal / cerradas.length : 0;
     
-    const tiempoPromedioCierre = cerradas.length > 0 
-        ? cerradas.reduce((acc, curr) => acc + (curr._tiempoCierre || 0), 0) / cerradas.length 
-        : 0;
+    const tiempoPromedioCierre = promedio(tiemposDeSolucion(casosConSla(cerradas))) ?? 0;
 
     const porcCumplimiento = porcentajeCumplimiento(dataConRiesgo);
+    const internacional = cierreInternacional(dataConRiesgo);
 
     const backlog = abiertas.length;
     const enRiesgoODemandante = abiertas.filter(d => d._estadoRiesgo === 'Riesgo de demanda' || d._estadoRiesgo === 'Demandante').length;
@@ -158,7 +157,8 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
             }
         }
 
-        const sourceData = dataForMesPresupuesto ? applyLocalSearch(dataForMesPresupuesto) : dataConRiesgo;
+        // Solo mercado nacional: el internacional no tiene meta de 15 días hábiles.
+        const sourceData = casosConSla(dataForMesPresupuesto ? applyLocalSearch(dataForMesPresupuesto) : dataConRiesgo);
 
         sourceData.forEach(d => {
             const created = new Date(d.created_at);
@@ -415,14 +415,15 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
     return (
         <div className="space-y-6 animate-fade-in">
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 xl:grid-cols-9 gap-4">
                 <KpiCard title="Total Solicitudes" value={total} />
                 <KpiCard title="Prom. Ingreso Día" value={promIngresoDia} suffix=" rads" subtitle="Diario" />
                 <KpiCard title="Prom. Ingreso Sem" value={promIngresoSemana} suffix=" rads" subtitle="Semanal" />
                 <KpiCard title="Cerradas" value={cerradas.length} subtitle={`${porcCierre.toFixed(1)}% de cierre`} />
                 <KpiCard title="Costo Promedio" value={Math.round(costoPromedio).toLocaleString('es-CO')} prefix="$" />
-                <KpiCard title="Tiempo Prom. Cierre" value={tiempoPromedioCierre} suffix=" días" subtitle="Días hábiles" />
-                <KpiCard title="% Cumplimiento" value={porcCumplimiento} suffix="%" />
+                <KpiCard title="Tiempo Prom. Cierre" value={tiempoPromedioCierre} suffix=" días" subtitle="Nacional · días hábiles" />
+                <KpiCard title="% Cumpl. Nacional" value={porcCumplimiento} suffix="%" subtitle="SLA 15 días hábiles" />
+                <KpiCard title="Cierre Internacional" value={internacional.promedio ?? '—'} suffix={internacional.promedio === null ? '' : ' días'} subtitle={`Prom. hábiles · ${internacional.cerrados} cerr. · ${internacional.abiertos} abiertos`} />
                 <KpiCard title="Backlog Operativo" value={backlog} />
             </div>
 
@@ -459,7 +460,7 @@ export default function DetalleMac({ data, dataForMesPresupuesto, dataForMesCrea
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-border xl:col-span-2">
-                    <h3 className="text-sm font-bold text-brand-dark mb-6 uppercase tracking-wider">Presupuesto de Cierre</h3>
+                    <h3 className="text-sm font-bold text-brand-dark mb-6 uppercase tracking-wider">Presupuesto de Cierre · Nacional</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={presupuestoData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>

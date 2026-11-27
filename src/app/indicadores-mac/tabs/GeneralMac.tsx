@@ -924,11 +924,13 @@ export const MercadosParticipacionCard = ({
         let tRegs = 0;
         let tProds = 0;
         let tInv = 0;
+        const casosPorMercado: Record<string, RegistroMAC[]> = {};
 
         sourceData.forEach(d => {
             const rawMercado = d._mercado || 'Sin clasificar';
             const m = rawMercado === 'Internacional' ? 'Internacional' : (rawMercado === 'Nacional' ? 'Nacional' : 'Sin clasificar');
             const cat = categories[m];
+            (casosPorMercado[m] ||= []).push(d);
             if (cat) {
                 cat.regs += 1;
                 tRegs += 1;
@@ -957,8 +959,11 @@ export const MercadosParticipacionCard = ({
             .map(cat => {
                 const pctRegsVal = (cat.regs / totalToUse) * 100;
                 const pctProdsVal = (cat.prods / totalProdsToUse) * 100;
+                const casos = casosPorMercado[cat.id] || [];
                 return {
                     ...cat,
+                    cumplimiento: cat.id !== 'Internacional' && casos.length ? porcentajeCumplimiento(casos) : null,
+                    diasCierre: promedio(tiemposDeSolucion(casos)),
                     participacionVal: pctRegsVal,
                     participacion: pctRegsVal.toFixed(1) + '%',
                     participacionProdsVal: pctProdsVal,
@@ -1122,6 +1127,16 @@ export const MercadosParticipacionCard = ({
                                 <span className="text-stone-500 text-[9px] truncate">
                                     Inv: <strong className="font-semibold text-stone-700">{formatMoney(cat.inversion)}</strong>
                                 </span>
+                                <span className="text-stone-300">|</span>
+                                {cat.id === 'Internacional' ? (
+                                    <span className="text-stone-600 text-[9px] truncate" title="Sin meta de SLA: días hábiles promedio de creación a verificación">
+                                        Cierre prom.: <strong className="font-bold text-brand-dark">{cat.diasCierre === null ? '—' : `${cat.diasCierre.toFixed(1)} d`}</strong>
+                                    </span>
+                                ) : (
+                                    <span className="text-stone-600 text-[9px] truncate" title="Cumplimiento SLA de 15 días hábiles (cerrados y abiertos vencidos)">
+                                        Cumpl.: <strong className="font-bold text-brand-dark">{cat.cumplimiento === null ? '—' : `${cat.cumplimiento.toFixed(1)}%`}</strong>
+                                    </span>
+                                )}
                             </div>
 
                             {/* Tooltip emergente inteligente: hacia abajo si no cabe arriba */}

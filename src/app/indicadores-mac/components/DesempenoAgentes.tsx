@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { FilterState, RegistroMAC } from '../types';
-import { estaFueraDeSla, mediana, promedio, tiemposDeSolucion } from '../utils/metricas';
+import { casosConSla, mediana, porcentajeCumplimiento, promedio, tiemposDeSolucion } from '../utils/metricas';
 
 // Tabla única de desempeño por agente. Dos fechas distintas, a propósito:
 //   · fecha_verificacion: solución real al cliente → cumplimiento y tiempo de solución.
@@ -72,7 +72,7 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                     participacion: data.length ? (casos.length / data.length) * 100 : 0,
                     abiertos: casos.length - cerrados.length,
                     cerrados: cerrados.length,
-                    cumplimiento: casos.length ? ((casos.length - casos.filter(estaFueraDeSla).length) / casos.length) * 100 : 0,
+                    cumplimiento: casosConSla(casos).length ? porcentajeCumplimiento(casos) : null,
                     tiempo: promedio(tiemposDeSolucion(casos)),
                     cierres,
                     desfase: mediana(desfases),
@@ -104,7 +104,7 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                             <th className={`${th} text-right`}>% del total</th>
                             <th className={`${th} text-right`}>Abiertos</th>
                             <th className={`${th} text-right`}>Cerrados</th>
-                            <th className={`${th} text-right`}>Cumplimiento</th>
+                            <th className={`${th} text-right`} title="Solo mercado nacional (SLA 15 días hábiles)">Cumpl. nacional</th>
                             <th className={`${th} text-right`}>Tiempo solución</th>
                             <th className={`${th} text-right`}>Cierres registrados</th>
                             <th className={`${th} text-right`}>Desfase (mediana)</th>
@@ -128,9 +128,13 @@ export default function DesempenoAgentes({ data, filters, onFilterToggle }: {
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums font-bold text-[var(--c-alerta)]">{a.abiertos}</td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums font-bold text-[var(--c-oliva-texto)]">{a.cerrados}</td>
                                     <td className="px-3 py-2.5 text-right">
-                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${a.cumplimiento >= 95 ? 'bg-emerald-100 text-emerald-700' : a.cumplimiento >= 85 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                                            {a.cumplimiento.toFixed(1)}%
-                                        </span>
+                                        {a.cumplimiento === null ? (
+                                            <span className="text-xs text-stone-400" title="Solo casos internacionales: no tienen meta de SLA">—</span>
+                                        ) : (
+                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${a.cumplimiento >= 95 ? 'bg-emerald-100 text-emerald-700' : a.cumplimiento >= 85 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                                {a.cumplimiento.toFixed(1)}%
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums">{a.tiempo === null ? '—' : `${a.tiempo.toFixed(1)} d`}</td>
                                     <td className="px-3 py-2.5 text-xs text-right tabular-nums">{a.cierres}</td>

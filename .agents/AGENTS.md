@@ -17,6 +17,7 @@
 
 ## Cumplimiento de SLA (definición única)
 - **% de cumplimiento oficial** = casos cerrados y abiertos que no han superado 15 días hábiles / total de casos. Un abierto vencido también descuenta.
+- **Solo mercado nacional:** el SLA de 15 días hábiles (cumplimiento, fuera de SLA y Presupuesto de Cierre) se mide solo con los casos nacionales ("Sin clasificar" cuenta como nacional). El mercado internacional no tiene meta: solo se muestra su tiempo promedio de cierre (`cierreInternacional`).
 - Días del caso: hasta `fecha_verificacion` si está cerrado (`_tiempoCierre`); hasta hoy si sigue abierto (`_diasHabilesAbierta`).
 - Se calcula solo con `src/app/indicadores-mac/utils/metricas.ts` (`porcentajeCumplimiento`, `estaFueraDeSla`). No repetir la fórmula en las hojas.
 

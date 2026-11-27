@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { RegistroMAC, FilterState } from '../types';
-import { porcentajeCumplimiento } from '../utils/metricas';
+import { casosConSla, porcentajeCumplimiento } from '../utils/metricas';
 import DesempenoAgentes from '../components/DesempenoAgentes';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { SearchIcon, DownloadIcon, SaveIcon, AlertCircleIcon, ExternalLinkIcon, AlertTriangleIcon } from 'lucide-react';
@@ -61,7 +61,7 @@ export default function AgentesMac({ data, prevData, filters, onFilterToggle, da
 
     const now = new Date();
     const currentMesPresupuestoKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const porCerrarPresupuesto = abiertas.filter(d => d._mesPresupuestoKey === currentMesPresupuestoKey);
+    const porCerrarPresupuesto = casosConSla(abiertas).filter(d => d._mesPresupuestoKey === currentMesPresupuestoKey);
 
     const checkMissingData = (d: any) => {
         const hasProductos = Array.isArray(d.productos_novedad) && d.productos_novedad.length > 0;
@@ -194,7 +194,7 @@ export default function AgentesMac({ data, prevData, filters, onFilterToggle, da
                 <KpiCard title="Ppto. a Cerrar" value={porCerrarPresupuesto.length} />
                 <KpiCard title="Cerradas" value={cerradas.length} />
                 <KpiCard title="% Cierre" value={porcCierre} suffix="%" />
-                <KpiCard title="% Cumplim." value={porcCumplimiento} suffix="%" />
+                <KpiCard title="% Cumplim. Nac." value={porcCumplimiento} suffix="%" />
                 <KpiCard title="Tiempo Prom." value={tiempoPromedioCierre} suffix="d" />
                 <KpiCard title="Val. Invertido" value={Math.round(valorInvertidoTotal).toLocaleString('es-CO')} prefix="$" />
             </div>

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Bar, CartesianGrid, Cell, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { FilterState, RegistroMAC } from '../types';
-import { SLA_DIAS_HABILES, estaFueraDeSla, promedio, tiemposDeSolucion } from '../utils/metricas';
+import { SLA_DIAS_HABILES, casosConSla, porcentajeCumplimiento, promedio, tiemposDeSolucion } from '../utils/metricas';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const card = 'bg-white rounded-2xl border border-border shadow-sm';
@@ -26,12 +26,13 @@ export function TendenciaSlaCard({ data, filters, onFilterToggle }: {
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([key, casos]) => {
                 const [y, m] = key.split('-');
-                const tiempo = promedio(tiemposDeSolucion(casos));
+                const nacional = casosConSla(casos);
+                const tiempo = promedio(tiemposDeSolucion(nacional));
                 return {
                     key,
                     mes: `${MESES[Number(m) - 1]} ${y.slice(2)}`,
                     Casos: casos.length,
-                    'Cumplimiento SLA %': Number((((casos.length - casos.filter(estaFueraDeSla).length) / casos.length) * 100).toFixed(1)),
+                    'Cumplimiento SLA %': nacional.length ? Number(porcentajeCumplimiento(nacional).toFixed(1)) : null,
                     'Días promedio': tiempo === null ? null : Number(tiempo.toFixed(1)),
                 };
             });
@@ -40,7 +41,7 @@ export function TendenciaSlaCard({ data, filters, onFilterToggle }: {
     return (
         <div className={`${card} p-6`}>
             <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
-                <h3 className={titulo}>Cumplimiento y tiempo de solución por mes</h3>
+                <h3 className={titulo}>Cumplimiento y tiempo de solución por mes · Nacional</h3>
                 <span className="text-[11px] text-stone-400">Mes de ingreso · clic en una barra para filtrar</span>
             </div>
             <div className="h-72">
