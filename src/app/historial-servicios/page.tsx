@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import ServiceHistoryCard from '@/components/historial/ServiceHistoryCard'
+import { parseLocalTimestamp } from '@/lib/dateUtils'
 
 interface User {
     id: number
@@ -50,14 +51,40 @@ export default function HistorialServiciosPage() {
     // Filtros
     const [selectedTechnician, setSelectedTechnician] = useState<number | null>(null)
     const [serviceStatus, setServiceStatus] = useState<boolean>(true) // true = pendientes, false = terminados
-    const [selectedDate, setSelectedDate] = useState<string>('')
+    const [startDate, setStartDate] = useState<string>('')
+    const [endDate, setEndDate] = useState<string>('')
     const [searchText, setSearchText] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
 
     useEffect(() => {
+        // Load saved filters on mount
+        const savedTech = sessionStorage.getItem('hs_tech')
+        if (savedTech) setSelectedTechnician(Number(savedTech))
+        const savedStatus = sessionStorage.getItem('hs_status')
+        if (savedStatus !== null) setServiceStatus(savedStatus === 'true')
+        const savedStartDate = sessionStorage.getItem('hs_startDate')
+        if (savedStartDate) setStartDate(savedStartDate)
+        const savedEndDate = sessionStorage.getItem('hs_endDate')
+        if (savedEndDate) setEndDate(savedEndDate)
+        const savedText = sessionStorage.getItem('hs_searchText')
+        if (savedText) setSearchText(savedText)
+        const savedQuery = sessionStorage.getItem('hs_searchQuery')
+        if (savedQuery) setSearchQuery(savedQuery)
+
         console.log('🔵 Component mounted, loading user and technicians...')
         loadUserAndTechnicians()
     }, [])
+
+    useEffect(() => {
+        if (!loading) {
+            if (selectedTechnician) sessionStorage.setItem('hs_tech', selectedTechnician.toString())
+            sessionStorage.setItem('hs_status', serviceStatus.toString())
+            sessionStorage.setItem('hs_startDate', startDate)
+            sessionStorage.setItem('hs_endDate', endDate)
+            sessionStorage.setItem('hs_searchText', searchText)
+            sessionStorage.setItem('hs_searchQuery', searchQuery)
+        }
+    }, [selectedTechnician, serviceStatus, startDate, endDate, searchText, searchQuery, loading])
 
     useEffect(() => {
         if (selectedTechnician) {
@@ -136,10 +163,14 @@ export default function HistorialServiciosPage() {
                 .order('display_name', { ascending: true })
 
             // Filtrar según rol del usuario
-            if (user.rol === 'tecnico' || user.rol === 'tecnico_externo') {
-                query = query.eq('id', user.id)
-            } else if (user.rol === 'supervisor_externo') {
-                query = query.eq('rol', 'tecnico_externo')
+            const isCotizaciones = user.correo?.toLowerCase().trim() === 'cotizaciones@firplak.co' || user.correo?.toLowerCase().trim() === 'cotizaciones@firplak.com'
+            
+            if (!isCotizaciones) {
+                if (user.rol === 'tecnico' || user.rol === 'tecnico_externo') {
+                    query = query.eq('id', user.id)
+                } else if (user.rol === 'supervisor_externo') {
+                    query = query.eq('rol', 'tecnico_externo')
+                }
             }
 
             const { data, error } = await query
@@ -181,7 +212,7 @@ export default function HistorialServiciosPage() {
                 .eq('reagendado', false)
                 .neq('nombre', 'Preagendado')
                 .not('fecha_hora_inicio', 'is', null)
-                .order('created_at', { ascending: false })
+                .order('fecha_hora_inicio', { ascending: false })
                 .limit(100)
 
             if (error) throw error
@@ -193,11 +224,14 @@ export default function HistorialServiciosPage() {
 
     // Filtrado de servicios
     const filteredServices = useMemo(() => {
-        return services.filter(service => {
-            // Filtro por fecha
-            if (selectedDate) {
-                const serviceDate = format(new Date(service.fecha_hora_inicio), 'yyyy-MM-dd')
-                if (serviceDate !== selectedDate) return false
+        let filtered = services.filter(service => {
+            // Filtro por fecha (rango)
+            if (startDate || endDate) {
+                const parsed = parseLocalTimestamp(service.fecha_hora_inicio)
+                if (!parsed) return false
+                const serviceDateStr = format(parsed, 'yyyy-MM-dd')
+                if (startDate && serviceDateStr < startDate) return false
+                if (endDate && serviceDateStr > endDate) return false
             }
 
             // Filtro por búsqueda
@@ -214,23 +248,37 @@ export default function HistorialServiciosPage() {
 
             return true
         })
-    }, [services, selectedDate, searchQuery])
+
+        // Ordenar de más nuevo a más viejo por fecha_hora_inicio
+        filtered.sort((a, b) => {
+            const dateA = a.fecha_hora_inicio ? new Date(a.fecha_hora_inicio).getTime() : 0
+            const dateB = b.fecha_hora_inicio ? new Date(b.fecha_hora_inicio).getTime() : 0
+            return dateB - dateA
+        })
+
+        return filtered
+    }, [services, startDate, endDate, searchQuery])
 
     const handleSearch = () => {
         setSearchQuery(searchText)
     }
 
     const handleClearFilters = () => {
-        setSelectedDate('')
+        setStartDate('')
+        setEndDate('')
         setSearchText('')
         setSearchQuery('')
+        sessionStorage.removeItem('hs_startDate')
+        sessionStorage.removeItem('hs_endDate')
+        sessionStorage.removeItem('hs_searchText')
+        sessionStorage.removeItem('hs_searchQuery')
     }
 
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#254153] mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--c-navy-texto)] mx-auto mb-4"></div>
                     <p className="text-slate-600">Cargando historial...</p>
                 </div>
             </div>
@@ -240,7 +288,7 @@ export default function HistorialServiciosPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#254153] to-[#1a2f3d] text-white shadow-lg">
+            <div className="bg-gradient-to-r from-[var(--c-navy)] to-[var(--c-navy-hondo)] text-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <button
@@ -265,13 +313,13 @@ export default function HistorialServiciosPage() {
                     <div className="flex flex-wrap gap-4">
                         {/* Selector de Técnico */}
                         <div className="flex-1 min-w-[250px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Técnico:
                             </label>
                             <select
                                 value={selectedTechnician || ''}
                                 onChange={(e) => setSelectedTechnician(Number(e.target.value))}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             >
                                 <option value="">Seleccione el técnico...</option>
                                 {technicians.map((tech) => (
@@ -284,35 +332,48 @@ export default function HistorialServiciosPage() {
 
                         {/* Estado del servicio */}
                         <div className="w-[200px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Estado del servicio
                             </label>
                             <select
                                 value={serviceStatus ? 'true' : 'false'}
                                 onChange={(e) => setServiceStatus(e.target.value === 'true')}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             >
                                 <option value="true">Pendientes</option>
                                 <option value="false">Terminados</option>
                             </select>
                         </div>
 
-                        {/* Fecha del servicio */}
-                        <div className="w-[180px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
-                                Fecha del servicio
+                        {/* Fecha Desde */}
+                        <div className="w-[160px]">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
+                                Desde (Fecha)
                             </label>
                             <input
                                 type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
+                            />
+                        </div>
+
+                        {/* Fecha Hasta */}
+                        <div className="w-[160px]">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
+                                Hasta (Fecha)
+                            </label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                             />
                         </div>
 
                         {/* Búsqueda avanzada */}
                         <div className="flex-1 min-w-[300px]">
-                            <label className="block text-sm font-semibold text-[#254153] mb-2">
+                            <label className="block text-sm font-semibold text-[var(--c-navy-texto)] mb-2">
                                 Búsqueda avanzada
                             </label>
                             <div className="flex gap-2">
@@ -322,18 +383,18 @@ export default function HistorialServiciosPage() {
                                     onChange={(e) => setSearchText(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                     placeholder="Ingrese texto a buscar..."
-                                    className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[#254153] focus:ring-2 focus:ring-[#254153]/20 outline-none transition-all text-slate-900 font-semibold"
+                                    className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-200 focus:border-[var(--c-navy-texto)] focus:ring-2 focus:ring-[var(--c-navy-texto)]/20 outline-none transition-all text-slate-900 font-semibold"
                                 />
                                 <button
                                     onClick={handleSearch}
-                                    className="p-2.5 bg-[#254153] text-white rounded-lg hover:bg-[#1a2f3d] transition-colors"
+                                    className="p-2.5 bg-[var(--c-navy)] text-white rounded-lg hover:bg-[var(--c-navy-hondo)] transition-colors"
                                     aria-label="Buscar"
                                 >
                                     <SearchIcon className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={handleClearFilters}
-                                    className="p-2.5 bg-slate-100 text-[#254153] rounded-lg hover:bg-slate-200 transition-colors"
+                                    className="p-2.5 bg-slate-100 text-[var(--c-navy-texto)] rounded-lg hover:bg-slate-200 transition-colors"
                                     aria-label="Limpiar filtros"
                                 >
                                     <RefreshCw className="w-5 h-5" />
@@ -352,7 +413,7 @@ export default function HistorialServiciosPage() {
                     >
                         <div className="mb-4">
                             <p className="text-sm text-slate-600">
-                                <span className="font-semibold text-[#254153]">Servicios: </span>
+                                <span className="font-semibold text-[var(--c-navy-texto)]">Servicios: </span>
                                 <span className="font-bold">{filteredServices.length}</span>
                             </p>
                         </div>
