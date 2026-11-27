@@ -2013,12 +2013,19 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                     return formatFromLocalInput(localStr);
                 };
 
+                const fechaInicioDB = withoutSchedule ? null : toLocalForDB(fechaInicio);
+                const fechaFinDB = withoutSchedule ? null : toLocalForDB(fechaFin);
+
                 const visitData = {
                     tecnico_id: selectedTechId,
-                    fecha_hora_inicio: withoutSchedule ? null : toLocalForDB(fechaInicio),
-                    fecha_hora_fin: withoutSchedule ? null : toLocalForDB(fechaFin),
+                    fecha_hora_inicio: fechaInicioDB,
+                    fecha_hora_fin: fechaFinDB,
                     servicio_id: service.id,
-                    nombre: service.consecutivo || `Servicio-${service.id}`,
+                    // Sin fecha, el nombre debe ser 'Preagendado' para que
+                    // la app de técnicos (FlutterFlow) no cargue esta visita en Mi agenda.
+                    nombre: fechaInicioDB
+                        ? (service.consecutivo || `Servicio-${service.id}`)
+                        : 'Preagendado',
                     estado: true,
                     recurrente: false,
                     reagendado: false,
