@@ -1837,7 +1837,7 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                 .eq('servicio_id', service.id)
                 .eq('estado', true)
                 .limit(1)
-                .single();
+                .maybeSingle();
             
             if (data) {
                 setSelectedTechId(data.tecnico_id);
@@ -1992,7 +1992,7 @@ function AgendamientoTab({ service, technicians, currentUser, onRefresh }: { ser
                     .select(`zona:Zonas ( coordinador_id )`)
                     .eq('tecnico_id', selectedTechId)
                     .limit(1)
-                    .single();
+                    .maybeSingle();
                 
                 const coordId = (techZone as any)?.zona?.coordinador_id;
                 if (coordId) finalCoordinadorId = coordId;
