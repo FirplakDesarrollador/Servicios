@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { sinPlantaDeCatalogo } from '@/lib/reglasRadicado';
 import { RegistroMAC, FilterState, QRRRecord } from './types';
 import Filters, { LiveFilters, LiveFiltersContext } from './components/Filters';
-import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, MessageCircleIcon, ShieldCheckIcon } from 'lucide-react';
+import { DownloadIcon, XIcon, ListFilterIcon, ArrowLeftIcon, LayoutDashboardIcon, ListChecksIcon, UsersIcon, FileTextIcon, MessageCircleIcon, ShieldCheckIcon, ReceiptTextIcon } from 'lucide-react';
 import DetalleRadicadosModal from './components/DetalleRadicadosModal';
 import { getBusinessDaysDifference, addBusinessDays } from './utils/businessDays';
 import { computeFilterViews, normalizeGrupo, normalizePlantaName } from './utils/filterEngine';
@@ -21,6 +21,7 @@ const AgentesMac = lazy(() => import('./tabs/AgentesMac').then(m => ({ default: 
 const InformeMac = lazy(() => import('./tabs/InformeMac').then(m => ({ default: React.memo(m.default) })));
 const QrrMac = lazy(() => import('./tabs/QrrMac').then(m => ({ default: React.memo(m.default) })));
 const WhatsappMac = lazy(() => import('./tabs/WhatsappMac'));
+const OfertasMac = lazy(() => import('./tabs/OfertasMac'));
 
 // ── Helpers para normalización de grupo / familia (normalizeGrupo / normalizePlantaName en utils/filterEngine) ──
 const getGrupoForProduct = (p: any): string => {
@@ -711,6 +712,7 @@ export default function IndicadoresMacPage() {
         { id: 3, label: 'Informe', icon: FileTextIcon },
         { id: 5, label: 'QRR', icon: ShieldCheckIcon },
         { id: 6, label: 'WhatsApp', icon: MessageCircleIcon },
+        { id: 7, label: 'Ofertas', icon: ReceiptTextIcon },
     ];
 
     if (loading) {
@@ -867,7 +869,11 @@ export default function IndicadoresMacPage() {
 
             <LiveFiltersContext.Provider value={liveFiltersCtx}>
             <main className={`flex-1 p-6 overflow-auto transition-opacity duration-150 ${isUpdating ? "opacity-70" : "opacity-100"}`}>
-                {activeTab === 6 ? (
+                {activeTab === 7 ? (
+                    <Suspense fallback={<TabFallback />}>
+                        <OfertasMac />
+                    </Suspense>
+                ) : activeTab === 6 ? (
                     <Suspense fallback={<TabFallback />}>
                         <WhatsappMac />
                     </Suspense>

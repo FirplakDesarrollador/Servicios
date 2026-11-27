@@ -188,6 +188,14 @@ API_SAP_URL=https://api.firplak.com/sap
 API_SAP_KEY=tu_api_key
 
 # -----------------------------------------------------------------------------
+# MICROSOFT 365 (hoja Ofertas: lee los Enviados de cotizaciones@ desde el navegador)
+# App registrada en Azure como "Aplicación de página única" con redirección
+# https://<dominio>/auth/microsoft y permiso delegado Mail.Read. No lleva secreto.
+# -----------------------------------------------------------------------------
+NEXT_PUBLIC_MS_CLIENT_ID=00000000-0000-0000-0000-000000000000
+NEXT_PUBLIC_MS_TENANT_ID=organizations
+
+# -----------------------------------------------------------------------------
 # WHATSAPP CLOUD API (META)
 # -----------------------------------------------------------------------------
 WHATSAPP_PHONE_NUMBER_ID=123456789012345
